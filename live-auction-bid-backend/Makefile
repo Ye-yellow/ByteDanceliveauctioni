@@ -1,8 +1,9 @@
-.PHONY: api run test tidy
+.PHONY: api run test tidy docker-up docker-down docker-logs
 
 GO ?= go
 PROTOC ?= protoc
 PROTOC_INC ?= third_party
+COMPOSE ?= docker compose
 
 api:
 	$(PROTOC) \
@@ -21,3 +22,12 @@ test:
 
 tidy:
 	$(GO) mod tidy
+
+docker-up:
+	cd deploy && $(COMPOSE) up -d --build
+
+docker-down:
+	cd deploy && $(COMPOSE) down
+
+docker-logs:
+	cd deploy && $(COMPOSE) logs -f --tail=200

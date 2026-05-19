@@ -1,3 +1,10 @@
 server:
   http:
     addr: ":18080"
+
+data:
+  mysql:
+    dsn: "auction:auction_dev@tcp(mysql:3306)/live_auction?parseTime=true&charset=utf8mb4&loc=Local"
+  redis:
+    addr: "redis:6379"
+    password: "auction_redis"

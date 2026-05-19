@@ -1,6 +1,7 @@
 package auction
 
 import (
+	"google.golang.org/protobuf/proto"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/clock"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
@@ -16,6 +17,6 @@ func newAuctionEvent(typ v1.AuctionEventType, lot *v1.Lot) v1.AuctionEvent {
 		RoomId:           lot.RoomId,
 		LotId:            lot.Id,
 		OccurredAtUnixMs: clock.NowMs(),
-		Lot:              CloneLot(lot),
+		Lot:              proto.Clone(lot).(*v1.Lot),
 	}
 }

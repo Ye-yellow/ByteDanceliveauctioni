@@ -1,0 +1,69 @@
+services:
+  auction-backend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: live-auction-bid-backend:local
+    container_name: live-auction-bid-backend
+    environment:
+      AUCTION_HTTP_ADDR: ":18080"
+      AUCTION_MYSQL_DSN: "auction:auction_dev@tcp(mysql:3306)/live_auction?parseTime=true&charset=utf8mb4&loc=Local"
+      AUCTION_REDIS_ADDR: "redis:6379"
+      AUCTION_REDIS_PASSWORD: "auction_redis"
+    ports:
+      - "18080:18080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - live-auction
+
+  mysql:
+    image: mysql:8.4
+    container_name: live-auction-mysql
+    environment:
+      MYSQL_DATABASE: live_auction
+      MYSQL_USER: auction
+      MYSQL_PASSWORD: auction_dev
+      MYSQL_ROOT_PASSWORD: auction_root
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    ports:
+      - "13306:3306"
+    volumes:
+      - live-auction-mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uauction -pauction_dev --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - live-auction
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: live-auction-redis
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "auction_redis"]
+    ports:
+      - "16379:6379"
+    volumes:
+      - live-auction-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "auction_redis", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - live-auction
+
+volumes:
+  live-auction-mysql:
+  live-auction-redis:
+
+networks:
+  live-auction:
+    driver: bridge

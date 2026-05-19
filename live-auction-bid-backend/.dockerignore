@@ -1,0 +1,13 @@
+.git
+.github
+.gitignore
+Dockerfile
+README.md
+docs
+openapi
+scripts
+workspace
+node_modules
+.tmp
+tmp
+*.log

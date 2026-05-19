@@ -24,6 +24,9 @@ func NewLotFromRequest(id string, req *v1.CreateLotRequest) (*v1.Lot, error) {
 	if req.GetRule().GetStartPrice().GetCurrency() == "" || req.GetRule().GetMinIncrement().GetCurrency() == "" {
 		return nil, errors.New("start price and min increment currency are required")
 	}
+	if req.GetRule().GetStartPrice().GetCurrency() != req.GetRule().GetMinIncrement().GetCurrency() {
+		return nil, errors.New("start price and min increment currency must match")
+	}
 	if req.GetRule().GetDurationSeconds() <= 0 || req.GetRule().GetAntiSnipeWindowSeconds() <= 0 ||
 		req.GetRule().GetAntiSnipeExtendSeconds() <= 0 || req.GetRule().GetMaxExtendCount() <= 0 {
 		return nil, errors.New("duration, anti-snipe window, anti-snipe extension and max extension count must be greater than zero")
@@ -47,7 +50,7 @@ func NewLotFromRequest(id string, req *v1.CreateLotRequest) (*v1.Lot, error) {
 		Status:        v1.LotStatus_LOT_STATUS_DRAFT,
 		Rule:          req.GetRule(),
 		CurrentPrice:  req.GetRule().GetStartPrice(),
-		FinalPrice:    CNY(0),
+		FinalPrice:    &v1.Money{Currency: req.GetRule().GetStartPrice().GetCurrency()},
 		Version:       1,
 		TrustCards:    trustCards,
 		DuelState:     &v1.DuelState{},
@@ -66,6 +69,12 @@ func NewLotFromRequest(id string, req *v1.CreateLotRequest) (*v1.Lot, error) {
 }
 
 func StartLot(lot *v1.Lot, nowMs int64) error {
+	if lot == nil {
+		return errors.New("lot is required")
+	}
+	if lot.GetRule() == nil || lot.GetRule().GetStartPrice() == nil {
+		return errors.New("lot bid rule and start price are required")
+	}
 	if lot.Status != v1.LotStatus_LOT_STATUS_DRAFT {
 		return fmt.Errorf("only draft lot can be started, current status: %s", lot.Status)
 	}
@@ -79,11 +88,26 @@ func StartLot(lot *v1.Lot, nowMs int64) error {
 }
 
 func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
+	if lot == nil {
+		return errors.New("lot is required")
+	}
+	if lot.GetRule() == nil || lot.GetRule().GetMinIncrement() == nil || lot.GetCurrentPrice() == nil {
+		return errors.New("lot rule, min increment and current price are required")
+	}
 	if lot.Status != v1.LotStatus_LOT_STATUS_LIVE {
 		return errors.New("lot is not live")
 	}
 	if lot.EndsAtUnixMs > 0 && nowMs > lot.EndsAtUnixMs {
 		return errors.New("auction has ended")
+	}
+	if bid.GetAmount() == nil || bid.GetAmount().GetCurrency() == "" {
+		return errors.New("bid amount and currency are required")
+	}
+	if bid.GetUserId() == "" || bid.GetNickname() == "" {
+		return errors.New("bid user id and nickname are required")
+	}
+	if bid.GetAmount().GetCurrency() != lot.GetCurrentPrice().GetCurrency() {
+		return errors.New("bid currency must match lot currency")
 	}
 	if bid.GetAmount().GetAmount() < lot.GetCurrentPrice().GetAmount()+lot.GetRule().GetMinIncrement().GetAmount() {
 		return errors.New("bid amount is lower than current price plus min increment")
@@ -95,7 +119,11 @@ func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 
 	remainingMs := lot.EndsAtUnixMs - nowMs
 	windowMs := int64(lot.GetRule().GetAntiSnipeWindowSeconds()) * 1000
-	if remainingMs > 0 && remainingMs <= windowMs && lot.GetDuelState().GetExtendCount() < lot.GetRule().GetMaxExtendCount() {
+	extendCount := int32(0)
+	if lot.DuelState != nil {
+		extendCount = lot.DuelState.ExtendCount
+	}
+	if remainingMs > 0 && remainingMs <= windowMs && extendCount < lot.GetRule().GetMaxExtendCount() {
 		lot.EndsAtUnixMs += int64(lot.GetRule().GetAntiSnipeExtendSeconds()) * 1000
 		if lot.DuelState == nil {
 			lot.DuelState = &v1.DuelState{}
@@ -108,6 +136,12 @@ func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 }
 
 func RevealTrustCard(lot *v1.Lot, cardID string, nowMs int64) (*v1.TrustRevealCard, error) {
+	if lot == nil {
+		return nil, errors.New("lot is required")
+	}
+	if cardID == "" {
+		return nil, errors.New("trust card id is required")
+	}
 	for _, card := range lot.TrustCards {
 		if card.Id == cardID {
 			card.Revealed = true
@@ -121,6 +155,9 @@ func RevealTrustCard(lot *v1.Lot, cardID string, nowMs int64) (*v1.TrustRevealCa
 }
 
 func StartDuel(lot *v1.Lot, ranking []*v1.RankingItem, nowMs int64) error {
+	if lot == nil {
+		return errors.New("lot is required")
+	}
 	if lot.Status != v1.LotStatus_LOT_STATUS_LIVE {
 		return errors.New("only live lot can enter duel mode")
 	}
@@ -149,6 +186,9 @@ func StartDuel(lot *v1.Lot, ranking []*v1.RankingItem, nowMs int64) error {
 }
 
 func SettleLot(lot *v1.Lot, nowMs int64) error {
+	if lot == nil {
+		return errors.New("lot is required")
+	}
 	if lot.Status != v1.LotStatus_LOT_STATUS_LIVE {
 		return fmt.Errorf("only live lot can be settled, current status: %s", lot.Status)
 	}
