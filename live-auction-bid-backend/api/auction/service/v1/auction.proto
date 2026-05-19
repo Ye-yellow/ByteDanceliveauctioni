@@ -1,0 +1,318 @@
+syntax = "proto3";
+
+package auction.service.v1;
+
+option go_package = "live-auction-bid/backend/api/auction/service/v1;v1";
+
+// AuctionService 是 V1 直播竞拍核心服务。
+//
+// V1 目标：
+// 1. 主播创建拍品；
+// 2. 设置竞拍规则；
+// 3. 开拍；
+// 4. 观众实时出价；
+// 5. 排行榜更新；
+// 6. 主播触发信任揭示卡片；
+// 7. 最后阶段进入 Duel Mode 展示；
+// 8. 落锤成交。
+//
+// 说明：
+// - 这里先定义业务契约，不写具体实现。
+// - HTTP 映射后续可通过 google.api.http 注解补充。
+// - WebSocket 事件复用 AuctionEvent 结构。
+service AuctionService {
+  // 创建拍品草稿。
+  rpc CreateLot(CreateLotRequest) returns (CreateLotReply);
+
+  // 查询拍品详情。
+  rpc GetLot(GetLotRequest) returns (GetLotReply);
+
+  // 查询直播间当前拍品列表。
+  rpc ListLots(ListLotsRequest) returns (ListLotsReply);
+
+  // 开拍：DRAFT -> LIVE。
+  rpc StartLot(StartLotRequest) returns (StartLotReply);
+
+  // 出价。
+  rpc PlaceBid(PlaceBidRequest) returns (PlaceBidReply);
+
+  // 主播揭示信任卡片。
+  rpc RevealTrustCard(RevealTrustCardRequest) returns (RevealTrustCardReply);
+
+  // 手动进入双人巅峰竞拍模式。
+  // V1 可以由系统规则触发，也保留主播/运营手动触发入口。
+  rpc StartDuel(StartDuelRequest) returns (StartDuelReply);
+
+  // 落锤成交：LIVE -> SETTLED。
+  rpc SettleLot(SettleLotRequest) returns (SettleLotReply);
+
+  // 获取直播间快照。
+  // 观众进入直播间或 WebSocket 重连后可拉取当前权威状态。
+  rpc GetRoomSnapshot(GetRoomSnapshotRequest) returns (GetRoomSnapshotReply);
+}
+
+// 金额统一使用最小货币单位，例如人民币分。
+message Money {
+  int64 amount = 1;
+  string currency = 2; // V1 默认 CNY。
+}
+
+enum LotStatus {
+  LOT_STATUS_UNSPECIFIED = 0;
+  LOT_STATUS_DRAFT = 1;     // 草稿，未开拍。
+  LOT_STATUS_LIVE = 2;      // 竞拍中。
+  LOT_STATUS_SETTLED = 3;   // 已落锤成交。
+  LOT_STATUS_CANCELLED = 4; // 已取消。
+}
+
+enum TrustCardType {
+  TRUST_CARD_TYPE_UNSPECIFIED = 0;
+  TRUST_CARD_TYPE_CERTIFICATE = 1; // 证书/鉴定信息。
+  TRUST_CARD_TYPE_FLAW = 2;        // 瑕疵说明。
+  TRUST_CARD_TYPE_DETAIL = 3;      // 细节图/细节说明。
+  TRUST_CARD_TYPE_SERVICE = 4;     // 售后/保真承诺。
+  TRUST_CARD_TYPE_PRICE_REF = 5;   // 参考价/历史价说明。
+}
+
+enum PlaybookStage {
+  PLAYBOOK_STAGE_UNSPECIFIED = 0;
+  PLAYBOOK_STAGE_WARM_UP = 1;        // 热场。
+  PLAYBOOK_STAGE_TRUST_BLOCKED = 2;  // 信任阻塞。
+  PLAYBOOK_STAGE_BIDDING_ACTIVE = 3; // 出价活跃。
+  PLAYBOOK_STAGE_DUEL_READY = 4;     // 接近双人争夺。
+  PLAYBOOK_STAGE_DUEL_MODE = 5;      // 双人巅峰竞拍中。
+  PLAYBOOK_STAGE_SETTLE_READY = 6;   // 可落锤。
+}
+
+enum AuctionEventType {
+  AUCTION_EVENT_TYPE_UNSPECIFIED = 0;
+  AUCTION_EVENT_TYPE_ROOM_SNAPSHOT = 1;
+  AUCTION_EVENT_TYPE_LOT_CREATED = 2;
+  AUCTION_EVENT_TYPE_LOT_STARTED = 3;
+  AUCTION_EVENT_TYPE_LOT_UPDATED = 4;
+  AUCTION_EVENT_TYPE_BID_ACCEPTED = 5;
+  AUCTION_EVENT_TYPE_BID_REJECTED = 6;
+  AUCTION_EVENT_TYPE_RANKING_UPDATED = 7;
+  AUCTION_EVENT_TYPE_TRUST_REVEALED = 8;
+  AUCTION_EVENT_TYPE_DUEL_STARTED = 9;
+  AUCTION_EVENT_TYPE_DUEL_ENDED = 10;
+  AUCTION_EVENT_TYPE_LOT_SETTLED = 11;
+}
+
+message BidRule {
+  Money start_price = 1;
+  Money min_increment = 2;
+  int32 duration_seconds = 3;
+
+  // 最后 N 秒内有人出价，则延长 M 秒。
+  int32 anti_snipe_window_seconds = 4;
+  int32 anti_snipe_extend_seconds = 5;
+
+  // 最多延时次数，避免无限延长。
+  int32 max_extend_count = 6;
+}
+
+message TrustRevealCard {
+  string id = 1;
+  string lot_id = 2;
+  TrustCardType type = 3;
+  string title = 4;
+  string content = 5;
+  string image_url = 6;
+  bool revealed = 7;
+  int64 revealed_at_unix_ms = 8;
+}
+
+message Bid {
+  string id = 1;
+  string lot_id = 2;
+  string user_id = 3;
+  string nickname = 4;
+  Money amount = 5;
+  int64 created_at_unix_ms = 6;
+}
+
+message RankingItem {
+  int32 rank = 1;
+  string user_id = 2;
+  string nickname = 3;
+  Money amount = 4;
+  int64 bid_at_unix_ms = 5;
+}
+
+message DuelState {
+  bool active = 1;
+  string lot_id = 2;
+  string user_a_id = 3;
+  string user_a_nickname = 4;
+  string user_b_id = 5;
+  string user_b_nickname = 6;
+  int64 started_at_unix_ms = 7;
+  int64 ends_at_unix_ms = 8;
+  int32 extend_count = 9;
+  int32 max_extend_count = 10;
+}
+
+message Lot {
+  string id = 1;
+  string room_id = 2;
+  string title = 3;
+  string description = 4;
+  string image_url = 5;
+  LotStatus status = 6;
+
+  BidRule rule = 7;
+  Money current_price = 8;
+  string leading_user_id = 9;
+  string leading_nickname = 10;
+
+  int64 started_at_unix_ms = 11;
+  int64 ends_at_unix_ms = 12;
+  int64 settled_at_unix_ms = 13;
+
+  string winner_user_id = 14;
+  string winner_nickname = 15;
+  Money final_price = 16;
+
+  int64 version = 17;
+  repeated TrustRevealCard trust_cards = 18;
+  DuelState duel_state = 19;
+  PlaybookStage playbook_stage = 20;
+}
+
+message RoomSnapshot {
+  string room_id = 1;
+  Lot current_lot = 2;
+  repeated RankingItem ranking = 3;
+  repeated Bid recent_bids = 4;
+  PlaybookStage playbook_stage = 5;
+  int64 server_time_unix_ms = 6;
+}
+
+message AuctionEvent {
+  string id = 1;
+  AuctionEventType type = 2;
+  string room_id = 3;
+  string lot_id = 4;
+  int64 occurred_at_unix_ms = 5;
+
+  // 事件载荷。不同事件只填对应字段。
+  Lot lot = 6;
+  Bid bid = 7;
+  repeated RankingItem ranking = 8;
+  TrustRevealCard trust_card = 9;
+  DuelState duel_state = 10;
+  RoomSnapshot snapshot = 11;
+
+  // 出价被拒绝等场景使用。
+  string reason = 12;
+}
+
+message CreateLotRequest {
+  string room_id = 1;
+  string title = 2;
+  string description = 3;
+  string image_url = 4;
+  BidRule rule = 5;
+  repeated TrustRevealCard trust_cards = 6;
+}
+
+message CreateLotReply {
+  Lot lot = 1;
+}
+
+message GetLotRequest {
+  string lot_id = 1;
+}
+
+message GetLotReply {
+  Lot lot = 1;
+}
+
+message ListLotsRequest {
+  string room_id = 1;
+  LotStatus status = 2;
+  int32 page_size = 3;
+  string page_token = 4;
+}
+
+message ListLotsReply {
+  repeated Lot lots = 1;
+  string next_page_token = 2;
+}
+
+message StartLotRequest {
+  string lot_id = 1;
+}
+
+message StartLotReply {
+  Lot lot = 1;
+  AuctionEvent event = 2;
+}
+
+message PlaceBidRequest {
+  string lot_id = 1;
+  string user_id = 2;
+  string nickname = 3;
+  Money amount = 4;
+
+  // 客户端已知版本，用于后续做乐观并发或提示前端状态过期。
+  int64 client_known_version = 5;
+
+  // 幂等键，避免网络重试导致重复出价。
+  string idempotency_key = 6;
+}
+
+message PlaceBidReply {
+  bool accepted = 1;
+  Lot lot = 2;
+  Bid bid = 3;
+  repeated RankingItem ranking = 4;
+  AuctionEvent event = 5;
+  string reject_reason = 6;
+}
+
+message RevealTrustCardRequest {
+  string lot_id = 1;
+  string card_id = 2;
+  string operator_id = 3;
+}
+
+message RevealTrustCardReply {
+  Lot lot = 1;
+  TrustRevealCard trust_card = 2;
+  AuctionEvent event = 3;
+}
+
+message StartDuelRequest {
+  string lot_id = 1;
+  string operator_id = 2;
+
+  // 可选。为空时服务端根据当前排名取 Top2。
+  string user_a_id = 3;
+  string user_b_id = 4;
+}
+
+message StartDuelReply {
+  Lot lot = 1;
+  DuelState duel_state = 2;
+  AuctionEvent event = 3;
+}
+
+message SettleLotRequest {
+  string lot_id = 1;
+  string operator_id = 2;
+}
+
+message SettleLotReply {
+  Lot lot = 1;
+  AuctionEvent event = 2;
+}
+
+message GetRoomSnapshotRequest {
+  string room_id = 1;
+}
+
+message GetRoomSnapshotReply {
+  RoomSnapshot snapshot = 1;
+}
