@@ -6,313 +6,679 @@ option go_package = "live-auction-bid/backend/api/auction/service/v1;v1";
 
 // AuctionService 是 V1 直播竞拍核心服务。
 //
-// V1 目标：
-// 1. 主播创建拍品；
-// 2. 设置竞拍规则；
-// 3. 开拍；
-// 4. 观众实时出价；
-// 5. 排行榜更新；
-// 6. 主播触发信任揭示卡片；
-// 7. 最后阶段进入 Duel Mode 展示；
-// 8. 落锤成交。
+// V1 只解决“一个直播间内，一个拍品从创建到落锤”的最小闭环：
+// - 主播/运营创建拍品和竞拍规则；
+// - 主播开拍；
+// - 观众进入直播间，获取当前快照；
+// - 观众实时出价；
+// - 系统更新当前价、领先者、排行榜；
+// - 主播触发信任揭示卡片；
+// - 最后阶段可进入 Duel Mode；
+// - 主播或系统落锤成交。
 //
-// 说明：
-// - 这里先定义业务契约，不写具体实现。
-// - HTTP 映射后续可通过 google.api.http 注解补充。
-// - WebSocket 事件复用 AuctionEvent 结构。
+// 设计边界：
+// - V1 暂不处理支付、订单履约、保证金、真实用户账号体系；
+// - V1 暂不接真实 AI 模型，玩法阶段先由规则或人工触发；
+// - V1 可以先使用单进程内存存储，后续再替换 Redis/MySQL；
+// - 该 proto 是前后端契约源头，后续可生成 OpenAPI 和 TypeScript 类型。
+//
+// 实时通信说明：
+// - HTTP/RPC 用于主动操作，例如创建拍品、出价、落锤；
+// - WebSocket 用于直播间广播，事件结构统一使用 AuctionEvent；
+// - 观众重连后可调用 GetRoomSnapshot 获取权威快照。
 service AuctionService {
   // 创建拍品草稿。
+  //
+  // 调用方：主播端/运营端。
+  // 输入：直播间 ID、商品基础信息、竞拍规则、信任揭示卡片。
+  // 输出：状态为 DRAFT 的拍品。
+  // 注意：创建后还没有开拍，观众不能出价。
   rpc CreateLot(CreateLotRequest) returns (CreateLotReply);
 
   // 查询拍品详情。
+  //
+  // 调用方：主播端、观众端、调试工具。
+  // 用途：查询某个拍品当前完整状态，包括当前价、领先者、玩法状态等。
   rpc GetLot(GetLotRequest) returns (GetLotReply);
 
-  // 查询直播间当前拍品列表。
+  // 查询直播间拍品列表。
+  //
+  // 调用方：主播端/运营端。
+  // 用途：查看某个直播间下的草稿、竞拍中、已成交拍品。
+  // V1 可以先只返回少量数据，分页字段为后续预留。
   rpc ListLots(ListLotsRequest) returns (ListLotsReply);
 
-  // 开拍：DRAFT -> LIVE。
+  // 开拍。
+  //
+  // 调用方：主播端/运营端。
+  // 状态流转：DRAFT -> LIVE。
+  // 服务端动作：设置 started_at、ends_at、current_price，并广播 LOT_STARTED。
   rpc StartLot(StartLotRequest) returns (StartLotReply);
 
   // 出价。
+  //
+  // 调用方：观众端。
+  // 服务端需要校验：
+  // - 拍品是否存在；
+  // - 拍品是否处于 LIVE；
+  // - 是否已经超时；
+  // - 出价是否大于等于 current_price + min_increment；
+  // - 幂等键是否重复。
+  // 成功后广播 BID_ACCEPTED、LOT_UPDATED、RANKING_UPDATED。
   rpc PlaceBid(PlaceBidRequest) returns (PlaceBidReply);
 
   // 主播揭示信任卡片。
+  //
+  // 调用方：主播端/运营端。
+  // 用途：在竞拍过程中展示证书、瑕疵、细节图、售后承诺等信息。
+  // 这是 V1 体现“非标品信任建立”的核心玩法。
   rpc RevealTrustCard(RevealTrustCardRequest) returns (RevealTrustCardReply);
 
-  // 手动进入双人巅峰竞拍模式。
-  // V1 可以由系统规则触发，也保留主播/运营手动触发入口。
+  // 进入双人巅峰竞拍模式。
+  //
+  // 调用方：主播端/运营端，后续也可以由规则引擎自动触发。
+  // 用途：最后阶段强化 Top2 竞价展示，制造直播间竞技感。
+  // V1 注意：Duel Mode 只是展示强化，不禁止其他观众继续合法出价。
   rpc StartDuel(StartDuelRequest) returns (StartDuelReply);
 
-  // 落锤成交：LIVE -> SETTLED。
+  // 落锤成交。
+  //
+  // 调用方：主播端/运营端，后续也可以由定时任务自动触发。
+  // 状态流转：LIVE -> SETTLED。
+  // 服务端动作：锁定 winner、final_price、settled_at，并广播 LOT_SETTLED。
   rpc SettleLot(SettleLotRequest) returns (SettleLotReply);
 
-  // 获取直播间快照。
-  // 观众进入直播间或 WebSocket 重连后可拉取当前权威状态。
+  // 获取直播间权威快照。
+  //
+  // 调用方：观众端。
+  // 用途：首次进入直播间、WebSocket 重连、前端状态不可信时，用它恢复当前状态。
   rpc GetRoomSnapshot(GetRoomSnapshotRequest) returns (GetRoomSnapshotReply);
 }
 
-// 金额统一使用最小货币单位，例如人民币分。
+// Money 表示金额。
+//
+// 统一使用最小货币单位，避免浮点误差。
+// 例如：
+// - 1 元人民币表示为 amount=100, currency="CNY"；
+// - V1 默认使用 CNY，但保留 currency 方便后续扩展。
 message Money {
+  // 金额最小单位，例如人民币分。
   int64 amount = 1;
-  string currency = 2; // V1 默认 CNY。
+
+  // 币种。V1 默认 CNY。
+  string currency = 2;
 }
 
+// LotStatus 表示拍品生命周期状态。
 enum LotStatus {
+  // 未指定。仅作为 proto3 默认值，不应作为业务状态使用。
   LOT_STATUS_UNSPECIFIED = 0;
-  LOT_STATUS_DRAFT = 1;     // 草稿，未开拍。
-  LOT_STATUS_LIVE = 2;      // 竞拍中。
-  LOT_STATUS_SETTLED = 3;   // 已落锤成交。
-  LOT_STATUS_CANCELLED = 4; // 已取消。
+
+  // 草稿状态。主播已创建拍品，但还没有开拍。
+  LOT_STATUS_DRAFT = 1;
+
+  // 竞拍中。观众可以出价，系统会广播价格和排名变化。
+  LOT_STATUS_LIVE = 2;
+
+  // 已落锤成交。当前价、赢家、成交时间被锁定。
+  LOT_STATUS_SETTLED = 3;
+
+  // 已取消。用于异常下架或主播主动取消。
+  LOT_STATUS_CANCELLED = 4;
 }
 
+// TrustCardType 表示信任揭示卡片类型。
+//
+// 信任揭示卡片用于解决珠宝、二奢等非标品“不敢拍”的问题。
+// V1 先由主播手动揭示，后续可以由 AI/规则引擎推荐揭示。
 enum TrustCardType {
+  // 未指定。
   TRUST_CARD_TYPE_UNSPECIFIED = 0;
-  TRUST_CARD_TYPE_CERTIFICATE = 1; // 证书/鉴定信息。
-  TRUST_CARD_TYPE_FLAW = 2;        // 瑕疵说明。
-  TRUST_CARD_TYPE_DETAIL = 3;      // 细节图/细节说明。
-  TRUST_CARD_TYPE_SERVICE = 4;     // 售后/保真承诺。
-  TRUST_CARD_TYPE_PRICE_REF = 5;   // 参考价/历史价说明。
+
+  // 证书/鉴定信息，例如鉴定证书编号、机构、检测结果。
+  TRUST_CARD_TYPE_CERTIFICATE = 1;
+
+  // 瑕疵说明，例如划痕、磨损、维修痕迹。
+  TRUST_CARD_TYPE_FLAW = 2;
+
+  // 细节信息，例如高清图、局部特写、材质说明。
+  TRUST_CARD_TYPE_DETAIL = 3;
+
+  // 售后/保真承诺，例如支持复检、假一赔三、退换规则。
+  TRUST_CARD_TYPE_SERVICE = 4;
+
+  // 参考价/历史价说明，例如同类成交价、专柜价、历史参考区间。
+  TRUST_CARD_TYPE_PRICE_REF = 5;
 }
 
+// PlaybookStage 表示直播竞拍玩法阶段。
+//
+// V1 不要求接 AI 自动判断，但先把阶段放进契约，方便前端展示和后续扩展。
 enum PlaybookStage {
+  // 未指定。
   PLAYBOOK_STAGE_UNSPECIFIED = 0;
-  PLAYBOOK_STAGE_WARM_UP = 1;        // 热场。
-  PLAYBOOK_STAGE_TRUST_BLOCKED = 2;  // 信任阻塞。
-  PLAYBOOK_STAGE_BIDDING_ACTIVE = 3; // 出价活跃。
-  PLAYBOOK_STAGE_DUEL_READY = 4;     // 接近双人争夺。
-  PLAYBOOK_STAGE_DUEL_MODE = 5;      // 双人巅峰竞拍中。
-  PLAYBOOK_STAGE_SETTLE_READY = 6;   // 可落锤。
+
+  // 热场阶段。围观、讲解、引导用户了解拍品。
+  PLAYBOOK_STAGE_WARM_UP = 1;
+
+  // 信任阻塞阶段。围观多但出价少，可能需要揭示证书/瑕疵/售后等信息。
+  PLAYBOOK_STAGE_TRUST_BLOCKED = 2;
+
+  // 出价活跃阶段。多人正在正常竞价。
+  PLAYBOOK_STAGE_BIDDING_ACTIVE = 3;
+
+  // 接近双人争夺。Top2 交替出价明显，可能进入 Duel Mode。
+  PLAYBOOK_STAGE_DUEL_READY = 4;
+
+  // 双人巅峰竞拍中。前端重点展示 Top2 PK。
+  PLAYBOOK_STAGE_DUEL_MODE = 5;
+
+  // 可落锤阶段。倒计时结束或主播可手动结束。
+  PLAYBOOK_STAGE_SETTLE_READY = 6;
 }
 
+// AuctionEventType 表示直播间实时事件类型。
+//
+// WebSocket 广播时使用。前端根据 type 决定如何更新 UI。
 enum AuctionEventType {
+  // 未指定。
   AUCTION_EVENT_TYPE_UNSPECIFIED = 0;
+
+  // 房间快照。通常在观众刚进入或重连时推送。
   AUCTION_EVENT_TYPE_ROOM_SNAPSHOT = 1;
+
+  // 拍品已创建。
   AUCTION_EVENT_TYPE_LOT_CREATED = 2;
+
+  // 拍品已开拍。
   AUCTION_EVENT_TYPE_LOT_STARTED = 3;
+
+  // 拍品状态已更新，例如当前价、倒计时、玩法阶段变化。
   AUCTION_EVENT_TYPE_LOT_UPDATED = 4;
+
+  // 出价成功。
   AUCTION_EVENT_TYPE_BID_ACCEPTED = 5;
+
+  // 出价失败，例如金额不足、拍品已结束、状态过期。
   AUCTION_EVENT_TYPE_BID_REJECTED = 6;
+
+  // 排行榜已更新。
   AUCTION_EVENT_TYPE_RANKING_UPDATED = 7;
+
+  // 信任卡片已揭示。
   AUCTION_EVENT_TYPE_TRUST_REVEALED = 8;
+
+  // Duel Mode 已开始。
   AUCTION_EVENT_TYPE_DUEL_STARTED = 9;
+
+  // Duel Mode 已结束。
   AUCTION_EVENT_TYPE_DUEL_ENDED = 10;
+
+  // 拍品已落锤成交。
   AUCTION_EVENT_TYPE_LOT_SETTLED = 11;
 }
 
+// BidRule 表示单个拍品的竞拍规则。
+//
+// V1 规则尽量简单，重点保证可解释：
+// - 起拍价；
+// - 最低加价幅度；
+// - 竞拍时长；
+// - 反狙击延时。
 message BidRule {
+  // 起拍价。开拍时 current_price 初始化为该值。
   Money start_price = 1;
+
+  // 最低加价幅度。新出价必须 >= 当前价 + 最低加价幅度。
   Money min_increment = 2;
+
+  // 竞拍总时长，单位秒。从 StartLot 时刻开始计算。
   int32 duration_seconds = 3;
 
-  // 最后 N 秒内有人出价，则延长 M 秒。
+  // 反狙击窗口。最后 N 秒内有人出价，则触发延时。
   int32 anti_snipe_window_seconds = 4;
+
+  // 反狙击延时时长，单位秒。
   int32 anti_snipe_extend_seconds = 5;
 
-  // 最多延时次数，避免无限延长。
+  // 最多延时次数，避免竞拍无限延长。
   int32 max_extend_count = 6;
 }
 
+// TrustRevealCard 表示一个可揭示的信任信息卡片。
+//
+// 示例：
+// - “GIA 证书信息”；
+// - “边角磨损说明”；
+// - “售后保真承诺”。
 message TrustRevealCard {
+  // 卡片 ID。创建拍品时可由前端生成，也可由服务端生成。
   string id = 1;
+
+  // 所属拍品 ID。
   string lot_id = 2;
+
+  // 卡片类型。
   TrustCardType type = 3;
+
+  // 卡片标题。
   string title = 4;
+
+  // 卡片正文。
   string content = 5;
+
+  // 可选图片 URL，例如证书图、瑕疵图、细节图。
   string image_url = 6;
+
+  // 是否已经对观众揭示。
   bool revealed = 7;
+
+  // 揭示时间，Unix 毫秒。未揭示时为 0。
   int64 revealed_at_unix_ms = 8;
 }
 
+// Bid 表示一条成功出价记录。
 message Bid {
+  // 出价 ID。
   string id = 1;
+
+  // 所属拍品 ID。
   string lot_id = 2;
+
+  // 出价用户 ID。V1 可使用游客 ID。
   string user_id = 3;
+
+  // 出价用户昵称。用于直播间展示。
   string nickname = 4;
+
+  // 出价金额。
   Money amount = 5;
+
+  // 出价成功时间，Unix 毫秒，以服务端时间为准。
   int64 created_at_unix_ms = 6;
 }
 
+// RankingItem 表示排行榜中的一行。
+//
+// V1 排名规则：每个用户取最高出价，按金额倒序；金额相同时按出价时间更早者靠前。
 message RankingItem {
+  // 名次，从 1 开始。
   int32 rank = 1;
+
+  // 用户 ID。
   string user_id = 2;
+
+  // 用户昵称。
   string nickname = 3;
+
+  // 该用户当前最高出价。
   Money amount = 4;
+
+  // 该最高出价的时间，Unix 毫秒。
   int64 bid_at_unix_ms = 5;
 }
 
+// DuelState 表示双人巅峰竞拍状态。
+//
+// V1 中 Duel Mode 主要用于前端强化展示，不改变其他用户合法出价权利。
 message DuelState {
+  // 是否正在 Duel Mode。
   bool active = 1;
+
+  // 所属拍品 ID。
   string lot_id = 2;
+
+  // A 方用户 ID，一般取当前 Top1 或指定用户。
   string user_a_id = 3;
+
+  // A 方昵称。
   string user_a_nickname = 4;
+
+  // B 方用户 ID，一般取当前 Top2 或指定用户。
   string user_b_id = 5;
+
+  // B 方昵称。
   string user_b_nickname = 6;
+
+  // Duel 开始时间，Unix 毫秒。
   int64 started_at_unix_ms = 7;
+
+  // Duel 预计结束时间，Unix 毫秒。
   int64 ends_at_unix_ms = 8;
+
+  // 当前已经延时次数。
   int32 extend_count = 9;
+
+  // 最大允许延时次数。
   int32 max_extend_count = 10;
 }
 
+// Lot 表示一个直播竞拍拍品。
 message Lot {
+  // 拍品 ID。
   string id = 1;
+
+  // 直播间 ID。V1 可以固定为 demo，但契约先保留。
   string room_id = 2;
+
+  // 商品标题。
   string title = 3;
+
+  // 商品描述。
   string description = 4;
+
+  // 商品主图 URL。
   string image_url = 5;
+
+  // 拍品状态。
   LotStatus status = 6;
 
+  // 竞拍规则。
   BidRule rule = 7;
+
+  // 当前最高价。开拍时等于起拍价。
   Money current_price = 8;
+
+  // 当前领先用户 ID。无人出价时为空。
   string leading_user_id = 9;
+
+  // 当前领先用户昵称。
   string leading_nickname = 10;
 
+  // 开拍时间，Unix 毫秒。未开拍时为 0。
   int64 started_at_unix_ms = 11;
+
+  // 预计结束时间，Unix 毫秒。反狙击延时会更新该字段。
   int64 ends_at_unix_ms = 12;
+
+  // 落锤时间，Unix 毫秒。未成交时为 0。
   int64 settled_at_unix_ms = 13;
 
+  // 成交用户 ID。未成交时为空。
   string winner_user_id = 14;
+
+  // 成交用户昵称。
   string winner_nickname = 15;
+
+  // 成交价。未成交时可为空或 amount=0。
   Money final_price = 16;
 
+  // 状态版本号。每次关键状态变化递增，用于前端判断状态新旧。
   int64 version = 17;
+
+  // 信任揭示卡片列表。
   repeated TrustRevealCard trust_cards = 18;
+
+  // 双人巅峰竞拍状态。
   DuelState duel_state = 19;
+
+  // 当前玩法阶段。
   PlaybookStage playbook_stage = 20;
 }
 
+// RoomSnapshot 表示直播间当前权威快照。
+//
+// 前端进入直播间时，不能只依赖本地状态，应以该快照恢复 UI。
 message RoomSnapshot {
+  // 直播间 ID。
   string room_id = 1;
+
+  // 当前拍品。V1 可理解为直播间正在展示的唯一拍品。
   Lot current_lot = 2;
+
+  // 当前排行榜。
   repeated RankingItem ranking = 3;
+
+  // 最近出价记录，用于前端展示出价流。
   repeated Bid recent_bids = 4;
+
+  // 当前玩法阶段。
   PlaybookStage playbook_stage = 5;
+
+  // 服务端当前时间，Unix 毫秒。用于前端校准倒计时。
   int64 server_time_unix_ms = 6;
 }
 
+// AuctionEvent 表示直播间实时事件。
+//
+// WebSocket 广播统一使用该结构。不同事件只填对应载荷字段。
 message AuctionEvent {
+  // 事件 ID。
   string id = 1;
+
+  // 事件类型。
   AuctionEventType type = 2;
+
+  // 直播间 ID。
   string room_id = 3;
+
+  // 拍品 ID。
   string lot_id = 4;
+
+  // 事件发生时间，Unix 毫秒，以服务端时间为准。
   int64 occurred_at_unix_ms = 5;
 
-  // 事件载荷。不同事件只填对应字段。
+  // 拍品载荷。用于 LOT_CREATED、LOT_STARTED、LOT_UPDATED、LOT_SETTLED 等事件。
   Lot lot = 6;
+
+  // 出价载荷。用于 BID_ACCEPTED、BID_REJECTED 等事件。
   Bid bid = 7;
+
+  // 排行榜载荷。用于 RANKING_UPDATED，也可随 BID_ACCEPTED 一起带上。
   repeated RankingItem ranking = 8;
+
+  // 信任卡片载荷。用于 TRUST_REVEALED。
   TrustRevealCard trust_card = 9;
+
+  // Duel 状态载荷。用于 DUEL_STARTED、DUEL_ENDED。
   DuelState duel_state = 10;
+
+  // 快照载荷。用于 ROOM_SNAPSHOT。
   RoomSnapshot snapshot = 11;
 
-  // 出价被拒绝等场景使用。
+  // 失败原因。主要用于 BID_REJECTED。
   string reason = 12;
 }
 
+// CreateLotRequest 表示创建拍品请求。
 message CreateLotRequest {
+  // 直播间 ID。V1 可固定为 demo。
   string room_id = 1;
+
+  // 商品标题。
   string title = 2;
+
+  // 商品描述。
   string description = 3;
+
+  // 商品主图 URL。
   string image_url = 4;
+
+  // 竞拍规则。
   BidRule rule = 5;
+
+  // 预置的信任揭示卡片。创建时默认 revealed=false。
   repeated TrustRevealCard trust_cards = 6;
 }
 
+// CreateLotReply 表示创建拍品响应。
 message CreateLotReply {
+  // 创建后的拍品，状态为 DRAFT。
   Lot lot = 1;
 }
 
+// GetLotRequest 表示查询拍品详情请求。
 message GetLotRequest {
+  // 拍品 ID。
   string lot_id = 1;
 }
 
+// GetLotReply 表示查询拍品详情响应。
 message GetLotReply {
+  // 拍品详情。
   Lot lot = 1;
 }
 
+// ListLotsRequest 表示查询拍品列表请求。
 message ListLotsRequest {
+  // 直播间 ID。
   string room_id = 1;
+
+  // 可选状态过滤。不传或 UNSPECIFIED 表示不过滤。
   LotStatus status = 2;
+
+  // 分页大小。V1 可先忽略，后续使用。
   int32 page_size = 3;
+
+  // 分页游标。V1 可先忽略，后续使用。
   string page_token = 4;
 }
 
+// ListLotsReply 表示查询拍品列表响应。
 message ListLotsReply {
+  // 拍品列表。
   repeated Lot lots = 1;
+
+  // 下一页游标。V1 可为空。
   string next_page_token = 2;
 }
 
+// StartLotRequest 表示开拍请求。
 message StartLotRequest {
+  // 拍品 ID。
   string lot_id = 1;
 }
 
+// StartLotReply 表示开拍响应。
 message StartLotReply {
+  // 开拍后的拍品，状态为 LIVE。
   Lot lot = 1;
+
+  // 对应实时事件，方便 HTTP 调用方和 WebSocket 广播使用同一结构。
   AuctionEvent event = 2;
 }
 
+// PlaceBidRequest 表示出价请求。
 message PlaceBidRequest {
+  // 拍品 ID。
   string lot_id = 1;
+
+  // 出价用户 ID。V1 可使用游客 ID。
   string user_id = 2;
+
+  // 出价用户昵称。
   string nickname = 3;
+
+  // 出价金额。
   Money amount = 4;
 
-  // 客户端已知版本，用于后续做乐观并发或提示前端状态过期。
+  // 客户端已知拍品版本。
+  // V1 可只用于提示，后续可用于乐观并发控制。
   int64 client_known_version = 5;
 
-  // 幂等键，避免网络重试导致重复出价。
+  // 幂等键。
+  // 同一个用户同一次出价重试时应使用相同 key，避免重复入账。
   string idempotency_key = 6;
 }
 
+// PlaceBidReply 表示出价响应。
 message PlaceBidReply {
+  // 是否接受该出价。
   bool accepted = 1;
+
+  // 出价后的拍品状态。失败时也可以返回当前最新状态。
   Lot lot = 2;
+
+  // 成功出价记录。失败时为空。
   Bid bid = 3;
+
+  // 出价后的排行榜。
   repeated RankingItem ranking = 4;
+
+  // 对应实时事件。
   AuctionEvent event = 5;
+
+  // 拒绝原因。accepted=false 时填写。
   string reject_reason = 6;
 }
 
+// RevealTrustCardRequest 表示揭示信任卡片请求。
 message RevealTrustCardRequest {
+  // 拍品 ID。
   string lot_id = 1;
+
+  // 卡片 ID。
   string card_id = 2;
+
+  // 操作人 ID。V1 可先传主播/运营固定 ID。
   string operator_id = 3;
 }
 
+// RevealTrustCardReply 表示揭示信任卡片响应。
 message RevealTrustCardReply {
+  // 揭示后的拍品状态。
   Lot lot = 1;
+
+  // 被揭示的卡片。
   TrustRevealCard trust_card = 2;
+
+  // 对应实时事件。
   AuctionEvent event = 3;
 }
 
+// StartDuelRequest 表示启动 Duel Mode 请求。
 message StartDuelRequest {
+  // 拍品 ID。
   string lot_id = 1;
+
+  // 操作人 ID。
   string operator_id = 2;
 
-  // 可选。为空时服务端根据当前排名取 Top2。
+  // A 方用户 ID。为空时服务端根据当前排行榜自动取 Top1。
   string user_a_id = 3;
+
+  // B 方用户 ID。为空时服务端根据当前排行榜自动取 Top2。
   string user_b_id = 4;
 }
 
+// StartDuelReply 表示启动 Duel Mode 响应。
 message StartDuelReply {
+  // 更新后的拍品状态。
   Lot lot = 1;
+
+  // Duel 状态。
   DuelState duel_state = 2;
+
+  // 对应实时事件。
   AuctionEvent event = 3;
 }
 
+// SettleLotRequest 表示落锤成交请求。
 message SettleLotRequest {
+  // 拍品 ID。
   string lot_id = 1;
+
+  // 操作人 ID。V1 可先传主播/运营固定 ID。
   string operator_id = 2;
 }
 
+// SettleLotReply 表示落锤成交响应。
 message SettleLotReply {
+  // 成交后的拍品状态。
   Lot lot = 1;
+
+  // 对应实时事件。
   AuctionEvent event = 2;
 }
 
+// GetRoomSnapshotRequest 表示获取直播间快照请求。
 message GetRoomSnapshotRequest {
+  // 直播间 ID。
   string room_id = 1;
 }
 
+// GetRoomSnapshotReply 表示获取直播间快照响应。
 message GetRoomSnapshotReply {
+  // 直播间权威快照。
   RoomSnapshot snapshot = 1;
 }
