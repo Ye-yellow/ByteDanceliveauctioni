@@ -8,7 +8,8 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export async function listLots(roomId = 'demo'): Promise<Lot[]> {
-  return request<Lot[]>(`/api/lots?roomId=${encodeURIComponent(roomId)}`);
+  const res = await request<Lot[] | { lots: Lot[] }>(`/api/lots?roomId=${encodeURIComponent(roomId)}`);
+  return Array.isArray(res) ? res : res.lots;
 }
 export async function createLot(payload: CreateLotRequest) {
   const r = await request<{ lot: Lot }>('/api/lots', { method: 'POST', body: JSON.stringify(payload) });

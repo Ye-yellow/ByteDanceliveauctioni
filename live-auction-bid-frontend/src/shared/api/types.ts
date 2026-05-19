@@ -1,4 +1,4 @@
-export type Money = { amount: number; currency: string };
+export type Money = { amount: number | string; currency: string };
 export type LotStatus = 'LOT_STATUS_DRAFT' | 'LOT_STATUS_LIVE' | 'LOT_STATUS_SETTLED' | 'LOT_STATUS_CANCELLED';
 export type TrustCardType = 'TRUST_CARD_TYPE_CERTIFICATE' | 'TRUST_CARD_TYPE_FLAW' | 'TRUST_CARD_TYPE_DETAIL' | 'TRUST_CARD_TYPE_SERVICE' | 'TRUST_CARD_TYPE_PRICE_REF';
 export type PlaybookStage = 'PLAYBOOK_STAGE_WARM_UP' | 'PLAYBOOK_STAGE_TRUST_BLOCKED' | 'PLAYBOOK_STAGE_BIDDING_ACTIVE' | 'PLAYBOOK_STAGE_DUEL_READY' | 'PLAYBOOK_STAGE_DUEL_MODE' | 'PLAYBOOK_STAGE_SETTLE_READY';
