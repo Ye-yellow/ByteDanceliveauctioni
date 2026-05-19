@@ -1,48 +1,53 @@
 package auction
 
-import "testing"
+import (
+	"testing"
+
+	"live-auction-bid/backend/app/auction/service/internal/model"
+	"live-auction-bid/backend/app/auction/service/internal/pkg/clock"
+)
 
 func TestLotStateMachine(t *testing.T) {
-	lot := NewLotFromCommand("lot_1", CreateLotCommand{
+	lot := NewLotFromCommand("lot_1", model.CreateLotCommand{
 		RoomID: "demo",
 		Title:  "测试拍品",
-		Rule: BidRule{
-			StartPrice:   CNY(10000),
-			MinIncrement: CNY(1000),
+		Rule: model.BidRule{
+			StartPrice:   model.CNY(10000),
+			MinIncrement: model.CNY(1000),
 		},
 	})
 
-	if err := lot.AcceptBid(Bid{Amount: CNY(11000)}, NowMs()); err == nil {
+	if err := AcceptBid(lot, model.Bid{Amount: model.CNY(11000)}, clock.NowMs()); err == nil {
 		t.Fatal("DRAFT 状态不应该允许出价")
 	}
-	if err := lot.Start(1000); err != nil {
+	if err := StartLot(lot, 1000); err != nil {
 		t.Fatalf("开拍失败：%v", err)
 	}
-	if lot.Status != LotStatusLive {
+	if lot.Status != model.LotStatusLive {
 		t.Fatalf("期望状态 LIVE，实际 %s", lot.Status)
 	}
-	if err := lot.AcceptBid(Bid{UserID: "u1", Nickname: "用户1", Amount: CNY(10500)}, 2000); err == nil {
+	if err := AcceptBid(lot, model.Bid{UserID: "u1", Nickname: "用户1", Amount: model.CNY(10500)}, 2000); err == nil {
 		t.Fatal("低于最低加价的出价应该被拒绝")
 	}
-	if err := lot.AcceptBid(Bid{UserID: "u1", Nickname: "用户1", Amount: CNY(11000)}, 2000); err != nil {
+	if err := AcceptBid(lot, model.Bid{UserID: "u1", Nickname: "用户1", Amount: model.CNY(11000)}, 2000); err != nil {
 		t.Fatalf("合法出价失败：%v", err)
 	}
 	if lot.CurrentPrice.Amount != 11000 || lot.LeadingUserID != "u1" {
 		t.Fatalf("出价后领先状态错误：%+v", lot)
 	}
-	if err := lot.Settle(3000); err != nil {
+	if err := SettleLot(lot, 3000); err != nil {
 		t.Fatalf("落锤失败：%v", err)
 	}
-	if lot.Status != LotStatusSettled || lot.WinnerUserID != "u1" || lot.FinalPrice.Amount != 11000 {
+	if lot.Status != model.LotStatusSettled || lot.WinnerUserID != "u1" || lot.FinalPrice.Amount != 11000 {
 		t.Fatalf("成交状态错误：%+v", lot)
 	}
 }
 
 func TestBuildRanking(t *testing.T) {
-	bids := []Bid{
-		{UserID: "u1", Nickname: "用户1", Amount: CNY(11000), CreatedAtUnixMs: 1000},
-		{UserID: "u2", Nickname: "用户2", Amount: CNY(12000), CreatedAtUnixMs: 2000},
-		{UserID: "u1", Nickname: "用户1", Amount: CNY(13000), CreatedAtUnixMs: 3000},
+	bids := []model.Bid{
+		{UserID: "u1", Nickname: "用户1", Amount: model.CNY(11000), CreatedAtUnixMs: 1000},
+		{UserID: "u2", Nickname: "用户2", Amount: model.CNY(12000), CreatedAtUnixMs: 2000},
+		{UserID: "u1", Nickname: "用户1", Amount: model.CNY(13000), CreatedAtUnixMs: 3000},
 	}
 
 	ranking := BuildRanking(bids)

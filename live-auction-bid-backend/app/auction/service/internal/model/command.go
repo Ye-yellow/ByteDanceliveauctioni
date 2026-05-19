@@ -1,4 +1,4 @@
-package auction
+package model
 
 // CreateLotCommand 是主播创建拍品草稿的应用命令。
 type CreateLotCommand struct {

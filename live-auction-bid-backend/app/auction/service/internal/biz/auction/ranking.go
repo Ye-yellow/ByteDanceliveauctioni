@@ -1,13 +1,17 @@
 package auction
 
-import "sort"
+import (
+	"sort"
 
-func BuildRanking(bids []Bid) []RankingItem {
-	bestByUser := make(map[string]RankingItem)
+	"live-auction-bid/backend/app/auction/service/internal/model"
+)
+
+func BuildRanking(bids []model.Bid) []model.RankingItem {
+	bestByUser := make(map[string]model.RankingItem)
 	for _, bid := range bids {
 		current, ok := bestByUser[bid.UserID]
 		if !ok || isBetterBid(bid, current) {
-			bestByUser[bid.UserID] = RankingItem{
+			bestByUser[bid.UserID] = model.RankingItem{
 				UserID:      bid.UserID,
 				Nickname:    bid.Nickname,
 				Amount:      bid.Amount,
@@ -16,7 +20,7 @@ func BuildRanking(bids []Bid) []RankingItem {
 		}
 	}
 
-	items := make([]RankingItem, 0, len(bestByUser))
+	items := make([]model.RankingItem, 0, len(bestByUser))
 	for _, item := range bestByUser {
 		items = append(items, item)
 	}
@@ -34,21 +38,21 @@ func BuildRanking(bids []Bid) []RankingItem {
 	return items
 }
 
-func isBetterBid(bid Bid, current RankingItem) bool {
+func isBetterBid(bid model.Bid, current model.RankingItem) bool {
 	if bid.Amount.Amount != current.Amount.Amount {
 		return bid.Amount.Amount > current.Amount.Amount
 	}
 	return bid.CreatedAtUnixMs < current.BidAtUnixMs
 }
 
-func RecentBids(bids []Bid, limit int) []Bid {
+func RecentBids(bids []model.Bid, limit int) []model.Bid {
 	if len(bids) <= limit {
-		return append([]Bid(nil), bids...)
+		return append([]model.Bid(nil), bids...)
 	}
-	return append([]Bid(nil), bids[len(bids)-limit:]...)
+	return append([]model.Bid(nil), bids[len(bids)-limit:]...)
 }
 
-func ShouldAutoStartDuel(lot *Lot, ranking []RankingItem, bids []Bid, nowMs int64) bool {
+func ShouldAutoStartDuel(lot *model.Lot, ranking []model.RankingItem, bids []model.Bid, nowMs int64) bool {
 	if lot.DuelState.Active || len(ranking) < 2 || len(bids) < 3 {
 		return false
 	}

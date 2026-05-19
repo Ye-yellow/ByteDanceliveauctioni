@@ -5,6 +5,7 @@ import (
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
+	"live-auction-bid/backend/app/auction/service/internal/model"
 )
 
 // AuctionService 是 Kratos service 层适配器。
@@ -53,7 +54,7 @@ func (s *AuctionService) StartLot(ctx context.Context, req *v1.StartLotRequest) 
 }
 
 func (s *AuctionService) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest) (*v1.PlaceBidReply, error) {
-	lot, bid, ranking, err := s.auction.PlaceBid(ctx, auction.PlaceBidCommand{
+	lot, bid, ranking, err := s.auction.PlaceBid(ctx, model.PlaceBidCommand{
 		LotID:              req.GetLotId(),
 		UserID:             req.GetUserId(),
 		Nickname:           req.GetNickname(),
@@ -104,8 +105,8 @@ func (s *AuctionService) GetRoomSnapshot(ctx context.Context, req *v1.GetRoomSna
 	return &v1.GetRoomSnapshotReply{Snapshot: toProtoSnapshot(snapshot)}, nil
 }
 
-func toCreateLotCommand(req *v1.CreateLotRequest) auction.CreateLotCommand {
-	return auction.CreateLotCommand{
+func toCreateLotCommand(req *v1.CreateLotRequest) model.CreateLotCommand {
+	return model.CreateLotCommand{
 		RoomID:      req.GetRoomId(),
 		Title:       req.GetTitle(),
 		Description: req.GetDescription(),
@@ -115,11 +116,11 @@ func toCreateLotCommand(req *v1.CreateLotRequest) auction.CreateLotCommand {
 	}
 }
 
-func toDomainBidRule(rule *v1.BidRule) auction.BidRule {
+func toDomainBidRule(rule *v1.BidRule) model.BidRule {
 	if rule == nil {
-		return auction.BidRule{}
+		return model.BidRule{}
 	}
-	return auction.BidRule{
+	return model.BidRule{
 		StartPrice:             toDomainMoney(rule.GetStartPrice()),
 		MinIncrement:           toDomainMoney(rule.GetMinIncrement()),
 		DurationSeconds:        rule.GetDurationSeconds(),
@@ -129,7 +130,7 @@ func toDomainBidRule(rule *v1.BidRule) auction.BidRule {
 	}
 }
 
-func toProtoBidRule(rule auction.BidRule) *v1.BidRule {
+func toProtoBidRule(rule model.BidRule) *v1.BidRule {
 	return &v1.BidRule{
 		StartPrice:             toProtoMoney(rule.StartPrice),
 		MinIncrement:           toProtoMoney(rule.MinIncrement),
@@ -140,24 +141,24 @@ func toProtoBidRule(rule auction.BidRule) *v1.BidRule {
 	}
 }
 
-func toDomainMoney(m *v1.Money) auction.Money {
+func toDomainMoney(m *v1.Money) model.Money {
 	if m == nil {
-		return auction.Money{}
+		return model.Money{}
 	}
-	return auction.Money{Amount: m.GetAmount(), Currency: m.GetCurrency()}
+	return model.Money{Amount: m.GetAmount(), Currency: m.GetCurrency()}
 }
 
-func toProtoMoney(m auction.Money) *v1.Money {
+func toProtoMoney(m model.Money) *v1.Money {
 	return &v1.Money{Amount: m.Amount, Currency: m.Currency}
 }
 
-func toDomainTrustCards(cards []*v1.TrustRevealCard) []auction.TrustRevealCard {
-	out := make([]auction.TrustRevealCard, 0, len(cards))
+func toDomainTrustCards(cards []*v1.TrustRevealCard) []model.TrustRevealCard {
+	out := make([]model.TrustRevealCard, 0, len(cards))
 	for _, card := range cards {
-		out = append(out, auction.TrustRevealCard{
+		out = append(out, model.TrustRevealCard{
 			ID:               card.GetId(),
 			LotID:            card.GetLotId(),
-			Type:             auction.TrustCardType(card.GetType().String()),
+			Type:             model.TrustCardType(card.GetType().String()),
 			Title:            card.GetTitle(),
 			Content:          card.GetContent(),
 			ImageURL:         card.GetImageUrl(),
@@ -168,7 +169,7 @@ func toDomainTrustCards(cards []*v1.TrustRevealCard) []auction.TrustRevealCard {
 	return out
 }
 
-func toProtoTrustCards(cards []auction.TrustRevealCard) []*v1.TrustRevealCard {
+func toProtoTrustCards(cards []model.TrustRevealCard) []*v1.TrustRevealCard {
 	out := make([]*v1.TrustRevealCard, 0, len(cards))
 	for i := range cards {
 		out = append(out, toProtoTrustCard(cards[i]))
@@ -176,14 +177,14 @@ func toProtoTrustCards(cards []auction.TrustRevealCard) []*v1.TrustRevealCard {
 	return out
 }
 
-func toProtoTrustCardPtr(card *auction.TrustRevealCard) *v1.TrustRevealCard {
+func toProtoTrustCardPtr(card *model.TrustRevealCard) *v1.TrustRevealCard {
 	if card == nil {
 		return nil
 	}
 	return toProtoTrustCard(*card)
 }
 
-func toProtoTrustCard(card auction.TrustRevealCard) *v1.TrustRevealCard {
+func toProtoTrustCard(card model.TrustRevealCard) *v1.TrustRevealCard {
 	return &v1.TrustRevealCard{
 		Id:               card.ID,
 		LotId:            card.LotID,
@@ -196,7 +197,7 @@ func toProtoTrustCard(card auction.TrustRevealCard) *v1.TrustRevealCard {
 	}
 }
 
-func toProtoLot(lot *auction.Lot) *v1.Lot {
+func toProtoLot(lot *model.Lot) *v1.Lot {
 	if lot == nil {
 		return nil
 	}
@@ -224,7 +225,7 @@ func toProtoLot(lot *auction.Lot) *v1.Lot {
 	}
 }
 
-func toProtoLots(lots []*auction.Lot) []*v1.Lot {
+func toProtoLots(lots []*model.Lot) []*v1.Lot {
 	out := make([]*v1.Lot, 0, len(lots))
 	for _, lot := range lots {
 		out = append(out, toProtoLot(lot))
@@ -232,14 +233,14 @@ func toProtoLots(lots []*auction.Lot) []*v1.Lot {
 	return out
 }
 
-func toDomainLotStatus(status v1.LotStatus) auction.LotStatus {
+func toDomainLotStatus(status v1.LotStatus) model.LotStatus {
 	if status == v1.LotStatus_LOT_STATUS_UNSPECIFIED {
 		return ""
 	}
-	return auction.LotStatus(status.String())
+	return model.LotStatus(status.String())
 }
 
-func toProtoBidPtr(bid *auction.Bid) *v1.Bid {
+func toProtoBidPtr(bid *model.Bid) *v1.Bid {
 	if bid == nil {
 		return nil
 	}
@@ -253,7 +254,7 @@ func toProtoBidPtr(bid *auction.Bid) *v1.Bid {
 	}
 }
 
-func toProtoBids(bids []auction.Bid) []*v1.Bid {
+func toProtoBids(bids []model.Bid) []*v1.Bid {
 	out := make([]*v1.Bid, 0, len(bids))
 	for i := range bids {
 		out = append(out, toProtoBidPtr(&bids[i]))
@@ -261,7 +262,7 @@ func toProtoBids(bids []auction.Bid) []*v1.Bid {
 	return out
 }
 
-func toProtoRanking(ranking []auction.RankingItem) []*v1.RankingItem {
+func toProtoRanking(ranking []model.RankingItem) []*v1.RankingItem {
 	out := make([]*v1.RankingItem, 0, len(ranking))
 	for _, item := range ranking {
 		out = append(out, &v1.RankingItem{
@@ -275,14 +276,14 @@ func toProtoRanking(ranking []auction.RankingItem) []*v1.RankingItem {
 	return out
 }
 
-func toProtoDuelStatePtr(duel *auction.DuelState) *v1.DuelState {
+func toProtoDuelStatePtr(duel *model.DuelState) *v1.DuelState {
 	if duel == nil {
 		return nil
 	}
 	return toProtoDuelState(*duel)
 }
 
-func toProtoDuelState(duel auction.DuelState) *v1.DuelState {
+func toProtoDuelState(duel model.DuelState) *v1.DuelState {
 	return &v1.DuelState{
 		Active:          duel.Active,
 		LotId:           duel.LotID,
@@ -297,7 +298,7 @@ func toProtoDuelState(duel auction.DuelState) *v1.DuelState {
 	}
 }
 
-func toProtoSnapshot(snapshot *auction.RoomSnapshot) *v1.RoomSnapshot {
+func toProtoSnapshot(snapshot *model.RoomSnapshot) *v1.RoomSnapshot {
 	if snapshot == nil {
 		return nil
 	}
