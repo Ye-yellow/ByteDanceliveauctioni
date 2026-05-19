@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"sync"
 
-	domain "live-auction-bid/backend/internal/domain/auction"
+	biz "live-auction-bid/backend/app/auction/service/internal/biz"
 )
 
 type Envelope struct {
@@ -41,20 +41,20 @@ func (h *Hub) Broadcast(roomID string, msg Envelope) {
 	for _, c := range clients { _ = c.SendJSON(msg) }
 }
 
-func (h *Hub) PublishLotUpdated(ctx context.Context, lot *domain.Lot) error {
+func (h *Hub) PublishLotUpdated(ctx context.Context, lot *biz.Lot) error {
 	h.Broadcast(lot.RoomID, Envelope{Type: "lot.updated", Data: lotSnapshot(lot)})
 	return nil
 }
-func (h *Hub) PublishBidAccepted(ctx context.Context, lot *domain.Lot, bid domain.Bid) error {
+func (h *Hub) PublishBidAccepted(ctx context.Context, lot *biz.Lot, bid biz.Bid) error {
 	h.Broadcast(lot.RoomID, Envelope{Type: "bid.accepted", Data: map[string]interface{}{"bid": bid, "lot": lotSnapshot(lot)}})
 	return nil
 }
-func (h *Hub) PublishLotSettled(ctx context.Context, lot *domain.Lot) error {
+func (h *Hub) PublishLotSettled(ctx context.Context, lot *biz.Lot) error {
 	h.Broadcast(lot.RoomID, Envelope{Type: "lot.settled", Data: lotSnapshot(lot)})
 	return nil
 }
 
-func lotSnapshot(lot *domain.Lot) map[string]interface{} {
+func lotSnapshot(lot *biz.Lot) map[string]interface{} {
 	b, _ := json.Marshal(lot)
 	var m map[string]interface{}
 	_ = json.Unmarshal(b, &m)

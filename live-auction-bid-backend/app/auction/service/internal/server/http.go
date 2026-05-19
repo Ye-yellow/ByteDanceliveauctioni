@@ -1,4 +1,4 @@
-package httpiface
+package server
 
 import (
 	"context"
@@ -9,17 +9,17 @@ import (
 	khttp "github.com/go-kratos/kratos/v2/transport/http"
 	"github.com/gorilla/websocket"
 
-	auctionapp "live-auction-bid/backend/internal/application/auction"
-	domain "live-auction-bid/backend/internal/domain/auction"
-	"live-auction-bid/backend/internal/interfaces/ws"
+	auctionsvc "live-auction-bid/backend/app/auction/service/internal/service"
+	biz "live-auction-bid/backend/app/auction/service/internal/biz"
+	"live-auction-bid/backend/app/auction/service/internal/server/ws"
 )
 
 type Server struct {
-	app *auctionapp.Service
+	app *auctionsvc.Service
 	hub *ws.Hub
 }
 
-func NewServer(addr string, app *auctionapp.Service, hub *ws.Hub) *khttp.Server {
+func NewServer(addr string, app *auctionsvc.Service, hub *ws.Hub) *khttp.Server {
 	s := &Server{app: app, hub: hub}
 	h := http.NewServeMux()
 	h.HandleFunc("/healthz", s.health)
@@ -36,7 +36,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) { writeJSON(w, m
 
 func (s *Server) lots(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
-		var cmd auctionapp.CreateLotCommand
+		var cmd auctionsvc.CreateLotCommand
 		if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil { http.Error(w, err.Error(), 400); return }
 		lot, err := s.app.CreateLot(r.Context(), cmd)
 		if err != nil { http.Error(w, err.Error(), 500); return }
@@ -52,7 +52,7 @@ func (s *Server) lotAction(w http.ResponseWriter, r *http.Request) {
 	lotID, action := parts[0], parts[1]
 	switch action {
 	case "bid":
-		var req struct { UserID, Nickname string; Amount domain.Money }
+		var req struct { UserID, Nickname string; Amount biz.Money }
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil { http.Error(w, err.Error(), 400); return }
 		lot, err := s.app.PlaceBid(r.Context(), lotID, req.UserID, req.Nickname, req.Amount)
 		if err != nil { http.Error(w, err.Error(), 409); return }
@@ -81,7 +81,7 @@ func (s *Server) roomWS(w http.ResponseWriter, r *http.Request) {
 		_ = client.SendJSON(ws.Envelope{Type: "lot.updated", Data: lot})
 	}
 	for {
-		var msg struct { Type string `json:"type"`; LotID string `json:"lotId"`; UserID string `json:"userId"`; Nickname string `json:"nickname"`; Amount domain.Money `json:"amount"` }
+		var msg struct { Type string `json:"type"`; LotID string `json:"lotId"`; UserID string `json:"userId"`; Nickname string `json:"nickname"`; Amount biz.Money `json:"amount"` }
 		if err := conn.ReadJSON(&msg); err != nil { return }
 		if msg.Type == "bid.place" { _, _ = s.app.PlaceBid(r.Context(), msg.LotID, msg.UserID, msg.Nickname, msg.Amount) }
 	}

@@ -1,0 +1,12 @@
+.PHONY: all build test run
+
+all: test build
+
+test:
+	go test ./...
+
+build:
+	go build -o bin/auction-server ./cmd/server
+
+run:
+	go run ./cmd/server

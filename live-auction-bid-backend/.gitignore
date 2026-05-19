@@ -3,3 +3,6 @@
 *.log
 bin/
 coverage.out
+
+# local uGit clone/scratch
+auction-backend/
