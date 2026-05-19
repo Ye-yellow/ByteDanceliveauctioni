@@ -18,8 +18,24 @@ func (s *Store) Create(ctx context.Context, lot *v1.Lot) error {
 		return err
 	}
 	_, err = s.db.ExecContext(ctx, `
-INSERT INTO auction_lots (id, room_id, status, payload)
-VALUES (?, ?, ?, ?)`, lot.Id, lot.RoomId, int32(lot.Status), string(payload))
+INSERT INTO auction_lots (
+  id, room_id, title, description, image_url, status,
+  start_price_amount, start_price_currency, min_increment_amount, min_increment_currency,
+  duration_seconds, anti_snipe_window_seconds, anti_snipe_extend_seconds, max_extend_count,
+  current_price_amount, current_price_currency, leading_user_id, leading_nickname,
+  started_at_unix_ms, ends_at_unix_ms, settled_at_unix_ms,
+  winner_user_id, winner_nickname, final_price_amount, final_price_currency,
+  version, playbook_stage, payload
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		lot.Id, lot.RoomId, lot.Title, lot.Description, lot.ImageUrl, int32(lot.Status),
+		lot.GetRule().GetStartPrice().GetAmount(), lot.GetRule().GetStartPrice().GetCurrency(),
+		lot.GetRule().GetMinIncrement().GetAmount(), lot.GetRule().GetMinIncrement().GetCurrency(),
+		lot.GetRule().GetDurationSeconds(), lot.GetRule().GetAntiSnipeWindowSeconds(),
+		lot.GetRule().GetAntiSnipeExtendSeconds(), lot.GetRule().GetMaxExtendCount(),
+		lot.GetCurrentPrice().GetAmount(), lot.GetCurrentPrice().GetCurrency(), lot.LeadingUserId, lot.LeadingNickname,
+		lot.StartedAtUnixMs, lot.EndsAtUnixMs, lot.SettledAtUnixMs,
+		lot.WinnerUserId, lot.WinnerNickname, lot.GetFinalPrice().GetAmount(), lot.GetFinalPrice().GetCurrency(),
+		lot.Version, int32(lot.PlaybookStage), string(payload))
 	return err
 }
 
@@ -33,8 +49,23 @@ func (s *Store) Save(ctx context.Context, lot *v1.Lot) error {
 	}
 	result, err := s.db.ExecContext(ctx, `
 UPDATE auction_lots
-SET room_id = ?, status = ?, payload = ?
-WHERE id = ?`, lot.RoomId, int32(lot.Status), string(payload), lot.Id)
+SET room_id = ?, title = ?, description = ?, image_url = ?, status = ?,
+  start_price_amount = ?, start_price_currency = ?, min_increment_amount = ?, min_increment_currency = ?,
+  duration_seconds = ?, anti_snipe_window_seconds = ?, anti_snipe_extend_seconds = ?, max_extend_count = ?,
+  current_price_amount = ?, current_price_currency = ?, leading_user_id = ?, leading_nickname = ?,
+  started_at_unix_ms = ?, ends_at_unix_ms = ?, settled_at_unix_ms = ?,
+  winner_user_id = ?, winner_nickname = ?, final_price_amount = ?, final_price_currency = ?,
+  version = ?, playbook_stage = ?, payload = ?
+WHERE id = ?`,
+		lot.RoomId, lot.Title, lot.Description, lot.ImageUrl, int32(lot.Status),
+		lot.GetRule().GetStartPrice().GetAmount(), lot.GetRule().GetStartPrice().GetCurrency(),
+		lot.GetRule().GetMinIncrement().GetAmount(), lot.GetRule().GetMinIncrement().GetCurrency(),
+		lot.GetRule().GetDurationSeconds(), lot.GetRule().GetAntiSnipeWindowSeconds(),
+		lot.GetRule().GetAntiSnipeExtendSeconds(), lot.GetRule().GetMaxExtendCount(),
+		lot.GetCurrentPrice().GetAmount(), lot.GetCurrentPrice().GetCurrency(), lot.LeadingUserId, lot.LeadingNickname,
+		lot.StartedAtUnixMs, lot.EndsAtUnixMs, lot.SettledAtUnixMs,
+		lot.WinnerUserId, lot.WinnerNickname, lot.GetFinalPrice().GetAmount(), lot.GetFinalPrice().GetCurrency(),
+		lot.Version, int32(lot.PlaybookStage), string(payload), lot.Id)
 	if err != nil {
 		return err
 	}

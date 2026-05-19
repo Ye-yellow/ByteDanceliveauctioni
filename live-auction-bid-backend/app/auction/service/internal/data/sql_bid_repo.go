@@ -27,8 +27,8 @@ func (s *Store) Append(ctx context.Context, bid v1.Bid) error {
 		return err
 	}
 	_, err = s.db.ExecContext(ctx, `
-INSERT INTO auction_bids (id, lot_id, user_id, amount, currency, created_at_unix_ms, payload)
-VALUES (?, ?, ?, ?, ?, ?, ?)`, bid.Id, bid.LotId, bid.UserId, bid.GetAmount().GetAmount(), bid.GetAmount().GetCurrency(), bid.CreatedAtUnixMs, string(payload))
+INSERT INTO auction_bids (id, lot_id, user_id, nickname, amount, currency, created_at_unix_ms, payload)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, bid.Id, bid.LotId, bid.UserId, bid.Nickname, bid.GetAmount().GetAmount(), bid.GetAmount().GetCurrency(), bid.CreatedAtUnixMs, string(payload))
 	return err
 }
 

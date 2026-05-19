@@ -66,31 +66,15 @@ func (s *Store) Close() error {
 }
 
 func (s *Store) migrate(ctx context.Context) error {
-	if _, err := s.db.ExecContext(ctx, `
-CREATE TABLE IF NOT EXISTS auction_lots (
-  id VARCHAR(64) PRIMARY KEY,
-  room_id VARCHAR(64) NOT NULL,
-  status INT NOT NULL,
-  payload JSON NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_room_status (room_id, status),
-  INDEX idx_updated_at (updated_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`); err != nil {
-		return err
+	for _, stmt := range []string{
+		createAuctionLotsTable,
+		createAuctionTrustCardsTable,
+		createAuctionBidsTable,
+		createAuctionEventsTable,
+	} {
+		if _, err := s.db.ExecContext(ctx, stmt); err != nil {
+			return err
+		}
 	}
-	_, err := s.db.ExecContext(ctx, `
-CREATE TABLE IF NOT EXISTS auction_bids (
-  id VARCHAR(64) PRIMARY KEY,
-  lot_id VARCHAR(64) NOT NULL,
-  user_id VARCHAR(64) NOT NULL,
-  amount BIGINT NOT NULL,
-  currency VARCHAR(16) NOT NULL,
-  created_at_unix_ms BIGINT NOT NULL,
-  payload JSON NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_lot_created (lot_id, created_at_unix_ms),
-  INDEX idx_lot_user (lot_id, user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`)
-	return err
+	return nil
 }
