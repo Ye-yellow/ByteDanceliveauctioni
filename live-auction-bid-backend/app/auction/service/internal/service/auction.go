@@ -5,7 +5,6 @@ import (
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
-	"live-auction-bid/backend/app/auction/service/internal/model"
 )
 
 // AuctionService 是 Kratos service 层适配器。
@@ -22,7 +21,7 @@ func NewAuctionService(auction *auction.AuctionUsecase) *AuctionService {
 }
 
 func (s *AuctionService) CreateLot(ctx context.Context, req *v1.CreateLotRequest) (*v1.CreateLotReply, error) {
-	lot, err := s.auction.CreateLot(ctx, model.CreateLotCommand{
+	lot, err := s.auction.CreateLot(ctx, auction.CreateLotCommand{
 		RoomID:      req.GetRoomId(),
 		Title:       req.GetTitle(),
 		Description: req.GetDescription(),
@@ -61,7 +60,7 @@ func (s *AuctionService) StartLot(ctx context.Context, req *v1.StartLotRequest) 
 }
 
 func (s *AuctionService) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest) (*v1.PlaceBidReply, error) {
-	lot, bid, ranking, err := s.auction.PlaceBid(ctx, model.PlaceBidCommand{
+	lot, bid, ranking, err := s.auction.PlaceBid(ctx, auction.PlaceBidCommand{
 		LotID:              req.GetLotId(),
 		UserID:             req.GetUserId(),
 		Nickname:           req.GetNickname(),

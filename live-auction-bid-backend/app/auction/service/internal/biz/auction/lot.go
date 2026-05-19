@@ -4,26 +4,26 @@ import (
 	"errors"
 	"fmt"
 
-	"live-auction-bid/backend/app/auction/service/internal/model"
+	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
 )
 
-func NewLotFromCommand(id string, cmd model.CreateLotCommand) *model.Lot {
+func NewLotFromCommand(id string, cmd CreateLotCommand) *v1.Lot {
 	cmd = normalizeCreateLotCommand(cmd)
-	lot := &model.Lot{
+	lot := &v1.Lot{
 		Id:            id,
 		RoomId:        cmd.RoomID,
 		Title:         cmd.Title,
 		Description:   cmd.Description,
 		ImageUrl:      cmd.ImageURL,
-		Status:        model.LotStatusDraft,
+		Status:        v1.LotStatus_LOT_STATUS_DRAFT,
 		Rule:          cmd.Rule,
 		CurrentPrice:  cloneMoney(cmd.Rule.GetStartPrice()),
-		FinalPrice:    model.CNY(0),
+		FinalPrice:    CNY(0),
 		Version:       1,
 		TrustCards:    cloneTrustCards(cmd.TrustCards),
-		DuelState:     &model.DuelState{},
-		PlaybookStage: model.PlaybookStageWarmUp,
+		DuelState:     &v1.DuelState{},
+		PlaybookStage: v1.PlaybookStage_PLAYBOOK_STAGE_WARM_UP,
 	}
 
 	for _, card := range lot.TrustCards {
@@ -37,7 +37,7 @@ func NewLotFromCommand(id string, cmd model.CreateLotCommand) *model.Lot {
 	return lot
 }
 
-func normalizeCreateLotCommand(cmd model.CreateLotCommand) model.CreateLotCommand {
+func normalizeCreateLotCommand(cmd CreateLotCommand) CreateLotCommand {
 	if cmd.RoomID == "" {
 		cmd.RoomID = "demo"
 	}
@@ -45,18 +45,18 @@ func normalizeCreateLotCommand(cmd model.CreateLotCommand) model.CreateLotComman
 	return cmd
 }
 
-func normalizeBidRule(rule *model.BidRule) *model.BidRule {
+func normalizeBidRule(rule *v1.BidRule) *v1.BidRule {
 	if rule == nil {
-		rule = &model.BidRule{}
+		rule = &v1.BidRule{}
 	}
 	if rule.StartPrice == nil {
-		rule.StartPrice = model.CNY(0)
+		rule.StartPrice = CNY(0)
 	}
 	if rule.StartPrice.Currency == "" {
 		rule.StartPrice.Currency = "CNY"
 	}
 	if rule.MinIncrement == nil {
-		rule.MinIncrement = model.CNY(0)
+		rule.MinIncrement = CNY(0)
 	}
 	if rule.MinIncrement.Currency == "" {
 		rule.MinIncrement.Currency = "CNY"
@@ -76,21 +76,21 @@ func normalizeBidRule(rule *model.BidRule) *model.BidRule {
 	return rule
 }
 
-func StartLot(lot *model.Lot, nowMs int64) error {
-	if lot.Status != model.LotStatusDraft {
+func StartLot(lot *v1.Lot, nowMs int64) error {
+	if lot.Status != v1.LotStatus_LOT_STATUS_DRAFT {
 		return fmt.Errorf("只有草稿拍品可以开拍，当前状态：%s", lot.Status)
 	}
-	lot.Status = model.LotStatusLive
+	lot.Status = v1.LotStatus_LOT_STATUS_LIVE
 	lot.StartedAtUnixMs = nowMs
 	lot.EndsAtUnixMs = nowMs + int64(lot.GetRule().GetDurationSeconds())*1000
 	lot.CurrentPrice = cloneMoney(lot.GetRule().GetStartPrice())
-	lot.PlaybookStage = model.PlaybookStageWarmUp
+	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_WARM_UP
 	bumpVersion(lot)
 	return nil
 }
 
-func AcceptBid(lot *model.Lot, bid model.Bid, nowMs int64) error {
-	if lot.Status != model.LotStatusLive {
+func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
+	if lot.Status != v1.LotStatus_LOT_STATUS_LIVE {
 		return errors.New("拍品未处于竞拍中")
 	}
 	if lot.EndsAtUnixMs > 0 && nowMs > lot.EndsAtUnixMs {
@@ -102,22 +102,22 @@ func AcceptBid(lot *model.Lot, bid model.Bid, nowMs int64) error {
 	lot.CurrentPrice = cloneMoney(bid.GetAmount())
 	lot.LeadingUserId = bid.UserId
 	lot.LeadingNickname = bid.Nickname
-	lot.PlaybookStage = model.PlaybookStageBiddingActive
+	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_BIDDING_ACTIVE
 	extendIfAntiSnipe(lot, nowMs)
 	bumpVersion(lot)
 	return nil
 }
 
-func NextBidAmount(lot *model.Lot) int64 {
+func NextBidAmount(lot *v1.Lot) int64 {
 	return lot.GetCurrentPrice().GetAmount() + lot.GetRule().GetMinIncrement().GetAmount()
 }
 
-func RevealTrustCard(lot *model.Lot, cardID string, nowMs int64) (*model.TrustRevealCard, error) {
+func RevealTrustCard(lot *v1.Lot, cardID string, nowMs int64) (*v1.TrustRevealCard, error) {
 	for _, card := range lot.TrustCards {
 		if card.Id == cardID {
 			card.Revealed = true
 			card.RevealedAtUnixMs = nowMs
-			lot.PlaybookStage = model.PlaybookStageTrustBlocked
+			lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_TRUST_BLOCKED
 			bumpVersion(lot)
 			return card, nil
 		}
@@ -125,8 +125,8 @@ func RevealTrustCard(lot *model.Lot, cardID string, nowMs int64) (*model.TrustRe
 	return nil, errors.New("信任卡片不存在")
 }
 
-func StartDuel(lot *model.Lot, ranking []*model.RankingItem, nowMs int64) error {
-	if lot.Status != model.LotStatusLive {
+func StartDuel(lot *v1.Lot, ranking []*v1.RankingItem, nowMs int64) error {
+	if lot.Status != v1.LotStatus_LOT_STATUS_LIVE {
 		return errors.New("只有竞拍中的拍品可以进入 Duel Mode")
 	}
 	if len(ranking) < 2 {
@@ -136,7 +136,7 @@ func StartDuel(lot *model.Lot, ranking []*model.RankingItem, nowMs int64) error 
 	if lot.DuelState != nil {
 		extendCount = lot.DuelState.ExtendCount
 	}
-	lot.DuelState = &model.DuelState{
+	lot.DuelState = &v1.DuelState{
 		Active:          true,
 		LotId:           lot.Id,
 		UserAId:         ranking[0].UserId,
@@ -148,21 +148,21 @@ func StartDuel(lot *model.Lot, ranking []*model.RankingItem, nowMs int64) error 
 		ExtendCount:     extendCount,
 		MaxExtendCount:  lot.GetRule().GetMaxExtendCount(),
 	}
-	lot.PlaybookStage = model.PlaybookStageDuelMode
+	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_DUEL_MODE
 	bumpVersion(lot)
 	return nil
 }
 
-func SettleLot(lot *model.Lot, nowMs int64) error {
-	if lot.Status != model.LotStatusLive {
+func SettleLot(lot *v1.Lot, nowMs int64) error {
+	if lot.Status != v1.LotStatus_LOT_STATUS_LIVE {
 		return fmt.Errorf("只有竞拍中的拍品可以落锤，当前状态：%s", lot.Status)
 	}
-	lot.Status = model.LotStatusSettled
+	lot.Status = v1.LotStatus_LOT_STATUS_SETTLED
 	lot.SettledAtUnixMs = nowMs
 	lot.WinnerUserId = lot.LeadingUserId
 	lot.WinnerNickname = lot.LeadingNickname
 	lot.FinalPrice = cloneMoney(lot.GetCurrentPrice())
-	lot.PlaybookStage = model.PlaybookStageSettleReady
+	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_SETTLE_READY
 	if lot.DuelState != nil {
 		lot.DuelState.Active = false
 	}
@@ -170,7 +170,7 @@ func SettleLot(lot *model.Lot, nowMs int64) error {
 	return nil
 }
 
-func extendIfAntiSnipe(lot *model.Lot, nowMs int64) {
+func extendIfAntiSnipe(lot *v1.Lot, nowMs int64) {
 	remainingMs := lot.EndsAtUnixMs - nowMs
 	windowMs := int64(lot.GetRule().GetAntiSnipeWindowSeconds()) * 1000
 	if remainingMs <= 0 || remainingMs > windowMs {
@@ -181,16 +181,16 @@ func extendIfAntiSnipe(lot *model.Lot, nowMs int64) {
 	}
 	lot.EndsAtUnixMs += int64(lot.GetRule().GetAntiSnipeExtendSeconds()) * 1000
 	if lot.DuelState == nil {
-		lot.DuelState = &model.DuelState{}
+		lot.DuelState = &v1.DuelState{}
 	}
 	lot.DuelState.ExtendCount++
 }
 
-func bumpVersion(lot *model.Lot) {
+func bumpVersion(lot *v1.Lot) {
 	lot.Version++
 }
 
-func cloneMoney(m *model.Money) *model.Money {
+func cloneMoney(m *v1.Money) *v1.Money {
 	if m == nil {
 		return nil
 	}
@@ -198,8 +198,8 @@ func cloneMoney(m *model.Money) *model.Money {
 	return &cp
 }
 
-func cloneTrustCards(cards []*model.TrustRevealCard) []*model.TrustRevealCard {
-	out := make([]*model.TrustRevealCard, 0, len(cards))
+func cloneTrustCards(cards []*v1.TrustRevealCard) []*v1.TrustRevealCard {
+	out := make([]*v1.TrustRevealCard, 0, len(cards))
 	for _, card := range cards {
 		if card == nil {
 			continue

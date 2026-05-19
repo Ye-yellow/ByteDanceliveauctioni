@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
+	v1 "live-auction-bid/backend/api/auction/service/v1"
 	eventbuilder "live-auction-bid/backend/app/auction/service/internal/event"
-	"live-auction-bid/backend/app/auction/service/internal/model"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/clock"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
 )
@@ -28,7 +28,7 @@ func NewAuctionUsecase(lots LotRepository, bids BidRepository, events EventPubli
 	return &AuctionUsecase{lots: lots, bids: bids, events: events}
 }
 
-func (uc *AuctionUsecase) CreateLot(ctx context.Context, cmd model.CreateLotCommand) (*model.Lot, error) {
+func (uc *AuctionUsecase) CreateLot(ctx context.Context, cmd CreateLotCommand) (*v1.Lot, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
@@ -36,19 +36,19 @@ func (uc *AuctionUsecase) CreateLot(ctx context.Context, cmd model.CreateLotComm
 	if err := uc.lots.Create(ctx, lot); err != nil {
 		return nil, err
 	}
-	uc.publish(ctx, eventbuilder.NewAuctionEvent(model.EventLotCreated, lot))
-	return model.CloneLot(lot), nil
+	uc.publish(ctx, eventbuilder.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CREATED, lot))
+	return CloneLot(lot), nil
 }
 
-func (uc *AuctionUsecase) GetLot(ctx context.Context, lotID string) (*model.Lot, error) {
+func (uc *AuctionUsecase) GetLot(ctx context.Context, lotID string) (*v1.Lot, error) {
 	return uc.lots.FindByID(ctx, lotID)
 }
 
-func (uc *AuctionUsecase) ListLots(ctx context.Context, roomID string, status model.LotStatus) ([]*model.Lot, error) {
+func (uc *AuctionUsecase) ListLots(ctx context.Context, roomID string, status v1.LotStatus) ([]*v1.Lot, error) {
 	return uc.lots.List(ctx, roomID, status)
 }
 
-func (uc *AuctionUsecase) StartLot(ctx context.Context, lotID string) (*model.Lot, error) {
+func (uc *AuctionUsecase) StartLot(ctx context.Context, lotID string) (*v1.Lot, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
@@ -63,13 +63,13 @@ func (uc *AuctionUsecase) StartLot(ctx context.Context, lotID string) (*model.Lo
 		return nil, err
 	}
 
-	event := eventbuilder.NewAuctionEvent(model.EventLotStarted, lot)
+	event := eventbuilder.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_STARTED, lot)
 	event.Ranking = uc.mustRanking(ctx, lot.Id)
 	uc.publish(ctx, event)
-	return model.CloneLot(lot), nil
+	return CloneLot(lot), nil
 }
 
-func (uc *AuctionUsecase) PlaceBid(ctx context.Context, cmd model.PlaceBidCommand) (*model.Lot, *model.Bid, []*model.RankingItem, error) {
+func (uc *AuctionUsecase) PlaceBid(ctx context.Context, cmd PlaceBidCommand) (*v1.Lot, *v1.Bid, []*v1.RankingItem, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
@@ -85,14 +85,14 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, cmd model.PlaceBidComman
 		}
 		if found {
 			ranking := uc.mustRanking(ctx, lot.Id)
-			return model.CloneLot(lot), &old, ranking, nil
+			return CloneLot(lot), &old, ranking, nil
 		}
 	}
 
 	bid := newBidFromCommand(lot.Id, cmd)
 	if err := AcceptBid(lot, bid, clock.NowMs()); err != nil {
 		uc.publishRejected(ctx, lot, err.Error())
-		return model.CloneLot(lot), nil, uc.mustRanking(ctx, lot.Id), err
+		return CloneLot(lot), nil, uc.mustRanking(ctx, lot.Id), err
 	}
 
 	if err := uc.bids.Append(ctx, bid); err != nil {
@@ -122,10 +122,10 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, cmd model.PlaceBidComman
 	if lot.GetDuelState().GetActive() {
 		uc.publishDuelStarted(ctx, lot, ranking)
 	}
-	return model.CloneLot(lot), &bid, ranking, nil
+	return CloneLot(lot), &bid, ranking, nil
 }
 
-func (uc *AuctionUsecase) RevealTrustCard(ctx context.Context, lotID, cardID, operatorID string) (*model.Lot, *model.TrustRevealCard, error) {
+func (uc *AuctionUsecase) RevealTrustCard(ctx context.Context, lotID, cardID, operatorID string) (*v1.Lot, *v1.TrustRevealCard, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
@@ -141,14 +141,14 @@ func (uc *AuctionUsecase) RevealTrustCard(ctx context.Context, lotID, cardID, op
 		return nil, nil, err
 	}
 
-	event := eventbuilder.NewAuctionEvent(model.EventTrustRevealed, lot)
+	event := eventbuilder.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_TRUST_REVEALED, lot)
 	event.TrustCard = card
 	event.Ranking = uc.mustRanking(ctx, lot.Id)
 	uc.publish(ctx, event)
-	return model.CloneLot(lot), card, nil
+	return CloneLot(lot), card, nil
 }
 
-func (uc *AuctionUsecase) StartDuel(ctx context.Context, lotID, operatorID, userAID, userBID string) (*model.Lot, *model.DuelState, error) {
+func (uc *AuctionUsecase) StartDuel(ctx context.Context, lotID, operatorID, userAID, userBID string) (*v1.Lot, *v1.DuelState, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
@@ -165,10 +165,10 @@ func (uc *AuctionUsecase) StartDuel(ctx context.Context, lotID, operatorID, user
 	}
 
 	uc.publishDuelStarted(ctx, lot, ranking)
-	return model.CloneLot(lot), lot.DuelState, nil
+	return CloneLot(lot), lot.DuelState, nil
 }
 
-func (uc *AuctionUsecase) SettleLot(ctx context.Context, lotID, operatorID string) (*model.Lot, error) {
+func (uc *AuctionUsecase) SettleLot(ctx context.Context, lotID, operatorID string) (*v1.Lot, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
@@ -183,22 +183,22 @@ func (uc *AuctionUsecase) SettleLot(ctx context.Context, lotID, operatorID strin
 		return nil, err
 	}
 
-	event := eventbuilder.NewAuctionEvent(model.EventLotSettled, lot)
+	event := eventbuilder.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_SETTLED, lot)
 	event.Ranking = uc.mustRanking(ctx, lot.Id)
 	uc.publish(ctx, event)
-	return model.CloneLot(lot), nil
+	return CloneLot(lot), nil
 }
 
-func (uc *AuctionUsecase) Snapshot(ctx context.Context, roomID string) (*model.RoomSnapshot, error) {
+func (uc *AuctionUsecase) Snapshot(ctx context.Context, roomID string) (*v1.RoomSnapshot, error) {
 	lots, err := uc.lots.List(ctx, roomID, 0)
 	if err != nil {
 		return nil, err
 	}
 	current := pickCurrentLot(lots)
 
-	snapshot := &model.RoomSnapshot{
+	snapshot := &v1.RoomSnapshot{
 		RoomId:           roomID,
-		PlaybookStage:    model.PlaybookStageWarmUp,
+		PlaybookStage:    v1.PlaybookStage_PLAYBOOK_STAGE_WARM_UP,
 		ServerTimeUnixMs: clock.NowMs(),
 	}
 	if current == nil {
@@ -216,7 +216,7 @@ func (uc *AuctionUsecase) Snapshot(ctx context.Context, roomID string) (*model.R
 	return snapshot, nil
 }
 
-func newBidFromCommand(lotID string, cmd model.PlaceBidCommand) model.Bid {
+func newBidFromCommand(lotID string, cmd PlaceBidCommand) v1.Bid {
 	if cmd.UserID == "" {
 		cmd.UserID = idgen.New("guest")
 	}
@@ -224,12 +224,12 @@ func newBidFromCommand(lotID string, cmd model.PlaceBidCommand) model.Bid {
 		cmd.Nickname = "游客"
 	}
 	if cmd.Amount == nil {
-		cmd.Amount = model.CNY(0)
+		cmd.Amount = CNY(0)
 	}
 	if cmd.Amount.Currency == "" {
 		cmd.Amount.Currency = "CNY"
 	}
-	return model.Bid{
+	return v1.Bid{
 		Id:              idgen.New("bid"),
 		LotId:           lotID,
 		UserId:          cmd.UserID,
@@ -239,10 +239,10 @@ func newBidFromCommand(lotID string, cmd model.PlaceBidCommand) model.Bid {
 	}
 }
 
-func pickCurrentLot(lots []*model.Lot) *model.Lot {
-	var fallback *model.Lot
+func pickCurrentLot(lots []*v1.Lot) *v1.Lot {
+	var fallback *v1.Lot
 	for _, lot := range lots {
-		if lot.Status == model.LotStatusLive {
+		if lot.Status == v1.LotStatus_LOT_STATUS_LIVE {
 			return lot
 		}
 		fallback = lot
@@ -250,7 +250,7 @@ func pickCurrentLot(lots []*model.Lot) *model.Lot {
 	return fallback
 }
 
-func (uc *AuctionUsecase) mustRanking(ctx context.Context, lotID string) []*model.RankingItem {
+func (uc *AuctionUsecase) mustRanking(ctx context.Context, lotID string) []*v1.RankingItem {
 	bids, err := uc.bids.ListByLot(ctx, lotID)
 	if err != nil {
 		return nil
@@ -258,33 +258,33 @@ func (uc *AuctionUsecase) mustRanking(ctx context.Context, lotID string) []*mode
 	return BuildRanking(bids)
 }
 
-func (uc *AuctionUsecase) publish(ctx context.Context, event model.AuctionEvent) {
+func (uc *AuctionUsecase) publish(ctx context.Context, event v1.AuctionEvent) {
 	if uc.events != nil {
 		uc.events.Publish(ctx, event)
 	}
 }
 
-func (uc *AuctionUsecase) publishRejected(ctx context.Context, lot *model.Lot, reason string) {
-	event := eventbuilder.NewAuctionEvent(model.EventBidRejected, lot)
+func (uc *AuctionUsecase) publishRejected(ctx context.Context, lot *v1.Lot, reason string) {
+	event := eventbuilder.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_REJECTED, lot)
 	event.Reason = reason
 	uc.publish(ctx, event)
 }
 
-func (uc *AuctionUsecase) publishBidAccepted(ctx context.Context, lot *model.Lot, bid model.Bid, ranking []*model.RankingItem) {
-	event := eventbuilder.NewAuctionEvent(model.EventBidAccepted, lot)
+func (uc *AuctionUsecase) publishBidAccepted(ctx context.Context, lot *v1.Lot, bid v1.Bid, ranking []*v1.RankingItem) {
+	event := eventbuilder.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_ACCEPTED, lot)
 	event.Bid = &bid
 	event.Ranking = ranking
 	uc.publish(ctx, event)
 }
 
-func (uc *AuctionUsecase) publishRankingUpdated(ctx context.Context, lot *model.Lot, ranking []*model.RankingItem) {
-	event := eventbuilder.NewAuctionEvent(model.EventRankingUpdated, lot)
+func (uc *AuctionUsecase) publishRankingUpdated(ctx context.Context, lot *v1.Lot, ranking []*v1.RankingItem) {
+	event := eventbuilder.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_RANKING_UPDATED, lot)
 	event.Ranking = ranking
 	uc.publish(ctx, event)
 }
 
-func (uc *AuctionUsecase) publishDuelStarted(ctx context.Context, lot *model.Lot, ranking []*model.RankingItem) {
-	event := eventbuilder.NewAuctionEvent(model.EventDuelStarted, lot)
+func (uc *AuctionUsecase) publishDuelStarted(ctx context.Context, lot *v1.Lot, ranking []*v1.RankingItem) {
+	event := eventbuilder.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_DUEL_STARTED, lot)
 	event.Ranking = ranking
 	event.DuelState = lot.DuelState
 	uc.publish(ctx, event)

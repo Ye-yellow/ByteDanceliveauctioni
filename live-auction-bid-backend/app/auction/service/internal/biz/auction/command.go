@@ -1,4 +1,6 @@
-package model
+package auction
+
+import v1 "live-auction-bid/backend/api/auction/service/v1"
 
 // CreateLotCommand 是创建拍品的业务入参。
 type CreateLotCommand struct {
@@ -6,8 +8,8 @@ type CreateLotCommand struct {
 	Title       string
 	Description string
 	ImageURL    string
-	Rule        *BidRule
-	TrustCards  []*TrustRevealCard
+	Rule        *v1.BidRule
+	TrustCards  []*v1.TrustRevealCard
 }
 
 // PlaceBidCommand 是出价业务入参。
@@ -15,7 +17,7 @@ type PlaceBidCommand struct {
 	LotID              string
 	UserID             string
 	Nickname           string
-	Amount             *Money
+	Amount             *v1.Money
 	ClientKnownVersion int64
 	IdempotencyKey     string
 }

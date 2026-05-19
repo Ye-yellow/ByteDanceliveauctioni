@@ -1,21 +1,29 @@
 package event
 
 import (
-	"live-auction-bid/backend/app/auction/service/internal/model"
+	"google.golang.org/protobuf/proto"
+	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/clock"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
 )
 
-func NewAuctionEvent(typ model.EventType, lot *model.Lot) model.AuctionEvent {
+func NewAuctionEvent(typ v1.AuctionEventType, lot *v1.Lot) v1.AuctionEvent {
 	if lot == nil {
-		return model.AuctionEvent{Id: idgen.New("evt"), Type: typ, OccurredAtUnixMs: clock.NowMs()}
+		return v1.AuctionEvent{Id: idgen.New("evt"), Type: typ, OccurredAtUnixMs: clock.NowMs()}
 	}
-	return model.AuctionEvent{
+	return v1.AuctionEvent{
 		Id:               idgen.New("evt"),
 		Type:             typ,
 		RoomId:           lot.RoomId,
 		LotId:            lot.Id,
 		OccurredAtUnixMs: clock.NowMs(),
-		Lot:              model.CloneLot(lot),
+		Lot:              cloneLot(lot),
 	}
+}
+
+func cloneLot(lot *v1.Lot) *v1.Lot {
+	if lot == nil {
+		return nil
+	}
+	return proto.Clone(lot).(*v1.Lot)
 }

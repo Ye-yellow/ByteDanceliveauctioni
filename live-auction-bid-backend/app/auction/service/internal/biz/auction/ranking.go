@@ -3,15 +3,15 @@ package auction
 import (
 	"sort"
 
-	"live-auction-bid/backend/app/auction/service/internal/model"
+	v1 "live-auction-bid/backend/api/auction/service/v1"
 )
 
-func BuildRanking(bids []model.Bid) []*model.RankingItem {
-	bestByUser := make(map[string]*model.RankingItem)
+func BuildRanking(bids []v1.Bid) []*v1.RankingItem {
+	bestByUser := make(map[string]*v1.RankingItem)
 	for _, bid := range bids {
 		current, ok := bestByUser[bid.UserId]
 		if !ok || isBetterBid(bid, current) {
-			bestByUser[bid.UserId] = &model.RankingItem{
+			bestByUser[bid.UserId] = &v1.RankingItem{
 				UserId:      bid.UserId,
 				Nickname:    bid.Nickname,
 				Amount:      cloneMoney(bid.GetAmount()),
@@ -20,7 +20,7 @@ func BuildRanking(bids []model.Bid) []*model.RankingItem {
 		}
 	}
 
-	items := make([]*model.RankingItem, 0, len(bestByUser))
+	items := make([]*v1.RankingItem, 0, len(bestByUser))
 	for _, item := range bestByUser {
 		items = append(items, item)
 	}
@@ -38,19 +38,19 @@ func BuildRanking(bids []model.Bid) []*model.RankingItem {
 	return items
 }
 
-func isBetterBid(bid model.Bid, current *model.RankingItem) bool {
+func isBetterBid(bid v1.Bid, current *v1.RankingItem) bool {
 	if bid.GetAmount().GetAmount() != current.GetAmount().GetAmount() {
 		return bid.GetAmount().GetAmount() > current.GetAmount().GetAmount()
 	}
 	return bid.CreatedAtUnixMs < current.BidAtUnixMs
 }
 
-func RecentBids(bids []model.Bid, limit int) []*model.Bid {
+func RecentBids(bids []v1.Bid, limit int) []*v1.Bid {
 	start := 0
 	if len(bids) > limit {
 		start = len(bids) - limit
 	}
-	out := make([]*model.Bid, 0, len(bids)-start)
+	out := make([]*v1.Bid, 0, len(bids)-start)
 	for i := start; i < len(bids); i++ {
 		bid := bids[i]
 		out = append(out, &bid)
@@ -58,7 +58,7 @@ func RecentBids(bids []model.Bid, limit int) []*model.Bid {
 	return out
 }
 
-func ShouldAutoStartDuel(lot *model.Lot, ranking []*model.RankingItem, bids []model.Bid, nowMs int64) bool {
+func ShouldAutoStartDuel(lot *v1.Lot, ranking []*v1.RankingItem, bids []v1.Bid, nowMs int64) bool {
 	if lot.GetDuelState().GetActive() || len(ranking) < 2 || len(bids) < 3 {
 		return false
 	}

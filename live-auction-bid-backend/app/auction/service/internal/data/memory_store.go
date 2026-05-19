@@ -3,7 +3,7 @@ package data
 import (
 	"sync"
 
-	"live-auction-bid/backend/app/auction/service/internal/model"
+	v1 "live-auction-bid/backend/api/auction/service/v1"
 )
 
 // MemoryStore 是 V1 内存存储实现。
@@ -15,15 +15,15 @@ import (
 type MemoryStore struct {
 	mu sync.RWMutex
 
-	lots      map[string]*model.Lot
-	bidsByLot map[string][]model.Bid
-	idemByLot map[string]map[string]model.Bid
+	lots      map[string]*v1.Lot
+	bidsByLot map[string][]v1.Bid
+	idemByLot map[string]map[string]v1.Bid
 }
 
 func NewMemoryStore() *MemoryStore {
 	return &MemoryStore{
-		lots:      make(map[string]*model.Lot),
-		bidsByLot: make(map[string][]model.Bid),
-		idemByLot: make(map[string]map[string]model.Bid),
+		lots:      make(map[string]*v1.Lot),
+		bidsByLot: make(map[string][]v1.Bid),
+		idemByLot: make(map[string]map[string]v1.Bid),
 	}
 }
