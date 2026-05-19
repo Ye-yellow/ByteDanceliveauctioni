@@ -127,3 +127,40 @@ internal/server 注册生成的 HTTP/gRPC server
 4. `internal/service` 实现生成出来的接口；
 5. `internal/server` 注册 Kratos HTTP/gRPC server；
 6. 删除临时手写 HTTP route 或将其降级为 debug route。
+## 8. 本次 Kratos 接入结果
+
+已完成：
+
+```text
+api/auction/service/v1/auction.pb.go
+api/auction/service/v1/auction_grpc.pb.go
+api/auction/service/v1/auction_http.pb.go
+```
+
+`auction.proto` 已补充 `google.api.http` 注解，HTTP 路由由 Kratos `protoc-gen-go-http` 生成。
+
+当前启动链路：
+
+```text
+cmd/server/main.go
+ ↓
+server.NewHTTPServer
+ ↓
+v1.RegisterAuctionServiceHTTPServer
+ ↓
+internal/service.AuctionService
+ ↓
+internal/biz/auction.AuctionUsecase
+ ↓
+internal/data.MemoryStore
+```
+
+`internal/server` 现在只负责 Kratos HTTP server 组装和 WebSocket 非 proto 路由注册，不再手写业务 HTTP 路由。
+
+生成命令：
+
+```bash
+make api
+```
+
+注意：Kratos/proto JSON 会把 `int64` 编码为字符串，这是 protobuf JSON 的正常行为。前端如果直接消费生成接口，需要按契约处理金额和时间字段。

@@ -1,8 +1,8 @@
 package main
 
 import (
+	"context"
 	"log"
-	"net/http"
 	"os"
 
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
@@ -20,11 +20,13 @@ func main() {
 
 	store := data.NewMemoryStore()
 	hub := realtime.NewHub(nil)
-	auction := auction.NewAuctionUsecase(store, store, hub)
-	hub.BindSnapshotProvider(auction)
-	app := appsvc.NewAuctionService(auction)
-	httpServer := server.New(app, hub)
+	auctionUsecase := auction.NewAuctionUsecase(store, store, hub)
+	hub.BindSnapshotProvider(auctionUsecase)
+	auctionService := appsvc.NewAuctionService(auctionUsecase)
+	httpServer := server.NewHTTPServer(addr, auctionService, hub)
 
-	log.Printf("auction backend listening on %s", addr)
-	log.Fatal(http.ListenAndServe(addr, httpServer.Handler()))
+	log.Printf("auction backend listening on %s via kratos http", addr)
+	if err := httpServer.Start(context.Background()); err != nil {
+		log.Fatal(err)
+	}
 }

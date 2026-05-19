@@ -1,10 +1,23 @@
-.PHONY: run test tidy
+.PHONY: api run test tidy
+
+GO ?= go
+PROTOC ?= protoc
+PROTOC_INC ?= third_party
+
+api:
+	$(PROTOC) \
+		--proto_path=. \
+		--proto_path=$(PROTOC_INC) \
+		--go_out=paths=source_relative:. \
+		--go-grpc_out=paths=source_relative:. \
+		--go-http_out=paths=source_relative:. \
+		api/auction/service/v1/auction.proto
 
 run:
-	go run ./app/auction/service/cmd/server
+	$(GO) run ./app/auction/service/cmd/server
 
 test:
-	go test ./...
+	$(GO) test ./...
 
 tidy:
-	go mod tidy
+	$(GO) mod tidy

@@ -4,6 +4,8 @@ package auction.service.v1;
 
 option go_package = "live-auction-bid/backend/api/auction/service/v1;v1";
 
+import "google/api/annotations.proto";
+
 // AuctionService 是 V1 直播竞拍核心服务。
 //
 // V1 只解决“一个直播间内，一个拍品从创建到落锤”的最小闭环：
@@ -33,27 +35,45 @@ service AuctionService {
   // 输入：直播间 ID、商品基础信息、竞拍规则、信任揭示卡片。
   // 输出：状态为 DRAFT 的拍品。
   // 注意：创建后还没有开拍，观众不能出价。
-  rpc CreateLot(CreateLotRequest) returns (CreateLotReply);
+  rpc CreateLot(CreateLotRequest) returns (CreateLotReply) {
+    option (google.api.http) = {
+      post: "/api/lots"
+      body: "*"
+    };
+  }
 
   // 查询拍品详情。
   //
   // 调用方：主播端、观众端、调试工具。
   // 用途：查询某个拍品当前完整状态，包括当前价、领先者、玩法状态等。
-  rpc GetLot(GetLotRequest) returns (GetLotReply);
+  rpc GetLot(GetLotRequest) returns (GetLotReply) {
+    option (google.api.http) = {
+      get: "/api/lots/{lot_id}"
+    };
+  }
 
   // 查询直播间拍品列表。
   //
   // 调用方：主播端/运营端。
   // 用途：查看某个直播间下的草稿、竞拍中、已成交拍品。
   // V1 可以先只返回少量数据，分页字段为后续预留。
-  rpc ListLots(ListLotsRequest) returns (ListLotsReply);
+  rpc ListLots(ListLotsRequest) returns (ListLotsReply) {
+    option (google.api.http) = {
+      get: "/api/lots"
+    };
+  }
 
   // 开拍。
   //
   // 调用方：主播端/运营端。
   // 状态流转：DRAFT -> LIVE。
   // 服务端动作：设置 started_at、ends_at、current_price，并广播 LOT_STARTED。
-  rpc StartLot(StartLotRequest) returns (StartLotReply);
+  rpc StartLot(StartLotRequest) returns (StartLotReply) {
+    option (google.api.http) = {
+      post: "/api/lots/{lot_id}/start"
+      body: "*"
+    };
+  }
 
   // 出价。
   //
@@ -65,34 +85,58 @@ service AuctionService {
   // - 出价是否大于等于 current_price + min_increment；
   // - 幂等键是否重复。
   // 成功后广播 BID_ACCEPTED、LOT_UPDATED、RANKING_UPDATED。
-  rpc PlaceBid(PlaceBidRequest) returns (PlaceBidReply);
+  rpc PlaceBid(PlaceBidRequest) returns (PlaceBidReply) {
+    option (google.api.http) = {
+      post: "/api/lots/{lot_id}/bid"
+      body: "*"
+    };
+  }
 
   // 主播揭示信任卡片。
   //
   // 调用方：主播端/运营端。
   // 用途：在竞拍过程中展示证书、瑕疵、细节图、售后承诺等信息。
   // 这是 V1 体现“非标品信任建立”的核心玩法。
-  rpc RevealTrustCard(RevealTrustCardRequest) returns (RevealTrustCardReply);
+  rpc RevealTrustCard(RevealTrustCardRequest) returns (RevealTrustCardReply) {
+    option (google.api.http) = {
+      post: "/api/lots/{lot_id}/trust-cards/{card_id}/reveal"
+      body: "*"
+    };
+  }
 
   // 进入双人巅峰竞拍模式。
   //
   // 调用方：主播端/运营端，后续也可以由规则引擎自动触发。
   // 用途：最后阶段强化 Top2 竞价展示，制造直播间竞技感。
   // V1 注意：Duel Mode 只是展示强化，不禁止其他观众继续合法出价。
-  rpc StartDuel(StartDuelRequest) returns (StartDuelReply);
+  rpc StartDuel(StartDuelRequest) returns (StartDuelReply) {
+    option (google.api.http) = {
+      post: "/api/lots/{lot_id}/duel"
+      body: "*"
+    };
+  }
 
   // 落锤成交。
   //
   // 调用方：主播端/运营端，后续也可以由定时任务自动触发。
   // 状态流转：LIVE -> SETTLED。
   // 服务端动作：锁定 winner、final_price、settled_at，并广播 LOT_SETTLED。
-  rpc SettleLot(SettleLotRequest) returns (SettleLotReply);
+  rpc SettleLot(SettleLotRequest) returns (SettleLotReply) {
+    option (google.api.http) = {
+      post: "/api/lots/{lot_id}/settle"
+      body: "*"
+    };
+  }
 
   // 获取直播间权威快照。
   //
   // 调用方：观众端。
   // 用途：首次进入直播间、WebSocket 重连、前端状态不可信时，用它恢复当前状态。
-  rpc GetRoomSnapshot(GetRoomSnapshotRequest) returns (GetRoomSnapshotReply);
+  rpc GetRoomSnapshot(GetRoomSnapshotRequest) returns (GetRoomSnapshotReply) {
+    option (google.api.http) = {
+      get: "/api/rooms/{room_id}/snapshot"
+    };
+  }
 }
 
 // ============================================================================
