@@ -1,5 +1,5 @@
 import { API_BASE } from '../../../shared/config/env';
-import type { Lot } from '../../../shared/types/auction';
+import type { CreateLotRequest, Lot, PlaceBidRequest } from '../../../shared/api/types';
 
 export async function listLots(): Promise<Lot[]> {
   const r = await fetch(`${API_BASE}/api/lots`);
@@ -7,8 +7,18 @@ export async function listLots(): Promise<Lot[]> {
   return r.json();
 }
 
-export async function createLot(payload: Partial<Lot> & { durationSec?: number }) {
+export async function createLot(payload: CreateLotRequest) {
   const r = await fetch(`${API_BASE}/api/lots`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json() as Promise<Lot>;
+}
+
+export async function placeBid(lotId: string, payload: PlaceBidRequest) {
+  const r = await fetch(`${API_BASE}/api/lots/${lotId}/bid`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

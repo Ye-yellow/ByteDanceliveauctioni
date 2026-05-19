@@ -49,3 +49,13 @@ src/shared       通用配置、类型、工具、UI
 ```
 
 详细说明见：`docs/FRONTEND_ARCHITECTURE.md`。
+
+## API 类型生成
+
+前端类型来自后端 OpenAPI 契约，不手写后端 DTO。
+
+```bash
+npm run generate:api
+```
+
+详细说明见：`docs/API_CONTRACT_GENERATION.md`。
