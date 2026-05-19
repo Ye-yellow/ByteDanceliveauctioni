@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package ai.service.v1;
+
+option go_package = "live-auction-bid/backend/api/ai/service/v1;v1";
+
+// Reserved for Phase 2 when AI is split from auction/service.
+service AIService {
+  rpc Health(HealthRequest) returns (HealthReply);
+}
+
+message HealthRequest {}
+message HealthReply { string status = 1; }

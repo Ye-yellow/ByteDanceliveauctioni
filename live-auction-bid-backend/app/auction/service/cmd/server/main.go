@@ -14,7 +14,7 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/conf"
 	data "live-auction-bid/backend/app/auction/service/internal/data"
 	serveriface "live-auction-bid/backend/app/auction/service/internal/server"
-	ws "live-auction-bid/backend/app/auction/service/internal/server/ws"
+	"live-auction-bid/backend/app/auction/service/internal/realtime"
 )
 
 func main() {
@@ -24,9 +24,10 @@ func main() {
 	if err := yaml.Unmarshal(raw, &cfg); err != nil { log.Fatal(err) }
 
 	repo := data.NewLotRepository()
-	hub := ws.NewHub()
+	hub := realtime.NewHub()
 	ai := data.StubAI{}
-	ds := biz.NewDomainService(repo, hub, ai, time.Duration(cfg.Auction.AntiSnipeExtendSeconds)*time.Second)
+	broadcaster := realtime.NewBroadcaster(hub)
+	ds := biz.NewDomainService(repo, broadcaster, ai, time.Duration(cfg.Auction.AntiSnipeExtendSeconds)*time.Second)
 	appSvc := auctionsvc.NewService(repo, ds)
 	seedDemo(context.Background(), appSvc, cfg.Auction.DefaultRoomID)
 

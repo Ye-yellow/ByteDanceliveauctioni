@@ -14,8 +14,3 @@ type EventPublisher interface {
 	PublishBidAccepted(ctx context.Context, lot *Lot, bid Bid) error
 	PublishLotSettled(ctx context.Context, lot *Lot) error
 }
-
-type AtmosphereAI interface {
-	OnBid(ctx context.Context, lot *Lot, bid Bid) string
-	SuggestStartPrice(ctx context.Context, title, description string, referencePrice Money) Money
-}

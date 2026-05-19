@@ -20,3 +20,10 @@ func (StubAI) SuggestStartPrice(ctx context.Context, title, description string, 
 	}
 	return 10000
 }
+
+func (StubAI) GenerateLine(ctx context.Context, req biz.AtmosphereRequest) (string, error) {
+	if req.LatestBid != nil {
+		return fmt.Sprintf("%s 刚刚出价 %.2f，直播间热度继续上升！", req.LatestBid.Nickname, float64(req.LatestBid.Amount)/100), nil
+	}
+	return "竞拍正在进行，喜欢这件拍品的朋友可以准备出价。", nil
+}
