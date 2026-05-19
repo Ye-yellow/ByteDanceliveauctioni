@@ -1,7 +1,5 @@
 package biz
 
-import "time"
-
 type Money struct {
 	Amount   int64  `json:"amount"`
 	Currency string `json:"currency"`
@@ -42,17 +40,17 @@ const (
 type EventType string
 
 const (
-	EventRoomSnapshot    EventType = "AUCTION_EVENT_TYPE_ROOM_SNAPSHOT"
-	EventLotCreated      EventType = "AUCTION_EVENT_TYPE_LOT_CREATED"
-	EventLotStarted      EventType = "AUCTION_EVENT_TYPE_LOT_STARTED"
-	EventLotUpdated      EventType = "AUCTION_EVENT_TYPE_LOT_UPDATED"
-	EventBidAccepted     EventType = "AUCTION_EVENT_TYPE_BID_ACCEPTED"
-	EventBidRejected     EventType = "AUCTION_EVENT_TYPE_BID_REJECTED"
-	EventRankingUpdated  EventType = "AUCTION_EVENT_TYPE_RANKING_UPDATED"
-	EventTrustRevealed   EventType = "AUCTION_EVENT_TYPE_TRUST_REVEALED"
-	EventDuelStarted     EventType = "AUCTION_EVENT_TYPE_DUEL_STARTED"
-	EventDuelEnded       EventType = "AUCTION_EVENT_TYPE_DUEL_ENDED"
-	EventLotSettled      EventType = "AUCTION_EVENT_TYPE_LOT_SETTLED"
+	EventRoomSnapshot   EventType = "AUCTION_EVENT_TYPE_ROOM_SNAPSHOT"
+	EventLotCreated     EventType = "AUCTION_EVENT_TYPE_LOT_CREATED"
+	EventLotStarted     EventType = "AUCTION_EVENT_TYPE_LOT_STARTED"
+	EventLotUpdated     EventType = "AUCTION_EVENT_TYPE_LOT_UPDATED"
+	EventBidAccepted    EventType = "AUCTION_EVENT_TYPE_BID_ACCEPTED"
+	EventBidRejected    EventType = "AUCTION_EVENT_TYPE_BID_REJECTED"
+	EventRankingUpdated EventType = "AUCTION_EVENT_TYPE_RANKING_UPDATED"
+	EventTrustRevealed  EventType = "AUCTION_EVENT_TYPE_TRUST_REVEALED"
+	EventDuelStarted    EventType = "AUCTION_EVENT_TYPE_DUEL_STARTED"
+	EventDuelEnded      EventType = "AUCTION_EVENT_TYPE_DUEL_ENDED"
+	EventLotSettled     EventType = "AUCTION_EVENT_TYPE_LOT_SETTLED"
 )
 
 type BidRule struct {
@@ -106,26 +104,26 @@ type DuelState struct {
 }
 
 type Lot struct {
-	ID              string             `json:"id"`
-	RoomID          string             `json:"roomId"`
-	Title           string             `json:"title"`
-	Description     string             `json:"description"`
-	ImageURL        string             `json:"imageUrl"`
-	Status          LotStatus          `json:"status"`
-	Rule            BidRule            `json:"rule"`
-	CurrentPrice    Money              `json:"currentPrice"`
-	LeadingUserID   string             `json:"leadingUserId"`
-	LeadingNickname string             `json:"leadingNickname"`
-	StartedAtUnixMs int64              `json:"startedAtUnixMs"`
-	EndsAtUnixMs    int64              `json:"endsAtUnixMs"`
-	SettledAtUnixMs int64              `json:"settledAtUnixMs"`
-	WinnerUserID    string             `json:"winnerUserId"`
-	WinnerNickname  string             `json:"winnerNickname"`
-	FinalPrice      Money              `json:"finalPrice"`
-	Version         int64              `json:"version"`
-	TrustCards      []TrustRevealCard  `json:"trustCards"`
-	DuelState       DuelState          `json:"duelState"`
-	PlaybookStage   PlaybookStage      `json:"playbookStage"`
+	ID              string            `json:"id"`
+	RoomID          string            `json:"roomId"`
+	Title           string            `json:"title"`
+	Description     string            `json:"description"`
+	ImageURL        string            `json:"imageUrl"`
+	Status          LotStatus         `json:"status"`
+	Rule            BidRule           `json:"rule"`
+	CurrentPrice    Money             `json:"currentPrice"`
+	LeadingUserID   string            `json:"leadingUserId"`
+	LeadingNickname string            `json:"leadingNickname"`
+	StartedAtUnixMs int64             `json:"startedAtUnixMs"`
+	EndsAtUnixMs    int64             `json:"endsAtUnixMs"`
+	SettledAtUnixMs int64             `json:"settledAtUnixMs"`
+	WinnerUserID    string            `json:"winnerUserId"`
+	WinnerNickname  string            `json:"winnerNickname"`
+	FinalPrice      Money             `json:"finalPrice"`
+	Version         int64             `json:"version"`
+	TrustCards      []TrustRevealCard `json:"trustCards"`
+	DuelState       DuelState         `json:"duelState"`
+	PlaybookStage   PlaybookStage     `json:"playbookStage"`
 }
 
 type RoomSnapshot struct {
@@ -138,18 +136,16 @@ type RoomSnapshot struct {
 }
 
 type AuctionEvent struct {
-	ID               string            `json:"id"`
-	Type             EventType         `json:"type"`
-	RoomID           string            `json:"roomId"`
-	LotID            string            `json:"lotId"`
-	OccurredAtUnixMs int64             `json:"occurredAtUnixMs"`
-	Lot              *Lot              `json:"lot,omitempty"`
-	Bid              *Bid              `json:"bid,omitempty"`
-	Ranking          []RankingItem     `json:"ranking,omitempty"`
-	TrustCard        *TrustRevealCard  `json:"trustCard,omitempty"`
-	DuelState        *DuelState        `json:"duelState,omitempty"`
-	Snapshot         *RoomSnapshot     `json:"snapshot,omitempty"`
-	Reason           string            `json:"reason,omitempty"`
+	ID               string           `json:"id"`
+	Type             EventType        `json:"type"`
+	RoomID           string           `json:"roomId"`
+	LotID            string           `json:"lotId"`
+	OccurredAtUnixMs int64            `json:"occurredAtUnixMs"`
+	Lot              *Lot             `json:"lot,omitempty"`
+	Bid              *Bid             `json:"bid,omitempty"`
+	Ranking          []RankingItem    `json:"ranking,omitempty"`
+	TrustCard        *TrustRevealCard `json:"trustCard,omitempty"`
+	DuelState        *DuelState       `json:"duelState,omitempty"`
+	Snapshot         *RoomSnapshot    `json:"snapshot,omitempty"`
+	Reason           string           `json:"reason,omitempty"`
 }
-
-func NowMs() int64 { return time.Now().UnixMilli() }

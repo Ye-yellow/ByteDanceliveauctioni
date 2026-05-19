@@ -9,10 +9,113 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/biz"
 )
 
-type MemoryLotRepo struct { mu sync.RWMutex; lots map[string]*biz.Lot }
-func NewMemoryLotRepo() *MemoryLotRepo { return &MemoryLotRepo{lots: map[string]*biz.Lot{}} }
-func (r *MemoryLotRepo) Create(ctx context.Context, lot *biz.Lot) error { r.mu.Lock(); defer r.mu.Unlock(); r.lots[lot.ID] = clone(lot); return nil }
-func (r *MemoryLotRepo) Save(ctx context.Context, lot *biz.Lot) error { r.mu.Lock(); defer r.mu.Unlock(); if _, ok := r.lots[lot.ID]; !ok { return errors.New("拍品不存在") }; r.lots[lot.ID] = clone(lot); return nil }
-func (r *MemoryLotRepo) FindByID(ctx context.Context, lotID string) (*biz.Lot, error) { r.mu.RLock(); defer r.mu.RUnlock(); lot, ok := r.lots[lotID]; if !ok { return nil, errors.New("拍品不存在") }; return clone(lot), nil }
-func (r *MemoryLotRepo) List(ctx context.Context, roomID string, status biz.LotStatus) ([]*biz.Lot, error) { r.mu.RLock(); defer r.mu.RUnlock(); out := []*biz.Lot{}; for _, lot := range r.lots { if roomID != "" && lot.RoomID != roomID { continue }; if status != "" && lot.Status != status { continue }; out = append(out, clone(lot)) }; sort.Slice(out, func(i,j int) bool { return out[i].ID < out[j].ID }); return out, nil }
-func clone(l *biz.Lot) *biz.Lot { if l == nil { return nil }; cp := *l; cp.TrustCards = append([]biz.TrustRevealCard(nil), l.TrustCards...); return &cp }
+// MemoryStore 是 V1 内存存储实现。
+//
+// 该实现只服务本地演示；接口已经按仓储边界拆好，后续可分别替换为：
+// - LotRepository -> MySQL
+// - BidRepository -> Redis Stream / MySQL
+// - 幂等键 -> Redis SETNX
+type MemoryStore struct {
+	mu sync.RWMutex
+
+	lots      map[string]*biz.Lot
+	bidsByLot map[string][]biz.Bid
+	idemByLot map[string]map[string]biz.Bid
+}
+
+func NewMemoryStore() *MemoryStore {
+	return &MemoryStore{
+		lots:      make(map[string]*biz.Lot),
+		bidsByLot: make(map[string][]biz.Bid),
+		idemByLot: make(map[string]map[string]biz.Bid),
+	}
+}
+
+func (s *MemoryStore) Create(ctx context.Context, lot *biz.Lot) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.lots[lot.ID] = biz.CloneLot(lot)
+	return nil
+}
+
+func (s *MemoryStore) Save(ctx context.Context, lot *biz.Lot) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, ok := s.lots[lot.ID]; !ok {
+		return errors.New("拍品不存在")
+	}
+	s.lots[lot.ID] = biz.CloneLot(lot)
+	return nil
+}
+
+func (s *MemoryStore) FindByID(ctx context.Context, lotID string) (*biz.Lot, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	lot, ok := s.lots[lotID]
+	if !ok {
+		return nil, errors.New("拍品不存在")
+	}
+	return biz.CloneLot(lot), nil
+}
+
+func (s *MemoryStore) List(ctx context.Context, roomID string, status biz.LotStatus) ([]*biz.Lot, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	lots := make([]*biz.Lot, 0, len(s.lots))
+	for _, lot := range s.lots {
+		if roomID != "" && lot.RoomID != roomID {
+			continue
+		}
+		if status != "" && lot.Status != status {
+			continue
+		}
+		lots = append(lots, biz.CloneLot(lot))
+	}
+
+	sort.Slice(lots, func(i, j int) bool {
+		return lots[i].ID < lots[j].ID
+	})
+	return lots, nil
+}
+
+func (s *MemoryStore) Append(ctx context.Context, bid biz.Bid) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.bidsByLot[bid.LotID] = append(s.bidsByLot[bid.LotID], bid)
+	return nil
+}
+
+func (s *MemoryStore) ListByLot(ctx context.Context, lotID string) ([]biz.Bid, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	bids := s.bidsByLot[lotID]
+	return append([]biz.Bid(nil), bids...), nil
+}
+
+func (s *MemoryStore) FindByIdempotencyKey(ctx context.Context, lotID, key string) (biz.Bid, bool, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.idemByLot[lotID] == nil {
+		return biz.Bid{}, false, nil
+	}
+	bid, ok := s.idemByLot[lotID][key]
+	return bid, ok, nil
+}
+
+func (s *MemoryStore) SaveIdempotencyKey(ctx context.Context, lotID, key string, bid biz.Bid) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.idemByLot[lotID] == nil {
+		s.idemByLot[lotID] = make(map[string]biz.Bid)
+	}
+	s.idemByLot[lotID][key] = bid
+	return nil
+}

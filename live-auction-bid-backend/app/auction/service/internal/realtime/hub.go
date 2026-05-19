@@ -2,7 +2,6 @@ package realtime
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"sync"
 	"time"
@@ -11,9 +10,106 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/biz"
 )
 
-type SnapshotProvider interface { Snapshot(ctx context.Context, roomID string) (*biz.RoomSnapshot, error) }
+const writeTimeout = 3 * time.Second
 
-type Hub struct { mu sync.RWMutex; rooms map[string]map[*websocket.Conn]bool; snapshot SnapshotProvider; upgrader websocket.Upgrader }
-func NewHub(snapshot SnapshotProvider) *Hub { return &Hub{rooms: map[string]map[*websocket.Conn]bool{}, snapshot: snapshot, upgrader: websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}} }
-func (h *Hub) Publish(ctx context.Context, event biz.AuctionEvent) { h.mu.RLock(); conns := h.rooms[event.RoomID]; for c := range conns { _ = c.SetWriteDeadline(time.Now().Add(3*time.Second)); _ = c.WriteJSON(event) }; h.mu.RUnlock() }
-func (h *Hub) ServeRoom(w http.ResponseWriter, r *http.Request, roomID string) { c, err := h.upgrader.Upgrade(w,r,nil); if err != nil { return }; h.mu.Lock(); if h.rooms[roomID] == nil { h.rooms[roomID] = map[*websocket.Conn]bool{} }; h.rooms[roomID][c] = true; h.mu.Unlock(); defer func(){ h.mu.Lock(); delete(h.rooms[roomID], c); h.mu.Unlock(); _ = c.Close() }(); if h.snapshot != nil { if snap, err := h.snapshot.Snapshot(r.Context(), roomID); err == nil { _ = c.WriteJSON(biz.AuctionEvent{ID:"evt_snapshot", Type: biz.EventRoomSnapshot, RoomID: roomID, OccurredAtUnixMs: biz.NowMs(), Snapshot: snap}) } }; for { _, data, err := c.ReadMessage(); if err != nil { return }; var raw map[string]any; _ = json.Unmarshal(data, &raw) } }
+type SnapshotProvider interface {
+	Snapshot(ctx context.Context, roomID string) (*biz.RoomSnapshot, error)
+}
+
+type Hub struct {
+	mu       sync.RWMutex
+	rooms    map[string]map[*websocket.Conn]struct{}
+	snapshot SnapshotProvider
+	upgrader websocket.Upgrader
+}
+
+func NewHub(snapshot SnapshotProvider) *Hub {
+	return &Hub{
+		rooms:    make(map[string]map[*websocket.Conn]struct{}),
+		snapshot: snapshot,
+		upgrader: websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool { return true },
+		},
+	}
+}
+
+func (h *Hub) BindSnapshotProvider(snapshot SnapshotProvider) {
+	h.snapshot = snapshot
+}
+
+func (h *Hub) Publish(ctx context.Context, event biz.AuctionEvent) {
+	for _, conn := range h.roomConnections(event.RoomID) {
+		_ = conn.SetWriteDeadline(time.Now().Add(writeTimeout))
+		_ = conn.WriteJSON(event)
+	}
+}
+
+func (h *Hub) ServeRoom(w http.ResponseWriter, r *http.Request, roomID string) {
+	conn, err := h.upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		return
+	}
+	defer conn.Close()
+
+	h.join(roomID, conn)
+	defer h.leave(roomID, conn)
+
+	h.sendSnapshot(r.Context(), roomID, conn)
+	h.drain(conn)
+}
+
+func (h *Hub) join(roomID string, conn *websocket.Conn) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if h.rooms[roomID] == nil {
+		h.rooms[roomID] = make(map[*websocket.Conn]struct{})
+	}
+	h.rooms[roomID][conn] = struct{}{}
+}
+
+func (h *Hub) leave(roomID string, conn *websocket.Conn) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	delete(h.rooms[roomID], conn)
+	if len(h.rooms[roomID]) == 0 {
+		delete(h.rooms, roomID)
+	}
+}
+
+func (h *Hub) roomConnections(roomID string) []*websocket.Conn {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	connections := make([]*websocket.Conn, 0, len(h.rooms[roomID]))
+	for conn := range h.rooms[roomID] {
+		connections = append(connections, conn)
+	}
+	return connections
+}
+
+func (h *Hub) sendSnapshot(ctx context.Context, roomID string, conn *websocket.Conn) {
+	if h.snapshot == nil {
+		return
+	}
+	snapshot, err := h.snapshot.Snapshot(ctx, roomID)
+	if err != nil {
+		return
+	}
+	_ = conn.WriteJSON(biz.AuctionEvent{
+		ID:               biz.NewID("evt"),
+		Type:             biz.EventRoomSnapshot,
+		RoomID:           roomID,
+		OccurredAtUnixMs: biz.NowMs(),
+		Snapshot:         snapshot,
+	})
+}
+
+func (h *Hub) drain(conn *websocket.Conn) {
+	for {
+		if _, _, err := conn.ReadMessage(); err != nil {
+			return
+		}
+	}
+}

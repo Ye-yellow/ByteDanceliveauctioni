@@ -9,18 +9,22 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/data"
 	"live-auction-bid/backend/app/auction/service/internal/realtime"
 	"live-auction-bid/backend/app/auction/service/internal/server"
+	appsvc "live-auction-bid/backend/app/auction/service/internal/service"
 )
 
 func main() {
 	addr := os.Getenv("AUCTION_HTTP_ADDR")
-	if addr == "" { addr = ":18080" }
-	repo := data.NewMemoryLotRepo()
-	var app *biz.Service
+	if addr == "" {
+		addr = ":18080"
+	}
+
+	store := data.NewMemoryStore()
 	hub := realtime.NewHub(nil)
-	app = biz.NewService(repo, hub)
-	hub = realtime.NewHub(app)
-	app = biz.NewService(repo, hub)
-	srv := server.New(app, hub)
+	auction := biz.NewAuctionUsecase(store, store, hub)
+	hub.BindSnapshotProvider(auction)
+	app := appsvc.New(auction)
+	httpServer := server.New(app, hub)
+
 	log.Printf("auction backend listening on %s", addr)
-	log.Fatal(http.ListenAndServe(addr, srv.Handler()))
+	log.Fatal(http.ListenAndServe(addr, httpServer.Handler()))
 }
