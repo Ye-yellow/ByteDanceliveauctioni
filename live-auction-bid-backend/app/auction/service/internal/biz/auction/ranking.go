@@ -15,7 +15,7 @@ func BuildRanking(bids []v1.Bid) []*v1.RankingItem {
 			bestByUser[bid.UserId] = &v1.RankingItem{
 				UserId:      bid.UserId,
 				Nickname:    bid.Nickname,
-				Amount:      cloneMoney(bid.GetAmount()),
+				Amount:      bid.GetAmount(),
 				BidAtUnixMs: bid.CreatedAtUnixMs,
 			}
 		}

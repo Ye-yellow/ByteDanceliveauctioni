@@ -60,7 +60,7 @@ func NewLotFromRequest(id string, req *v1.CreateLotRequest) *v1.Lot {
 		ImageUrl:      req.GetImageUrl(),
 		Status:        v1.LotStatus_LOT_STATUS_DRAFT,
 		Rule:          req.GetRule(),
-		CurrentPrice:  cloneMoney(req.GetRule().GetStartPrice()),
+		CurrentPrice:  req.GetRule().GetStartPrice(),
 		FinalPrice:    CNY(0),
 		Version:       1,
 		TrustCards:    trustCards,
@@ -86,9 +86,9 @@ func StartLot(lot *v1.Lot, nowMs int64) error {
 	lot.Status = v1.LotStatus_LOT_STATUS_LIVE
 	lot.StartedAtUnixMs = nowMs
 	lot.EndsAtUnixMs = nowMs + int64(lot.GetRule().GetDurationSeconds())*1000
-	lot.CurrentPrice = cloneMoney(lot.GetRule().GetStartPrice())
+	lot.CurrentPrice = lot.GetRule().GetStartPrice()
 	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_WARM_UP
-	bumpVersion(lot)
+	lot.Version++
 	return nil
 }
 
@@ -102,7 +102,7 @@ func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 	if bid.GetAmount().GetAmount() < lot.GetCurrentPrice().GetAmount()+lot.GetRule().GetMinIncrement().GetAmount() {
 		return errors.New("出价低于当前价加最低加价幅度")
 	}
-	lot.CurrentPrice = cloneMoney(bid.GetAmount())
+	lot.CurrentPrice = bid.GetAmount()
 	lot.LeadingUserId = bid.UserId
 	lot.LeadingNickname = bid.Nickname
 	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_BIDDING_ACTIVE
@@ -117,7 +117,7 @@ func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 		lot.DuelState.ExtendCount++
 	}
 
-	bumpVersion(lot)
+	lot.Version++
 	return nil
 }
 
@@ -127,7 +127,7 @@ func RevealTrustCard(lot *v1.Lot, cardID string, nowMs int64) (*v1.TrustRevealCa
 			card.Revealed = true
 			card.RevealedAtUnixMs = nowMs
 			lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_TRUST_BLOCKED
-			bumpVersion(lot)
+			lot.Version++
 			return card, nil
 		}
 	}
@@ -158,7 +158,7 @@ func StartDuel(lot *v1.Lot, ranking []*v1.RankingItem, nowMs int64) error {
 		MaxExtendCount:  lot.GetRule().GetMaxExtendCount(),
 	}
 	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_DUEL_MODE
-	bumpVersion(lot)
+	lot.Version++
 	return nil
 }
 
@@ -170,23 +170,11 @@ func SettleLot(lot *v1.Lot, nowMs int64) error {
 	lot.SettledAtUnixMs = nowMs
 	lot.WinnerUserId = lot.LeadingUserId
 	lot.WinnerNickname = lot.LeadingNickname
-	lot.FinalPrice = cloneMoney(lot.GetCurrentPrice())
+	lot.FinalPrice = lot.GetCurrentPrice()
 	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_SETTLE_READY
 	if lot.DuelState != nil {
 		lot.DuelState.Active = false
 	}
-	bumpVersion(lot)
-	return nil
-}
-
-func bumpVersion(lot *v1.Lot) {
 	lot.Version++
-}
-
-func cloneMoney(m *v1.Money) *v1.Money {
-	if m == nil {
-		return nil
-	}
-	cp := *m
-	return &cp
+	return nil
 }
