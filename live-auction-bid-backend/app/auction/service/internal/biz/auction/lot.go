@@ -10,23 +10,23 @@ import (
 
 func NewLotFromRequest(id string, req *v1.CreateLotRequest) (*v1.Lot, error) {
 	if req == nil {
-		return nil, errors.New("创建拍品请求不能为空")
+		return nil, errors.New("create lot request is required")
 	}
 	if req.GetRoomId() == "" {
-		return nil, errors.New("直播间 ID 不能为空")
+		return nil, errors.New("room id is required")
 	}
 	if req.GetTitle() == "" {
-		return nil, errors.New("拍品标题不能为空")
+		return nil, errors.New("lot title is required")
 	}
 	if req.GetRule() == nil || req.GetRule().GetStartPrice() == nil || req.GetRule().GetMinIncrement() == nil {
-		return nil, errors.New("竞拍规则、起拍价和最低加价不能为空")
+		return nil, errors.New("bid rule, start price and min increment are required")
 	}
 	if req.GetRule().GetStartPrice().GetCurrency() == "" || req.GetRule().GetMinIncrement().GetCurrency() == "" {
-		return nil, errors.New("起拍价和最低加价必须指定币种")
+		return nil, errors.New("start price and min increment currency are required")
 	}
 	if req.GetRule().GetDurationSeconds() <= 0 || req.GetRule().GetAntiSnipeWindowSeconds() <= 0 ||
 		req.GetRule().GetAntiSnipeExtendSeconds() <= 0 || req.GetRule().GetMaxExtendCount() <= 0 {
-		return nil, errors.New("竞拍时长、反狙击窗口、延时时长和最大延时次数必须大于 0")
+		return nil, errors.New("duration, anti-snipe window, anti-snipe extension and max extension count must be greater than zero")
 	}
 
 	trustCards := make([]*v1.TrustRevealCard, 0, len(req.GetTrustCards()))
@@ -67,7 +67,7 @@ func NewLotFromRequest(id string, req *v1.CreateLotRequest) (*v1.Lot, error) {
 
 func StartLot(lot *v1.Lot, nowMs int64) error {
 	if lot.Status != v1.LotStatus_LOT_STATUS_DRAFT {
-		return fmt.Errorf("只有草稿拍品可以开拍，当前状态：%s", lot.Status)
+		return fmt.Errorf("only draft lot can be started, current status: %s", lot.Status)
 	}
 	lot.Status = v1.LotStatus_LOT_STATUS_LIVE
 	lot.StartedAtUnixMs = nowMs
@@ -80,13 +80,13 @@ func StartLot(lot *v1.Lot, nowMs int64) error {
 
 func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 	if lot.Status != v1.LotStatus_LOT_STATUS_LIVE {
-		return errors.New("拍品未处于竞拍中")
+		return errors.New("lot is not live")
 	}
 	if lot.EndsAtUnixMs > 0 && nowMs > lot.EndsAtUnixMs {
-		return errors.New("竞拍已超时")
+		return errors.New("auction has ended")
 	}
 	if bid.GetAmount().GetAmount() < lot.GetCurrentPrice().GetAmount()+lot.GetRule().GetMinIncrement().GetAmount() {
-		return errors.New("出价低于当前价加最低加价幅度")
+		return errors.New("bid amount is lower than current price plus min increment")
 	}
 	lot.CurrentPrice = bid.GetAmount()
 	lot.LeadingUserId = bid.UserId
@@ -117,15 +117,15 @@ func RevealTrustCard(lot *v1.Lot, cardID string, nowMs int64) (*v1.TrustRevealCa
 			return card, nil
 		}
 	}
-	return nil, errors.New("信任卡片不存在")
+	return nil, errors.New("trust card not found")
 }
 
 func StartDuel(lot *v1.Lot, ranking []*v1.RankingItem, nowMs int64) error {
 	if lot.Status != v1.LotStatus_LOT_STATUS_LIVE {
-		return errors.New("只有竞拍中的拍品可以进入 Duel Mode")
+		return errors.New("only live lot can enter duel mode")
 	}
 	if len(ranking) < 2 {
-		return errors.New("至少需要两名出价用户才能进入 Duel Mode")
+		return errors.New("at least two bidders are required to enter duel mode")
 	}
 	extendCount := int32(0)
 	if lot.DuelState != nil {
@@ -150,7 +150,7 @@ func StartDuel(lot *v1.Lot, ranking []*v1.RankingItem, nowMs int64) error {
 
 func SettleLot(lot *v1.Lot, nowMs int64) error {
 	if lot.Status != v1.LotStatus_LOT_STATUS_LIVE {
-		return fmt.Errorf("只有竞拍中的拍品可以落锤，当前状态：%s", lot.Status)
+		return fmt.Errorf("only live lot can be settled, current status: %s", lot.Status)
 	}
 	lot.Status = v1.LotStatus_LOT_STATUS_SETTLED
 	lot.SettledAtUnixMs = nowMs

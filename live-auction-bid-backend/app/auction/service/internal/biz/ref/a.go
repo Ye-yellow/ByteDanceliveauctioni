@@ -128,7 +128,7 @@ func (uc *UserUseCase) AcknowledgeOrder_Google(ctx context.Context, productID st
 }
 
 func (uc *UserUseCase) VerifyOrder1(ctx context.Context, u *User, channel v2.OrderChannel, receiptBytes []byte, currencyType string, storeKey string) (int64, error) {
-	return 0, errors.New("不支持的平台类型")
+	return 0, errors.New("unsupported platform type")
 }
 
 func (uc *UserUseCase) VerifyOrder(ctx context.Context, u *User, channel v2.OrderChannel, receiptBytes []byte, currencyType string, storeKey string, afid string) (int64, error) {

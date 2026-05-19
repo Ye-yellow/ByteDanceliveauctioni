@@ -21,7 +21,7 @@ func (s *MemoryStore) Save(ctx context.Context, lot *v1.Lot) error {
 	defer s.mu.Unlock()
 
 	if _, ok := s.lots[lot.Id]; !ok {
-		return errors.New("拍品不存在")
+		return errors.New("lot not found")
 	}
 	s.lots[lot.Id] = cloneLot(lot)
 	return nil
@@ -33,7 +33,7 @@ func (s *MemoryStore) FindByID(ctx context.Context, lotID string) (*v1.Lot, erro
 
 	lot, ok := s.lots[lotID]
 	if !ok {
-		return nil, errors.New("拍品不存在")
+		return nil, errors.New("lot not found")
 	}
 	return cloneLot(lot), nil
 }
