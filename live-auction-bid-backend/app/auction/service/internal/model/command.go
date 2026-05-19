@@ -1,21 +1,21 @@
 package model
 
-// CreateLotCommand 是主播创建拍品草稿的应用命令。
+// CreateLotCommand 是创建拍品的业务入参。
 type CreateLotCommand struct {
-	RoomID      string            `json:"roomId"`
-	Title       string            `json:"title"`
-	Description string            `json:"description"`
-	ImageURL    string            `json:"imageUrl"`
-	Rule        BidRule           `json:"rule"`
-	TrustCards  []TrustRevealCard `json:"trustCards"`
+	RoomID      string
+	Title       string
+	Description string
+	ImageURL    string
+	Rule        *BidRule
+	TrustCards  []*TrustRevealCard
 }
 
-// PlaceBidCommand 是观众出价命令。
+// PlaceBidCommand 是出价业务入参。
 type PlaceBidCommand struct {
-	LotID              string `json:"lotId"`
-	UserID             string `json:"userId"`
-	Nickname           string `json:"nickname"`
-	Amount             Money  `json:"amount"`
-	ClientKnownVersion int64  `json:"clientKnownVersion"`
-	IdempotencyKey     string `json:"idempotencyKey"`
+	LotID              string
+	UserID             string
+	Nickname           string
+	Amount             *Money
+	ClientKnownVersion int64
+	IdempotencyKey     string
 }

@@ -13,10 +13,10 @@ import (
 // AuctionUsecase 编排直播竞拍业务流程。
 //
 // 分层约束：
-// - 领域规则放在 Lot / Ranking 等领域对象里；
+// - 业务流程和规则放在 biz；
 // - 存储细节通过 Repository 接口隔离；
 // - 实时广播通过 EventPublisher 接口隔离；
-// - HTTP/WS 入参适配不放在 biz 层。
+// - HTTP/WS 适配不放在 biz 层。
 type AuctionUsecase struct {
 	mu     sync.Mutex
 	lots   LotRepository
@@ -64,12 +64,12 @@ func (uc *AuctionUsecase) StartLot(ctx context.Context, lotID string) (*model.Lo
 	}
 
 	event := eventbuilder.NewAuctionEvent(model.EventLotStarted, lot)
-	event.Ranking = uc.mustRanking(ctx, lot.ID)
+	event.Ranking = uc.mustRanking(ctx, lot.Id)
 	uc.publish(ctx, event)
 	return model.CloneLot(lot), nil
 }
 
-func (uc *AuctionUsecase) PlaceBid(ctx context.Context, cmd model.PlaceBidCommand) (*model.Lot, *model.Bid, []model.RankingItem, error) {
+func (uc *AuctionUsecase) PlaceBid(ctx context.Context, cmd model.PlaceBidCommand) (*model.Lot, *model.Bid, []*model.RankingItem, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
@@ -79,32 +79,32 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, cmd model.PlaceBidComman
 	}
 
 	if cmd.IdempotencyKey != "" {
-		old, found, err := uc.bids.FindByIdempotencyKey(ctx, lot.ID, cmd.IdempotencyKey)
+		old, found, err := uc.bids.FindByIdempotencyKey(ctx, lot.Id, cmd.IdempotencyKey)
 		if err != nil {
 			return nil, nil, nil, err
 		}
 		if found {
-			ranking := uc.mustRanking(ctx, lot.ID)
+			ranking := uc.mustRanking(ctx, lot.Id)
 			return model.CloneLot(lot), &old, ranking, nil
 		}
 	}
 
-	bid := newBidFromCommand(lot.ID, cmd)
+	bid := newBidFromCommand(lot.Id, cmd)
 	if err := AcceptBid(lot, bid, clock.NowMs()); err != nil {
 		uc.publishRejected(ctx, lot, err.Error())
-		return model.CloneLot(lot), nil, uc.mustRanking(ctx, lot.ID), err
+		return model.CloneLot(lot), nil, uc.mustRanking(ctx, lot.Id), err
 	}
 
 	if err := uc.bids.Append(ctx, bid); err != nil {
 		return nil, nil, nil, err
 	}
 	if cmd.IdempotencyKey != "" {
-		if err := uc.bids.SaveIdempotencyKey(ctx, lot.ID, cmd.IdempotencyKey, bid); err != nil {
+		if err := uc.bids.SaveIdempotencyKey(ctx, lot.Id, cmd.IdempotencyKey, bid); err != nil {
 			return nil, nil, nil, err
 		}
 	}
 
-	bids, err := uc.bids.ListByLot(ctx, lot.ID)
+	bids, err := uc.bids.ListByLot(ctx, lot.Id)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -119,7 +119,7 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, cmd model.PlaceBidComman
 
 	uc.publishBidAccepted(ctx, lot, bid, ranking)
 	uc.publishRankingUpdated(ctx, lot, ranking)
-	if lot.DuelState.Active {
+	if lot.GetDuelState().GetActive() {
 		uc.publishDuelStarted(ctx, lot, ranking)
 	}
 	return model.CloneLot(lot), &bid, ranking, nil
@@ -143,7 +143,7 @@ func (uc *AuctionUsecase) RevealTrustCard(ctx context.Context, lotID, cardID, op
 
 	event := eventbuilder.NewAuctionEvent(model.EventTrustRevealed, lot)
 	event.TrustCard = card
-	event.Ranking = uc.mustRanking(ctx, lot.ID)
+	event.Ranking = uc.mustRanking(ctx, lot.Id)
 	uc.publish(ctx, event)
 	return model.CloneLot(lot), card, nil
 }
@@ -156,7 +156,7 @@ func (uc *AuctionUsecase) StartDuel(ctx context.Context, lotID, operatorID, user
 	if err != nil {
 		return nil, nil, err
 	}
-	ranking := uc.mustRanking(ctx, lot.ID)
+	ranking := uc.mustRanking(ctx, lot.Id)
 	if err := StartDuel(lot, ranking, clock.NowMs()); err != nil {
 		return nil, nil, err
 	}
@@ -165,7 +165,7 @@ func (uc *AuctionUsecase) StartDuel(ctx context.Context, lotID, operatorID, user
 	}
 
 	uc.publishDuelStarted(ctx, lot, ranking)
-	return model.CloneLot(lot), &lot.DuelState, nil
+	return model.CloneLot(lot), lot.DuelState, nil
 }
 
 func (uc *AuctionUsecase) SettleLot(ctx context.Context, lotID, operatorID string) (*model.Lot, error) {
@@ -184,20 +184,20 @@ func (uc *AuctionUsecase) SettleLot(ctx context.Context, lotID, operatorID strin
 	}
 
 	event := eventbuilder.NewAuctionEvent(model.EventLotSettled, lot)
-	event.Ranking = uc.mustRanking(ctx, lot.ID)
+	event.Ranking = uc.mustRanking(ctx, lot.Id)
 	uc.publish(ctx, event)
 	return model.CloneLot(lot), nil
 }
 
 func (uc *AuctionUsecase) Snapshot(ctx context.Context, roomID string) (*model.RoomSnapshot, error) {
-	lots, err := uc.lots.List(ctx, roomID, "")
+	lots, err := uc.lots.List(ctx, roomID, 0)
 	if err != nil {
 		return nil, err
 	}
 	current := pickCurrentLot(lots)
 
 	snapshot := &model.RoomSnapshot{
-		RoomID:           roomID,
+		RoomId:           roomID,
 		PlaybookStage:    model.PlaybookStageWarmUp,
 		ServerTimeUnixMs: clock.NowMs(),
 	}
@@ -205,7 +205,7 @@ func (uc *AuctionUsecase) Snapshot(ctx context.Context, roomID string) (*model.R
 		return snapshot, nil
 	}
 
-	bids, err := uc.bids.ListByLot(ctx, current.ID)
+	bids, err := uc.bids.ListByLot(ctx, current.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -223,13 +223,16 @@ func newBidFromCommand(lotID string, cmd model.PlaceBidCommand) model.Bid {
 	if cmd.Nickname == "" {
 		cmd.Nickname = "游客"
 	}
+	if cmd.Amount == nil {
+		cmd.Amount = model.CNY(0)
+	}
 	if cmd.Amount.Currency == "" {
 		cmd.Amount.Currency = "CNY"
 	}
 	return model.Bid{
-		ID:              idgen.New("bid"),
-		LotID:           lotID,
-		UserID:          cmd.UserID,
+		Id:              idgen.New("bid"),
+		LotId:           lotID,
+		UserId:          cmd.UserID,
 		Nickname:        cmd.Nickname,
 		Amount:          cmd.Amount,
 		CreatedAtUnixMs: clock.NowMs(),
@@ -247,7 +250,7 @@ func pickCurrentLot(lots []*model.Lot) *model.Lot {
 	return fallback
 }
 
-func (uc *AuctionUsecase) mustRanking(ctx context.Context, lotID string) []model.RankingItem {
+func (uc *AuctionUsecase) mustRanking(ctx context.Context, lotID string) []*model.RankingItem {
 	bids, err := uc.bids.ListByLot(ctx, lotID)
 	if err != nil {
 		return nil
@@ -267,22 +270,22 @@ func (uc *AuctionUsecase) publishRejected(ctx context.Context, lot *model.Lot, r
 	uc.publish(ctx, event)
 }
 
-func (uc *AuctionUsecase) publishBidAccepted(ctx context.Context, lot *model.Lot, bid model.Bid, ranking []model.RankingItem) {
+func (uc *AuctionUsecase) publishBidAccepted(ctx context.Context, lot *model.Lot, bid model.Bid, ranking []*model.RankingItem) {
 	event := eventbuilder.NewAuctionEvent(model.EventBidAccepted, lot)
 	event.Bid = &bid
 	event.Ranking = ranking
 	uc.publish(ctx, event)
 }
 
-func (uc *AuctionUsecase) publishRankingUpdated(ctx context.Context, lot *model.Lot, ranking []model.RankingItem) {
+func (uc *AuctionUsecase) publishRankingUpdated(ctx context.Context, lot *model.Lot, ranking []*model.RankingItem) {
 	event := eventbuilder.NewAuctionEvent(model.EventRankingUpdated, lot)
 	event.Ranking = ranking
 	uc.publish(ctx, event)
 }
 
-func (uc *AuctionUsecase) publishDuelStarted(ctx context.Context, lot *model.Lot, ranking []model.RankingItem) {
+func (uc *AuctionUsecase) publishDuelStarted(ctx context.Context, lot *model.Lot, ranking []*model.RankingItem) {
 	event := eventbuilder.NewAuctionEvent(model.EventDuelStarted, lot)
 	event.Ranking = ranking
-	event.DuelState = &lot.DuelState
+	event.DuelState = lot.DuelState
 	uc.publish(ctx, event)
 }

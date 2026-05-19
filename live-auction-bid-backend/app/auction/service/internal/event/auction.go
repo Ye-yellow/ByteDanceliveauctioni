@@ -8,13 +8,13 @@ import (
 
 func NewAuctionEvent(typ model.EventType, lot *model.Lot) model.AuctionEvent {
 	if lot == nil {
-		return model.AuctionEvent{ID: idgen.New("evt"), Type: typ, OccurredAtUnixMs: clock.NowMs()}
+		return model.AuctionEvent{Id: idgen.New("evt"), Type: typ, OccurredAtUnixMs: clock.NowMs()}
 	}
 	return model.AuctionEvent{
-		ID:               idgen.New("evt"),
+		Id:               idgen.New("evt"),
 		Type:             typ,
-		RoomID:           lot.RoomID,
-		LotID:            lot.ID,
+		RoomId:           lot.RoomId,
+		LotId:            lot.Id,
 		OccurredAtUnixMs: clock.NowMs(),
 		Lot:              model.CloneLot(lot),
 	}

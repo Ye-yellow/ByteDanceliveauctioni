@@ -11,7 +11,7 @@ func TestLotStateMachine(t *testing.T) {
 	lot := NewLotFromCommand("lot_1", model.CreateLotCommand{
 		RoomID: "demo",
 		Title:  "测试拍品",
-		Rule: model.BidRule{
+		Rule: &model.BidRule{
 			StartPrice:   model.CNY(10000),
 			MinIncrement: model.CNY(1000),
 		},
@@ -26,38 +26,38 @@ func TestLotStateMachine(t *testing.T) {
 	if lot.Status != model.LotStatusLive {
 		t.Fatalf("期望状态 LIVE，实际 %s", lot.Status)
 	}
-	if err := AcceptBid(lot, model.Bid{UserID: "u1", Nickname: "用户1", Amount: model.CNY(10500)}, 2000); err == nil {
+	if err := AcceptBid(lot, model.Bid{UserId: "u1", Nickname: "用户1", Amount: model.CNY(10500)}, 2000); err == nil {
 		t.Fatal("低于最低加价的出价应该被拒绝")
 	}
-	if err := AcceptBid(lot, model.Bid{UserID: "u1", Nickname: "用户1", Amount: model.CNY(11000)}, 2000); err != nil {
+	if err := AcceptBid(lot, model.Bid{UserId: "u1", Nickname: "用户1", Amount: model.CNY(11000)}, 2000); err != nil {
 		t.Fatalf("合法出价失败：%v", err)
 	}
-	if lot.CurrentPrice.Amount != 11000 || lot.LeadingUserID != "u1" {
+	if lot.GetCurrentPrice().GetAmount() != 11000 || lot.LeadingUserId != "u1" {
 		t.Fatalf("出价后领先状态错误：%+v", lot)
 	}
 	if err := SettleLot(lot, 3000); err != nil {
 		t.Fatalf("落锤失败：%v", err)
 	}
-	if lot.Status != model.LotStatusSettled || lot.WinnerUserID != "u1" || lot.FinalPrice.Amount != 11000 {
+	if lot.Status != model.LotStatusSettled || lot.WinnerUserId != "u1" || lot.GetFinalPrice().GetAmount() != 11000 {
 		t.Fatalf("成交状态错误：%+v", lot)
 	}
 }
 
 func TestBuildRanking(t *testing.T) {
 	bids := []model.Bid{
-		{UserID: "u1", Nickname: "用户1", Amount: model.CNY(11000), CreatedAtUnixMs: 1000},
-		{UserID: "u2", Nickname: "用户2", Amount: model.CNY(12000), CreatedAtUnixMs: 2000},
-		{UserID: "u1", Nickname: "用户1", Amount: model.CNY(13000), CreatedAtUnixMs: 3000},
+		{UserId: "u1", Nickname: "用户1", Amount: model.CNY(11000), CreatedAtUnixMs: 1000},
+		{UserId: "u2", Nickname: "用户2", Amount: model.CNY(12000), CreatedAtUnixMs: 2000},
+		{UserId: "u1", Nickname: "用户1", Amount: model.CNY(13000), CreatedAtUnixMs: 3000},
 	}
 
 	ranking := BuildRanking(bids)
 	if len(ranking) != 2 {
 		t.Fatalf("期望 2 个用户，实际 %d", len(ranking))
 	}
-	if ranking[0].UserID != "u1" || ranking[0].Amount.Amount != 13000 {
+	if ranking[0].UserId != "u1" || ranking[0].GetAmount().GetAmount() != 13000 {
 		t.Fatalf("排名第一错误：%+v", ranking[0])
 	}
-	if ranking[1].UserID != "u2" || ranking[1].Amount.Amount != 12000 {
+	if ranking[1].UserId != "u2" || ranking[1].GetAmount().GetAmount() != 12000 {
 		t.Fatalf("排名第二错误：%+v", ranking[1])
 	}
 }

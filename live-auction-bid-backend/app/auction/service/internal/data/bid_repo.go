@@ -10,7 +10,7 @@ func (s *MemoryStore) Append(ctx context.Context, bid model.Bid) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.bidsByLot[bid.LotID] = append(s.bidsByLot[bid.LotID], bid)
+	s.bidsByLot[bid.LotId] = append(s.bidsByLot[bid.LotId], bid)
 	return nil
 }
 

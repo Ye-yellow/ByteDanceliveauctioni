@@ -1,10 +1,10 @@
 package model
 
+import "google.golang.org/protobuf/proto"
+
 func CloneLot(lot *Lot) *Lot {
 	if lot == nil {
 		return nil
 	}
-	cp := *lot
-	cp.TrustCards = append([]TrustRevealCard(nil), lot.TrustCards...)
-	return &cp
+	return proto.Clone(lot).(*Lot)
 }

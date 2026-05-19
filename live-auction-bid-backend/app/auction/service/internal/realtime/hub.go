@@ -39,7 +39,7 @@ func (h *Hub) BindSnapshotProvider(snapshot SnapshotProvider) {
 }
 
 func (h *Hub) Publish(ctx context.Context, event model.AuctionEvent) {
-	for _, conn := range h.roomConnections(event.RoomID) {
+	for _, conn := range h.roomConnections(event.RoomId) {
 		_ = conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 		_ = conn.WriteJSON(event)
 	}
@@ -99,7 +99,7 @@ func (h *Hub) sendSnapshot(ctx context.Context, roomID string, conn *websocket.C
 		return
 	}
 	event := eventbuilder.NewAuctionEvent(model.EventRoomSnapshot, nil)
-	event.RoomID = roomID
+	event.RoomId = roomID
 	event.Snapshot = snapshot
 	_ = conn.WriteJSON(event)
 }
