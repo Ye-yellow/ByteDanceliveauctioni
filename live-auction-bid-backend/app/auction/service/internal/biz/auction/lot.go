@@ -9,7 +9,49 @@ import (
 )
 
 func NewLotFromRequest(id string, req *v1.CreateLotRequest) *v1.Lot {
-	req = normalizeCreateLotRequest(req)
+	if req == nil {
+		req = &v1.CreateLotRequest{}
+	}
+	if req.RoomId == "" {
+		req.RoomId = "demo"
+	}
+	if req.Rule == nil {
+		req.Rule = &v1.BidRule{}
+	}
+	if req.Rule.StartPrice == nil {
+		req.Rule.StartPrice = CNY(0)
+	}
+	if req.Rule.StartPrice.Currency == "" {
+		req.Rule.StartPrice.Currency = "CNY"
+	}
+	if req.Rule.MinIncrement == nil {
+		req.Rule.MinIncrement = CNY(0)
+	}
+	if req.Rule.MinIncrement.Currency == "" {
+		req.Rule.MinIncrement.Currency = "CNY"
+	}
+	if req.Rule.DurationSeconds == 0 {
+		req.Rule.DurationSeconds = 300
+	}
+	if req.Rule.AntiSnipeWindowSeconds == 0 {
+		req.Rule.AntiSnipeWindowSeconds = 15
+	}
+	if req.Rule.AntiSnipeExtendSeconds == 0 {
+		req.Rule.AntiSnipeExtendSeconds = 15
+	}
+	if req.Rule.MaxExtendCount == 0 {
+		req.Rule.MaxExtendCount = 3
+	}
+
+	trustCards := make([]*v1.TrustRevealCard, 0, len(req.GetTrustCards()))
+	for _, card := range req.GetTrustCards() {
+		if card == nil {
+			continue
+		}
+		cp := *card
+		trustCards = append(trustCards, &cp)
+	}
+
 	lot := &v1.Lot{
 		Id:            id,
 		RoomId:        req.GetRoomId(),
@@ -21,7 +63,7 @@ func NewLotFromRequest(id string, req *v1.CreateLotRequest) *v1.Lot {
 		CurrentPrice:  cloneMoney(req.GetRule().GetStartPrice()),
 		FinalPrice:    CNY(0),
 		Version:       1,
-		TrustCards:    cloneTrustCards(req.GetTrustCards()),
+		TrustCards:    trustCards,
 		DuelState:     &v1.DuelState{},
 		PlaybookStage: v1.PlaybookStage_PLAYBOOK_STAGE_WARM_UP,
 	}
@@ -35,48 +77,6 @@ func NewLotFromRequest(id string, req *v1.CreateLotRequest) *v1.Lot {
 		card.RevealedAtUnixMs = 0
 	}
 	return lot
-}
-
-func normalizeCreateLotRequest(req *v1.CreateLotRequest) *v1.CreateLotRequest {
-	if req == nil {
-		req = &v1.CreateLotRequest{}
-	}
-	if req.RoomId == "" {
-		req.RoomId = "demo"
-	}
-	req.Rule = normalizeBidRule(req.Rule)
-	return req
-}
-
-func normalizeBidRule(rule *v1.BidRule) *v1.BidRule {
-	if rule == nil {
-		rule = &v1.BidRule{}
-	}
-	if rule.StartPrice == nil {
-		rule.StartPrice = CNY(0)
-	}
-	if rule.StartPrice.Currency == "" {
-		rule.StartPrice.Currency = "CNY"
-	}
-	if rule.MinIncrement == nil {
-		rule.MinIncrement = CNY(0)
-	}
-	if rule.MinIncrement.Currency == "" {
-		rule.MinIncrement.Currency = "CNY"
-	}
-	if rule.DurationSeconds == 0 {
-		rule.DurationSeconds = 300
-	}
-	if rule.AntiSnipeWindowSeconds == 0 {
-		rule.AntiSnipeWindowSeconds = 15
-	}
-	if rule.AntiSnipeExtendSeconds == 0 {
-		rule.AntiSnipeExtendSeconds = 15
-	}
-	if rule.MaxExtendCount == 0 {
-		rule.MaxExtendCount = 3
-	}
-	return rule
 }
 
 func StartLot(lot *v1.Lot, nowMs int64) error {
@@ -99,20 +99,26 @@ func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 	if lot.EndsAtUnixMs > 0 && nowMs > lot.EndsAtUnixMs {
 		return errors.New("竞拍已超时")
 	}
-	if bid.GetAmount().GetAmount() < NextBidAmount(lot) {
+	if bid.GetAmount().GetAmount() < lot.GetCurrentPrice().GetAmount()+lot.GetRule().GetMinIncrement().GetAmount() {
 		return errors.New("出价低于当前价加最低加价幅度")
 	}
 	lot.CurrentPrice = cloneMoney(bid.GetAmount())
 	lot.LeadingUserId = bid.UserId
 	lot.LeadingNickname = bid.Nickname
 	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_BIDDING_ACTIVE
-	extendIfAntiSnipe(lot, nowMs)
+
+	remainingMs := lot.EndsAtUnixMs - nowMs
+	windowMs := int64(lot.GetRule().GetAntiSnipeWindowSeconds()) * 1000
+	if remainingMs > 0 && remainingMs <= windowMs && lot.GetDuelState().GetExtendCount() < lot.GetRule().GetMaxExtendCount() {
+		lot.EndsAtUnixMs += int64(lot.GetRule().GetAntiSnipeExtendSeconds()) * 1000
+		if lot.DuelState == nil {
+			lot.DuelState = &v1.DuelState{}
+		}
+		lot.DuelState.ExtendCount++
+	}
+
 	bumpVersion(lot)
 	return nil
-}
-
-func NextBidAmount(lot *v1.Lot) int64 {
-	return lot.GetCurrentPrice().GetAmount() + lot.GetRule().GetMinIncrement().GetAmount()
 }
 
 func RevealTrustCard(lot *v1.Lot, cardID string, nowMs int64) (*v1.TrustRevealCard, error) {
@@ -173,22 +179,6 @@ func SettleLot(lot *v1.Lot, nowMs int64) error {
 	return nil
 }
 
-func extendIfAntiSnipe(lot *v1.Lot, nowMs int64) {
-	remainingMs := lot.EndsAtUnixMs - nowMs
-	windowMs := int64(lot.GetRule().GetAntiSnipeWindowSeconds()) * 1000
-	if remainingMs <= 0 || remainingMs > windowMs {
-		return
-	}
-	if lot.GetDuelState().GetExtendCount() >= lot.GetRule().GetMaxExtendCount() {
-		return
-	}
-	lot.EndsAtUnixMs += int64(lot.GetRule().GetAntiSnipeExtendSeconds()) * 1000
-	if lot.DuelState == nil {
-		lot.DuelState = &v1.DuelState{}
-	}
-	lot.DuelState.ExtendCount++
-}
-
 func bumpVersion(lot *v1.Lot) {
 	lot.Version++
 }
@@ -199,16 +189,4 @@ func cloneMoney(m *v1.Money) *v1.Money {
 	}
 	cp := *m
 	return &cp
-}
-
-func cloneTrustCards(cards []*v1.TrustRevealCard) []*v1.TrustRevealCard {
-	out := make([]*v1.TrustRevealCard, 0, len(cards))
-	for _, card := range cards {
-		if card == nil {
-			continue
-		}
-		cp := *card
-		out = append(out, &cp)
-	}
-	return out
 }

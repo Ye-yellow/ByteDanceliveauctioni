@@ -88,9 +88,33 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest)
 		}
 	}
 
-	bid := newBidFromRequest(lot.Id, req)
+	userID := req.GetUserId()
+	if userID == "" {
+		userID = idgen.New("guest")
+	}
+	nickname := req.GetNickname()
+	if nickname == "" {
+		nickname = "游客"
+	}
+	amount := req.GetAmount()
+	if amount == nil {
+		amount = CNY(0)
+	}
+	if amount.Currency == "" {
+		amount.Currency = "CNY"
+	}
+	bid := v1.Bid{
+		Id:              idgen.New("bid"),
+		LotId:           lot.Id,
+		UserId:          userID,
+		Nickname:        nickname,
+		Amount:          amount,
+		CreatedAtUnixMs: clock.NowMs(),
+	}
 	if err := AcceptBid(lot, bid, clock.NowMs()); err != nil {
-		uc.publishRejected(ctx, lot, err.Error())
+		event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_REJECTED, lot)
+		event.Reason = err.Error()
+		uc.publish(ctx, event)
 		return CloneLot(lot), nil, uc.mustRanking(ctx, lot.Id), err
 	}
 
@@ -108,18 +132,31 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest)
 		return nil, nil, nil, err
 	}
 	ranking := BuildRanking(bids)
-	if ShouldAutoStartDuel(lot, ranking, bids, clock.NowMs()) {
-		_ = StartDuel(lot, ranking, clock.NowMs())
+	nowMs := clock.NowMs()
+	if !lot.GetDuelState().GetActive() && len(ranking) >= 2 && len(bids) >= 3 &&
+		lot.EndsAtUnixMs-nowMs <= 60_000 &&
+		ranking[0].GetAmount().GetAmount()-ranking[1].GetAmount().GetAmount() <= lot.GetRule().GetMinIncrement().GetAmount()*3 {
+		_ = StartDuel(lot, ranking, nowMs)
 	}
 
 	if err := uc.lots.Save(ctx, lot); err != nil {
 		return nil, nil, nil, err
 	}
 
-	uc.publishBidAccepted(ctx, lot, bid, ranking)
-	uc.publishRankingUpdated(ctx, lot, ranking)
+	acceptedEvent := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_ACCEPTED, lot)
+	acceptedEvent.Bid = &bid
+	acceptedEvent.Ranking = ranking
+	uc.publish(ctx, acceptedEvent)
+
+	rankingEvent := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_RANKING_UPDATED, lot)
+	rankingEvent.Ranking = ranking
+	uc.publish(ctx, rankingEvent)
+
 	if lot.GetDuelState().GetActive() {
-		uc.publishDuelStarted(ctx, lot, ranking)
+		duelEvent := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_DUEL_STARTED, lot)
+		duelEvent.Ranking = ranking
+		duelEvent.DuelState = lot.DuelState
+		uc.publish(ctx, duelEvent)
 	}
 	return CloneLot(lot), &bid, ranking, nil
 }
@@ -163,7 +200,10 @@ func (uc *AuctionUsecase) StartDuel(ctx context.Context, lotID, operatorID, user
 		return nil, nil, err
 	}
 
-	uc.publishDuelStarted(ctx, lot, ranking)
+	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_DUEL_STARTED, lot)
+	event.Ranking = ranking
+	event.DuelState = lot.DuelState
+	uc.publish(ctx, event)
 	return CloneLot(lot), lot.DuelState, nil
 }
 
@@ -193,7 +233,14 @@ func (uc *AuctionUsecase) Snapshot(ctx context.Context, roomID string) (*v1.Room
 	if err != nil {
 		return nil, err
 	}
-	current := pickCurrentLot(lots)
+	var current *v1.Lot
+	for _, lot := range lots {
+		if lot.Status == v1.LotStatus_LOT_STATUS_LIVE {
+			current = lot
+			break
+		}
+		current = lot
+	}
 
 	snapshot := &v1.RoomSnapshot{
 		RoomId:           roomID,
@@ -210,46 +257,16 @@ func (uc *AuctionUsecase) Snapshot(ctx context.Context, roomID string) (*v1.Room
 	}
 	snapshot.CurrentLot = current
 	snapshot.Ranking = BuildRanking(bids)
-	snapshot.RecentBids = RecentBids(bids, 20)
+	start := 0
+	if len(bids) > 20 {
+		start = len(bids) - 20
+	}
+	for i := start; i < len(bids); i++ {
+		bid := bids[i]
+		snapshot.RecentBids = append(snapshot.RecentBids, &bid)
+	}
 	snapshot.PlaybookStage = current.PlaybookStage
 	return snapshot, nil
-}
-
-func newBidFromRequest(lotID string, req *v1.PlaceBidRequest) v1.Bid {
-	userID := req.GetUserId()
-	if userID == "" {
-		userID = idgen.New("guest")
-	}
-	nickname := req.GetNickname()
-	if nickname == "" {
-		nickname = "游客"
-	}
-	amount := req.GetAmount()
-	if amount == nil {
-		amount = CNY(0)
-	}
-	if amount.Currency == "" {
-		amount.Currency = "CNY"
-	}
-	return v1.Bid{
-		Id:              idgen.New("bid"),
-		LotId:           lotID,
-		UserId:          userID,
-		Nickname:        nickname,
-		Amount:          amount,
-		CreatedAtUnixMs: clock.NowMs(),
-	}
-}
-
-func pickCurrentLot(lots []*v1.Lot) *v1.Lot {
-	var fallback *v1.Lot
-	for _, lot := range lots {
-		if lot.Status == v1.LotStatus_LOT_STATUS_LIVE {
-			return lot
-		}
-		fallback = lot
-	}
-	return fallback
 }
 
 func (uc *AuctionUsecase) mustRanking(ctx context.Context, lotID string) []*v1.RankingItem {
@@ -264,30 +281,4 @@ func (uc *AuctionUsecase) publish(ctx context.Context, event v1.AuctionEvent) {
 	if uc.events != nil {
 		uc.events.Publish(ctx, event)
 	}
-}
-
-func (uc *AuctionUsecase) publishRejected(ctx context.Context, lot *v1.Lot, reason string) {
-	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_REJECTED, lot)
-	event.Reason = reason
-	uc.publish(ctx, event)
-}
-
-func (uc *AuctionUsecase) publishBidAccepted(ctx context.Context, lot *v1.Lot, bid v1.Bid, ranking []*v1.RankingItem) {
-	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_ACCEPTED, lot)
-	event.Bid = &bid
-	event.Ranking = ranking
-	uc.publish(ctx, event)
-}
-
-func (uc *AuctionUsecase) publishRankingUpdated(ctx context.Context, lot *v1.Lot, ranking []*v1.RankingItem) {
-	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_RANKING_UPDATED, lot)
-	event.Ranking = ranking
-	uc.publish(ctx, event)
-}
-
-func (uc *AuctionUsecase) publishDuelStarted(ctx context.Context, lot *v1.Lot, ranking []*v1.RankingItem) {
-	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_DUEL_STARTED, lot)
-	event.Ranking = ranking
-	event.DuelState = lot.DuelState
-	uc.publish(ctx, event)
 }
