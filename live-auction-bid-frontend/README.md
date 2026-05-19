@@ -59,3 +59,26 @@ npm run generate:api
 ```
 
 详细说明见：`docs/API_CONTRACT_GENERATION.md`。
+## 本地联调启动
+
+后端默认运行在 `18080`，前端默认运行在 `5173`。
+
+```bash
+# 终端 1：后端仓库
+cd ../live-auction-bid-backend
+export PATH=/home/ye/OpenClaw/state/tools/go/bin:$PATH
+go run ./app/auction/service/cmd/server
+
+# 终端 2：前端仓库
+cd ../live-auction-bid-frontend
+npm run dev
+```
+
+访问：
+
+```text
+观众端：http://127.0.0.1:5173/
+主播端：http://127.0.0.1:5173/host
+```
+
+说明：前端通过 Vite proxy 访问后端，所以浏览器只需要访问 `5173`。如果 `5173` 拒绝连接，说明前端 dev server 停了，需要重新运行 `npm run dev`。
