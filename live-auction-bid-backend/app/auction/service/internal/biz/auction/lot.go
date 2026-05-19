@@ -8,20 +8,20 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
 )
 
-func NewLotFromCommand(id string, cmd CreateLotCommand) *v1.Lot {
-	cmd = normalizeCreateLotCommand(cmd)
+func NewLotFromRequest(id string, req *v1.CreateLotRequest) *v1.Lot {
+	req = normalizeCreateLotRequest(req)
 	lot := &v1.Lot{
 		Id:            id,
-		RoomId:        cmd.RoomID,
-		Title:         cmd.Title,
-		Description:   cmd.Description,
-		ImageUrl:      cmd.ImageURL,
+		RoomId:        req.GetRoomId(),
+		Title:         req.GetTitle(),
+		Description:   req.GetDescription(),
+		ImageUrl:      req.GetImageUrl(),
 		Status:        v1.LotStatus_LOT_STATUS_DRAFT,
-		Rule:          cmd.Rule,
-		CurrentPrice:  cloneMoney(cmd.Rule.GetStartPrice()),
+		Rule:          req.GetRule(),
+		CurrentPrice:  cloneMoney(req.GetRule().GetStartPrice()),
 		FinalPrice:    CNY(0),
 		Version:       1,
-		TrustCards:    cloneTrustCards(cmd.TrustCards),
+		TrustCards:    cloneTrustCards(req.GetTrustCards()),
 		DuelState:     &v1.DuelState{},
 		PlaybookStage: v1.PlaybookStage_PLAYBOOK_STAGE_WARM_UP,
 	}
@@ -37,12 +37,15 @@ func NewLotFromCommand(id string, cmd CreateLotCommand) *v1.Lot {
 	return lot
 }
 
-func normalizeCreateLotCommand(cmd CreateLotCommand) CreateLotCommand {
-	if cmd.RoomID == "" {
-		cmd.RoomID = "demo"
+func normalizeCreateLotRequest(req *v1.CreateLotRequest) *v1.CreateLotRequest {
+	if req == nil {
+		req = &v1.CreateLotRequest{}
 	}
-	cmd.Rule = normalizeBidRule(cmd.Rule)
-	return cmd
+	if req.RoomId == "" {
+		req.RoomId = "demo"
+	}
+	req.Rule = normalizeBidRule(req.Rule)
+	return req
 }
 
 func normalizeBidRule(rule *v1.BidRule) *v1.BidRule {

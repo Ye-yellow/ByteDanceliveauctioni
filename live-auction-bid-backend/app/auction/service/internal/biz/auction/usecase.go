@@ -27,11 +27,11 @@ func NewAuctionUsecase(lots LotRepository, bids BidRepository, events EventPubli
 	return &AuctionUsecase{lots: lots, bids: bids, events: events}
 }
 
-func (uc *AuctionUsecase) CreateLot(ctx context.Context, cmd CreateLotCommand) (*v1.Lot, error) {
+func (uc *AuctionUsecase) CreateLot(ctx context.Context, req *v1.CreateLotRequest) (*v1.Lot, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
-	lot := NewLotFromCommand(idgen.New("lot"), cmd)
+	lot := NewLotFromRequest(idgen.New("lot"), req)
 	if err := uc.lots.Create(ctx, lot); err != nil {
 		return nil, err
 	}
@@ -68,17 +68,17 @@ func (uc *AuctionUsecase) StartLot(ctx context.Context, lotID string) (*v1.Lot, 
 	return CloneLot(lot), nil
 }
 
-func (uc *AuctionUsecase) PlaceBid(ctx context.Context, cmd PlaceBidCommand) (*v1.Lot, *v1.Bid, []*v1.RankingItem, error) {
+func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest) (*v1.Lot, *v1.Bid, []*v1.RankingItem, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
-	lot, err := uc.lots.FindByID(ctx, cmd.LotID)
+	lot, err := uc.lots.FindByID(ctx, req.GetLotId())
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	if cmd.IdempotencyKey != "" {
-		old, found, err := uc.bids.FindByIdempotencyKey(ctx, lot.Id, cmd.IdempotencyKey)
+	if req.GetIdempotencyKey() != "" {
+		old, found, err := uc.bids.FindByIdempotencyKey(ctx, lot.Id, req.GetIdempotencyKey())
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -88,7 +88,7 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, cmd PlaceBidCommand) (*v
 		}
 	}
 
-	bid := newBidFromCommand(lot.Id, cmd)
+	bid := newBidFromRequest(lot.Id, req)
 	if err := AcceptBid(lot, bid, clock.NowMs()); err != nil {
 		uc.publishRejected(ctx, lot, err.Error())
 		return CloneLot(lot), nil, uc.mustRanking(ctx, lot.Id), err
@@ -97,8 +97,8 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, cmd PlaceBidCommand) (*v
 	if err := uc.bids.Append(ctx, bid); err != nil {
 		return nil, nil, nil, err
 	}
-	if cmd.IdempotencyKey != "" {
-		if err := uc.bids.SaveIdempotencyKey(ctx, lot.Id, cmd.IdempotencyKey, bid); err != nil {
+	if req.GetIdempotencyKey() != "" {
+		if err := uc.bids.SaveIdempotencyKey(ctx, lot.Id, req.GetIdempotencyKey(), bid); err != nil {
 			return nil, nil, nil, err
 		}
 	}
@@ -215,25 +215,28 @@ func (uc *AuctionUsecase) Snapshot(ctx context.Context, roomID string) (*v1.Room
 	return snapshot, nil
 }
 
-func newBidFromCommand(lotID string, cmd PlaceBidCommand) v1.Bid {
-	if cmd.UserID == "" {
-		cmd.UserID = idgen.New("guest")
+func newBidFromRequest(lotID string, req *v1.PlaceBidRequest) v1.Bid {
+	userID := req.GetUserId()
+	if userID == "" {
+		userID = idgen.New("guest")
 	}
-	if cmd.Nickname == "" {
-		cmd.Nickname = "游客"
+	nickname := req.GetNickname()
+	if nickname == "" {
+		nickname = "游客"
 	}
-	if cmd.Amount == nil {
-		cmd.Amount = CNY(0)
+	amount := req.GetAmount()
+	if amount == nil {
+		amount = CNY(0)
 	}
-	if cmd.Amount.Currency == "" {
-		cmd.Amount.Currency = "CNY"
+	if amount.Currency == "" {
+		amount.Currency = "CNY"
 	}
 	return v1.Bid{
 		Id:              idgen.New("bid"),
 		LotId:           lotID,
-		UserId:          cmd.UserID,
-		Nickname:        cmd.Nickname,
-		Amount:          cmd.Amount,
+		UserId:          userID,
+		Nickname:        nickname,
+		Amount:          amount,
 		CreatedAtUnixMs: clock.NowMs(),
 	}
 }

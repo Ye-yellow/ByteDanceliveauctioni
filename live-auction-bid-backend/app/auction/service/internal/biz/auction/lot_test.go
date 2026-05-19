@@ -8,8 +8,8 @@ import (
 )
 
 func TestLotStateMachine(t *testing.T) {
-	lot := NewLotFromCommand("lot_1", CreateLotCommand{
-		RoomID: "demo",
+	lot := NewLotFromRequest("lot_1", &v1.CreateLotRequest{
+		RoomId: "demo",
 		Title:  "测试拍品",
 		Rule: &v1.BidRule{
 			StartPrice:   CNY(10000),
