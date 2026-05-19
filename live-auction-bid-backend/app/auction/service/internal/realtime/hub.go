@@ -6,9 +6,11 @@ import (
 	"sync"
 	"time"
 
+	"live-auction-bid/backend/app/auction/service/internal/pkg/clock"
+	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
+
 	"github.com/gorilla/websocket"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
-	eventbuilder "live-auction-bid/backend/app/auction/service/internal/event"
 )
 
 const writeTimeout = 3 * time.Second
@@ -98,9 +100,13 @@ func (h *Hub) sendSnapshot(ctx context.Context, roomID string, conn *websocket.C
 	if err != nil {
 		return
 	}
-	event := eventbuilder.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_ROOM_SNAPSHOT, nil)
-	event.RoomId = roomID
-	event.Snapshot = snapshot
+	event := v1.AuctionEvent{
+		Id:               idgen.New("evt"),
+		Type:             v1.AuctionEventType_AUCTION_EVENT_TYPE_ROOM_SNAPSHOT,
+		RoomId:           roomID,
+		OccurredAtUnixMs: clock.NowMs(),
+		Snapshot:         snapshot,
+	}
 	_ = conn.WriteJSON(event)
 }
 

@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
-	eventbuilder "live-auction-bid/backend/app/auction/service/internal/event"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/clock"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
 )
@@ -36,7 +35,7 @@ func (uc *AuctionUsecase) CreateLot(ctx context.Context, cmd CreateLotCommand) (
 	if err := uc.lots.Create(ctx, lot); err != nil {
 		return nil, err
 	}
-	uc.publish(ctx, eventbuilder.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CREATED, lot))
+	uc.publish(ctx, newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CREATED, lot))
 	return CloneLot(lot), nil
 }
 
@@ -63,7 +62,7 @@ func (uc *AuctionUsecase) StartLot(ctx context.Context, lotID string) (*v1.Lot, 
 		return nil, err
 	}
 
-	event := eventbuilder.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_STARTED, lot)
+	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_STARTED, lot)
 	event.Ranking = uc.mustRanking(ctx, lot.Id)
 	uc.publish(ctx, event)
 	return CloneLot(lot), nil
@@ -141,7 +140,7 @@ func (uc *AuctionUsecase) RevealTrustCard(ctx context.Context, lotID, cardID, op
 		return nil, nil, err
 	}
 
-	event := eventbuilder.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_TRUST_REVEALED, lot)
+	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_TRUST_REVEALED, lot)
 	event.TrustCard = card
 	event.Ranking = uc.mustRanking(ctx, lot.Id)
 	uc.publish(ctx, event)
@@ -183,7 +182,7 @@ func (uc *AuctionUsecase) SettleLot(ctx context.Context, lotID, operatorID strin
 		return nil, err
 	}
 
-	event := eventbuilder.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_SETTLED, lot)
+	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_SETTLED, lot)
 	event.Ranking = uc.mustRanking(ctx, lot.Id)
 	uc.publish(ctx, event)
 	return CloneLot(lot), nil
@@ -265,26 +264,26 @@ func (uc *AuctionUsecase) publish(ctx context.Context, event v1.AuctionEvent) {
 }
 
 func (uc *AuctionUsecase) publishRejected(ctx context.Context, lot *v1.Lot, reason string) {
-	event := eventbuilder.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_REJECTED, lot)
+	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_REJECTED, lot)
 	event.Reason = reason
 	uc.publish(ctx, event)
 }
 
 func (uc *AuctionUsecase) publishBidAccepted(ctx context.Context, lot *v1.Lot, bid v1.Bid, ranking []*v1.RankingItem) {
-	event := eventbuilder.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_ACCEPTED, lot)
+	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_ACCEPTED, lot)
 	event.Bid = &bid
 	event.Ranking = ranking
 	uc.publish(ctx, event)
 }
 
 func (uc *AuctionUsecase) publishRankingUpdated(ctx context.Context, lot *v1.Lot, ranking []*v1.RankingItem) {
-	event := eventbuilder.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_RANKING_UPDATED, lot)
+	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_RANKING_UPDATED, lot)
 	event.Ranking = ranking
 	uc.publish(ctx, event)
 }
 
 func (uc *AuctionUsecase) publishDuelStarted(ctx context.Context, lot *v1.Lot, ranking []*v1.RankingItem) {
-	event := eventbuilder.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_DUEL_STARTED, lot)
+	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_DUEL_STARTED, lot)
 	event.Ranking = ranking
 	event.DuelState = lot.DuelState
 	uc.publish(ctx, event)
