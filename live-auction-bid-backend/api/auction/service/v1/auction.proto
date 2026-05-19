@@ -95,6 +95,10 @@ service AuctionService {
   rpc GetRoomSnapshot(GetRoomSnapshotRequest) returns (GetRoomSnapshotReply);
 }
 
+// ============================================================================
+// 基础值对象
+// ============================================================================
+
 // Money 表示金额。
 //
 // 统一使用最小货币单位，避免浮点误差。
@@ -108,6 +112,10 @@ message Money {
   // 币种。V1 默认 CNY。
   string currency = 2;
 }
+
+// ============================================================================
+// 枚举定义
+// ============================================================================
 
 // LotStatus 表示拍品生命周期状态。
 enum LotStatus {
@@ -217,6 +225,10 @@ enum AuctionEventType {
   // 拍品已落锤成交。
   AUCTION_EVENT_TYPE_LOT_SETTLED = 11;
 }
+
+// ============================================================================
+// 业务结构体
+// ============================================================================
 
 // BidRule 表示单个拍品的竞拍规则。
 //
@@ -416,6 +428,10 @@ message Lot {
   PlaybookStage playbook_stage = 20;
 }
 
+// ============================================================================
+// 直播间快照与实时事件
+// ============================================================================
+
 // RoomSnapshot 表示直播间当前权威快照。
 //
 // 前端进入直播间时，不能只依赖本地状态，应以该快照恢复 UI。
@@ -480,6 +496,10 @@ message AuctionEvent {
   string reason = 12;
 }
 
+// ============================================================================
+// 请求体定义
+// ============================================================================
+
 // CreateLotRequest 表示创建拍品请求。
 message CreateLotRequest {
   // 直播间 ID。V1 可固定为 demo。
@@ -501,22 +521,10 @@ message CreateLotRequest {
   repeated TrustRevealCard trust_cards = 6;
 }
 
-// CreateLotReply 表示创建拍品响应。
-message CreateLotReply {
-  // 创建后的拍品，状态为 DRAFT。
-  Lot lot = 1;
-}
-
 // GetLotRequest 表示查询拍品详情请求。
 message GetLotRequest {
   // 拍品 ID。
   string lot_id = 1;
-}
-
-// GetLotReply 表示查询拍品详情响应。
-message GetLotReply {
-  // 拍品详情。
-  Lot lot = 1;
 }
 
 // ListLotsRequest 表示查询拍品列表请求。
@@ -534,28 +542,10 @@ message ListLotsRequest {
   string page_token = 4;
 }
 
-// ListLotsReply 表示查询拍品列表响应。
-message ListLotsReply {
-  // 拍品列表。
-  repeated Lot lots = 1;
-
-  // 下一页游标。V1 可为空。
-  string next_page_token = 2;
-}
-
 // StartLotRequest 表示开拍请求。
 message StartLotRequest {
   // 拍品 ID。
   string lot_id = 1;
-}
-
-// StartLotReply 表示开拍响应。
-message StartLotReply {
-  // 开拍后的拍品，状态为 LIVE。
-  Lot lot = 1;
-
-  // 对应实时事件，方便 HTTP 调用方和 WebSocket 广播使用同一结构。
-  AuctionEvent event = 2;
 }
 
 // PlaceBidRequest 表示出价请求。
@@ -581,6 +571,82 @@ message PlaceBidRequest {
   string idempotency_key = 6;
 }
 
+// RevealTrustCardRequest 表示揭示信任卡片请求。
+message RevealTrustCardRequest {
+  // 拍品 ID。
+  string lot_id = 1;
+
+  // 卡片 ID。
+  string card_id = 2;
+
+  // 操作人 ID。V1 可先传主播/运营固定 ID。
+  string operator_id = 3;
+}
+
+// StartDuelRequest 表示启动 Duel Mode 请求。
+message StartDuelRequest {
+  // 拍品 ID。
+  string lot_id = 1;
+
+  // 操作人 ID。
+  string operator_id = 2;
+
+  // A 方用户 ID。为空时服务端根据当前排行榜自动取 Top1。
+  string user_a_id = 3;
+
+  // B 方用户 ID。为空时服务端根据当前排行榜自动取 Top2。
+  string user_b_id = 4;
+}
+
+// SettleLotRequest 表示落锤成交请求。
+message SettleLotRequest {
+  // 拍品 ID。
+  string lot_id = 1;
+
+  // 操作人 ID。V1 可先传主播/运营固定 ID。
+  string operator_id = 2;
+}
+
+// GetRoomSnapshotRequest 表示获取直播间快照请求。
+message GetRoomSnapshotRequest {
+  // 直播间 ID。
+  string room_id = 1;
+}
+
+// ============================================================================
+// 响应体定义
+// ============================================================================
+
+// CreateLotReply 表示创建拍品响应。
+message CreateLotReply {
+  // 创建后的拍品，状态为 DRAFT。
+  Lot lot = 1;
+}
+
+// GetLotReply 表示查询拍品详情响应。
+message GetLotReply {
+  // 拍品详情。
+  Lot lot = 1;
+}
+
+// ListLotsReply 表示查询拍品列表响应。
+message ListLotsReply {
+  // 拍品列表。
+  repeated Lot lots = 1;
+
+  // 下一页游标。V1 可为空。
+  string next_page_token = 2;
+}
+
+// StartLotReply 表示开拍响应。
+message StartLotReply {
+  // 开拍后的拍品，状态为 LIVE。
+  Lot lot = 1;
+
+  // 对应实时事件，方便 HTTP 调用方和 WebSocket 广播使用同一结构。
+  AuctionEvent event = 2;
+}
+
 // PlaceBidReply 表示出价响应。
 message PlaceBidReply {
   // 是否接受该出价。
@@ -602,18 +668,6 @@ message PlaceBidReply {
   string reject_reason = 6;
 }
 
-// RevealTrustCardRequest 表示揭示信任卡片请求。
-message RevealTrustCardRequest {
-  // 拍品 ID。
-  string lot_id = 1;
-
-  // 卡片 ID。
-  string card_id = 2;
-
-  // 操作人 ID。V1 可先传主播/运营固定 ID。
-  string operator_id = 3;
-}
-
 // RevealTrustCardReply 表示揭示信任卡片响应。
 message RevealTrustCardReply {
   // 揭示后的拍品状态。
@@ -624,21 +678,6 @@ message RevealTrustCardReply {
 
   // 对应实时事件。
   AuctionEvent event = 3;
-}
-
-// StartDuelRequest 表示启动 Duel Mode 请求。
-message StartDuelRequest {
-  // 拍品 ID。
-  string lot_id = 1;
-
-  // 操作人 ID。
-  string operator_id = 2;
-
-  // A 方用户 ID。为空时服务端根据当前排行榜自动取 Top1。
-  string user_a_id = 3;
-
-  // B 方用户 ID。为空时服务端根据当前排行榜自动取 Top2。
-  string user_b_id = 4;
 }
 
 // StartDuelReply 表示启动 Duel Mode 响应。
@@ -653,15 +692,6 @@ message StartDuelReply {
   AuctionEvent event = 3;
 }
 
-// SettleLotRequest 表示落锤成交请求。
-message SettleLotRequest {
-  // 拍品 ID。
-  string lot_id = 1;
-
-  // 操作人 ID。V1 可先传主播/运营固定 ID。
-  string operator_id = 2;
-}
-
 // SettleLotReply 表示落锤成交响应。
 message SettleLotReply {
   // 成交后的拍品状态。
@@ -669,12 +699,6 @@ message SettleLotReply {
 
   // 对应实时事件。
   AuctionEvent event = 2;
-}
-
-// GetRoomSnapshotRequest 表示获取直播间快照请求。
-message GetRoomSnapshotRequest {
-  // 直播间 ID。
-  string room_id = 1;
 }
 
 // GetRoomSnapshotReply 表示获取直播间快照响应。
