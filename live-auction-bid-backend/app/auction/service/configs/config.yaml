@@ -1,0 +1,3 @@
+server:
+  http:
+    addr: ":18080"
