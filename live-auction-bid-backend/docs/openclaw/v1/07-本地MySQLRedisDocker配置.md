@@ -5,17 +5,21 @@
 
 ## 1. 当前边界
 
-当前后端使用：
+后端默认使用：
 
 ```text
-internal/data/MemoryStore
+internal/data/Store
 ```
 
-它服务于 V1 本地 demo，优点是闭环快、依赖少。
+其中：
 
-本次配置 MySQL / Redis 的目的不是立刻把业务强行迁移过去，而是：
+- MySQL 存储拍品聚合和出价流水；
+- Redis 存储出价幂等键；
+- `MemoryStore` 仅保留给单元测试或显式本地实验，不再作为服务默认启动路径。
 
-- 为后续数据持久化准备环境；
+本次配置 MySQL / Redis 的目的：
+
+- 让 V1 demo 默认具备真实持久化环境；
 - 为后续出价幂等、排行榜、事件流准备 Redis；
 - 为 Docker 一键启动准备统一入口；
 - 让架构表达从“内存 demo”自然演进到“可落地工程”。
@@ -44,16 +48,16 @@ internal/data/MemoryStore
 
 ### 当前 Go 代码
 
-当前 Go 代码仍然默认使用 `MemoryStore`。
+当前 Go 服务启动链路默认创建 `data.NewStore(...)`，并要求 MySQL / Redis 可连接。
 
-后续替换原则：
+分层原则：
 
 ```text
 biz 只依赖 Repository 接口
         ↓
-data 提供 Memory / MySQL / Redis 实现
+data 提供 MySQL / Redis 实现
         ↓
-cmd/server 负责按配置选择 data 实现
+cmd/server 负责读取环境变量并组装 data 实现
 ```
 
 不要把 MySQL / Redis 细节泄漏进 biz。
@@ -130,13 +134,22 @@ data:
 
 Docker Compose 会通过环境变量传入同等配置，后续接入真实 data 实现时再读取。
 
-## 7. 后续迁移建议
+## 7. 当前实现
 
-建议分三步迁移，不要一次性改大：
+当前实现已经完成第一版真实 data store：
 
-1. 保留 MemoryStore，新增 MySQL schema 文档或 migration 草案；
-2. 先把 LotRepository 替换为 MySQL 实现；
-3. 再把 BidRepository 的幂等和排行榜能力拆到 Redis / MySQL 组合。
+- `auction_lots`：存储拍品聚合 JSON；
+- `auction_bids`：存储出价流水 JSON；
+- Redis `auction:idem:{lot_id}:{key}`：存储幂等键对应的出价。
+
+数据库表由服务启动时自动创建。
+
+后续仍可继续演进：
+
+- 将拍品 JSON 拆成更细的结构化字段；
+- 将排行榜改为 Redis ZSET；
+- 将事件流改为 Redis Stream / Kafka；
+- 增加正式 migration 工具。
 
 每一步都必须保持：
 

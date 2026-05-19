@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	_ "github.com/go-sql-driver/mysql"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	"live-auction-bid/backend/app/auction/service/internal/data"
 	"live-auction-bid/backend/app/auction/service/internal/realtime"
@@ -18,7 +19,16 @@ func main() {
 		addr = ":18080"
 	}
 
-	store := data.NewMemoryStore()
+	store, err := data.NewStore(context.Background(), data.Config{
+		MySQLDSN:      getenv("AUCTION_MYSQL_DSN", "auction:auction_dev@tcp(127.0.0.1:13306)/live_auction?parseTime=true&charset=utf8mb4&loc=Local"),
+		RedisAddr:     getenv("AUCTION_REDIS_ADDR", "127.0.0.1:16379"),
+		RedisPassword: getenv("AUCTION_REDIS_PASSWORD", "auction_redis"),
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer store.Close()
+
 	hub := realtime.NewHub(nil)
 	auctionUsecase := auction.NewAuctionUsecase(store, store, hub)
 	hub.BindSnapshotProvider(auctionUsecase)
@@ -29,4 +39,12 @@ func main() {
 	if err := httpServer.Start(context.Background()); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func getenv(key, fallback string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	return value
 }
