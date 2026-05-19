@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"live-auction-bid/backend/app/auction/service/internal/biz"
+	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 )
 
 const writeTimeout = 3 * time.Second
 
 type SnapshotProvider interface {
-	Snapshot(ctx context.Context, roomID string) (*biz.RoomSnapshot, error)
+	Snapshot(ctx context.Context, roomID string) (*auction.RoomSnapshot, error)
 }
 
 type Hub struct {
@@ -37,7 +37,7 @@ func (h *Hub) BindSnapshotProvider(snapshot SnapshotProvider) {
 	h.snapshot = snapshot
 }
 
-func (h *Hub) Publish(ctx context.Context, event biz.AuctionEvent) {
+func (h *Hub) Publish(ctx context.Context, event auction.AuctionEvent) {
 	for _, conn := range h.roomConnections(event.RoomID) {
 		_ = conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 		_ = conn.WriteJSON(event)
@@ -97,11 +97,11 @@ func (h *Hub) sendSnapshot(ctx context.Context, roomID string, conn *websocket.C
 	if err != nil {
 		return
 	}
-	_ = conn.WriteJSON(biz.AuctionEvent{
-		ID:               biz.NewID("evt"),
-		Type:             biz.EventRoomSnapshot,
+	_ = conn.WriteJSON(auction.AuctionEvent{
+		ID:               auction.NewID("evt"),
+		Type:             auction.EventRoomSnapshot,
 		RoomID:           roomID,
-		OccurredAtUnixMs: biz.NowMs(),
+		OccurredAtUnixMs: auction.NowMs(),
 		Snapshot:         snapshot,
 	})
 }

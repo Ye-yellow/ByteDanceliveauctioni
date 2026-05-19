@@ -5,17 +5,17 @@ import (
 	"net/http"
 	"strings"
 
-	"live-auction-bid/backend/app/auction/service/internal/biz"
+	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	"live-auction-bid/backend/app/auction/service/internal/realtime"
 	appsvc "live-auction-bid/backend/app/auction/service/internal/service"
 )
 
 type Server struct {
-	app *appsvc.Service
+	app *appsvc.AuctionService
 	hub *realtime.Hub
 }
 
-func New(app *appsvc.Service, hub *realtime.Hub) *Server {
+func New(app *appsvc.AuctionService, hub *realtime.Hub) *Server {
 	return &Server{app: app, hub: hub}
 }
 
@@ -41,10 +41,10 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleLots(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		lots, err := s.app.ListLots(r.Context(), r.URL.Query().Get("roomId"), biz.LotStatus(r.URL.Query().Get("status")))
+		lots, err := s.app.ListLots(r.Context(), r.URL.Query().Get("roomId"), auction.LotStatus(r.URL.Query().Get("status")))
 		writeResult(w, http.StatusOK, lots, err)
 	case http.MethodPost:
-		var cmd biz.CreateLotCommand
+		var cmd auction.CreateLotCommand
 		if !decodeJSON(w, r, &cmd) {
 			return
 		}
@@ -91,7 +91,7 @@ func (s *Server) startLot(w http.ResponseWriter, r *http.Request, lotID string) 
 }
 
 func (s *Server) placeBid(w http.ResponseWriter, r *http.Request, lotID string) {
-	var cmd biz.PlaceBidCommand
+	var cmd auction.PlaceBidCommand
 	if !decodeJSON(w, r, &cmd) {
 		return
 	}

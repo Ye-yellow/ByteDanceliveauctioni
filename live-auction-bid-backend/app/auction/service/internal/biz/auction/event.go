@@ -1,4 +1,4 @@
-package biz
+package auction
 
 func NewAuctionEvent(typ EventType, lot *Lot) AuctionEvent {
 	if lot == nil {

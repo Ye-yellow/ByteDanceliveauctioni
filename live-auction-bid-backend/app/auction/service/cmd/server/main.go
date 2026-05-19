@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	"live-auction-bid/backend/app/auction/service/internal/biz"
+	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	"live-auction-bid/backend/app/auction/service/internal/data"
 	"live-auction-bid/backend/app/auction/service/internal/realtime"
 	"live-auction-bid/backend/app/auction/service/internal/server"
@@ -20,9 +20,9 @@ func main() {
 
 	store := data.NewMemoryStore()
 	hub := realtime.NewHub(nil)
-	auction := biz.NewAuctionUsecase(store, store, hub)
+	auction := auction.NewAuctionUsecase(store, store, hub)
 	hub.BindSnapshotProvider(auction)
-	app := appsvc.New(auction)
+	app := appsvc.NewAuctionService(auction)
 	httpServer := server.New(app, hub)
 
 	log.Printf("auction backend listening on %s", addr)

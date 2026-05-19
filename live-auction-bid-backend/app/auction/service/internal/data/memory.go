@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	"live-auction-bid/backend/app/auction/service/internal/biz"
+	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 )
 
 // MemoryStore 是 V1 内存存储实现。
@@ -18,39 +18,39 @@ import (
 type MemoryStore struct {
 	mu sync.RWMutex
 
-	lots      map[string]*biz.Lot
-	bidsByLot map[string][]biz.Bid
-	idemByLot map[string]map[string]biz.Bid
+	lots      map[string]*auction.Lot
+	bidsByLot map[string][]auction.Bid
+	idemByLot map[string]map[string]auction.Bid
 }
 
 func NewMemoryStore() *MemoryStore {
 	return &MemoryStore{
-		lots:      make(map[string]*biz.Lot),
-		bidsByLot: make(map[string][]biz.Bid),
-		idemByLot: make(map[string]map[string]biz.Bid),
+		lots:      make(map[string]*auction.Lot),
+		bidsByLot: make(map[string][]auction.Bid),
+		idemByLot: make(map[string]map[string]auction.Bid),
 	}
 }
 
-func (s *MemoryStore) Create(ctx context.Context, lot *biz.Lot) error {
+func (s *MemoryStore) Create(ctx context.Context, lot *auction.Lot) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.lots[lot.ID] = biz.CloneLot(lot)
+	s.lots[lot.ID] = auction.CloneLot(lot)
 	return nil
 }
 
-func (s *MemoryStore) Save(ctx context.Context, lot *biz.Lot) error {
+func (s *MemoryStore) Save(ctx context.Context, lot *auction.Lot) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if _, ok := s.lots[lot.ID]; !ok {
 		return errors.New("拍品不存在")
 	}
-	s.lots[lot.ID] = biz.CloneLot(lot)
+	s.lots[lot.ID] = auction.CloneLot(lot)
 	return nil
 }
 
-func (s *MemoryStore) FindByID(ctx context.Context, lotID string) (*biz.Lot, error) {
+func (s *MemoryStore) FindByID(ctx context.Context, lotID string) (*auction.Lot, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -58,14 +58,14 @@ func (s *MemoryStore) FindByID(ctx context.Context, lotID string) (*biz.Lot, err
 	if !ok {
 		return nil, errors.New("拍品不存在")
 	}
-	return biz.CloneLot(lot), nil
+	return auction.CloneLot(lot), nil
 }
 
-func (s *MemoryStore) List(ctx context.Context, roomID string, status biz.LotStatus) ([]*biz.Lot, error) {
+func (s *MemoryStore) List(ctx context.Context, roomID string, status auction.LotStatus) ([]*auction.Lot, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	lots := make([]*biz.Lot, 0, len(s.lots))
+	lots := make([]*auction.Lot, 0, len(s.lots))
 	for _, lot := range s.lots {
 		if roomID != "" && lot.RoomID != roomID {
 			continue
@@ -73,7 +73,7 @@ func (s *MemoryStore) List(ctx context.Context, roomID string, status biz.LotSta
 		if status != "" && lot.Status != status {
 			continue
 		}
-		lots = append(lots, biz.CloneLot(lot))
+		lots = append(lots, auction.CloneLot(lot))
 	}
 
 	sort.Slice(lots, func(i, j int) bool {
@@ -82,7 +82,7 @@ func (s *MemoryStore) List(ctx context.Context, roomID string, status biz.LotSta
 	return lots, nil
 }
 
-func (s *MemoryStore) Append(ctx context.Context, bid biz.Bid) error {
+func (s *MemoryStore) Append(ctx context.Context, bid auction.Bid) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -90,31 +90,31 @@ func (s *MemoryStore) Append(ctx context.Context, bid biz.Bid) error {
 	return nil
 }
 
-func (s *MemoryStore) ListByLot(ctx context.Context, lotID string) ([]biz.Bid, error) {
+func (s *MemoryStore) ListByLot(ctx context.Context, lotID string) ([]auction.Bid, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	bids := s.bidsByLot[lotID]
-	return append([]biz.Bid(nil), bids...), nil
+	return append([]auction.Bid(nil), bids...), nil
 }
 
-func (s *MemoryStore) FindByIdempotencyKey(ctx context.Context, lotID, key string) (biz.Bid, bool, error) {
+func (s *MemoryStore) FindByIdempotencyKey(ctx context.Context, lotID, key string) (auction.Bid, bool, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	if s.idemByLot[lotID] == nil {
-		return biz.Bid{}, false, nil
+		return auction.Bid{}, false, nil
 	}
 	bid, ok := s.idemByLot[lotID][key]
 	return bid, ok, nil
 }
 
-func (s *MemoryStore) SaveIdempotencyKey(ctx context.Context, lotID, key string, bid biz.Bid) error {
+func (s *MemoryStore) SaveIdempotencyKey(ctx context.Context, lotID, key string, bid auction.Bid) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if s.idemByLot[lotID] == nil {
-		s.idemByLot[lotID] = make(map[string]biz.Bid)
+		s.idemByLot[lotID] = make(map[string]auction.Bid)
 	}
 	s.idemByLot[lotID][key] = bid
 	return nil
