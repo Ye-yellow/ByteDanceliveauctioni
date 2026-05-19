@@ -1,0 +1,185 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Auction Service API",
+    "version": "v1",
+    "description": "直播互动竞拍服务 HTTP 契约。源头应来自 api/auction/service/v1/auction.proto，当前文件作为前端类型生成契约。"
+  },
+  "servers": [{ "url": "http://localhost:8080" }],
+  "paths": {
+    "/api/lots": {
+      "get": {
+        "operationId": "listLots",
+        "summary": "查询拍品列表",
+        "responses": {
+          "200": {
+            "description": "拍品列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Lot" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createLot",
+        "summary": "创建拍品",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateLotRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "创建后的拍品",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Lot" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lots/{lotId}/bid": {
+      "post": {
+        "operationId": "placeBid",
+        "summary": "对拍品出价",
+        "parameters": [
+          { "name": "lotId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PlaceBidRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "出价后的权威拍品状态",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Lot" }
+              }
+            }
+          },
+          "409": { "description": "出价被拒绝" }
+        }
+      }
+    },
+    "/api/lots/{lotId}/settle": {
+      "post": {
+        "operationId": "settleLot",
+        "summary": "落锤结算",
+        "parameters": [
+          { "name": "lotId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "结算后的拍品状态",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Lot" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Money": { "type": "integer", "format": "int64", "description": "金额最小单位，例如分" },
+      "Bid": {
+        "type": "object",
+        "required": ["id", "lotId", "userId", "nickname", "amount", "createdAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "lotId": { "type": "string" },
+          "userId": { "type": "string" },
+          "nickname": { "type": "string" },
+          "amount": { "$ref": "#/components/schemas/Money" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "RankingItem": {
+        "type": "object",
+        "required": ["rank", "userId", "nickname", "amount", "at"],
+        "properties": {
+          "rank": { "type": "integer", "format": "int32" },
+          "userId": { "type": "string" },
+          "nickname": { "type": "string" },
+          "amount": { "$ref": "#/components/schemas/Money" },
+          "at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Lot": {
+        "type": "object",
+        "required": ["id", "roomId", "title", "description", "imageUrl", "startPrice", "currentPrice", "minIncrement", "status", "endsAt", "version", "bids"],
+        "properties": {
+          "id": { "type": "string" },
+          "roomId": { "type": "string" },
+          "sessionId": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "imageUrl": { "type": "string" },
+          "startPrice": { "$ref": "#/components/schemas/Money" },
+          "currentPrice": { "$ref": "#/components/schemas/Money" },
+          "minIncrement": { "$ref": "#/components/schemas/Money" },
+          "status": { "type": "string" },
+          "endsAt": { "type": "string", "format": "date-time" },
+          "winnerUserId": { "type": "string" },
+          "version": { "type": "integer", "format": "int64" },
+          "bids": { "type": "array", "items": { "$ref": "#/components/schemas/Bid" } },
+          "ranking": { "type": "array", "items": { "$ref": "#/components/schemas/RankingItem" } },
+          "atmosphereText": { "type": "string" }
+        }
+      },
+      "BidRule": {
+        "type": "object",
+        "properties": {
+          "startPrice": { "$ref": "#/components/schemas/Money" },
+          "minIncrement": { "$ref": "#/components/schemas/Money" },
+          "reservePrice": { "$ref": "#/components/schemas/Money" },
+          "antiSnipeExtendSeconds": { "type": "integer", "format": "int32" },
+          "maxBidPerUserPerSecond": { "type": "integer", "format": "int32" }
+        }
+      },
+      "CreateLotRequest": {
+        "type": "object",
+        "required": ["roomId", "title", "description", "imageUrl"],
+        "properties": {
+          "roomId": { "type": "string" },
+          "sessionId": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "imageUrl": { "type": "string" },
+          "startPrice": { "$ref": "#/components/schemas/Money" },
+          "minIncrement": { "$ref": "#/components/schemas/Money" },
+          "rule": { "$ref": "#/components/schemas/BidRule" },
+          "durationSec": { "type": "integer", "format": "int32" }
+        }
+      },
+      "PlaceBidRequest": {
+        "type": "object",
+        "required": ["userId", "nickname", "amount"],
+        "properties": {
+          "userId": { "type": "string" },
+          "nickname": { "type": "string" },
+          "amount": { "$ref": "#/components/schemas/Money" },
+          "clientKnownVersion": { "type": "integer", "format": "int64" },
+          "idempotencyKey": { "type": "string" }
+        }
+      }
+    }
+  }
+}

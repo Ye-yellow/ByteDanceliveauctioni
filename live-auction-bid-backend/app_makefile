@@ -3,7 +3,7 @@
 all: test build
 
 api: proto
-	@echo "TODO: generate pb/http/grpc/errors from api/*.proto after protoc toolchain is installed"
+	@echo "TODO: generate pb/http/grpc/errors and openapi/auction.openapi.json from api/*.proto after protoc toolchain is installed"
 
 proto:
 	@echo "TODO: protoc --proto_path=../../.. --proto_path=../../../third_party ..."
