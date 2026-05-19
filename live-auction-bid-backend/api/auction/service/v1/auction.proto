@@ -143,6 +143,24 @@ service AuctionService {
 // 基础值对象
 // ============================================================================
 
+
+// ReplyResult 表示所有 service 响应的统一返回头。
+//
+// 说明：
+// - code=0 表示成功；
+// - message 用于给前端或调试工具展示统一结果信息；
+// - trace_id V1 可为空，后续接入链路追踪后填充。
+message ReplyResult {
+  // 业务返回码。0 表示成功。
+  int32 code = 1;
+
+  // 返回信息。成功时通常为 "ok"。
+  string message = 2;
+
+  // 链路追踪 ID。V1 可为空。
+  string trace_id = 3;
+}
+
 // Money 表示金额。
 //
 // 统一使用最小货币单位，避免浮点误差。
@@ -665,12 +683,18 @@ message GetRoomSnapshotRequest {
 message CreateLotReply {
   // 创建后的拍品，状态为 DRAFT。
   Lot lot = 1;
+
+  // 统一返回头。
+  ReplyResult result = 99;
 }
 
 // GetLotReply 表示查询拍品详情响应。
 message GetLotReply {
   // 拍品详情。
   Lot lot = 1;
+
+  // 统一返回头。
+  ReplyResult result = 99;
 }
 
 // ListLotsReply 表示查询拍品列表响应。
@@ -680,6 +704,9 @@ message ListLotsReply {
 
   // 下一页游标。V1 可为空。
   string next_page_token = 2;
+
+  // 统一返回头。
+  ReplyResult result = 99;
 }
 
 // StartLotReply 表示开拍响应。
@@ -689,6 +716,9 @@ message StartLotReply {
 
   // 对应实时事件，方便 HTTP 调用方和 WebSocket 广播使用同一结构。
   AuctionEvent event = 2;
+
+  // 统一返回头。
+  ReplyResult result = 99;
 }
 
 // PlaceBidReply 表示出价响应。
@@ -710,6 +740,9 @@ message PlaceBidReply {
 
   // 拒绝原因。accepted=false 时填写。
   string reject_reason = 6;
+
+  // 统一返回头。
+  ReplyResult result = 99;
 }
 
 // RevealTrustCardReply 表示揭示信任卡片响应。
@@ -722,6 +755,9 @@ message RevealTrustCardReply {
 
   // 对应实时事件。
   AuctionEvent event = 3;
+
+  // 统一返回头。
+  ReplyResult result = 99;
 }
 
 // StartDuelReply 表示启动 Duel Mode 响应。
@@ -734,6 +770,9 @@ message StartDuelReply {
 
   // 对应实时事件。
   AuctionEvent event = 3;
+
+  // 统一返回头。
+  ReplyResult result = 99;
 }
 
 // SettleLotReply 表示落锤成交响应。
@@ -743,10 +782,16 @@ message SettleLotReply {
 
   // 对应实时事件。
   AuctionEvent event = 2;
+
+  // 统一返回头。
+  ReplyResult result = 99;
 }
 
 // GetRoomSnapshotReply 表示获取直播间快照响应。
 message GetRoomSnapshotReply {
   // 直播间权威快照。
   RoomSnapshot snapshot = 1;
+
+  // 统一返回头。
+  ReplyResult result = 99;
 }
