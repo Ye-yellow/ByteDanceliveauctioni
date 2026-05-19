@@ -8,39 +8,25 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
 )
 
-func NewLotFromRequest(id string, req *v1.CreateLotRequest) *v1.Lot {
+func NewLotFromRequest(id string, req *v1.CreateLotRequest) (*v1.Lot, error) {
 	if req == nil {
-		req = &v1.CreateLotRequest{}
+		return nil, errors.New("创建拍品请求不能为空")
 	}
-	if req.RoomId == "" {
-		req.RoomId = "demo"
+	if req.GetRoomId() == "" {
+		return nil, errors.New("直播间 ID 不能为空")
 	}
-	if req.Rule == nil {
-		req.Rule = &v1.BidRule{}
+	if req.GetTitle() == "" {
+		return nil, errors.New("拍品标题不能为空")
 	}
-	if req.Rule.StartPrice == nil {
-		req.Rule.StartPrice = CNY(0)
+	if req.GetRule() == nil || req.GetRule().GetStartPrice() == nil || req.GetRule().GetMinIncrement() == nil {
+		return nil, errors.New("竞拍规则、起拍价和最低加价不能为空")
 	}
-	if req.Rule.StartPrice.Currency == "" {
-		req.Rule.StartPrice.Currency = "CNY"
+	if req.GetRule().GetStartPrice().GetCurrency() == "" || req.GetRule().GetMinIncrement().GetCurrency() == "" {
+		return nil, errors.New("起拍价和最低加价必须指定币种")
 	}
-	if req.Rule.MinIncrement == nil {
-		req.Rule.MinIncrement = CNY(0)
-	}
-	if req.Rule.MinIncrement.Currency == "" {
-		req.Rule.MinIncrement.Currency = "CNY"
-	}
-	if req.Rule.DurationSeconds == 0 {
-		req.Rule.DurationSeconds = 300
-	}
-	if req.Rule.AntiSnipeWindowSeconds == 0 {
-		req.Rule.AntiSnipeWindowSeconds = 15
-	}
-	if req.Rule.AntiSnipeExtendSeconds == 0 {
-		req.Rule.AntiSnipeExtendSeconds = 15
-	}
-	if req.Rule.MaxExtendCount == 0 {
-		req.Rule.MaxExtendCount = 3
+	if req.GetRule().GetDurationSeconds() <= 0 || req.GetRule().GetAntiSnipeWindowSeconds() <= 0 ||
+		req.GetRule().GetAntiSnipeExtendSeconds() <= 0 || req.GetRule().GetMaxExtendCount() <= 0 {
+		return nil, errors.New("竞拍时长、反狙击窗口、延时时长和最大延时次数必须大于 0")
 	}
 
 	trustCards := make([]*v1.TrustRevealCard, 0, len(req.GetTrustCards()))
@@ -76,7 +62,7 @@ func NewLotFromRequest(id string, req *v1.CreateLotRequest) *v1.Lot {
 		card.Revealed = false
 		card.RevealedAtUnixMs = 0
 	}
-	return lot
+	return lot, nil
 }
 
 func StartLot(lot *v1.Lot, nowMs int64) error {

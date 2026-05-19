@@ -9,14 +9,21 @@ import (
 )
 
 func TestLotStateMachine(t *testing.T) {
-	lot := auction.NewLotFromRequest("lot_1", &v1.CreateLotRequest{
+	lot, err := auction.NewLotFromRequest("lot_1", &v1.CreateLotRequest{
 		RoomId: "demo",
 		Title:  "测试拍品",
 		Rule: &v1.BidRule{
-			StartPrice:   auction.CNY(10000),
-			MinIncrement: auction.CNY(1000),
+			StartPrice:             auction.CNY(10000),
+			MinIncrement:           auction.CNY(1000),
+			DurationSeconds:        300,
+			AntiSnipeWindowSeconds: 15,
+			AntiSnipeExtendSeconds: 15,
+			MaxExtendCount:         3,
 		},
 	})
+	if err != nil {
+		t.Fatalf("创建拍品失败：%v", err)
+	}
 
 	if err := auction.AcceptBid(lot, v1.Bid{Amount: auction.CNY(11000)}, clock.NowMs()); err == nil {
 		t.Fatal("DRAFT 状态不应该允许出价")

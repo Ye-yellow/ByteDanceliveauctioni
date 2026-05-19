@@ -31,7 +31,10 @@ func (uc *AuctionUsecase) CreateLot(ctx context.Context, req *v1.CreateLotReques
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
-	lot := NewLotFromRequest(idgen.New("lot"), req)
+	lot, err := NewLotFromRequest(idgen.New("lot"), req)
+	if err != nil {
+		return nil, err
+	}
 	if err := uc.lots.Create(ctx, lot); err != nil {
 		return nil, err
 	}
