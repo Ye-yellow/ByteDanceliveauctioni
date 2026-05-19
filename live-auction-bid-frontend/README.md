@@ -17,7 +17,7 @@ npm install
 npm run dev
 ```
 
-默认连接后端：
+默认连接真实后端：
 
 ```bash
 VITE_API_BASE=http://localhost:8080
@@ -33,3 +33,7 @@ VITE_API_BASE=http://your-backend:8080 VITE_WS_BASE=ws://your-backend:8080 npm r
 ## 后端仓库
 
 后端已拆分到兄弟项目：`live-auction-bid-backend`。
+## Development Rule
+
+Do not add mock services or mock data into this frontend repository. The frontend should connect to the real backend API/WebSocket contract, or use externally managed test environments.
+
