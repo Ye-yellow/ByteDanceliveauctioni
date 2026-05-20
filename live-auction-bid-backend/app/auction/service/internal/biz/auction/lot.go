@@ -154,7 +154,7 @@ func RevealTrustCard(lot *v1.Lot, cardID string, nowMs int64) (*v1.TrustRevealCa
 	return nil, errors.New("trust card not found")
 }
 
-func StartDuel(lot *v1.Lot, ranking []*v1.RankingItem, nowMs int64) error {
+func StartDuel(lot *v1.Lot, ranking []*v1.RankingItem, nowMs int64, userAID, userBID string) error {
 	if lot == nil {
 		return errors.New("lot is required")
 	}
@@ -164,6 +164,39 @@ func StartDuel(lot *v1.Lot, ranking []*v1.RankingItem, nowMs int64) error {
 	if len(ranking) < 2 {
 		return errors.New("at least two bidders are required to enter duel mode")
 	}
+
+	var userA, userB *v1.RankingItem
+	for _, item := range ranking {
+		if userAID != "" && item.UserId == userAID {
+			userA = item
+		}
+		if userBID != "" && item.UserId == userBID {
+			userB = item
+		}
+	}
+	if userAID != "" && userA == nil {
+		return errors.New("duel user A is not in ranking")
+	}
+	if userBID != "" && userB == nil {
+		return errors.New("duel user B is not in ranking")
+	}
+	if userA != nil && userB != nil && userA.UserId == userB.UserId {
+		return errors.New("duel users must be different")
+	}
+	for _, item := range ranking {
+		if userA == nil && (userB == nil || item.UserId != userB.UserId) {
+			userA = item
+			continue
+		}
+		if userB == nil && item.UserId != userA.UserId {
+			userB = item
+			break
+		}
+	}
+	if userA == nil || userB == nil || userA.UserId == userB.UserId {
+		return errors.New("at least two distinct bidders are required to enter duel mode")
+	}
+
 	extendCount := int32(0)
 	if lot.DuelState != nil {
 		extendCount = lot.DuelState.ExtendCount
@@ -171,10 +204,10 @@ func StartDuel(lot *v1.Lot, ranking []*v1.RankingItem, nowMs int64) error {
 	lot.DuelState = &v1.DuelState{
 		Active:          true,
 		LotId:           lot.Id,
-		UserAId:         ranking[0].UserId,
-		UserANickname:   ranking[0].Nickname,
-		UserBId:         ranking[1].UserId,
-		UserBNickname:   ranking[1].Nickname,
+		UserAId:         userA.UserId,
+		UserANickname:   userA.Nickname,
+		UserBId:         userB.UserId,
+		UserBNickname:   userB.Nickname,
 		StartedAtUnixMs: nowMs,
 		EndsAtUnixMs:    lot.EndsAtUnixMs,
 		ExtendCount:     extendCount,

@@ -152,10 +152,10 @@ internal/service.AuctionService
  ↓
 internal/biz/auction.AuctionUsecase
  ↓
-internal/data.MemoryStore
+internal/data.Store (GORM + MySQL + Redis)
 ```
 
-`internal/server` 现在只负责 Kratos HTTP server 组装和 WebSocket 非 proto 路由注册，不再手写业务 HTTP 路由。
+`internal/server` 现在只负责 Kratos HTTP server 组装、WebSocket 非 proto 路由注册和健康检查，不再手写业务 HTTP 路由。旧 `MemoryStore` / `database/sql` repo 主路径已删除。
 
 生成命令：
 
@@ -164,3 +164,19 @@ make api
 ```
 
 注意：Kratos/proto JSON 会把 `int64` 编码为字符串，这是 protobuf JSON 的正常行为。前端如果直接消费生成接口，需要按契约处理金额和时间字段。
+
+
+### 统一响应与乐观锁冲突语义
+
+service 对外采用统一返回包装（Result Envelope）：所有可预期业务错误都落到 reply.result，Go `error` 不再作为前端业务判断入口。这样前端只解析一套结构，避免同一个操作既可能拿 body 又可能拿 transport error。
+
+当多实例或并发请求触发 lot expected-version 冲突时，data 层统一返回稳定哨兵错误，service 层包装为 `ReplyResult{code=409001, message="lot state changed, please refresh and retry"}`。前端应刷新拍品快照后提示用户重试，不应按普通 500 处理。
+
+### 工程思考与设计模式
+
+- service 层采用 **Adapter + Result Envelope**：只做 proto 入参/出参适配和错误包装，不写竞拍业务规则。
+- biz 层采用 **Usecase + Domain Service**：状态机、出价规则、Duel 选择留在业务层，不持有 MySQL/Redis/Consul。
+- data 层采用 **Repository + Unit of Work**：GORM、Redis、事务、缓存失败语义都属于基础设施层；出价成功时 lot/bid/event 使用同一 MySQL transaction。
+- 事件采用 **Transactional Outbox**：MySQL 同事务落事件，事务后推 Redis Stream，worker 补偿未确认事件；下游按 event id 幂等消费。
+- server 层采用 **Registry + Health Check**：Consul 注册和 `/readyz` 聚合观测属于 transport/governance，不进入 biz。
+- 测试采用 **External Test Package**：`*_test.go` 集中在 `app/auction/service/test`，从外部视角验证接口和业务闭环，避免实现目录混入测试文件。

@@ -1,7 +1,7 @@
 # 07-本地 MySQL / Redis / Docker 配置
 
-> 状态：V1 本地基础设施配置说明  
-> 目标：先把 MySQL、Redis、Docker 运行环境准备好，业务代码仍保持 V1 内存存储，后续再按 data 层接口替换。
+> 状态：V1 本地基础设施主路径说明  
+> 目标：GORM + MySQL + Redis + Consul/Docker Compose 作为默认系统路径，不保留内存或 `database/sql` fallback。
 
 ## 1. 当前边界
 
@@ -13,16 +13,18 @@ internal/data/Store
 
 其中：
 
-- MySQL 存储拍品聚合和出价流水；
-- Redis 存储出价幂等键；
-- `MemoryStore` 仅保留给单元测试或显式本地实验，不再作为服务默认启动路径。
+- MySQL 通过 GORM 存储拍品聚合和出价流水；
+- Redis 缓存出价幂等查询并承载事件 Stream；
+- Consul 作为服务注册中心，后端启动时注册 `auction-backend` 并使用 `/readyz` 做健康检查；
+- `/readyz` 同时观测 MySQL/Redis、事件 outbox worker 最近修复状态和 Consul 注册是否仍存在；
+- 旧 `MemoryStore`、手写 `database/sql` repo、`schema.go` 主路径已删除。
 
-本次配置 MySQL / Redis 的目的：
+本次配置 MySQL / Redis / Consul 的目的：
 
-- 让 V1 demo 默认具备真实持久化环境；
-- 为后续出价幂等、排行榜、事件流准备 Redis；
+- 让 V1 默认具备真实持久化环境；
+- 为出价幂等、后续排行榜缓存、事件流准备 Redis；
 - 为 Docker 一键启动准备统一入口；
-- 让架构表达从“内存 demo”自然演进到“可落地工程”。
+- 保持最终系统主路径清晰，不做 demo/fallback 双轨。
 
 ## 2. 后续职责划分
 
@@ -82,11 +84,11 @@ make docker-down
 make docker-logs
 ```
 
-只启动数据库和 Redis：
+只启动基础设施：
 
 ```bash
 cd deploy
-docker compose up -d mysql redis
+docker compose up -d mysql redis consul
 ```
 
 ## 4. 默认端口
@@ -96,8 +98,9 @@ docker compose up -d mysql redis
 | auction-backend | 18080 | 18080 |
 | MySQL | 3306 | 13306 |
 | Redis | 6379 | 16379 |
+| Consul | 8500 | 18500 |
 
-选择 `13306` / `16379` 是为了避免和本机已有 MySQL / Redis 冲突。
+选择 `13306` / `16379` / `18500` 是为了避免和本机已有服务冲突。
 
 ## 5. 默认账号
 
@@ -130,9 +133,11 @@ data:
   redis:
     addr: "redis:6379"
     password: "auction_redis"
+  consul:
+    addr: "consul:8500"
 ```
 
-Docker Compose 会通过环境变量传入同等配置，后续接入真实 data 实现时再读取。
+Docker Compose 会通过环境变量传入同等配置：`AUCTION_CONSUL_ADDR`、`AUCTION_SERVICE_NAME`、`AUCTION_SERVICE_ADDR`。
 
 ## 7. 当前实现
 
@@ -142,7 +147,7 @@ Docker Compose 会通过环境变量传入同等配置，后续接入真实 data
 - `auction_bids`：存储出价流水 JSON；
 - Redis `auction:idem:{lot_id}:{key}`：存储幂等键对应的出价。
 
-数据库表由服务启动时自动创建。
+数据库表由 GORM AutoMigrate 在服务启动时创建；`deploy/mysql/schema.sql` 只作为参考结构，不是运行时主路径。
 
 后续仍可继续演进：
 

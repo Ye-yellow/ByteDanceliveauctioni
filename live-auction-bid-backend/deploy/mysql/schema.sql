@@ -1,3 +1,6 @@
+-- Reference schema for the GORM AutoMigrate production path.
+-- Runtime migrations are owned by app/auction/service/internal/data/models.go.
+
 CREATE TABLE IF NOT EXISTS auction_lots (
   id VARCHAR(64) PRIMARY KEY,
   room_id VARCHAR(64) NOT NULL,
@@ -27,27 +30,11 @@ CREATE TABLE IF NOT EXISTS auction_lots (
   version BIGINT NOT NULL,
   playbook_stage INT NOT NULL,
   payload JSON NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
   INDEX idx_room_status (room_id, status),
   INDEX idx_room_updated (room_id, updated_at),
   INDEX idx_status_ends_at (status, ends_at_unix_ms)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
-CREATE TABLE IF NOT EXISTS auction_trust_cards (
-  id VARCHAR(64) PRIMARY KEY,
-  lot_id VARCHAR(64) NOT NULL,
-  type INT NOT NULL,
-  title VARCHAR(255) NOT NULL,
-  content TEXT NOT NULL,
-  image_url VARCHAR(1024) NOT NULL,
-  revealed TINYINT(1) NOT NULL DEFAULT 0,
-  revealed_at_unix_ms BIGINT NOT NULL DEFAULT 0,
-  sort_order INT NOT NULL DEFAULT 0,
-  payload JSON NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_lot_revealed (lot_id, revealed)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS auction_bids (
@@ -57,24 +44,30 @@ CREATE TABLE IF NOT EXISTS auction_bids (
   nickname VARCHAR(128) NOT NULL,
   amount BIGINT NOT NULL,
   currency VARCHAR(16) NOT NULL,
+  idempotency_key VARCHAR(128) NULL,
   created_at_unix_ms BIGINT NOT NULL,
   payload JSON NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at DATETIME(3) NULL,
   INDEX idx_lot_created (lot_id, created_at_unix_ms),
   INDEX idx_lot_amount (lot_id, amount),
-  INDEX idx_lot_user (lot_id, user_id)
+  INDEX idx_lot_user (lot_id, user_id),
+  UNIQUE INDEX idx_lot_idem (lot_id, idempotency_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS auction_events (
   id VARCHAR(64) PRIMARY KEY,
   room_id VARCHAR(64) NOT NULL,
-  lot_id VARCHAR(64) NOT NULL,
+  lot_id VARCHAR(64) NOT NULL DEFAULT '',
   type INT NOT NULL,
   occurred_at_unix_ms BIGINT NOT NULL,
   reason VARCHAR(512) NOT NULL DEFAULT '',
   payload JSON NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  stream_id VARCHAR(64) NOT NULL DEFAULT '',
+  streamed_at_unix_ms BIGINT NOT NULL DEFAULT 0,
+  last_stream_error VARCHAR(512) NOT NULL DEFAULT '',
+  created_at DATETIME(3) NULL,
   INDEX idx_room_occurred (room_id, occurred_at_unix_ms),
   INDEX idx_lot_occurred (lot_id, occurred_at_unix_ms),
-  INDEX idx_type_occurred (type, occurred_at_unix_ms)
+  INDEX idx_type_occurred (type, occurred_at_unix_ms),
+  INDEX idx_streamed_at (streamed_at_unix_ms)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

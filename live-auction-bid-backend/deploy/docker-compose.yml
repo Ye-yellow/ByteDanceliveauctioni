@@ -10,6 +10,9 @@ services:
       AUCTION_MYSQL_DSN: "auction:auction_dev@tcp(mysql:3306)/live_auction?parseTime=true&charset=utf8mb4&loc=Local"
       AUCTION_REDIS_ADDR: "redis:6379"
       AUCTION_REDIS_PASSWORD: "auction_redis"
+      AUCTION_CONSUL_ADDR: "consul:8500"
+      AUCTION_SERVICE_NAME: "auction-backend"
+      AUCTION_SERVICE_ADDR: "auction-backend"
     ports:
       - "18080:18080"
     depends_on:
@@ -17,6 +20,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      consul:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:18080/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     networks:
       - live-auction
 
@@ -54,6 +64,20 @@ services:
       - live-auction-redis:/data
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "auction_redis", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - live-auction
+
+  consul:
+    image: hashicorp/consul:1.18
+    container_name: live-auction-consul
+    command: ["agent", "-dev", "-client=0.0.0.0"]
+    ports:
+      - "18500:8500"
+    healthcheck:
+      test: ["CMD", "consul", "members"]
       interval: 10s
       timeout: 5s
       retries: 10

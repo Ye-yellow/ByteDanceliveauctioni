@@ -19,14 +19,15 @@ import (
 // - 实时广播通过 EventPublisher 接口隔离；
 // - HTTP/WS 适配不放在 biz 层。
 type AuctionUsecase struct {
-	mu     sync.Mutex
-	lots   LotRepository
-	bids   BidRepository
-	events EventPublisher
+	mu          sync.Mutex
+	lots        LotRepository
+	bids        BidRepository
+	eventsStore EventRepository
+	events      EventPublisher
 }
 
-func NewAuctionUsecase(lots LotRepository, bids BidRepository, events EventPublisher) *AuctionUsecase {
-	return &AuctionUsecase{lots: lots, bids: bids, events: events}
+func NewAuctionUsecase(lots LotRepository, bids BidRepository, eventStore EventRepository, events EventPublisher) *AuctionUsecase {
+	return &AuctionUsecase{lots: lots, bids: bids, eventsStore: eventStore, events: events}
 }
 
 func (uc *AuctionUsecase) CreateLot(ctx context.Context, req *v1.CreateLotRequest) (*v1.Lot, error) {
@@ -37,11 +38,12 @@ func (uc *AuctionUsecase) CreateLot(ctx context.Context, req *v1.CreateLotReques
 	if err != nil {
 		return nil, err
 	}
-	if err := uc.lots.Create(ctx, lot); err != nil {
+	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CREATED, lot)
+	if err := uc.lots.Create(ctx, lot, []v1.AuctionEvent{event}); err != nil {
 		return nil, err
 	}
-	if uc.events != nil {
-		uc.events.Publish(ctx, newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CREATED, lot))
+	if err := uc.broadcast(ctx, event); err != nil {
+		return nil, err
 	}
 	return proto.Clone(lot).(*v1.Lot), nil
 }
@@ -72,21 +74,21 @@ func (uc *AuctionUsecase) StartLot(ctx context.Context, lotID string) (*v1.Lot, 
 	if err != nil {
 		return nil, err
 	}
+	expectedVersion := lot.Version
 	if err := StartLot(lot, clock.NowMs()); err != nil {
 		return nil, err
 	}
-	if err := uc.lots.Save(ctx, lot); err != nil {
-		return nil, err
-	}
-
 	bids, err := uc.bids.ListByLot(ctx, lot.Id)
 	if err != nil {
 		return nil, err
 	}
 	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_STARTED, lot)
 	event.Ranking = BuildRanking(bids)
-	if uc.events != nil {
-		uc.events.Publish(ctx, event)
+	if err := uc.lots.Save(ctx, lot, expectedVersion, []v1.AuctionEvent{event}); err != nil {
+		return nil, err
+	}
+	if err := uc.broadcast(ctx, event); err != nil {
+		return nil, err
 	}
 	return proto.Clone(lot).(*v1.Lot), nil
 }
@@ -115,6 +117,7 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	expectedVersion := lot.Version
 
 	if req.GetIdempotencyKey() != "" {
 		old, found, err := uc.bids.FindByIdempotencyKey(ctx, lot.Id, req.GetIdempotencyKey())
@@ -144,56 +147,57 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest)
 			return nil, nil, nil, listErr
 		}
 		ranking := BuildRanking(bids)
-		if uc.events != nil {
-			event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_REJECTED, lot)
-			event.Reason = err.Error()
-			event.Ranking = ranking
-			uc.events.Publish(ctx, event)
+		event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_REJECTED, lot)
+		event.Reason = err.Error()
+		event.Ranking = ranking
+		if persistErr := uc.persistEvents(ctx, event); persistErr != nil {
+			return nil, nil, nil, persistErr
+		}
+		if publishErr := uc.broadcast(ctx, event); publishErr != nil {
+			return nil, nil, nil, publishErr
 		}
 		return proto.Clone(lot).(*v1.Lot), nil, ranking, err
-	}
-
-	if err := uc.bids.Append(ctx, bid); err != nil {
-		return nil, nil, nil, err
-	}
-	if req.GetIdempotencyKey() != "" {
-		if err := uc.bids.SaveIdempotencyKey(ctx, lot.Id, req.GetIdempotencyKey(), bid); err != nil {
-			return nil, nil, nil, err
-		}
 	}
 
 	bids, err := uc.bids.ListByLot(ctx, lot.Id)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	bids = append(bids, bid)
 	ranking := BuildRanking(bids)
 	nowMs := clock.NowMs()
 	if !lot.GetDuelState().GetActive() && len(ranking) >= 2 && len(bids) >= 3 &&
 		lot.EndsAtUnixMs-nowMs <= 60_000 &&
 		ranking[0].GetAmount().GetAmount()-ranking[1].GetAmount().GetAmount() <= lot.GetRule().GetMinIncrement().GetAmount()*3 {
-		_ = StartDuel(lot, ranking, nowMs)
+		_ = StartDuel(lot, ranking, nowMs, "", "")
 	}
 
-	if err := uc.lots.Save(ctx, lot); err != nil {
+	acceptedEvent := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_ACCEPTED, lot)
+	acceptedEvent.Bid = &bid
+	acceptedEvent.Ranking = ranking
+	rankingEvent := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_RANKING_UPDATED, lot)
+	rankingEvent.Ranking = ranking
+	commitEvents := []v1.AuctionEvent{acceptedEvent, rankingEvent}
+	if lot.GetDuelState().GetActive() {
+		duelEvent := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_DUEL_STARTED, lot)
+		duelEvent.Ranking = ranking
+		duelEvent.DuelState = lot.DuelState
+		commitEvents = append(commitEvents, duelEvent)
+	}
+	if err := uc.bids.CommitAcceptedBid(ctx, bid, lot, expectedVersion, req.GetIdempotencyKey(), commitEvents); err != nil {
 		return nil, nil, nil, err
 	}
+	if req.GetIdempotencyKey() != "" {
+		uc.bids.CacheIdempotencyKey(ctx, lot.Id, req.GetIdempotencyKey(), bid)
+	}
 
-	if uc.events != nil {
-		acceptedEvent := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_ACCEPTED, lot)
-		acceptedEvent.Bid = &bid
-		acceptedEvent.Ranking = ranking
-		uc.events.Publish(ctx, acceptedEvent)
-
-		rankingEvent := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_RANKING_UPDATED, lot)
-		rankingEvent.Ranking = ranking
-		uc.events.Publish(ctx, rankingEvent)
-
-		if lot.GetDuelState().GetActive() {
-			duelEvent := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_DUEL_STARTED, lot)
-			duelEvent.Ranking = ranking
-			duelEvent.DuelState = lot.DuelState
-			uc.events.Publish(ctx, duelEvent)
-		}
+	committedBids, err := uc.bids.ListByLot(ctx, lot.Id)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	ranking = BuildRanking(committedBids)
+	if err := uc.broadcast(ctx, commitEvents...); err != nil {
+		return nil, nil, nil, err
 	}
 	return proto.Clone(lot).(*v1.Lot), &bid, ranking, nil
 }
@@ -213,23 +217,23 @@ func (uc *AuctionUsecase) RevealTrustCard(ctx context.Context, lotID, cardID, op
 	if err != nil {
 		return nil, nil, err
 	}
+	expectedVersion := lot.Version
 	card, err := RevealTrustCard(lot, cardID, clock.NowMs())
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := uc.lots.Save(ctx, lot); err != nil {
-		return nil, nil, err
-	}
-
 	bids, err := uc.bids.ListByLot(ctx, lot.Id)
 	if err != nil {
 		return nil, nil, err
 	}
-	if uc.events != nil {
-		event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_TRUST_REVEALED, lot)
-		event.TrustCard = card
-		event.Ranking = BuildRanking(bids)
-		uc.events.Publish(ctx, event)
+	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_TRUST_REVEALED, lot)
+	event.TrustCard = card
+	event.Ranking = BuildRanking(bids)
+	if err := uc.lots.Save(ctx, lot, expectedVersion, []v1.AuctionEvent{event}); err != nil {
+		return nil, nil, err
+	}
+	if err := uc.broadcast(ctx, event); err != nil {
+		return nil, nil, err
 	}
 	return proto.Clone(lot).(*v1.Lot), card, nil
 }
@@ -246,23 +250,23 @@ func (uc *AuctionUsecase) StartDuel(ctx context.Context, lotID, operatorID, user
 	if err != nil {
 		return nil, nil, err
 	}
+	expectedVersion := lot.Version
 	bids, err := uc.bids.ListByLot(ctx, lot.Id)
 	if err != nil {
 		return nil, nil, err
 	}
 	ranking := BuildRanking(bids)
-	if err := StartDuel(lot, ranking, clock.NowMs()); err != nil {
+	if err := StartDuel(lot, ranking, clock.NowMs(), userAID, userBID); err != nil {
 		return nil, nil, err
 	}
-	if err := uc.lots.Save(ctx, lot); err != nil {
+	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_DUEL_STARTED, lot)
+	event.Ranking = ranking
+	event.DuelState = lot.DuelState
+	if err := uc.lots.Save(ctx, lot, expectedVersion, []v1.AuctionEvent{event}); err != nil {
 		return nil, nil, err
 	}
-
-	if uc.events != nil {
-		event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_DUEL_STARTED, lot)
-		event.Ranking = ranking
-		event.DuelState = lot.DuelState
-		uc.events.Publish(ctx, event)
+	if err := uc.broadcast(ctx, event); err != nil {
+		return nil, nil, err
 	}
 	return proto.Clone(lot).(*v1.Lot), lot.DuelState, nil
 }
@@ -279,23 +283,42 @@ func (uc *AuctionUsecase) SettleLot(ctx context.Context, lotID, operatorID strin
 	if err != nil {
 		return nil, err
 	}
+	expectedVersion := lot.Version
 	if err := SettleLot(lot, clock.NowMs()); err != nil {
 		return nil, err
 	}
-	if err := uc.lots.Save(ctx, lot); err != nil {
-		return nil, err
-	}
-
 	bids, err := uc.bids.ListByLot(ctx, lot.Id)
 	if err != nil {
 		return nil, err
 	}
-	if uc.events != nil {
-		event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_SETTLED, lot)
-		event.Ranking = BuildRanking(bids)
-		uc.events.Publish(ctx, event)
+	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_SETTLED, lot)
+	event.Ranking = BuildRanking(bids)
+	if err := uc.lots.Save(ctx, lot, expectedVersion, []v1.AuctionEvent{event}); err != nil {
+		return nil, err
+	}
+	if err := uc.broadcast(ctx, event); err != nil {
+		return nil, err
 	}
 	return proto.Clone(lot).(*v1.Lot), nil
+}
+
+func (uc *AuctionUsecase) persistEvents(ctx context.Context, events ...v1.AuctionEvent) error {
+	if uc.eventsStore == nil || len(events) == 0 {
+		return nil
+	}
+	return uc.eventsStore.PersistEvents(ctx, events)
+}
+
+func (uc *AuctionUsecase) broadcast(ctx context.Context, events ...v1.AuctionEvent) error {
+	if uc.events == nil {
+		return nil
+	}
+	for _, event := range events {
+		if err := uc.events.Publish(ctx, event); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (uc *AuctionUsecase) Snapshot(ctx context.Context, roomID string) (*v1.RoomSnapshot, error) {

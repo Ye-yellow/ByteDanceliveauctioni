@@ -1,5 +1,7 @@
 FROM golang:1.22-alpine AS builder
 
+ENV PATH="/usr/local/go/bin:${PATH}"
+
 WORKDIR /src
 
 COPY go.mod go.sum ./

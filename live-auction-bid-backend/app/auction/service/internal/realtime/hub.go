@@ -40,11 +40,12 @@ func (h *Hub) BindSnapshotProvider(snapshot SnapshotProvider) {
 	h.snapshot = snapshot
 }
 
-func (h *Hub) Publish(ctx context.Context, event v1.AuctionEvent) {
+func (h *Hub) Publish(ctx context.Context, event v1.AuctionEvent) error {
 	for _, conn := range h.roomConnections(event.RoomId) {
 		_ = conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 		_ = conn.WriteJSON(event)
 	}
+	return nil
 }
 
 func (h *Hub) ServeRoom(w http.ResponseWriter, r *http.Request, roomID string) {
