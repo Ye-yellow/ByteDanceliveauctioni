@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS auction_lots (
   started_at_unix_ms BIGINT NOT NULL DEFAULT 0,
   ends_at_unix_ms BIGINT NOT NULL DEFAULT 0,
   settled_at_unix_ms BIGINT NOT NULL DEFAULT 0,
+  cancel_reason VARCHAR(512) NOT NULL DEFAULT '',
+  cancelled_at_unix_ms BIGINT NOT NULL DEFAULT 0,
   winner_user_id VARCHAR(64) NOT NULL DEFAULT '',
   winner_nickname VARCHAR(128) NOT NULL DEFAULT '',
   final_price_amount BIGINT NOT NULL DEFAULT 0,
@@ -70,4 +72,32 @@ CREATE TABLE IF NOT EXISTS auction_events (
   INDEX idx_lot_occurred (lot_id, occurred_at_unix_ms),
   INDEX idx_type_occurred (type, occurred_at_unix_ms),
   INDEX idx_streamed_at (streamed_at_unix_ms)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS auction_users (
+  id VARCHAR(64) PRIMARY KEY,
+  username VARCHAR(64) NOT NULL,
+  nickname VARCHAR(128) NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  role INT NOT NULL,
+  created_at_unix_ms BIGINT NOT NULL,
+  updated_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
+  UNIQUE INDEX idx_username (username),
+  INDEX idx_role (role)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS auction_user_sessions (
+  id VARCHAR(64) PRIMARY KEY,
+  user_id VARCHAR(64) NOT NULL,
+  refresh_token_hash VARCHAR(64) NOT NULL,
+  refresh_expires_at_unix_ms BIGINT NOT NULL,
+  revoked_at_unix_ms BIGINT NOT NULL DEFAULT 0,
+  created_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
+  INDEX idx_user_sessions (user_id),
+  UNIQUE INDEX idx_refresh_token_hash (refresh_token_hash),
+  INDEX idx_session_expiry (refresh_expires_at_unix_ms)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

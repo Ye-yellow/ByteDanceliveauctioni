@@ -124,6 +124,8 @@ func lotToModel(lot *v1.Lot) (*AuctionLotModel, error) {
 		StartedAtUnixMs:        lot.StartedAtUnixMs,
 		EndsAtUnixMs:           lot.EndsAtUnixMs,
 		SettledAtUnixMs:        lot.SettledAtUnixMs,
+		CancelReason:           lot.CancelReason,
+		CancelledAtUnixMs:      lot.CancelledAtUnixMs,
 		WinnerUserID:           lot.WinnerUserId,
 		WinnerNickname:         lot.WinnerNickname,
 		FinalPriceAmount:       lot.GetFinalPrice().GetAmount(),

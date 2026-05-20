@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os"
 	"time"
 
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
+	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 	"live-auction-bid/backend/app/auction/service/internal/data"
+	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
 	"live-auction-bid/backend/app/auction/service/internal/realtime"
 	"live-auction-bid/backend/app/auction/service/internal/server"
 	appsvc "live-auction-bid/backend/app/auction/service/internal/service"
@@ -33,11 +36,26 @@ func main() {
 	outboxWorker := data.NewEventOutboxWorker(store, 10*time.Second, 100)
 	outboxWorker.Start(ctx)
 
+	authManager, err := auth.NewManager(auth.Config{
+		Secret:     os.Getenv("AUCTION_JWT_SECRET"),
+		Issuer:     getenv("AUCTION_JWT_ISSUER", "auction-backend"),
+		AccessTTL:  getenvDuration("AUCTION_ACCESS_TOKEN_TTL", auth.DefaultAccessTTL),
+		RefreshTTL: getenvDuration("AUCTION_REFRESH_TOKEN_TTL", auth.DefaultRefreshTTL),
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	userUsecase := userbiz.NewUsecase(store, authManager)
+	if err := bootstrapAdmin(ctx, userUsecase); err != nil {
+		log.Fatal(err)
+	}
+
 	hub := realtime.NewHub(nil)
 	eventPublisher := realtime.NewPublisher(hub)
 	auctionUsecase := auction.NewAuctionUsecase(store, store, store, eventPublisher)
 	hub.BindSnapshotProvider(auctionUsecase)
 	auctionService := appsvc.NewAuctionService(auctionUsecase)
+	userService := appsvc.NewUserService(userUsecase)
 	consulRegistration, err := server.RegisterConsulService(context.Background(), server.ConsulConfig{
 		Addr:           getenv("AUCTION_CONSUL_ADDR", "127.0.0.1:18500"),
 		ServiceName:    getenv("AUCTION_SERVICE_NAME", "auction-backend"),
@@ -56,7 +74,7 @@ func main() {
 	}()
 
 	readiness := server.Readiness{Store: store, Outbox: outboxWorker, Consul: consulRegistration}
-	httpServer := server.NewHTTPServer(addr, auctionService, hub, readiness)
+	httpServer := server.NewHTTPServer(addr, auctionService, userService, hub, readiness, authManager.Middleware())
 
 	log.Printf("auction backend listening on %s via kratos http", addr)
 	if err := httpServer.Start(ctx); err != nil {
@@ -70,4 +88,29 @@ func getenv(key, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func getenvDuration(key string, fallback time.Duration) time.Duration {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	duration, err := time.ParseDuration(value)
+	if err != nil {
+		log.Fatalf("invalid %s duration: %v", key, err)
+	}
+	return duration
+}
+
+func bootstrapAdmin(ctx context.Context, users *userbiz.Usecase) error {
+	username := os.Getenv("AUCTION_BOOTSTRAP_ADMIN_USERNAME")
+	password := os.Getenv("AUCTION_BOOTSTRAP_ADMIN_PASSWORD")
+	nickname := os.Getenv("AUCTION_BOOTSTRAP_ADMIN_NICKNAME")
+	if username == "" && password == "" && nickname == "" {
+		return nil
+	}
+	if username == "" || password == "" || nickname == "" {
+		return errors.New("bootstrap admin username, password and nickname must be configured together")
+	}
+	return users.BootstrapAdmin(ctx, username, password, nickname)
 }

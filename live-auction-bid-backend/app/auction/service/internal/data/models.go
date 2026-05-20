@@ -24,6 +24,8 @@ type AuctionLotModel struct {
 	StartedAtUnixMs        int64  `gorm:"column:started_at_unix_ms;not null;default:0"`
 	EndsAtUnixMs           int64  `gorm:"column:ends_at_unix_ms;not null;default:0;index:idx_status_ends_at,priority:2"`
 	SettledAtUnixMs        int64  `gorm:"column:settled_at_unix_ms;not null;default:0"`
+	CancelReason           string `gorm:"column:cancel_reason;type:varchar(512);not null;default:''"`
+	CancelledAtUnixMs      int64  `gorm:"column:cancelled_at_unix_ms;not null;default:0"`
 	WinnerUserID           string `gorm:"column:winner_user_id;type:varchar(64);not null;default:''"`
 	WinnerNickname         string `gorm:"column:winner_nickname;type:varchar(128);not null;default:''"`
 	FinalPriceAmount       int64  `gorm:"column:final_price_amount;not null;default:0"`
@@ -67,3 +69,30 @@ type AuctionEventModel struct {
 }
 
 func (AuctionEventModel) TableName() string { return "auction_events" }
+
+type AuctionUserModel struct {
+	ID              string `gorm:"column:id;type:varchar(64);primaryKey"`
+	Username        string `gorm:"column:username;type:varchar(64);not null;uniqueIndex:idx_username"`
+	Nickname        string `gorm:"column:nickname;type:varchar(128);not null"`
+	PasswordHash    string `gorm:"column:password_hash;type:varchar(255);not null"`
+	Role            int32  `gorm:"column:role;type:int;not null;index:idx_role"`
+	CreatedAtUnixMs int64  `gorm:"column:created_at_unix_ms;not null"`
+	UpdatedAtUnixMs int64  `gorm:"column:updated_at_unix_ms;not null"`
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+func (AuctionUserModel) TableName() string { return "auction_users" }
+
+type AuctionUserSessionModel struct {
+	ID                     string `gorm:"column:id;type:varchar(64);primaryKey"`
+	UserID                 string `gorm:"column:user_id;type:varchar(64);not null;index:idx_user_sessions"`
+	RefreshTokenHash       string `gorm:"column:refresh_token_hash;type:varchar(64);not null;uniqueIndex:idx_refresh_token_hash"`
+	RefreshExpiresAtUnixMs int64  `gorm:"column:refresh_expires_at_unix_ms;not null;index:idx_session_expiry"`
+	RevokedAtUnixMs        int64  `gorm:"column:revoked_at_unix_ms;not null;default:0"`
+	CreatedAtUnixMs        int64  `gorm:"column:created_at_unix_ms;not null"`
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
+}
+
+func (AuctionUserSessionModel) TableName() string { return "auction_user_sessions" }

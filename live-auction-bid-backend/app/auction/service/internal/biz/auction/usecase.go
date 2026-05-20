@@ -93,7 +93,7 @@ func (uc *AuctionUsecase) StartLot(ctx context.Context, lotID string) (*v1.Lot, 
 	return proto.Clone(lot).(*v1.Lot), nil
 }
 
-func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest) (*v1.Lot, *v1.Bid, []*v1.RankingItem, error) {
+func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest, bidderID, nickname string) (*v1.Lot, *v1.Bid, []*v1.RankingItem, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
@@ -103,10 +103,10 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest)
 	if req.GetLotId() == "" {
 		return nil, nil, nil, errors.New("lot id is required")
 	}
-	if req.GetUserId() == "" {
+	if bidderID == "" {
 		return nil, nil, nil, errors.New("user id is required")
 	}
-	if req.GetNickname() == "" {
+	if nickname == "" {
 		return nil, nil, nil, errors.New("nickname is required")
 	}
 	if req.GetAmount() == nil || req.GetAmount().GetCurrency() == "" {
@@ -136,8 +136,8 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest)
 	bid := v1.Bid{
 		Id:              idgen.New("bid"),
 		LotId:           lot.Id,
-		UserId:          req.GetUserId(),
-		Nickname:        req.GetNickname(),
+		UserId:          bidderID,
+		Nickname:        nickname,
 		Amount:          req.GetAmount(),
 		CreatedAtUnixMs: clock.NowMs(),
 	}
@@ -293,6 +293,38 @@ func (uc *AuctionUsecase) SettleLot(ctx context.Context, lotID, operatorID strin
 	}
 	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_SETTLED, lot)
 	event.Ranking = BuildRanking(bids)
+	if err := uc.lots.Save(ctx, lot, expectedVersion, []v1.AuctionEvent{event}); err != nil {
+		return nil, err
+	}
+	if err := uc.broadcast(ctx, event); err != nil {
+		return nil, err
+	}
+	return proto.Clone(lot).(*v1.Lot), nil
+}
+
+func (uc *AuctionUsecase) CancelLot(ctx context.Context, lotID, operatorID, reason string) (*v1.Lot, error) {
+	uc.mu.Lock()
+	defer uc.mu.Unlock()
+
+	if lotID == "" {
+		return nil, errors.New("lot id is required")
+	}
+
+	lot, err := uc.lots.FindByID(ctx, lotID)
+	if err != nil {
+		return nil, err
+	}
+	expectedVersion := lot.Version
+	if err := CancelLot(lot, reason, clock.NowMs()); err != nil {
+		return lot, err
+	}
+	bids, err := uc.bids.ListByLot(ctx, lot.Id)
+	if err != nil {
+		return nil, err
+	}
+	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CANCELLED, lot)
+	event.Ranking = BuildRanking(bids)
+	event.Reason = reason
 	if err := uc.lots.Save(ctx, lot, expectedVersion, []v1.AuctionEvent{event}); err != nil {
 		return nil, err
 	}

@@ -19,7 +19,7 @@ import "google/api/annotations.proto";
 // - 主播或系统落锤成交。
 //
 // 设计边界：
-// - V1 暂不处理支付、订单履约、保证金、真实用户账号体系；
+// - V1 暂不处理支付、订单履约、保证金；
 // - V1 暂不接真实 AI 模型，玩法阶段先由规则或人工触发；
 // - V1 可以先使用单进程内存存储，后续再替换 Redis/MySQL；
 // - 该 proto 是前后端契约源头，后续可生成 OpenAPI 和 TypeScript 类型。
@@ -124,6 +124,18 @@ service AuctionService {
   rpc SettleLot(SettleLotRequest) returns (SettleLotReply) {
     option (google.api.http) = {
       post: "/api/lots/{lot_id}/settle"
+      body: "*"
+    };
+  }
+
+  // 主播异常取消拍品。
+  //
+  // 调用方：主播端/运营端。
+  // 状态流转：LIVE -> CANCELLED。
+  // 服务端动作：记录取消原因，并广播 LOT_CANCELLED。
+  rpc CancelLot(CancelLotRequest) returns (CancelLotReply) {
+    option (google.api.http) = {
+      post: "/api/lots/{lot_id}/cancel"
       body: "*"
     };
   }
@@ -286,6 +298,10 @@ enum AuctionEventType {
 
   // 拍品已落锤成交。
   AUCTION_EVENT_TYPE_LOT_SETTLED = 11;
+
+  // 拍品已异常取消。
+  AUCTION_EVENT_TYPE_LOT_CANCELLED = 12;
+
 }
 
 // ============================================================================
@@ -488,6 +504,12 @@ message Lot {
 
   // 当前玩法阶段。
   PlaybookStage playbook_stage = 20;
+
+  // 取消原因。仅 CANCELLED 状态有值。
+  string cancel_reason = 21;
+
+  // 取消时间，Unix 毫秒。未取消时为 0。
+  int64 cancelled_at_unix_ms = 22;
 }
 
 // ============================================================================
@@ -615,11 +637,8 @@ message PlaceBidRequest {
   // 拍品 ID。
   string lot_id = 1;
 
-  // 出价用户 ID。V1 可使用游客 ID。
-  string user_id = 2;
-
-  // 出价用户昵称。
-  string nickname = 3;
+  reserved 2, 3;
+  reserved "user_id", "nickname";
 
   // 出价金额。
   Money amount = 4;
@@ -667,6 +686,13 @@ message SettleLotRequest {
 
   // 操作人 ID。V1 可先传主播/运营固定 ID。
   string operator_id = 2;
+}
+
+// CancelLotRequest 表示主播异常取消请求。
+message CancelLotRequest {
+  string lot_id = 1;
+  string operator_id = 2;
+  string reason = 3;
 }
 
 // GetRoomSnapshotRequest 表示获取直播间快照请求。
@@ -784,6 +810,12 @@ message SettleLotReply {
   AuctionEvent event = 2;
 
   // 统一返回头。
+  ReplyResult result = 99;
+}
+
+message CancelLotReply {
+  Lot lot = 1;
+  AuctionEvent event = 2;
   ReplyResult result = 99;
 }
 

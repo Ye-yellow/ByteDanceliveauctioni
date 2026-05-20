@@ -1,0 +1,159 @@
+syntax = "proto3";
+
+package auction.service.v1;
+
+option go_package = "live-auction-bid/backend/api/auction/service/v1;v1";
+
+import "api/auction/service/v1/auction.proto";
+import "google/api/annotations.proto";
+
+// UserService 管理直播竞拍账号、登录态和基础角色权限。
+service UserService {
+  // 公开注册买家账号。
+  rpc Register(RegisterRequest) returns (RegisterReply) {
+    option (google.api.http) = {
+      post: "/api/users/register"
+      body: "*"
+    };
+  }
+
+  // 用户名密码登录。
+  rpc Login(LoginRequest) returns (LoginReply) {
+    option (google.api.http) = {
+      post: "/api/users/login"
+      body: "*"
+    };
+  }
+
+  // 刷新 access token，并轮换 refresh token。
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenReply) {
+    option (google.api.http) = {
+      post: "/api/users/refresh"
+      body: "*"
+    };
+  }
+
+  // 登出当前 refresh session。
+  rpc Logout(LogoutRequest) returns (LogoutReply) {
+    option (google.api.http) = {
+      post: "/api/users/logout"
+      body: "*"
+    };
+  }
+
+  // 查看当前登录用户。
+  rpc GetMe(GetMeRequest) returns (GetMeReply) {
+    option (google.api.http) = {
+      get: "/api/users/me"
+    };
+  }
+
+  // 管理员创建任意角色账号。
+  rpc AdminCreateUser(AdminCreateUserRequest) returns (AdminCreateUserReply) {
+    option (google.api.http) = {
+      post: "/api/admin/users"
+      body: "*"
+    };
+  }
+
+  // 管理员修改用户角色。
+  rpc AdminUpdateUserRole(AdminUpdateUserRoleRequest) returns (AdminUpdateUserRoleReply) {
+    option (google.api.http) = {
+      post: "/api/admin/users/{user_id}/role"
+      body: "*"
+    };
+  }
+}
+
+enum UserRole {
+  USER_ROLE_UNSPECIFIED = 0;
+  USER_ROLE_BUYER = 1;
+  USER_ROLE_ANCHOR = 2;
+  USER_ROLE_OPERATOR = 3;
+  USER_ROLE_ADMIN = 4;
+}
+
+message User {
+  string id = 1;
+  string username = 2;
+  string nickname = 3;
+  UserRole role = 4;
+  int64 created_at_unix_ms = 5;
+  int64 updated_at_unix_ms = 6;
+}
+
+message AuthTokens {
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 access_expires_at_unix_ms = 3;
+  int64 refresh_expires_at_unix_ms = 4;
+}
+
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+  string nickname = 3;
+}
+
+message RegisterReply {
+  User user = 1;
+  AuthTokens tokens = 2;
+  ReplyResult result = 99;
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginReply {
+  User user = 1;
+  AuthTokens tokens = 2;
+  ReplyResult result = 99;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenReply {
+  AuthTokens tokens = 1;
+  ReplyResult result = 99;
+}
+
+message LogoutRequest {
+  string refresh_token = 1;
+}
+
+message LogoutReply {
+  ReplyResult result = 99;
+}
+
+message GetMeRequest {}
+
+message GetMeReply {
+  User user = 1;
+  ReplyResult result = 99;
+}
+
+message AdminCreateUserRequest {
+  string username = 1;
+  string password = 2;
+  string nickname = 3;
+  UserRole role = 4;
+}
+
+message AdminCreateUserReply {
+  User user = 1;
+  ReplyResult result = 99;
+}
+
+message AdminUpdateUserRoleRequest {
+  string user_id = 1;
+  UserRole role = 2;
+}
+
+message AdminUpdateUserRoleReply {
+  User user = 1;
+  ReplyResult result = 99;
+}

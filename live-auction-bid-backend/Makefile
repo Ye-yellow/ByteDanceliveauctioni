@@ -12,7 +12,8 @@ api:
 		--go_out=paths=source_relative:. \
 		--go-grpc_out=paths=source_relative:. \
 		--go-http_out=paths=source_relative:. \
-		api/auction/service/v1/auction.proto
+		api/auction/service/v1/auction.proto \
+		api/auction/service/v1/user.proto
 
 run:
 	$(GO) run ./app/auction/service/cmd/server

@@ -13,6 +13,11 @@ services:
       AUCTION_CONSUL_ADDR: "consul:8500"
       AUCTION_SERVICE_NAME: "auction-backend"
       AUCTION_SERVICE_ADDR: "auction-backend"
+      AUCTION_JWT_SECRET: "local-dev-jwt-secret-change-me"
+      AUCTION_JWT_ISSUER: "auction-backend"
+      AUCTION_BOOTSTRAP_ADMIN_USERNAME: "admin"
+      AUCTION_BOOTSTRAP_ADMIN_PASSWORD: "admin_dev_password"
+      AUCTION_BOOTSTRAP_ADMIN_NICKNAME: "管理员"
     ports:
       - "18080:18080"
     depends_on:

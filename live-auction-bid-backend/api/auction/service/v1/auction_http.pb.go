@@ -19,6 +19,7 @@ var _ = binding.EncodeURL
 
 const _ = http.SupportPackageIsVersion1
 
+const OperationAuctionServiceCancelLot = "/auction.service.v1.AuctionService/CancelLot"
 const OperationAuctionServiceCreateLot = "/auction.service.v1.AuctionService/CreateLot"
 const OperationAuctionServiceGetLot = "/auction.service.v1.AuctionService/GetLot"
 const OperationAuctionServiceGetRoomSnapshot = "/auction.service.v1.AuctionService/GetRoomSnapshot"
@@ -30,6 +31,12 @@ const OperationAuctionServiceStartDuel = "/auction.service.v1.AuctionService/Sta
 const OperationAuctionServiceStartLot = "/auction.service.v1.AuctionService/StartLot"
 
 type AuctionServiceHTTPServer interface {
+	// CancelLot 主播异常取消拍品。
+	//
+	// 调用方：主播端/运营端。
+	// 状态流转：LIVE -> CANCELLED。
+	// 服务端动作：记录取消原因，并广播 LOT_CANCELLED。
+	CancelLot(context.Context, *CancelLotRequest) (*CancelLotReply, error)
 	// CreateLot 创建拍品草稿。
 	//
 	// 调用方：主播端/运营端。
@@ -100,6 +107,7 @@ func RegisterAuctionServiceHTTPServer(s *http.Server, srv AuctionServiceHTTPServ
 	r.POST("/api/lots/{lot_id}/trust-cards/{card_id}/reveal", _AuctionService_RevealTrustCard0_HTTP_Handler(srv))
 	r.POST("/api/lots/{lot_id}/duel", _AuctionService_StartDuel0_HTTP_Handler(srv))
 	r.POST("/api/lots/{lot_id}/settle", _AuctionService_SettleLot0_HTTP_Handler(srv))
+	r.POST("/api/lots/{lot_id}/cancel", _AuctionService_CancelLot0_HTTP_Handler(srv))
 	r.GET("/api/rooms/{room_id}/snapshot", _AuctionService_GetRoomSnapshot0_HTTP_Handler(srv))
 }
 
@@ -291,6 +299,31 @@ func _AuctionService_SettleLot0_HTTP_Handler(srv AuctionServiceHTTPServer) func(
 	}
 }
 
+func _AuctionService_CancelLot0_HTTP_Handler(srv AuctionServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CancelLotRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuctionServiceCancelLot)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CancelLot(ctx, req.(*CancelLotRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CancelLotReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _AuctionService_GetRoomSnapshot0_HTTP_Handler(srv AuctionServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in GetRoomSnapshotRequest
@@ -314,6 +347,12 @@ func _AuctionService_GetRoomSnapshot0_HTTP_Handler(srv AuctionServiceHTTPServer)
 }
 
 type AuctionServiceHTTPClient interface {
+	// CancelLot 主播异常取消拍品。
+	//
+	// 调用方：主播端/运营端。
+	// 状态流转：LIVE -> CANCELLED。
+	// 服务端动作：记录取消原因，并广播 LOT_CANCELLED。
+	CancelLot(ctx context.Context, req *CancelLotRequest, opts ...http.CallOption) (rsp *CancelLotReply, err error)
 	// CreateLot 创建拍品草稿。
 	//
 	// 调用方：主播端/运营端。
@@ -380,6 +419,24 @@ type AuctionServiceHTTPClientImpl struct {
 
 func NewAuctionServiceHTTPClient(client *http.Client) AuctionServiceHTTPClient {
 	return &AuctionServiceHTTPClientImpl{client}
+}
+
+// CancelLot 主播异常取消拍品。
+//
+// 调用方：主播端/运营端。
+// 状态流转：LIVE -> CANCELLED。
+// 服务端动作：记录取消原因，并广播 LOT_CANCELLED。
+func (c *AuctionServiceHTTPClientImpl) CancelLot(ctx context.Context, in *CancelLotRequest, opts ...http.CallOption) (*CancelLotReply, error) {
+	var out CancelLotReply
+	pattern := "/api/lots/{lot_id}/cancel"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationAuctionServiceCancelLot))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 // CreateLot 创建拍品草稿。

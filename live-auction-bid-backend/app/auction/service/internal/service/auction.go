@@ -5,6 +5,7 @@ import (
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
+	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
 )
 
 // AuctionService 是 Kratos service 层适配器。
@@ -21,6 +22,9 @@ func NewAuctionService(auction *auction.AuctionUsecase) *AuctionService {
 }
 
 func (s *AuctionService) CreateLot(ctx context.Context, req *v1.CreateLotRequest) (*v1.CreateLotReply, error) {
+	if _, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_ADMIN); err != nil {
+		return &v1.CreateLotReply{Result: ErrorResult(err)}, nil
+	}
 	lot, err := s.auction.CreateLot(ctx, req)
 	if err != nil {
 		return &v1.CreateLotReply{Result: ErrorResult(err)}, nil
@@ -45,6 +49,9 @@ func (s *AuctionService) ListLots(ctx context.Context, req *v1.ListLotsRequest) 
 }
 
 func (s *AuctionService) StartLot(ctx context.Context, req *v1.StartLotRequest) (*v1.StartLotReply, error) {
+	if _, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_ADMIN); err != nil {
+		return &v1.StartLotReply{Result: ErrorResult(err)}, nil
+	}
 	lot, err := s.auction.StartLot(ctx, req.GetLotId())
 	if err != nil {
 		return &v1.StartLotReply{Result: ErrorResult(err)}, nil
@@ -53,7 +60,11 @@ func (s *AuctionService) StartLot(ctx context.Context, req *v1.StartLotRequest) 
 }
 
 func (s *AuctionService) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest) (*v1.PlaceBidReply, error) {
-	lot, bid, ranking, err := s.auction.PlaceBid(ctx, req)
+	claims, authErr := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_BUYER)
+	if authErr != nil {
+		return &v1.PlaceBidReply{Result: ErrorResult(authErr), Accepted: false, RejectReason: authErr.Error()}, nil
+	}
+	lot, bid, ranking, err := s.auction.PlaceBid(ctx, req, claims.UserID, claims.Nickname)
 	if err != nil {
 		return &v1.PlaceBidReply{Result: ErrorResult(err), Accepted: false, Lot: lot, Ranking: ranking, RejectReason: err.Error()}, nil
 	}
@@ -67,6 +78,9 @@ func (s *AuctionService) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest) 
 }
 
 func (s *AuctionService) RevealTrustCard(ctx context.Context, req *v1.RevealTrustCardRequest) (*v1.RevealTrustCardReply, error) {
+	if _, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_ADMIN); err != nil {
+		return &v1.RevealTrustCardReply{Result: ErrorResult(err)}, nil
+	}
 	lot, card, err := s.auction.RevealTrustCard(ctx, req.GetLotId(), req.GetCardId(), req.GetOperatorId())
 	if err != nil {
 		return &v1.RevealTrustCardReply{Result: ErrorResult(err), Lot: lot, TrustCard: card}, nil
@@ -75,6 +89,9 @@ func (s *AuctionService) RevealTrustCard(ctx context.Context, req *v1.RevealTrus
 }
 
 func (s *AuctionService) StartDuel(ctx context.Context, req *v1.StartDuelRequest) (*v1.StartDuelReply, error) {
+	if _, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_ADMIN); err != nil {
+		return &v1.StartDuelReply{Result: ErrorResult(err)}, nil
+	}
 	lot, duel, err := s.auction.StartDuel(ctx, req.GetLotId(), req.GetOperatorId(), req.GetUserAId(), req.GetUserBId())
 	if err != nil {
 		return &v1.StartDuelReply{Result: ErrorResult(err), Lot: lot, DuelState: duel}, nil
@@ -83,11 +100,25 @@ func (s *AuctionService) StartDuel(ctx context.Context, req *v1.StartDuelRequest
 }
 
 func (s *AuctionService) SettleLot(ctx context.Context, req *v1.SettleLotRequest) (*v1.SettleLotReply, error) {
+	if _, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_ADMIN); err != nil {
+		return &v1.SettleLotReply{Result: ErrorResult(err)}, nil
+	}
 	lot, err := s.auction.SettleLot(ctx, req.GetLotId(), req.GetOperatorId())
 	if err != nil {
 		return &v1.SettleLotReply{Result: ErrorResult(err), Lot: lot}, nil
 	}
 	return &v1.SettleLotReply{Result: okResult(), Lot: lot}, nil
+}
+
+func (s *AuctionService) CancelLot(ctx context.Context, req *v1.CancelLotRequest) (*v1.CancelLotReply, error) {
+	if _, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_ADMIN); err != nil {
+		return &v1.CancelLotReply{Result: ErrorResult(err)}, nil
+	}
+	lot, err := s.auction.CancelLot(ctx, req.GetLotId(), req.GetOperatorId(), req.GetReason())
+	if err != nil {
+		return &v1.CancelLotReply{Result: ErrorResult(err), Lot: lot}, nil
+	}
+	return &v1.CancelLotReply{Result: okResult(), Lot: lot}, nil
 }
 
 func (s *AuctionService) GetRoomSnapshot(ctx context.Context, req *v1.GetRoomSnapshotRequest) (*v1.GetRoomSnapshotReply, error) {

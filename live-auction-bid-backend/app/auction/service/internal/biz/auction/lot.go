@@ -237,3 +237,24 @@ func SettleLot(lot *v1.Lot, nowMs int64) error {
 	lot.Version++
 	return nil
 }
+
+func CancelLot(lot *v1.Lot, reason string, nowMs int64) error {
+	if lot == nil {
+		return errors.New("lot is required")
+	}
+	if lot.Status != v1.LotStatus_LOT_STATUS_LIVE {
+		return fmt.Errorf("only live lot can be cancelled, current status: %s", lot.Status)
+	}
+	if reason == "" {
+		return errors.New("cancel reason is required")
+	}
+	lot.Status = v1.LotStatus_LOT_STATUS_CANCELLED
+	lot.CancelReason = reason
+	lot.CancelledAtUnixMs = nowMs
+	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_SETTLE_READY
+	if lot.DuelState != nil {
+		lot.DuelState.Active = false
+	}
+	lot.Version++
+	return nil
+}

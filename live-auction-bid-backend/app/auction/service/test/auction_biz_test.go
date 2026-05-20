@@ -58,6 +58,42 @@ func TestLotStateMachine(t *testing.T) {
 	}
 }
 
+func TestCancelLotStateMachineAllowsOnlyLiveAndRecordsReason(t *testing.T) {
+	lot, err := auction.NewLotFromRequest("lot_cancel", &v1.CreateLotRequest{
+		RoomId: "demo",
+		Title:  "取消测试拍品",
+		Rule: &v1.BidRule{
+			StartPrice:             &v1.Money{Amount: 0, Currency: "CNY"},
+			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+			DurationSeconds:        300,
+			AntiSnipeWindowSeconds: 15,
+			AntiSnipeExtendSeconds: 15,
+			MaxExtendCount:         3,
+		},
+	})
+	if err != nil {
+		t.Fatalf("create lot failed: %v", err)
+	}
+	if err := auction.CancelLot(lot, "主播网络异常", 2000); err == nil || !strings.Contains(err.Error(), "only live lot") {
+		t.Fatalf("draft lot should not be cancellable, got %v", err)
+	}
+	if err := auction.StartLot(lot, 1000); err != nil {
+		t.Fatalf("start lot failed: %v", err)
+	}
+	if err := auction.CancelLot(lot, "", 2000); err == nil || !strings.Contains(err.Error(), "cancel reason") {
+		t.Fatalf("empty cancel reason should be rejected, got %v", err)
+	}
+	if err := auction.CancelLot(lot, "主播网络异常", 3000); err != nil {
+		t.Fatalf("cancel live lot failed: %v", err)
+	}
+	if lot.Status != v1.LotStatus_LOT_STATUS_CANCELLED || lot.CancelReason != "主播网络异常" || lot.CancelledAtUnixMs != 3000 {
+		t.Fatalf("cancelled lot state mismatch: %+v", lot)
+	}
+	if err := auction.AcceptBid(lot, v1.Bid{UserId: "u1", Nickname: "用户1", Amount: &v1.Money{Amount: 1000, Currency: "CNY"}}, 4000); err == nil || !strings.Contains(err.Error(), "lot is not live") {
+		t.Fatalf("cancelled lot should reject bids, got %v", err)
+	}
+}
+
 func TestBuildRanking(t *testing.T) {
 	bids := []v1.Bid{
 		{UserId: "u1", Nickname: "用户1", Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, CreatedAtUnixMs: 1000},
@@ -120,10 +156,9 @@ func TestPlaceBidRejectsMissingUserInsteadOfDefaulting(t *testing.T) {
 	}
 
 	_, _, _, err = uc.PlaceBid(ctx, &v1.PlaceBidRequest{
-		LotId:    lot.Id,
-		Nickname: "用户1",
-		Amount:   &v1.Money{Amount: 11000, Currency: "CNY"},
-	})
+		LotId:  lot.Id,
+		Amount: &v1.Money{Amount: 11000, Currency: "CNY"},
+	}, "", "用户1")
 	if err == nil || !strings.Contains(err.Error(), "user id is required") {
 		t.Fatalf("expected user id error, got %v", err)
 	}
@@ -393,23 +428,23 @@ func TestAuctionUsecaseCoreClosurePublishesEventsAndSnapshot(t *testing.T) {
 		t.Fatalf("start lot failed: %v", err)
 	}
 	if _, bid, ranking, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
-		LotId: lot.Id, UserId: "u1", Nickname: "用户1", Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, IdempotencyKey: "idem-1",
-	}); err != nil || bid == nil || len(ranking) != 1 {
+		LotId: lot.Id, Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, IdempotencyKey: "idem-1",
+	}, "u1", "用户1"); err != nil || bid == nil || len(ranking) != 1 {
 		t.Fatalf("first bid failed: bid=%+v ranking=%+v err=%v", bid, ranking, err)
 	}
 	if _, bid, ranking, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
-		LotId: lot.Id, UserId: "u1", Nickname: "用户1", Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, IdempotencyKey: "idem-1",
-	}); err != nil || bid == nil || len(ranking) != 1 {
+		LotId: lot.Id, Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, IdempotencyKey: "idem-1",
+	}, "u1", "用户1"); err != nil || bid == nil || len(ranking) != 1 {
 		t.Fatalf("idempotent bid replay failed: bid=%+v ranking=%+v err=%v", bid, ranking, err)
 	}
 	if _, _, _, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
-		LotId: lot.Id, UserId: "u2", Nickname: "用户2", Amount: &v1.Money{Amount: 12000, Currency: "CNY"},
-	}); err != nil {
+		LotId: lot.Id, Amount: &v1.Money{Amount: 12000, Currency: "CNY"},
+	}, "u2", "用户2"); err != nil {
 		t.Fatalf("second bid failed: %v", err)
 	}
 	if _, _, _, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
-		LotId: lot.Id, UserId: "u1", Nickname: "用户1", Amount: &v1.Money{Amount: 13000, Currency: "CNY"},
-	}); err != nil {
+		LotId: lot.Id, Amount: &v1.Money{Amount: 13000, Currency: "CNY"},
+	}, "u1", "用户1"); err != nil {
 		t.Fatalf("third bid failed: %v", err)
 	}
 	if _, card, err := uc.RevealTrustCard(ctx, lot.Id, lot.TrustCards[0].Id, "op"); err != nil || card == nil || !card.Revealed {
@@ -451,6 +486,51 @@ func TestAuctionUsecaseCoreClosurePublishesEventsAndSnapshot(t *testing.T) {
 		v1.AuctionEventType_AUCTION_EVENT_TYPE_DUEL_STARTED,
 		v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_SETTLED,
 	)
+}
+
+func TestAuctionUsecaseCancelLotPersistsAndPublishesEvent(t *testing.T) {
+	store := newTestStore()
+	pub := &testPublisher{}
+	uc := auction.NewAuctionUsecase(store, store, store, pub)
+	ctx := context.Background()
+
+	lot, err := uc.CreateLot(ctx, &v1.CreateLotRequest{
+		RoomId: "room_cancel",
+		Title:  "异常取消拍品",
+		Rule: &v1.BidRule{
+			StartPrice:             &v1.Money{Amount: 0, Currency: "CNY"},
+			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+			DurationSeconds:        300,
+			AntiSnipeWindowSeconds: 15,
+			AntiSnipeExtendSeconds: 15,
+			MaxExtendCount:         3,
+		},
+	})
+	if err != nil {
+		t.Fatalf("create lot failed: %v", err)
+	}
+	if _, err := uc.CancelLot(ctx, lot.Id, "op", "未开拍误操作"); err == nil || !strings.Contains(err.Error(), "only live lot") {
+		t.Fatalf("draft cancel should be rejected, got %v", err)
+	}
+	if _, err := uc.StartLot(ctx, lot.Id); err != nil {
+		t.Fatalf("start lot failed: %v", err)
+	}
+	cancelled, err := uc.CancelLot(ctx, lot.Id, "op", "主播网络异常")
+	if err != nil {
+		t.Fatalf("cancel lot failed: %v", err)
+	}
+	if cancelled.Status != v1.LotStatus_LOT_STATUS_CANCELLED || cancelled.CancelReason != "主播网络异常" || cancelled.CancelledAtUnixMs == 0 {
+		t.Fatalf("cancelled lot mismatch: %+v", cancelled)
+	}
+	fresh, err := store.FindByID(ctx, lot.Id)
+	if err != nil {
+		t.Fatalf("find cancelled lot failed: %v", err)
+	}
+	if fresh.Status != v1.LotStatus_LOT_STATUS_CANCELLED || fresh.CancelReason != "主播网络异常" {
+		t.Fatalf("persisted cancelled lot mismatch: %+v", fresh)
+	}
+	pub.assertContains(t, v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CANCELLED)
+	assertEventTypesContain(t, store.eventTypes(), v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CANCELLED)
 }
 
 type testPublisher struct {

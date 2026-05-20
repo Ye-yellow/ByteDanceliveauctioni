@@ -14,3 +14,9 @@ data:
     password: "auction_redis"
   consul:
     addr: "consul:8500"
+
+auth:
+  jwt:
+    issuer: "auction-backend"
+    access_token_ttl: "15m"
+    refresh_token_ttl: "168h"
