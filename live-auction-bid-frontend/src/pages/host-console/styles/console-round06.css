@@ -709,3 +709,20 @@
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Add-lot header cleanup: one page title only, actions stay compact. */
+.laAdminShell .auctionCreateHeader.auctionCreateActionsOnly {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.laAdminShell .auctionCreateHeader.auctionCreateActionsOnly .studioSectionActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}

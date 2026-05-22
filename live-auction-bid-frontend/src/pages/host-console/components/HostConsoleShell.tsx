@@ -50,11 +50,11 @@ function StudioNavItem({ item }: { item: StudioNavItemConfig }) {
   return <a className={active ? 'active' : ''} href={item.href}>{item.icon}<span>{item.label}</span></a>;
 }
 
-function StudioTopbar({ title, currentHostRoom, currentTeamAccount }: { title: string; currentHostRoom: HostRoomSummary; currentTeamAccount: TeamAccountSummary }) {
+function StudioTopbar({ title }: { title: string; currentHostRoom: HostRoomSummary; currentTeamAccount: TeamAccountSummary }) {
   const user = currentAuth().user;
   const avatarText = user?.nickname?.slice(0, 1) || user?.username?.slice(0, 1) || '主';
   return <header className="laTopBar studioTopbar">
-    <div className="studioTopbarTitle"><p>{currentHostRoom.name}</p><h1>{title}</h1><span>{currentTeamAccount.username} · {currentTeamAccount.role}</span></div>
+    <div className="studioTopbarTitle"><h1>{title}</h1></div>
     <label className="laSearch studioSearch"><Search size={16} /><input placeholder="搜索拍品 / 订单 / 出价记录" /></label>
     <div className="laTopActions studioTopActions"><WebSocketStatus /><button type="button" aria-label="通知"><Bell size={16} /></button><span className="laAvatar studioAvatar">{avatarText}</span></div>
   </header>;
@@ -64,10 +64,6 @@ function WebSocketStatus() {
   return <span className="laWsStatus"><Wifi size={15} /> 实时同步正常 <b>38ms</b></span>;
 }
 
-function StudioContent({ title, children }: { title: string; currentHostRoom: HostRoomSummary; children: ReactNode }) {
-  return <div id="studio-content" className="laContent studioContent"><div className="studioPage"><StudioPageHeader title={title} /><main className="studioPageBody">{children}</main></div></div>;
-}
-
-function StudioPageHeader({ title }: { title: string }) {
-  return <header className="studioPageHeader"><div><p>LiveAuction Studio</p><h2>{title}</h2></div></header>;
+function StudioContent({ children }: { title: string; currentHostRoom: HostRoomSummary; children: ReactNode }) {
+  return <div id="studio-content" className="laContent studioContent"><div className="studioPage"><main className="studioPageBody">{children}</main></div></div>;
 }

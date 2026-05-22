@@ -938,7 +938,7 @@ function canEnterPublishStep(issues: ValidationIssue[], targetStep: number) {
 }
 
 function AuctionCreateHeader({ onDraft, onPublish }: { onDraft: () => void; onPreview: () => void; onPublish: (mode?: AuctionCreateForm['startMode']) => void }) {
-  return <section className="auctionCreateHeader"><StudioSectionHeader eyebrow="直播前筹备 / 创建竞拍拍品" title="添加拍品" description="上传拍品素材，配置竞拍玩法，准备主播讲解卡，并加入本场直播队列。" actions={<><StudioButton type="button" variant="secondary" onClick={onDraft}>保存草稿</StudioButton><StudioButton type="button" variant="soft" onClick={() => onPublish('仅保存草稿')}>加入今日队列</StudioButton><StudioButton type="button" variant="secondary" onClick={() => onPublish('仅保存草稿')}>设为下一件</StudioButton><StudioButton type="button" variant="primary" onClick={() => onPublish('立即开拍')}>立即开拍</StudioButton></>} /></section>;
+  return <section className="auctionCreateHeader auctionCreateActionsOnly"><div className="studioSectionActions"><StudioButton type="button" variant="secondary" onClick={onDraft}>保存草稿</StudioButton><StudioButton type="button" variant="soft" onClick={() => onPublish('仅保存草稿')}>加入今日队列</StudioButton><StudioButton type="button" variant="secondary" onClick={() => onPublish('仅保存草稿')}>设为下一件</StudioButton><StudioButton type="button" variant="primary" onClick={() => onPublish('立即开拍')}>立即开拍</StudioButton></div></section>;
 }
 
 function stepStatusLabel(stepIssues: ValidationIssue[], index: number, currentStep: number) {
