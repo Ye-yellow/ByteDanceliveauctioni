@@ -64,10 +64,10 @@ function WebSocketStatus() {
   return <span className="laWsStatus"><Wifi size={15} /> 实时同步正常 <b>38ms</b></span>;
 }
 
-function StudioContent({ title, currentHostRoom, children }: { title: string; currentHostRoom: HostRoomSummary; children: ReactNode }) {
-  return <div id="studio-content" className="laContent studioContent"><div className="studioPage"><StudioPageHeader title={title} currentHostRoom={currentHostRoom} /><main className="studioPageBody">{children}</main></div></div>;
+function StudioContent({ title, children }: { title: string; currentHostRoom: HostRoomSummary; children: ReactNode }) {
+  return <div id="studio-content" className="laContent studioContent"><div className="studioPage"><StudioPageHeader title={title} /><main className="studioPageBody">{children}</main></div></div>;
 }
 
-function StudioPageHeader({ title, currentHostRoom }: { title: string; currentHostRoom: HostRoomSummary }) {
-  return <header className="studioPageHeader"><div><p>LiveAuction Studio</p><h2>{title}</h2></div><div><span>当前直播间</span><b>{currentHostRoom.name}</b><small>{currentHostRoom.latency} · 实时同步正常</small></div></header>;
+function StudioPageHeader({ title }: { title: string }) {
+  return <header className="studioPageHeader"><div><p>LiveAuction Studio</p><h2>{title}</h2></div></header>;
 }
