@@ -2467,3 +2467,109 @@ button:disabled {
   78% { opacity: 1; transform: translateY(0) scale(1); }
   100% { opacity: 0; transform: translateY(-6px) scale(.985); }
 }
+
+/* Add-lot autosave + queue-only operation model. */
+.laAdminShell .auctionCreateTitleBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 22px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-xl);
+  background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(248,250,252,.92));
+  box-shadow: var(--studio-shadow-sm);
+}
+.laAdminShell .auctionCreateTitleBar p {
+  margin: 0 0 4px;
+  color: var(--studio-text-3);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.laAdminShell .auctionCreateTitleBar h2 {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 26px;
+  line-height: 1.18;
+  letter-spacing: -.03em;
+}
+.laAdminShell .auctionCreateTitleBar span {
+  display: block;
+  margin-top: 6px;
+  color: var(--studio-text-3);
+  font-size: 13px;
+  line-height: 20px;
+}
+.laAdminShell .autoSaveIndicator {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--studio-border);
+  background: var(--studio-surface);
+  color: var(--studio-text-2);
+  font-size: 13px;
+  font-weight: 850;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, .06);
+}
+.laAdminShell .autoSaveIndicator span {
+  width: 8px;
+  height: 8px;
+  margin: 0;
+  border-radius: 999px;
+  background: #94a3b8;
+}
+.laAdminShell .autoSaveIndicator.saving span {
+  background: #3b82f6;
+  animation: autoSavePulse 1s ease-in-out infinite;
+}
+.laAdminShell .autoSaveIndicator.saved {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+.laAdminShell .autoSaveIndicator.saved span { background: #22c55e; }
+.laAdminShell .autoSaveIndicator.dirty {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+.laAdminShell .autoSaveIndicator.dirty span { background: #f59e0b; }
+.laAdminShell .autoSaveIndicator.failed {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #be123c;
+  cursor: pointer;
+}
+.laAdminShell .autoSaveIndicator.failed span { background: #ef4444; }
+.laAdminShell .queueOnlyNotice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-primary-soft);
+  color: var(--studio-text-2);
+  font-size: 13px;
+  font-weight: 750;
+}
+@keyframes autoSavePulse {
+  0%, 100% { opacity: .45; transform: scale(.88); }
+  50% { opacity: 1; transform: scale(1.14); }
+}
+@media (max-width: 760px) {
+  .laAdminShell .auctionCreateTitleBar {
+    display: grid;
+    padding: 16px;
+  }
+  .laAdminShell .autoSaveIndicator {
+    width: 100%;
+  }
+}

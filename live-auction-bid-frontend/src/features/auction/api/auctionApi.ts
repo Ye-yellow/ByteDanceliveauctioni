@@ -4,7 +4,7 @@ import { accessToken } from '../../auth/api/authStore';
 import { refreshAccessToken } from '../../auth/api/authApi';
 import { forceRelogin } from '../../../shared/api/authExpired';
 import { clientLog, createRequestId } from '../../../shared/lib/clientLogger';
-import type { CancelLotReply, CreateLotReply, CreateLotRequest, GetRoomSnapshotReply, ListLotsReply, Lot, RevealTrustCardReply, RoomSnapshot, SettleLotReply, StartDuelReply, StartLotReply, TrustRevealCard, UploadedAsset, UploadImageReply } from '../../../shared/api/types';
+import type { CancelLotReply, CreateLotReply, CreateLotRequest, GetRoomSnapshotReply, ListLotsReply, Lot, PatchLotDraftRequest, PatchLotDraftReply, QueueLotReply, RevealTrustCardReply, RoomSnapshot, SettleLotReply, StartDuelReply, StartLotReply, TrustRevealCard, UploadedAsset, UploadImageReply } from '../../../shared/api/types';
 
 function formatApiError(input: { status?: number; code?: number; message?: string; requestId?: string; result?: { code?: number; message?: string; traceId?: string; trace_id?: string }; error?: string }) {
   const code = input.code ?? input.result?.code;
@@ -148,6 +148,20 @@ export async function deleteUploadedImage(assetId: string, options?: { keepalive
 
 export async function createLot(payload: CreateLotRequest) {
   return requireLot(assertOkResult(await request<CreateLotReply>('/api/lots', { method: 'POST', body: JSON.stringify(payload) })));
+}
+
+export async function createDraftLot(payload: Partial<CreateLotRequest> = {}) {
+  return requireLot(assertOkResult(await request<CreateLotReply>('/api/lots/drafts', { method: 'POST', body: JSON.stringify(payload) })));
+}
+
+export async function patchDraftLot(lotId: string, payload: Partial<CreateLotRequest>) {
+  return requireLot(assertOkResult(await request<PatchLotDraftReply>(`/api/lots/${lotId}/draft`, { method: 'PATCH', body: JSON.stringify({ lotId, ...payload } satisfies PatchLotDraftRequest) })));
+}
+
+export async function queueLot(lotId: string) {
+  const reply = assertOkResult(await request<QueueLotReply>(`/api/lots/${lotId}/queue`, { method: 'POST', body: JSON.stringify({ lotId }) }));
+  if (!reply.lot) throw new Error('response missing lot');
+  return reply as { lot: Lot; queuePosition?: number };
 }
 
 export async function startLot(lotId: string) {

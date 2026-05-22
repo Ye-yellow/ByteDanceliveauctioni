@@ -40,7 +40,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { currentAuth } from '../../features/auth/api/authApi';
-import { cancelLot, createLot, deleteUploadedImage, getRoomSnapshot, listLots, revealTrustCard, settleLot, startDuel, startLot, uploadImage } from '../../features/auction/api/auctionApi';
+import { cancelLot, createDraftLot, deleteUploadedImage, getRoomSnapshot, listLots, patchDraftLot, queueLot, revealTrustCard, settleLot, startDuel, startLot, uploadImage } from '../../features/auction/api/auctionApi';
 import { WS_BASE } from '../../shared/config/env';
 import { normalizeAuctionEvent, resultMessage } from '../../shared/api/result';
 import { formatAuctionLeftMs, getLotLeftMs, getServerOffsetMs } from '../../shared/lib/time';
@@ -279,7 +279,7 @@ function AlertList() {
   return <div className="laAlertList">{alerts.map((a) => <div key={`${a.type}-${a.time}`}><StatusBadge label={a.level} /><b>{a.type}</b><span>{a.detail}</span><small>{a.target} · {a.time}</small></div>)}</div>;
 }
 
-type AuctionUiStatus = '今日队列' | '准备中' | '待开拍' | '竞拍中' | '进行中' | '延时中' | '可落锤' | '已成交' | '已取消' | '异常' | '异常取消' | '历史拍品';
+type AuctionUiStatus = '今日队列' | '草稿' | '准备中' | '待开拍' | '竞拍中' | '进行中' | '延时中' | '可落锤' | '已成交' | '已取消' | '异常' | '异常取消' | '历史拍品';
 type TeamRole = '主播主账号' | '场控' | '商品助理' | '订单客服' | '数据复盘';
 type AuctionFilters = { query: string; status: string; operator: string; briefing: string; created: string };
 type DetailTab = '概览' | '规则快照' | '实时出价' | '操作日志' | '成交订单';
@@ -345,7 +345,9 @@ function countdownToneClass(lot: Lot, serverTimeUnixMs?: number | string) {
 }
 
 function uiStatusOfLot(lot: Lot): AuctionUiStatus {
-  if (lot.status === 'LOT_STATUS_DRAFT' && lot.playbookStage === 'PLAYBOOK_STAGE_WARM_UP') return '待开拍';
+  if (lot.status === 'LOT_STATUS_QUEUED' || lot.queueStatus === 'LOT_QUEUE_STATUS_QUEUED') return '待开拍';
+  if (lot.status === 'LOT_STATUS_READY') return '准备中';
+  if (lot.status === 'LOT_STATUS_DRAFT' && lot.playbookStage === 'PLAYBOOK_STAGE_WARM_UP') return '草稿';
   if (lot.status === 'LOT_STATUS_DRAFT') return '准备中';
   if (lot.status === 'LOT_STATUS_LIVE') return '竞拍中';
   if (lot.status === 'LOT_STATUS_SETTLED') return '已成交';
@@ -412,7 +414,10 @@ function AuctionManagementPage() {
   const [filters, setFilters] = useState<AuctionFilters>(emptyFilters);
   const [selectedLot, setSelectedLot] = useState<Lot | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Lot | null>(null);
-  const [actionMessage, setActionMessage] = useState(() => new URLSearchParams(location.search).get('created') === '1' ? '拍品已加入今日队列' : '');
+  const [actionMessage, setActionMessage] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('queued') === '1' || params.get('created') === '1' ? '拍品已加入本场队列' : '';
+  });
   const { toasts, showToast } = useStudioToast();
   const [, setCountdownTick] = useState(0);
   const currentLot = snapshot?.currentLot || lots.find((lot) => uiStatusOfLot(lot) === '竞拍中') || null;
@@ -440,8 +445,9 @@ function AuctionManagementPage() {
 
   useEffect(() => {
     void syncRoom();
-    if (new URLSearchParams(location.search).get('created') === '1') {
-      showToast({ id: 'lot-created', tone: 'success', title: '拍品已加入今日队列', description: '队列、讲解卡和规则快照已同步到本场拍品工作台。' });
+    const params = new URLSearchParams(location.search);
+    if (params.get('queued') === '1' || params.get('created') === '1') {
+      showToast({ id: 'lot-created', tone: 'success', title: '拍品已加入本场队列', description: '队列、讲解卡和规则快照已同步到本场拍品工作台。' });
       history.replaceState(null, '', '/admin/auctions');
     }
   }, []);
@@ -752,15 +758,16 @@ type AuctionCreateForm = {
   cancelPermission: '主播主账号' | '授权场控';
   roomId: string;
   responsibleAccount: string;
-  startMode: '立即开拍' | '定时开拍' | '仅保存草稿';
   startTime: string;
   warmupEnabled: boolean;
   warmupMinutes: number;
   visibility: '全部观众' | '指定粉丝等级' | '白名单';
   wsTopic: string;
   lifecycle: AuctionLifecycleState;
+  draftLotId: string;
 };
 
+type AutoSaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'failed';
 type ValidationIssue = { level: 'error' | 'warning'; text: string };
 type AuctionTip = { tone: 'success' | 'warning' | 'error'; text: string };
 
@@ -803,13 +810,13 @@ const initialAuctionCreateForm: AuctionCreateForm = {
   cancelPermission: '主播主账号',
   roomId: currentHostRoom.id,
   responsibleAccount: '当前账号（主播主账号）',
-  startMode: '立即开拍',
   startTime: '',
   warmupEnabled: false,
   warmupMinutes: 15,
   visibility: '全部观众',
   wsTopic: `auction.room.${currentHostRoom.id}.AUC-DRAFT`,
   lifecycle: 'DRAFT',
+  draftLotId: '',
 };
 
 const AUCTION_CREATE_DRAFT_KEY = `liveAuction.createLotDraft.${currentHostRoom.id}.v2`;
@@ -912,7 +919,6 @@ function validateAuctionCreateForm(form: AuctionCreateForm): ValidationIssue[] {
   if (form.durationSeconds < 180) issues.push({ level: 'warning', text: '竞拍时长偏短，可能影响充分出价' });
   if (form.roomId !== currentHostRoom.id) issues.push({ level: 'error', text: '当前主播空间只能绑定唯一直播间' });
   if (!form.wsTopic.trim()) issues.push({ level: 'error', text: 'WebSocket 房间 topic 未生成' });
-  if (form.startMode === '定时开拍' && !form.startTime) issues.push({ level: 'error', text: '定时开拍需要选择开拍时间' });
   return issues;
 }
 
@@ -937,8 +943,16 @@ function canEnterPublishStep(issues: ValidationIssue[], targetStep: number) {
   return true;
 }
 
-function AuctionCreateActions({ onDraft, onQueue, onNext, onStart, submitting }: { onDraft: () => void; onQueue: () => void; onNext: () => void; onStart: () => void; submitting: boolean }) {
-  return <div className="auctionCreateActions"><StudioButton type="button" variant="secondary" onClick={onDraft}>保存草稿</StudioButton><StudioButton type="button" variant="soft" onClick={onQueue} disabled={submitting}>加入今日队列</StudioButton><StudioButton type="button" variant="secondary" onClick={onNext} disabled={submitting}>设为下一件</StudioButton><StudioButton type="button" variant="primary" onClick={onStart} disabled={submitting}>立即开拍</StudioButton></div>;
+function AutoSaveIndicator({ status, savedAt, onRetry }: { status: AutoSaveStatus; savedAt: string; onRetry: () => void }) {
+  const content: Record<AutoSaveStatus, { label: string; tone: string }> = {
+    idle: { label: '未保存', tone: 'idle' },
+    dirty: { label: '未保存', tone: 'dirty' },
+    saving: { label: '保存中...', tone: 'saving' },
+    saved: { label: savedAt ? `已自动保存 ${savedAt}` : '已自动保存', tone: 'saved' },
+    failed: { label: '保存失败，点击重试', tone: 'failed' },
+  };
+  const next = content[status];
+  return <button type="button" className={`autoSaveIndicator ${next.tone}`} onClick={status === 'failed' ? onRetry : undefined} disabled={status !== 'failed'}><span />{next.label}</button>;
 }
 
 function stepStatusLabel(stepIssues: ValidationIssue[], index: number, currentStep: number) {
@@ -1016,8 +1030,7 @@ function LiveRoomStep({ form, update }: { form: AuctionCreateForm; update: (patc
   })}</div><div className="briefingConfigGrid"><StudioCard title="加入队列配置" subtitle="Queue" padding="md"><div className="auctionFormGrid twoCols">
     <Field label="固定直播间" hint="一个主播主账号只对应一个直播间，不在发布页切换直播间。"><FixedRoomCard /></Field>
     <Field label="本场负责人" hint="可选择当前账号或已授权的团队子账号，不再选择“主播”。"><select value={form.responsibleAccount} onChange={(e) => update({ responsibleAccount: e.target.value })}>{responsibleAccounts.map((account) => <option key={account}>{account}</option>)}</select></Field>
-    <Field label="开拍方式"><Segmented value={form.startMode} options={['立即开拍', '定时开拍', '仅保存草稿']} onChange={(value) => update({ startMode: value })} /></Field>
-    <Field label="开拍时间"><input type="datetime-local" value={form.startTime} onChange={(e) => update({ startTime: e.target.value })} /></Field>
+    <Field label="队列说明" hint="开拍动作不在添加拍品页执行，加入队列后到本场拍品队列页调整顺序或开始竞拍。"><div className="queueOnlyNotice"><CheckCircle2 size={16} /><span>本页只负责自动保存草稿与最终加入本场队列</span></div></Field>
     <Field label="预热展示"><Segmented value={form.warmupEnabled ? '开启' : '关闭'} options={['开启', '关闭']} onChange={(value) => update({ warmupEnabled: value === '开启' })} /></Field>
     <Field label="预热时间（分钟）"><input type="number" value={form.warmupMinutes} onChange={(e) => update({ warmupMinutes: Number(e.target.value) })} /></Field>
     <Field label="观众可见范围"><select value={form.visibility} onChange={(e) => update({ visibility: e.target.value as AuctionCreateForm['visibility'] })}><option>全部观众</option><option>指定粉丝等级</option><option>白名单</option></select></Field>
@@ -1033,7 +1046,7 @@ function PublishReviewStep({ form, issues }: { form: AuctionCreateForm; issues: 
   return <section className="auctionStepCard"><header><p>Step 4</p><h3>加入队列</h3><span>确认拍品、规则、直播间、成交生成和异常处理策略。严重错误会阻断发布，风险提示需二次确认。</span></header><div className="publishReviewGrid">
     <SummaryBlock title="拍品信息摘要" items={[["拍品", form.productName], ["分类", form.category], ["估值", formatMoney(form.estimate)], ["库存", form.stock], ["标签", form.tags.join(' / ') || '未设置']]} />
     <SummaryBlock title="竞拍规则摘要" items={[["从多少钱开始拍", formatMoney(form.startPrice)], ["每次至少加多少钱", formatMoney(form.bidStep)], ["到这个价自动成交", formatMoney(form.capPrice)], ["竞拍时长", formatDuration(form.durationSeconds)], ["最后出价自动延时", form.autoExtend ? `结束前 ${form.extendTriggerSeconds}s 出价 +${form.extendSeconds}s` : '关闭']]} />
-    <SummaryBlock title="加入队列摘要" items={[["直播间", currentHostRoom.name], ["本场负责人", form.responsibleAccount], ["开拍方式", form.startMode], ["可见范围", form.visibility], ["Topic", form.wsTopic]]} />
+    <SummaryBlock title="加入队列摘要" items={[["直播间", currentHostRoom.name], ["本场负责人", form.responsibleAccount], ["队列动作", '加入本场队列'], ["可见范围", form.visibility], ["Topic", form.wsTopic]]} />
     <SummaryBlock title="成交订单生成策略" items={[["成交后自动生成订单", '生成成交订单'], ["规则快照", '写入成交订单'], ["支付方式", '模拟支付'], ["履约", '待支付后发货']]} />
     <SummaryBlock title="异常处理策略" items={[["异常取消", form.cancelPermission], ["锁冲突", '阻断重复成交'], ["断线恢复", '快照恢复'], ["延时广播", form.autoExtend ? '开启' : '关闭']]} />
     <article className="publishIssueBox"><h4>校验结果</h4>{issues.length ? issues.map((issue) => <div key={issue.text} className={issue.level}><AlertTriangle size={15} /><span>{issue.text}</span></div>) : <div className="success"><CheckCircle2 size={15} /><span>所有核心配置已通过校验</span></div>}</article>
@@ -1068,7 +1081,7 @@ function PublishHealthCard({ form, issues }: { form: AuctionCreateForm; issues: 
 
 function ActionHintCard({ step, issues }: { step: number; issues: ValidationIssue[] }) {
   const errorCount = issues.filter((issue) => issue.level === 'error').length;
-  const texts = ['先完成主图和基础信息，下一步配置竞拍玩法。', '确认价格和延时策略，右侧摘要会同步更新。', '检查主播讲解卡，待补充内容会在健康检查中提示。', '确认无严重错误后加入今日队列或立即开拍。'];
+  const texts = ['先完成主图和基础信息，下一步配置竞拍玩法。', '确认价格和延时策略，右侧摘要会同步更新。', '检查主播讲解卡，待补充内容会在健康检查中提示。', '确认无严重错误后加入本场队列。'];
   return <article className="stickyMiniCard actionHintCard"><h3>当前动作提示</h3><p>{texts[step]}</p><StatusBadge label={errorCount ? `${errorCount} 个严重错误` : '可以继续'} tone={errorCount ? 'danger' : 'success'} /></article>;
 }
 
@@ -1076,30 +1089,30 @@ function StickyPreviewPanel({ form, issues, previewMode, setPreviewMode, step }:
   return <aside className="stickyPreviewPanel"><MobileAuctionPreview form={form} mode={previewMode} setMode={setPreviewMode} /><RuleSummaryCard form={form} /><PublishHealthCard form={form} issues={issues} /><ActionHintCard step={step} issues={issues} /></aside>;
 }
 
-function PublishConfirmDialog({ form, issues, submitting, submitMode, onClose, onConfirm }: { form: AuctionCreateForm; issues: ValidationIssue[]; submitting: boolean; submitMode: AuctionCreateForm['startMode']; onClose: () => void; onConfirm: () => void }) {
-  return <div className="publishDialogMask" role="dialog" aria-modal="true"><section className="publishConfirmDialog"><header><Gavel size={24} /><div><h3>确认添加拍品？</h3><p>加入队列后，未开拍前可修改玩法；开拍后核心玩法将锁定。</p></div></header><div className="publishDialogInfo"><span>拍品名称<b>{form.productName}</b></span><span>从多少钱开始拍<b>{formatMoney(form.startPrice)}</b></span><span>每次至少加多少钱<b>{formatMoney(form.bidStep)}</b></span><span>到这个价自动成交<b>{formatMoney(form.capPrice)}</b></span><span>竞拍时长<b>{formatDuration(form.durationSeconds)}</b></span><span>最后出价自动延时<b>{form.autoExtend ? `${form.extendTriggerSeconds}s 内出价延长 ${form.extendSeconds}s` : '关闭'}</b></span></div>{issues.filter((issue) => issue.level === 'warning').length ? <div className="dialogWarning"><AlertTriangle size={16} />存在风险提示，发布前请确认业务预期。</div> : null}<footer><StudioButton type="button" variant="secondary" onClick={onClose} disabled={submitting}>取消</StudioButton><StudioButton type="button" variant="primary" onClick={onConfirm} disabled={submitting}>{submitting ? (submitMode === '立即开拍' ? '正在立即开拍...' : '正在加入队列...') : '确认加入队列'}</StudioButton></footer></section></div>;
-}
-
 function AuctionCreatePage() {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<AuctionCreateForm>(() => loadAuctionCreateDraft());
   const [previewMode, setPreviewMode] = useState<PreviewMode>('默认态');
-  const [draftSavedAt, setDraftSavedAt] = useState('刚刚自动保存');
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>(() => loadAuctionCreateDraft().draftLotId ? 'saved' : 'idle');
+  const [autoSavedAt, setAutoSavedAt] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [submitMode, setSubmitMode] = useState<AuctionCreateForm['startMode']>(initialAuctionCreateForm.startMode);
   const [submitError, setSubmitError] = useState('');
   const [mainImageUploading, setMainImageUploading] = useState(false);
   const [mainImageError, setMainImageError] = useState('');
   const [, setStepNotice] = useState('');
   const [tip, setTip] = useState<AuctionTip | null>(null);
   const savedAssetIds = useRef(new Set<string>());
+  const autoSaveSeq = useRef(0);
   const { toasts, showToast } = useStudioToast(3000);
+
   const showStepNotice = (message: string) => {
     setStepNotice(message);
     showToast({ id: 'auction-step-notice', tone: 'warning', title: message });
   };
-  const update = (patch: Partial<AuctionCreateForm>) => setForm((current) => ({ ...current, ...patch }));
+  const update = (patch: Partial<AuctionCreateForm>) => {
+    setForm((current) => ({ ...current, ...patch }));
+    setAutoSaveStatus('dirty');
+  };
   const showTip = (nextTip: AuctionTip) => {
     setTip(nextTip);
     showToast({ tone: nextTip.tone === 'error' ? 'danger' : nextTip.tone, title: nextTip.text });
@@ -1112,6 +1125,38 @@ function AuctionCreatePage() {
       if (!options?.silent) throw error;
     }
   };
+
+  const saveCurrentDraft = async (input: AuctionCreateForm, options?: { silent?: boolean }) => {
+    const seq = ++autoSaveSeq.current;
+    setAutoSaveStatus('saving');
+    try {
+      const payload = fromFormToCreateLotRequest(input);
+      let draftId = input.draftLotId;
+      if (!draftId) {
+        const draft = await createDraftLot({ roomId: currentHostRoom.id });
+        draftId = draft.id;
+      }
+      const saved = await patchDraftLot(draftId, payload);
+      const savedAt = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+      savedAssetIds.current = new Set([input.mainImageAssetId].filter(Boolean));
+      setForm((current) => {
+        const next = { ...current, draftLotId: saved.id || draftId };
+        saveAuctionCreateDraft(next);
+        return next;
+      });
+      if (seq === autoSaveSeq.current) {
+        setAutoSavedAt(savedAt);
+        setAutoSaveStatus('saved');
+      }
+      if (!options?.silent) showToast({ id: 'draft-saved', tone: 'success', title: '草稿已自动保存' });
+      return saved;
+    } catch (error) {
+      if (seq === autoSaveSeq.current) setAutoSaveStatus('failed');
+      if (!options?.silent) showToast({ id: 'draft-save-failed', tone: 'danger', title: '保存失败，点击重试', description: resultMessage(error) });
+      throw error;
+    }
+  };
+
   const uploadMainImage = async (file: File) => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
     const allowedExt = /\.(jpe?g|png|webp)$/i;
@@ -1142,7 +1187,7 @@ function AuctionCreatePage() {
       if (previousAssetId) await cleanupTemporaryAsset(previousAssetId, { silent: true });
       const asset = await uploadImage(file, { roomId: currentHostRoom.id, bizType: 'lot_image' });
       update({ mainImageName: file.name, mainImageUrl: asset.imageUrl, mainImageAssetId: asset.id });
-      showTip({ tone: 'success', text: '主图已上传到 OSS 临时区，保存拍品后会自动绑定' });
+      showTip({ tone: 'success', text: '主图已上传到 OSS 临时区，自动保存后会绑定草稿' });
     } catch (e) {
       const message = resultMessage(e);
       setMainImageError(message);
@@ -1162,14 +1207,20 @@ function AuctionCreatePage() {
     }
   };
   const issues = useMemo(() => validateAuctionCreateForm(form), [form]);
-  const hasErrors = issues.some((issue) => issue.level === 'error');
   const currentStepErrors = issuesForStep(issues, step).filter((issue) => issue.level === 'error');
   const canEnter = (targetStep: number) => canEnterPublishStep(issues, targetStep);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setDraftSavedAt(`${new Date().toLocaleTimeString('zh-CN', { hour12: false })} 自动保存`), 450);
-    return () => window.clearTimeout(timer);
+    saveAuctionCreateDraft(form);
   }, [form]);
+
+  useEffect(() => {
+    if (autoSaveStatus !== 'dirty') return;
+    const timer = window.setTimeout(() => {
+      void saveCurrentDraft(form, { silent: true });
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [form, autoSaveStatus]);
 
   useEffect(() => {
     if (!tip) return;
@@ -1177,78 +1228,49 @@ function AuctionCreatePage() {
     return () => window.clearTimeout(timer);
   }, [tip]);
 
-  useEffect(() => {
-    saveAuctionCreateDraft(form);
-  }, [form]);
+  const retryAutoSave = () => {
+    void saveCurrentDraft(form).catch(() => undefined);
+  };
 
-  const saveDraft = () => {
-    update({ lifecycle: 'DRAFT' });
-    saveAuctionCreateDraft({ ...form, lifecycle: 'DRAFT' });
-    setDraftSavedAt(`${new Date().toLocaleTimeString('zh-CN', { hour12: false })} 已保存草稿`);
-    showToast({ id: 'draft-saved', tone: 'success', title: '草稿已保存', description: '刷新页面后会自动恢复当前填写内容和已上传临时主图。' });
-  };
-  const markAsNext = () => {
-    showToast({ id: 'set-next', tone: 'success', title: '已设为下一件', description: '确认后将排到当前竞拍结束后的下一件拍品。' });
-    publish('仅保存草稿');
-  };
-  const publish = (mode?: AuctionCreateForm['startMode']) => {
-    const nextForm = mode ? { ...form, startMode: mode } : form;
-    const nextIssues = validateAuctionCreateForm(nextForm);
-    const nextHasErrors = nextIssues.some((issue) => issue.level === 'error');
+  const queueCurrentLot = async () => {
     if (mainImageUploading) {
       setStep(0);
       showStepNotice('拍品主图仍在处理，请等待完成后再加入队列。');
       return;
     }
-    if (nextHasErrors) {
+    const nextIssues = validateAuctionCreateForm(form);
+    if (nextIssues.some((issue) => issue.level === 'error')) {
       const firstInvalid = [0, 1, 2].find((index) => issuesForStep(nextIssues, index).some((issue) => issue.level === 'error')) ?? 3;
       setStep(firstInvalid);
       showStepNotice('存在未完成步骤，请修正当前步骤后再加入队列。');
       return;
     }
-    const nextMode = mode ?? form.startMode;
-    setSubmitMode(nextMode);
-    if (mode) update({ startMode: mode });
-    setSubmitError('');
-    setStepNotice('');
-    setDialogOpen(true);
-  };
-  const confirmPublish = async () => {
-    if (mainImageUploading) {
-      setSubmitError('拍品主图仍在处理，请等待完成后再提交。');
-      return;
-    }
-    const requestForm = { ...form, startMode: submitMode };
-    const nextIssues = validateAuctionCreateForm(requestForm);
-    if (nextIssues.some((issue) => issue.level === 'error')) {
-      setSubmitError('仍有严重校验未通过，请返回修正后再提交。');
-      return;
-    }
     setSubmitting(true);
     setSubmitError('');
     try {
-      const created = await createLot(fromFormToCreateLotRequest(requestForm));
-      if (requestForm.mainImageAssetId) savedAssetIds.current.add(requestForm.mainImageAssetId);
+      const saved = await saveCurrentDraft(form, { silent: true });
+      const queued = await queueLot(saved.id);
+      if (form.mainImageAssetId) savedAssetIds.current.add(form.mainImageAssetId);
       clearAuctionCreateDraft();
-      if (submitMode === '立即开拍') {
-        const started = await startLot(created.id);
-        location.href = `/admin/auctions/${started.id}/control`;
-        return;
-      }
-      location.href = '/admin/auctions?created=1';
+      showToast({ id: 'lot-queued', tone: 'success', title: '拍品已加入本场队列', description: `队列位置 #${queued.queuePosition || queued.lot.queuePosition || '-'}，正在前往本场拍品队列。` });
+      window.setTimeout(() => { location.href = '/admin/auctions?queued=1'; }, 350);
     } catch (e) {
       const message = resultMessage(e);
       setSubmitError(message);
-      showToast({ id: 'publish-failed', tone: 'danger', title: '数据加载失败，请稍后重试', description: message });
+      showToast({ id: 'queue-failed', tone: 'danger', title: '加入本场队列失败', description: message });
       setSubmitting(false);
     }
   };
+
   const generateDescription = () => {
     const next = `${form.productName || '该拍品'}适合直播竞拍场景，具备${form.tags.join('、') || '稀缺'}等卖点。建议在开拍前强调估值 ${formatMoney(form.estimate)}、固定加价 ${formatMoney(form.bidStep)} 与封顶成交规则，提升观众决策效率。`;
     if (window.confirm('AI 已生成拍品介绍，是否确认填入？')) update({ description: next });
   };
 
-  return <section className="auctionCreatePage">{tip ? <span className="auctionUploadTipBridge" aria-hidden="true" /> : null}<StudioToastViewport toasts={toasts} className="auctionCreateToastViewport" /><PublishStepper step={step} setStep={(next) => { if (canEnter(next)) { setStep(next); setStepNotice(''); } }} canEnter={canEnter} issues={issues} /><div className="auctionCreateMeta"><AuctionCreateActions onDraft={saveDraft} onQueue={() => publish('仅保存草稿')} onNext={markAsNext} onStart={() => publish('立即开拍')} submitting={submitting} /></div><div className="auctionCreateLayout"><main className="auctionCreateMain">{step === 0 && <ProductInfoStep form={form} update={update} generateDescription={generateDescription} mainImageUploading={mainImageUploading} mainImageError={mainImageError} onMainImageSelect={(file) => void uploadMainImage(file)} onRemoveMainImage={removeMainImage} />}{step === 1 && <AuctionRuleStep form={form} update={update} issues={issues} />}{step === 2 && <LiveRoomStep form={form} update={update} />}{step === 3 && <PublishReviewStep form={form} issues={issues} />}<div className="auctionStepNav"><StudioButton type="button" variant="secondary" disabled={step === 0} onClick={() => setStep(Math.max(0, step - 1))}>上一步</StudioButton><StudioButton type="button" variant="primary" onClick={() => { if (step < 3) { if (currentStepErrors.length) { showStepNotice('请先完成当前步骤必填项和严重校验。'); return; } setStepNotice(''); setStep(step + 1); } else { publish(); } }} disabled={submitting}>{step < 3 ? '下一步' : (submitting ? (submitMode === '立即开拍' ? '正在立即开拍...' : '正在加入队列...') : '加入今日队列')}</StudioButton></div></main><StickyPreviewPanel form={form} issues={issues} previewMode={previewMode} setPreviewMode={setPreviewMode} step={step} /></div>{dialogOpen && <PublishConfirmDialog form={{ ...form, startMode: submitMode }} issues={issues} submitting={submitting} submitMode={submitMode} onClose={() => { if (!submitting) setDialogOpen(false); }} onConfirm={() => void confirmPublish()} />}</section>;
+  return <section className="auctionCreatePage">{tip ? <span className="auctionUploadTipBridge" aria-hidden="true" /> : null}<StudioToastViewport toasts={toasts} className="auctionCreateToastViewport" />
+    <div className="auctionCreateTitleBar"><div><p>当前直播间 / 添加拍品</p><h2>添加拍品</h2><span>草稿静默自动保存，资料完成后只执行“加入本场队列”。</span></div><AutoSaveIndicator status={autoSaveStatus} savedAt={autoSavedAt} onRetry={retryAutoSave} /></div>
+    <PublishStepper step={step} setStep={(next) => { if (canEnter(next)) { setStep(next); setStepNotice(''); } }} canEnter={canEnter} issues={issues} />
+    <div className="auctionCreateLayout"><main className="auctionCreateMain">{submitError ? <div className="auctionMgmtNotice danger"><AlertTriangle size={16} />{submitError}</div> : null}{step === 0 && <ProductInfoStep form={form} update={update} generateDescription={generateDescription} mainImageUploading={mainImageUploading} mainImageError={mainImageError} onMainImageSelect={(file) => void uploadMainImage(file)} onRemoveMainImage={removeMainImage} />}{step === 1 && <AuctionRuleStep form={form} update={update} issues={issues} />}{step === 2 && <LiveRoomStep form={form} update={update} />}{step === 3 && <PublishReviewStep form={form} issues={issues} />}<div className="auctionStepNav"><StudioButton type="button" variant="secondary" disabled={step === 0 || submitting} onClick={() => setStep(Math.max(0, step - 1))}>上一步</StudioButton><StudioButton type="button" variant="primary" onClick={() => { if (step < 3) { if (currentStepErrors.length) { showStepNotice('请先完成当前步骤必填项和严重校验。'); return; } setStepNotice(''); setStep(step + 1); } else { void queueCurrentLot(); } }} disabled={submitting}>{step < 3 ? '下一步' : (submitting ? '正在加入本场队列...' : '加入本场队列')}</StudioButton></div></main><StickyPreviewPanel form={form} issues={issues} previewMode={previewMode} setPreviewMode={setPreviewMode} step={step} /></div></section>;
 }
 
 
