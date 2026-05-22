@@ -9,6 +9,8 @@ type AuctionLotModel struct {
 	Description            string `gorm:"column:description;type:text;not null"`
 	ImageURL               string `gorm:"column:image_url;type:varchar(1024);not null"`
 	Status                 int32  `gorm:"column:status;type:int;not null;index:idx_room_status,priority:2;index:idx_status_ends_at,priority:1"`
+	QueueStatus            int32  `gorm:"column:queue_status;type:int;not null;default:1;index:idx_room_queue,priority:2"`
+	QueuePosition          int32  `gorm:"column:queue_position;type:int;not null;default:0;index:idx_room_queue,priority:3"`
 	StartPriceAmount       int64  `gorm:"column:start_price_amount;not null"`
 	StartPriceCurrency     string `gorm:"column:start_price_currency;type:varchar(16);not null"`
 	MinIncrementAmount     int64  `gorm:"column:min_increment_amount;not null"`

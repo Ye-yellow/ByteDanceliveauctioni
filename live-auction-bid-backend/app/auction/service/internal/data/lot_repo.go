@@ -76,6 +76,15 @@ func (s *Store) Save(ctx context.Context, lot *v1.Lot, expectedVersion int64, ev
 	return s.streamEvents(ctx, events)
 }
 
+func (s *Store) AttachAssets(ctx context.Context, ownerUserID string, lot *v1.Lot) error {
+	if lot == nil || ownerUserID == "" {
+		return nil
+	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return attachAssetFilesByURL(tx, ownerUserID, lot.Id, lotAssetURLs(lot))
+	})
+}
+
 func (s *Store) FindByID(ctx context.Context, lotID string) (*v1.Lot, error) {
 	if lotID == "" {
 		return nil, errors.New("lot id is required")
@@ -99,7 +108,12 @@ func (s *Store) List(ctx context.Context, roomID string, status v1.LotStatus) ([
 		query = query.Where("status = ?", int32(status))
 	}
 	var models []AuctionLotModel
-	if err := query.Order("updated_at DESC").Order("id ASC").Find(&models).Error; err != nil {
+	if status == v1.LotStatus_LOT_STATUS_QUEUED {
+		query = query.Order("queue_position ASC")
+	} else {
+		query = query.Order("updated_at DESC")
+	}
+	if err := query.Order("id ASC").Find(&models).Error; err != nil {
 		return nil, err
 	}
 	lots := make([]*v1.Lot, 0, len(models))
@@ -116,10 +130,31 @@ func (s *Store) List(ctx context.Context, roomID string, status v1.LotStatus) ([
 func lotToModel(lot *v1.Lot) (*AuctionLotModel, error) {
 	var capAmount *int64
 	var capCurrency string
-	if lot.GetRule().GetCapPrice() != nil {
-		amount := lot.GetRule().GetCapPrice().GetAmount()
+	rule := lot.GetRule()
+	if rule == nil {
+		rule = &v1.BidRule{}
+		lot.Rule = rule
+	}
+	startPrice := rule.GetStartPrice()
+	if startPrice == nil {
+		startPrice = &v1.Money{}
+	}
+	minIncrement := rule.GetMinIncrement()
+	if minIncrement == nil {
+		minIncrement = &v1.Money{}
+	}
+	currentPrice := lot.GetCurrentPrice()
+	if currentPrice == nil {
+		currentPrice = &v1.Money{}
+	}
+	finalPrice := lot.GetFinalPrice()
+	if finalPrice == nil {
+		finalPrice = &v1.Money{}
+	}
+	if rule.GetCapPrice() != nil {
+		amount := rule.GetCapPrice().GetAmount()
 		capAmount = &amount
-		capCurrency = lot.GetRule().GetCapPrice().GetCurrency()
+		capCurrency = rule.GetCapPrice().GetCurrency()
 	}
 	payload, err := protojson.Marshal(lot)
 	if err != nil {
@@ -132,18 +167,20 @@ func lotToModel(lot *v1.Lot) (*AuctionLotModel, error) {
 		Description:            lot.Description,
 		ImageURL:               lot.ImageUrl,
 		Status:                 int32(lot.Status),
-		StartPriceAmount:       lot.GetRule().GetStartPrice().GetAmount(),
-		StartPriceCurrency:     lot.GetRule().GetStartPrice().GetCurrency(),
-		MinIncrementAmount:     lot.GetRule().GetMinIncrement().GetAmount(),
-		MinIncrementCurrency:   lot.GetRule().GetMinIncrement().GetCurrency(),
+		QueueStatus:            int32(normalizeQueueStatus(lot.GetQueueStatus())),
+		QueuePosition:          lot.GetQueuePosition(),
+		StartPriceAmount:       startPrice.GetAmount(),
+		StartPriceCurrency:     startPrice.GetCurrency(),
+		MinIncrementAmount:     minIncrement.GetAmount(),
+		MinIncrementCurrency:   minIncrement.GetCurrency(),
 		CapPriceAmount:         capAmount,
 		CapPriceCurrency:       capCurrency,
-		DurationSeconds:        lot.GetRule().GetDurationSeconds(),
-		AntiSnipeWindowSeconds: lot.GetRule().GetAntiSnipeWindowSeconds(),
-		AntiSnipeExtendSeconds: lot.GetRule().GetAntiSnipeExtendSeconds(),
-		MaxExtendCount:         lot.GetRule().GetMaxExtendCount(),
-		CurrentPriceAmount:     lot.GetCurrentPrice().GetAmount(),
-		CurrentPriceCurrency:   lot.GetCurrentPrice().GetCurrency(),
+		DurationSeconds:        rule.GetDurationSeconds(),
+		AntiSnipeWindowSeconds: rule.GetAntiSnipeWindowSeconds(),
+		AntiSnipeExtendSeconds: rule.GetAntiSnipeExtendSeconds(),
+		MaxExtendCount:         rule.GetMaxExtendCount(),
+		CurrentPriceAmount:     currentPrice.GetAmount(),
+		CurrentPriceCurrency:   currentPrice.GetCurrency(),
 		LeadingUserID:          lot.LeadingUserId,
 		LeadingNickname:        lot.LeadingNickname,
 		StartedAtUnixMs:        lot.StartedAtUnixMs,
@@ -153,12 +190,19 @@ func lotToModel(lot *v1.Lot) (*AuctionLotModel, error) {
 		CancelledAtUnixMs:      lot.CancelledAtUnixMs,
 		WinnerUserID:           lot.WinnerUserId,
 		WinnerNickname:         lot.WinnerNickname,
-		FinalPriceAmount:       lot.GetFinalPrice().GetAmount(),
-		FinalPriceCurrency:     lot.GetFinalPrice().GetCurrency(),
+		FinalPriceAmount:       finalPrice.GetAmount(),
+		FinalPriceCurrency:     finalPrice.GetCurrency(),
 		Version:                lot.Version,
 		PlaybookStage:          int32(lot.PlaybookStage),
 		Payload:                string(payload),
 	}, nil
+}
+
+func normalizeQueueStatus(status v1.LotQueueStatus) v1.LotQueueStatus {
+	if status == v1.LotQueueStatus_LOT_QUEUE_STATUS_UNSPECIFIED {
+		return v1.LotQueueStatus_LOT_QUEUE_STATUS_NONE
+	}
+	return status
 }
 
 func modelToLot(model *AuctionLotModel) (*v1.Lot, error) {
@@ -169,6 +213,8 @@ func modelToLot(model *AuctionLotModel) (*v1.Lot, error) {
 	if lot.Rule == nil {
 		lot.Rule = &v1.BidRule{}
 	}
+	lot.QueueStatus = normalizeQueueStatus(v1.LotQueueStatus(model.QueueStatus))
+	lot.QueuePosition = model.QueuePosition
 	if model.CapPriceAmount != nil {
 		lot.Rule.CapPrice = &v1.Money{Amount: *model.CapPriceAmount, Currency: model.CapPriceCurrency}
 	} else {

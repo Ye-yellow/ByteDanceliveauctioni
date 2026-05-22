@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS auction_lots (
   description TEXT NOT NULL,
   image_url VARCHAR(1024) NOT NULL,
   status INT NOT NULL,
+  queue_status INT NOT NULL DEFAULT 1,
+  queue_position INT NOT NULL DEFAULT 0,
   start_price_amount BIGINT NOT NULL,
   start_price_currency VARCHAR(16) NOT NULL,
   min_increment_amount BIGINT NOT NULL,
@@ -37,6 +39,7 @@ CREATE TABLE IF NOT EXISTS auction_lots (
   created_at DATETIME(3) NULL,
   updated_at DATETIME(3) NULL,
   INDEX idx_room_status (room_id, status),
+  INDEX idx_room_queue (room_id, queue_status, queue_position),
   INDEX idx_room_updated (room_id, updated_at),
   INDEX idx_status_ends_at (status, ends_at_unix_ms)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

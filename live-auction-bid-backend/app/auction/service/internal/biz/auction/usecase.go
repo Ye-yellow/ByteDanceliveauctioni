@@ -48,6 +48,102 @@ func (uc *AuctionUsecase) CreateLot(ctx context.Context, req *v1.CreateLotReques
 	return proto.Clone(lot).(*v1.Lot), nil
 }
 
+func (uc *AuctionUsecase) CreateLotDraft(ctx context.Context, req *v1.CreateLotRequest, ownerUserID string) (*v1.Lot, error) {
+	uc.mu.Lock()
+	defer uc.mu.Unlock()
+
+	lot, err := NewLotDraftFromRequest(idgen.New("lot"), req, false)
+	if err != nil {
+		return nil, err
+	}
+	if err := uc.lots.Create(ctx, lot, ownerUserID, nil); err != nil {
+		return nil, err
+	}
+	return proto.Clone(lot).(*v1.Lot), nil
+}
+
+func (uc *AuctionUsecase) PatchLotDraft(ctx context.Context, req *v1.PatchLotDraftRequest, ownerUserID string) (*v1.Lot, error) {
+	_ = ownerUserID
+	uc.mu.Lock()
+	defer uc.mu.Unlock()
+
+	if req == nil {
+		return nil, errors.New("patch lot draft request is required")
+	}
+	if req.GetLotId() == "" {
+		return nil, errors.New("lot id is required")
+	}
+	lot, err := uc.lots.FindByID(ctx, req.GetLotId())
+	if err != nil {
+		return nil, err
+	}
+	expectedVersion := lot.Version
+	if err := ApplyDraftPatch(lot, req); err != nil {
+		return nil, err
+	}
+	if err := uc.lots.Save(ctx, lot, expectedVersion, nil); err != nil {
+		return nil, err
+	}
+	if err := uc.lots.AttachAssets(ctx, ownerUserID, lot); err != nil {
+		return nil, err
+	}
+	return proto.Clone(lot).(*v1.Lot), nil
+}
+
+func (uc *AuctionUsecase) QueueLot(ctx context.Context, lotID, ownerUserID string) (*v1.Lot, int32, error) {
+	uc.mu.Lock()
+	defer uc.mu.Unlock()
+
+	if lotID == "" {
+		return nil, 0, errors.New("lot id is required")
+	}
+	lot, err := uc.lots.FindByID(ctx, lotID)
+	if err != nil {
+		return nil, 0, err
+	}
+	if lot.GetRoomId() == "" {
+		return nil, 0, errors.New("room id is required")
+	}
+	expectedVersion := lot.Version
+	queuePosition := lot.GetQueuePosition()
+	if lot.GetQueueStatus() != v1.LotQueueStatus_LOT_QUEUE_STATUS_QUEUED || queuePosition <= 0 {
+		queuePosition, err = uc.nextQueuePosition(ctx, lot.GetRoomId())
+		if err != nil {
+			return nil, 0, err
+		}
+	}
+	if err := QueueLot(lot, queuePosition); err != nil {
+		return nil, 0, err
+	}
+	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_QUEUED, lot)
+	if err := uc.lots.Save(ctx, lot, expectedVersion, []v1.AuctionEvent{event}); err != nil {
+		return nil, 0, err
+	}
+	if err := uc.lots.AttachAssets(ctx, ownerUserID, lot); err != nil {
+		return nil, 0, err
+	}
+	if err := uc.broadcast(ctx, event); err != nil {
+		return nil, 0, err
+	}
+	return proto.Clone(lot).(*v1.Lot), lot.GetQueuePosition(), nil
+}
+
+func (uc *AuctionUsecase) nextQueuePosition(ctx context.Context, roomID string) (int32, error) {
+	lots, err := uc.lots.List(ctx, roomID, 0)
+	if err != nil {
+		return 0, err
+	}
+	maxPosition := int32(0)
+	for _, lot := range lots {
+		if lot.GetQueueStatus() == v1.LotQueueStatus_LOT_QUEUE_STATUS_QUEUED || lot.GetQueueStatus() == v1.LotQueueStatus_LOT_QUEUE_STATUS_NEXT {
+			if lot.GetQueuePosition() > maxPosition {
+				maxPosition = lot.GetQueuePosition()
+			}
+		}
+	}
+	return maxPosition + 1, nil
+}
+
 func (uc *AuctionUsecase) GetLot(ctx context.Context, lotID string) (*v1.Lot, error) {
 	if lotID == "" {
 		return nil, errors.New("lot id is required")

@@ -4,71 +4,39 @@ import (
 	"errors"
 	"fmt"
 
+	"google.golang.org/protobuf/proto"
+
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
 )
 
 func NewLotFromRequest(id string, req *v1.CreateLotRequest) (*v1.Lot, error) {
+	return NewLotDraftFromRequest(id, req, true)
+}
+
+func NewLotDraftFromRequest(id string, req *v1.CreateLotRequest, requireComplete bool) (*v1.Lot, error) {
 	if req == nil {
 		return nil, errors.New("create lot request is required")
 	}
-	if req.GetRoomId() == "" {
+	if requireComplete && req.GetRoomId() == "" {
 		return nil, errors.New("room id is required")
 	}
-	if req.GetTitle() == "" {
-		return nil, errors.New("lot title is required")
-	}
-	if req.GetRule() == nil || req.GetRule().GetStartPrice() == nil || req.GetRule().GetMinIncrement() == nil {
-		return nil, errors.New("bid rule, start price and min increment are required")
-	}
-	if req.GetImageUrl() == "" {
-		return nil, errors.New("lot image url is required")
-	}
-	if req.GetRule().GetStartPrice().GetCurrency() == "" || req.GetRule().GetMinIncrement().GetCurrency() == "" {
-		return nil, errors.New("start price and min increment currency are required")
-	}
-	if req.GetRule().GetStartPrice().GetCurrency() != req.GetRule().GetMinIncrement().GetCurrency() {
-		return nil, errors.New("start price and min increment currency must match")
-	}
-	if req.GetRule().GetStartPrice().GetAmount() < 0 {
-		return nil, errors.New("start price amount must be >= 0")
-	}
-	if req.GetRule().GetMinIncrement().GetAmount() <= 0 {
-		return nil, errors.New("min increment amount must be > 0")
-	}
-	if req.GetRule().GetDurationSeconds() < 60 {
-		return nil, errors.New("duration seconds must be >= 60")
-	}
-	if req.GetRule().GetAntiSnipeWindowSeconds() <= 0 {
-		return nil, errors.New("anti-snipe window seconds must be > 0")
-	}
-	if req.GetRule().GetAntiSnipeExtendSeconds() < 10 || req.GetRule().GetAntiSnipeExtendSeconds() > 30 {
-		return nil, errors.New("anti-snipe extend seconds must be between 10 and 30")
-	}
-	if req.GetRule().GetMaxExtendCount() <= 0 {
-		return nil, errors.New("max extend count must be > 0")
-	}
-	if capPrice := req.GetRule().GetCapPrice(); capPrice != nil {
-		if capPrice.GetCurrency() == "" {
-			return nil, errors.New("cap price currency is required")
-		}
-		if capPrice.GetCurrency() != req.GetRule().GetStartPrice().GetCurrency() || capPrice.GetCurrency() != req.GetRule().GetMinIncrement().GetCurrency() {
-			return nil, errors.New("cap price currency must match start price and min increment currency")
-		}
-		if capPrice.GetAmount() <= req.GetRule().GetStartPrice().GetAmount() {
-			return nil, errors.New("cap price amount must be greater than start price amount")
+	if requireComplete {
+		if err := ValidateLotReady(req.GetTitle(), req.GetImageUrl(), req.GetRule()); err != nil {
+			return nil, err
 		}
 	}
 
-	trustCards := make([]*v1.TrustRevealCard, 0, len(req.GetTrustCards()))
-	for _, card := range req.GetTrustCards() {
-		if card == nil {
-			continue
-		}
-		cp := *card
-		trustCards = append(trustCards, &cp)
+	rule := cloneRule(req.GetRule())
+	if rule == nil {
+		rule = &v1.BidRule{}
+	}
+	currentPrice := rule.GetStartPrice()
+	if currentPrice == nil {
+		currentPrice = &v1.Money{}
 	}
 
+	trustCards := cloneTrustCards(req.GetTrustCards())
 	lot := &v1.Lot{
 		Id:            id,
 		RoomId:        req.GetRoomId(),
@@ -76,15 +44,154 @@ func NewLotFromRequest(id string, req *v1.CreateLotRequest) (*v1.Lot, error) {
 		Description:   req.GetDescription(),
 		ImageUrl:      req.GetImageUrl(),
 		Status:        v1.LotStatus_LOT_STATUS_DRAFT,
-		Rule:          req.GetRule(),
-		CurrentPrice:  req.GetRule().GetStartPrice(),
-		FinalPrice:    &v1.Money{Currency: req.GetRule().GetStartPrice().GetCurrency()},
+		QueueStatus:   v1.LotQueueStatus_LOT_QUEUE_STATUS_NONE,
+		Rule:          rule,
+		CurrentPrice:  currentPrice,
+		FinalPrice:    &v1.Money{Currency: currentPrice.GetCurrency()},
 		Version:       1,
 		TrustCards:    trustCards,
 		DuelState:     &v1.DuelState{},
 		PlaybookStage: v1.PlaybookStage_PLAYBOOK_STAGE_WARM_UP,
 	}
+	normalizeTrustCards(lot)
+	return lot, nil
+}
 
+func ValidateLotReady(title, imageURL string, rule *v1.BidRule) error {
+	if title == "" {
+		return errors.New("lot title is required")
+	}
+	if imageURL == "" {
+		return errors.New("lot image url is required")
+	}
+	if rule == nil || rule.GetStartPrice() == nil || rule.GetMinIncrement() == nil {
+		return errors.New("bid rule, start price and min increment are required")
+	}
+	if rule.GetStartPrice().GetCurrency() == "" || rule.GetMinIncrement().GetCurrency() == "" {
+		return errors.New("start price and min increment currency are required")
+	}
+	if rule.GetStartPrice().GetCurrency() != rule.GetMinIncrement().GetCurrency() {
+		return errors.New("start price and min increment currency must match")
+	}
+	if rule.GetStartPrice().GetAmount() < 0 {
+		return errors.New("start price amount must be >= 0")
+	}
+	if rule.GetMinIncrement().GetAmount() <= 0 {
+		return errors.New("min increment amount must be > 0")
+	}
+	if rule.GetDurationSeconds() < 60 {
+		return errors.New("duration seconds must be >= 60")
+	}
+	if rule.GetAntiSnipeWindowSeconds() <= 0 {
+		return errors.New("anti-snipe window seconds must be > 0")
+	}
+	if rule.GetAntiSnipeExtendSeconds() < 10 || rule.GetAntiSnipeExtendSeconds() > 30 {
+		return errors.New("anti-snipe extend seconds must be between 10 and 30")
+	}
+	if rule.GetMaxExtendCount() <= 0 {
+		return errors.New("max extend count must be > 0")
+	}
+	if capPrice := rule.GetCapPrice(); capPrice != nil {
+		if capPrice.GetCurrency() == "" {
+			return errors.New("cap price currency is required")
+		}
+		if capPrice.GetCurrency() != rule.GetStartPrice().GetCurrency() || capPrice.GetCurrency() != rule.GetMinIncrement().GetCurrency() {
+			return errors.New("cap price currency must match start price and min increment currency")
+		}
+		if capPrice.GetAmount() <= rule.GetStartPrice().GetAmount() {
+			return errors.New("cap price amount must be greater than start price amount")
+		}
+	}
+	return nil
+}
+
+func ApplyDraftPatch(lot *v1.Lot, req *v1.PatchLotDraftRequest) error {
+	if lot == nil {
+		return errors.New("lot is required")
+	}
+	if req == nil {
+		return errors.New("patch lot draft request is required")
+	}
+	if lot.Status == v1.LotStatus_LOT_STATUS_LIVE || lot.Status == v1.LotStatus_LOT_STATUS_SETTLED || lot.Status == v1.LotStatus_LOT_STATUS_CANCELLED {
+		return fmt.Errorf("only not-started lot can be edited, current status: %s", lot.Status)
+	}
+	if lot.QueueStatus == v1.LotQueueStatus_LOT_QUEUE_STATUS_NEXT {
+		return errors.New("next lot cannot be edited from add-lot draft page")
+	}
+	if req.GetRoomId() != "" {
+		lot.RoomId = req.GetRoomId()
+	}
+	if req.GetTitle() != "" {
+		lot.Title = req.GetTitle()
+	}
+	if req.GetDescription() != "" {
+		lot.Description = req.GetDescription()
+	}
+	if req.GetImageUrl() != "" {
+		lot.ImageUrl = req.GetImageUrl()
+	}
+	if req.GetRule() != nil {
+		lot.Rule = cloneRule(req.GetRule())
+		if lot.Rule.GetStartPrice() != nil {
+			lot.CurrentPrice = lot.Rule.GetStartPrice()
+			lot.FinalPrice = &v1.Money{Currency: lot.Rule.GetStartPrice().GetCurrency()}
+		}
+	}
+	if len(req.GetTrustCards()) > 0 {
+		lot.TrustCards = cloneTrustCards(req.GetTrustCards())
+		normalizeTrustCards(lot)
+	}
+	if lot.QueueStatus == v1.LotQueueStatus_LOT_QUEUE_STATUS_UNSPECIFIED {
+		lot.QueueStatus = v1.LotQueueStatus_LOT_QUEUE_STATUS_NONE
+	}
+	lot.Version++
+	return nil
+}
+
+func QueueLot(lot *v1.Lot, queuePosition int32) error {
+	if lot == nil {
+		return errors.New("lot is required")
+	}
+	if lot.Status == v1.LotStatus_LOT_STATUS_LIVE || lot.Status == v1.LotStatus_LOT_STATUS_SETTLED || lot.Status == v1.LotStatus_LOT_STATUS_CANCELLED {
+		return fmt.Errorf("only not-started lot can be queued, current status: %s", lot.Status)
+	}
+	if err := ValidateLotReady(lot.GetTitle(), lot.GetImageUrl(), lot.GetRule()); err != nil {
+		return err
+	}
+	if lot.QueueStatus == v1.LotQueueStatus_LOT_QUEUE_STATUS_QUEUED && lot.QueuePosition > 0 {
+		return nil
+	}
+	if queuePosition <= 0 {
+		return errors.New("queue position is required")
+	}
+	lot.Status = v1.LotStatus_LOT_STATUS_QUEUED
+	lot.QueueStatus = v1.LotQueueStatus_LOT_QUEUE_STATUS_QUEUED
+	lot.QueuePosition = queuePosition
+	lot.CurrentPrice = lot.GetRule().GetStartPrice()
+	lot.FinalPrice = &v1.Money{Currency: lot.GetRule().GetStartPrice().GetCurrency()}
+	lot.Version++
+	return nil
+}
+
+func cloneRule(rule *v1.BidRule) *v1.BidRule {
+	if rule == nil {
+		return nil
+	}
+	return proto.Clone(rule).(*v1.BidRule)
+}
+
+func cloneTrustCards(cards []*v1.TrustRevealCard) []*v1.TrustRevealCard {
+	out := make([]*v1.TrustRevealCard, 0, len(cards))
+	for _, card := range cards {
+		if card == nil {
+			continue
+		}
+		out = append(out, proto.Clone(card).(*v1.TrustRevealCard))
+	}
+	return out
+}
+
+func normalizeTrustCards(lot *v1.Lot) {
 	for _, card := range lot.TrustCards {
 		if card.Id == "" {
 			card.Id = idgen.New("card")
@@ -93,7 +200,6 @@ func NewLotFromRequest(id string, req *v1.CreateLotRequest) (*v1.Lot, error) {
 		card.Revealed = false
 		card.RevealedAtUnixMs = 0
 	}
-	return lot, nil
 }
 
 func StartLot(lot *v1.Lot, nowMs int64) error {
@@ -103,8 +209,8 @@ func StartLot(lot *v1.Lot, nowMs int64) error {
 	if lot.GetRule() == nil || lot.GetRule().GetStartPrice() == nil {
 		return errors.New("lot bid rule and start price are required")
 	}
-	if lot.Status != v1.LotStatus_LOT_STATUS_DRAFT {
-		return fmt.Errorf("only draft lot can be started, current status: %s", lot.Status)
+	if lot.Status != v1.LotStatus_LOT_STATUS_DRAFT && lot.Status != v1.LotStatus_LOT_STATUS_QUEUED {
+		return fmt.Errorf("only draft or queued lot can be started, current status: %s", lot.Status)
 	}
 	lot.Status = v1.LotStatus_LOT_STATUS_LIVE
 	lot.StartedAtUnixMs = nowMs

@@ -387,6 +387,10 @@ func (s *testStore) Save(ctx context.Context, lot *v1.Lot, expectedVersion int64
 	return nil
 }
 
+func (s *testStore) AttachAssets(ctx context.Context, ownerUserID string, lot *v1.Lot) error {
+	return nil
+}
+
 func (s *testStore) FindByID(ctx context.Context, lotID string) (*v1.Lot, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

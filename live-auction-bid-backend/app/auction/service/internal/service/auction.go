@@ -33,6 +33,42 @@ func (s *AuctionService) CreateLot(ctx context.Context, req *v1.CreateLotRequest
 	return &v1.CreateLotReply{Result: okResult(), Lot: lot}, nil
 }
 
+func (s *AuctionService) CreateLotDraft(ctx context.Context, req *v1.CreateLotRequest) (*v1.CreateLotReply, error) {
+	claims, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_ADMIN)
+	if err != nil {
+		return &v1.CreateLotReply{Result: ErrorResult(err)}, nil
+	}
+	lot, err := s.auction.CreateLotDraft(ctx, req, claims.UserID)
+	if err != nil {
+		return &v1.CreateLotReply{Result: ErrorResult(err)}, nil
+	}
+	return &v1.CreateLotReply{Result: okResult(), Lot: lot}, nil
+}
+
+func (s *AuctionService) PatchLotDraft(ctx context.Context, req *v1.PatchLotDraftRequest) (*v1.PatchLotDraftReply, error) {
+	claims, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_ADMIN)
+	if err != nil {
+		return &v1.PatchLotDraftReply{Result: ErrorResult(err)}, nil
+	}
+	lot, err := s.auction.PatchLotDraft(ctx, req, claims.UserID)
+	if err != nil {
+		return &v1.PatchLotDraftReply{Result: ErrorResult(err)}, nil
+	}
+	return &v1.PatchLotDraftReply{Result: okResult(), Lot: lot}, nil
+}
+
+func (s *AuctionService) QueueLot(ctx context.Context, req *v1.QueueLotRequest) (*v1.QueueLotReply, error) {
+	claims, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_ADMIN)
+	if err != nil {
+		return &v1.QueueLotReply{Result: ErrorResult(err)}, nil
+	}
+	lot, queuePosition, err := s.auction.QueueLot(ctx, req.GetLotId(), claims.UserID)
+	if err != nil {
+		return &v1.QueueLotReply{Result: ErrorResult(err), Lot: lot}, nil
+	}
+	return &v1.QueueLotReply{Result: okResult(), Lot: lot, QueuePosition: queuePosition}, nil
+}
+
 func (s *AuctionService) GetLot(ctx context.Context, req *v1.GetLotRequest) (*v1.GetLotReply, error) {
 	lot, err := s.auction.GetLot(ctx, req.GetLotId())
 	if err != nil {

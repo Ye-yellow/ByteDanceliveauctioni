@@ -11,6 +11,7 @@ import (
 type LotRepository interface {
 	Create(ctx context.Context, lot *v1.Lot, ownerUserID string, events []v1.AuctionEvent) error
 	Save(ctx context.Context, lot *v1.Lot, expectedVersion int64, events []v1.AuctionEvent) error
+	AttachAssets(ctx context.Context, ownerUserID string, lot *v1.Lot) error
 	FindByID(ctx context.Context, lotID string) (*v1.Lot, error)
 	List(ctx context.Context, roomID string, status v1.LotStatus) ([]*v1.Lot, error)
 }

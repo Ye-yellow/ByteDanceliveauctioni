@@ -42,6 +42,30 @@ service AuctionService {
     };
   }
 
+  // 创建空草稿。用于添加拍品页初始化自动保存容器，允许商品资料和竞拍规则为空。
+  rpc CreateLotDraft(CreateLotRequest) returns (CreateLotReply) {
+    option (google.api.http) = {
+      post: "/api/lots/drafts"
+      body: "*"
+    };
+  }
+
+  // 静默保存草稿。用于添加拍品页自动保存，允许部分字段更新。
+  rpc PatchLotDraft(PatchLotDraftRequest) returns (PatchLotDraftReply) {
+    option (google.api.http) = {
+      patch: "/api/lots/{lot_id}/draft"
+      body: "*"
+    };
+  }
+
+  // 加入本场队列。用于添加拍品页唯一主动作，成功后仍不直接开拍。
+  rpc QueueLot(QueueLotRequest) returns (QueueLotReply) {
+    option (google.api.http) = {
+      post: "/api/lots/{lot_id}/queue"
+      body: "*"
+    };
+  }
+
   // 查询拍品详情。
   //
   // 调用方：主播端、观众端、调试工具。
@@ -199,6 +223,12 @@ enum LotStatus {
   // 草稿状态。主播已创建拍品，但还没有开拍。
   LOT_STATUS_DRAFT = 1;
 
+  // 资料完整但尚未加入本场队列。V1 可选状态，当前主要通过 queue_status 表达队列语义。
+  LOT_STATUS_READY = 5;
+
+  // 已加入本场队列，等待队列页/中控台开拍。
+  LOT_STATUS_QUEUED = 6;
+
   // 竞拍中。观众可以出价，系统会广播价格和排名变化。
   LOT_STATUS_LIVE = 2;
 
@@ -207,6 +237,21 @@ enum LotStatus {
 
   // 已取消。用于异常下架或主播主动取消。
   LOT_STATUS_CANCELLED = 4;
+}
+
+// LotQueueStatus 表示拍品在本场直播队列中的位置语义。
+enum LotQueueStatus {
+  // 未指定。仅作为 proto3 默认值，不应作为业务状态使用。
+  LOT_QUEUE_STATUS_UNSPECIFIED = 0;
+
+  // 未加入队列。
+  LOT_QUEUE_STATUS_NONE = 1;
+
+  // 已加入本场队列。
+  LOT_QUEUE_STATUS_QUEUED = 2;
+
+  // 已标记为下一件。该动作由本场拍品队列页/中控台执行，添加拍品页不触发。
+  LOT_QUEUE_STATUS_NEXT = 3;
 }
 
 // TrustCardType 表示信任揭示卡片类型。
@@ -301,6 +346,9 @@ enum AuctionEventType {
 
   // 拍品已异常取消。
   AUCTION_EVENT_TYPE_LOT_CANCELLED = 12;
+
+  // 拍品已加入本场队列。
+  AUCTION_EVENT_TYPE_LOT_QUEUED = 13;
 
 }
 
@@ -513,6 +561,12 @@ message Lot {
 
   // 取消时间，Unix 毫秒。未取消时为 0。
   int64 cancelled_at_unix_ms = 22;
+
+  // 本场队列状态。添加拍品页只会从 NONE 提交到 QUEUED。
+  LotQueueStatus queue_status = 23;
+
+  // 本场队列位置，从 1 开始。未入队时为 0。
+  int32 queue_position = 24;
 }
 
 // ============================================================================
@@ -606,6 +660,37 @@ message CreateLotRequest {
 
   // 预置的信任揭示卡片。创建时默认 revealed=false。
   repeated TrustRevealCard trust_cards = 6;
+}
+
+// PatchLotDraftRequest 表示添加拍品页静默草稿保存请求。
+// 所有业务字段均可选；未传或零值字段保持原值。
+message PatchLotDraftRequest {
+  // 拍品 ID。
+  string lot_id = 1;
+
+  // 直播间 ID。通常保持创建草稿时的 room_id。
+  string room_id = 2;
+
+  // 商品标题。
+  string title = 3;
+
+  // 商品描述。
+  string description = 4;
+
+  // 商品主图 URL。
+  string image_url = 5;
+
+  // 竞拍规则。
+  BidRule rule = 6;
+
+  // 信任揭示卡片。
+  repeated TrustRevealCard trust_cards = 7;
+}
+
+// QueueLotRequest 表示将草稿提交进入本场拍品队列。
+message QueueLotRequest {
+  // 拍品 ID。
+  string lot_id = 1;
 }
 
 // GetLotRequest 表示查询拍品详情请求。
@@ -712,6 +797,30 @@ message GetRoomSnapshotRequest {
 message CreateLotReply {
   // 创建后的拍品，状态为 DRAFT。
   Lot lot = 1;
+
+  // 统一返回头。
+  ReplyResult result = 99;
+}
+
+// PatchLotDraftReply 表示静默保存草稿响应。
+message PatchLotDraftReply {
+  // 保存后的拍品。
+  Lot lot = 1;
+
+  // 统一返回头。
+  ReplyResult result = 99;
+}
+
+// QueueLotReply 表示加入本场队列响应。
+message QueueLotReply {
+  // 入队后的拍品。
+  Lot lot = 1;
+
+  // 本场队列位置。
+  int32 queue_position = 2;
+
+  // 对应实时事件。
+  AuctionEvent event = 3;
 
   // 统一返回头。
   ReplyResult result = 99;
