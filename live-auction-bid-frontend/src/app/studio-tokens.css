@@ -2302,3 +2302,14 @@ button:disabled {
     flex-wrap: wrap;
   }
 }
+
+/* Add-lot: remove the standalone draft/status text row; keep only actionable controls. */
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateMeta {
+  justify-content: flex-end !important;
+  min-height: 40px !important;
+  margin-top: -2px !important;
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateMeta > em {
+  margin-right: auto;
+}
