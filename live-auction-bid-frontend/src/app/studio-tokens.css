@@ -3336,3 +3336,112 @@ button:disabled {
     font-size: 13px !important;
   }
 }
+
+/* Queue row actions v3: use the horizontal space; make controls bigger and more polished. */
+@container (min-width: 1321px) {
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowCard {
+    grid-template-columns: minmax(360px, .82fr) minmax(430px, .96fr) minmax(620px, 1.08fr) !important;
+    gap: 26px !important;
+  }
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight {
+    align-self: center !important;
+    display: grid !important;
+    grid-template-columns: minmax(150px, .42fr) minmax(0, 1fr) !important;
+    grid-template-areas:
+      "account actions"
+      "state actions" !important;
+    column-gap: 22px !important;
+    row-gap: 8px !important;
+    align-items: center !important;
+  }
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .queueAccount {
+    grid-area: account !important;
+  }
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight > .mutedText,
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .orderState {
+    grid-area: state !important;
+  }
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight > div:last-child {
+    grid-area: actions !important;
+  }
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions {
+    grid-template-columns: repeat(4, minmax(104px, 1fr)) !important;
+    gap: 12px !important;
+    align-items: center !important;
+  }
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions button,
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions a,
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions summary {
+    min-height: 56px !important;
+    padding-inline: 18px !important;
+    border-radius: 18px !important;
+    font-size: 17px !important;
+    line-height: 22px !important;
+    letter-spacing: -.02em !important;
+    border: 1px solid rgba(210, 222, 241, .95) !important;
+    background: linear-gradient(180deg, #ffffff, #f8fbff) !important;
+    color: #172033 !important;
+    box-shadow: 0 16px 34px rgba(15, 23, 42, .10), inset 0 1px 0 rgba(255,255,255,.95) !important;
+  }
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions button:nth-of-type(2) {
+    border-color: #2563eb !important;
+    background: linear-gradient(135deg, #2563eb, #4f46e5) !important;
+    color: #fff !important;
+    box-shadow: 0 18px 36px rgba(37, 99, 235, .26) !important;
+  }
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions a {
+    color: #1d4ed8 !important;
+    border-color: #bfdbfe !important;
+    background: linear-gradient(180deg, #ffffff, #eff6ff) !important;
+  }
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions summary {
+    color: #475569 !important;
+    background: linear-gradient(180deg, #ffffff, #f8fafc) !important;
+  }
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .queueAccount b {
+    font-size: 20px !important;
+    line-height: 26px !important;
+  }
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .queueAccount span,
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .mutedText,
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .orderState span {
+    font-size: 15px !important;
+    line-height: 23px !important;
+  }
+}
+@container (min-width: 1181px) and (max-width: 1320px) {
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowCard {
+    grid-template-columns: minmax(300px, .9fr) minmax(360px, 1fr) minmax(420px, .95fr) !important;
+  }
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions {
+    grid-template-columns: repeat(4, minmax(88px, 1fr)) !important;
+    gap: 8px !important;
+  }
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions button,
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions a,
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions summary {
+    min-height: 48px !important;
+    font-size: 15px !important;
+    border-radius: 15px !important;
+  }
+}
+
+/* Ensure the horizontal action row actually stretches across the allocated right-side space. */
+@container (min-width: 1321px) {
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight > div:last-child {
+    justify-self: stretch !important;
+    align-self: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions {
+    width: 100% !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+.laAdminShell .queueRowRight > div:last-child .auctionRowActions {
+  inline-size: 100% !important;
+  min-inline-size: 100% !important;
+  max-inline-size: 100% !important;
+  justify-self: stretch !important;
+}
