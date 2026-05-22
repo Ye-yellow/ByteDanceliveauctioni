@@ -1094,7 +1094,7 @@ function AuctionCreatePage() {
   const [, setStepNotice] = useState('');
   const [tip, setTip] = useState<AuctionTip | null>(null);
   const savedAssetIds = useRef(new Set<string>());
-  const { toasts, showToast } = useStudioToast();
+  const { toasts, showToast } = useStudioToast(3000);
   const showStepNotice = (message: string) => {
     setStepNotice(message);
     showToast({ id: 'auction-step-notice', tone: 'warning', title: message });

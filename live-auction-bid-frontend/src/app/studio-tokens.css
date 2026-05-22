@@ -2443,3 +2443,27 @@ button:disabled {
     transform: none !important;
   }
 }
+
+/* Add-lot validation tips: slightly larger, 3s lifecycle with progressive fade-out. */
+.laAdminShell .auctionCreateToastViewport {
+  width: min(480px, calc(100vw - var(--studio-sidebar-width) - 48px)) !important;
+}
+
+.laAdminShell .auctionCreateToastViewport .studioToast {
+  min-height: 52px !important;
+  padding: 14px 18px !important;
+  border-radius: 20px !important;
+  animation: auctionTopToastLifecycle 3s cubic-bezier(.2, .8, .2, 1) both !important;
+}
+
+.laAdminShell .auctionCreateToastViewport .studioToast strong {
+  font-size: 16px !important;
+  line-height: 1.35 !important;
+}
+
+@keyframes auctionTopToastLifecycle {
+  0% { opacity: 0; transform: translateY(-8px) scale(.98); }
+  8% { opacity: 1; transform: translateY(0) scale(1); }
+  78% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-6px) scale(.985); }
+}
