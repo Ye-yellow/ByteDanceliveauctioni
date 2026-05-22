@@ -2626,3 +2626,18 @@ button:disabled {
   font-size: 15px !important;
   line-height: 1.45 !important;
 }
+
+/* Queue page should use the whole studio canvas, not the centered 1480px reading rail. */
+.laAdminShell .studioPage:has(.auctionMgmtPage) {
+  width: 100% !important;
+  max-width: none !important;
+  margin-inline: 0 !important;
+}
+.laAdminShell .studioPage:has(.auctionMgmtPage) .studioPageBody,
+.laAdminShell .auctionMgmtPage {
+  width: 100% !important;
+  max-width: none !important;
+}
+.laAdminShell .studioContent:has(.auctionMgmtPage) {
+  padding-inline: 28px !important;
+}
