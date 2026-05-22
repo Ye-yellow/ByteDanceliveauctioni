@@ -2603,3 +2603,26 @@ button:disabled {
   width: 12px !important;
   height: 12px !important;
 }
+
+/* Add-lot toast tuning v2: queue failure/success messages should read clearly. */
+.laAdminShell .auctionCreateToastViewport {
+  width: min(620px, calc(100vw - var(--studio-sidebar-width) - 48px)) !important;
+}
+.laAdminShell .auctionCreateToastViewport .studioToast {
+  min-height: 72px !important;
+  padding: 18px 24px !important;
+  border-radius: 26px !important;
+  gap: 14px !important;
+}
+.laAdminShell .auctionCreateToastViewport .studioToast > i {
+  width: 12px !important;
+  height: 12px !important;
+}
+.laAdminShell .auctionCreateToastViewport .studioToast strong {
+  font-size: 20px !important;
+  line-height: 1.28 !important;
+}
+.laAdminShell .auctionCreateToastViewport .studioToast p {
+  font-size: 15px !important;
+  line-height: 1.45 !important;
+}
