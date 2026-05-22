@@ -4098,3 +4098,26 @@ button:disabled {
   top: 50% !important;
   transform: translate(-50%, -50%) !important;
 }
+
+/* Final media rule: previews are cover cards. Recommended upload size is 1200×900 (4:3). */
+.laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .mainImageUpload.hasImage{
+  background: linear-gradient(135deg, #eef4ff, #fff5f9) !important;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .mainImageUpload.hasImage > img{
+  object-fit: cover !important;
+  object-position: center !important;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .phoneImage > img,
+.laAdminShell .studioPage:has(.auctionCreatePage) .phoneImage img{
+  object-fit: cover !important;
+  object-position: center !important;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .carouselPreviewGrid figure > img{
+  object-fit: cover !important;
+  object-position: center !important;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .studioFieldHelp,
+.laAdminShell .studioPage:has(.auctionCreatePage) .fieldCarousel .studioFieldHelp{
+  color: #2563eb !important;
+  font-weight: 750 !important;
+}
