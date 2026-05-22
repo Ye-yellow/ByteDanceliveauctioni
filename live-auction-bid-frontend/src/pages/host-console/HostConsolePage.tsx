@@ -1091,10 +1091,14 @@ function AuctionCreatePage() {
   const [submitError, setSubmitError] = useState('');
   const [mainImageUploading, setMainImageUploading] = useState(false);
   const [mainImageError, setMainImageError] = useState('');
-  const [stepNotice, setStepNotice] = useState('');
+  const [, setStepNotice] = useState('');
   const [tip, setTip] = useState<AuctionTip | null>(null);
   const savedAssetIds = useRef(new Set<string>());
   const { toasts, showToast } = useStudioToast();
+  const showStepNotice = (message: string) => {
+    setStepNotice(message);
+    showToast({ id: 'auction-step-notice', tone: 'warning', title: message });
+  };
   const update = (patch: Partial<AuctionCreateForm>) => setForm((current) => ({ ...current, ...patch }));
   const showTip = (nextTip: AuctionTip) => {
     setTip(nextTip);
@@ -1193,13 +1197,13 @@ function AuctionCreatePage() {
     const nextHasErrors = nextIssues.some((issue) => issue.level === 'error');
     if (mainImageUploading) {
       setStep(0);
-      setStepNotice('拍品主图仍在处理，请等待完成后再加入队列。');
+      showStepNotice('拍品主图仍在处理，请等待完成后再加入队列。');
       return;
     }
     if (nextHasErrors) {
       const firstInvalid = [0, 1, 2].find((index) => issuesForStep(nextIssues, index).some((issue) => issue.level === 'error')) ?? 3;
       setStep(firstInvalid);
-      setStepNotice('存在未完成步骤，请修正当前步骤后再加入队列。');
+      showStepNotice('存在未完成步骤，请修正当前步骤后再加入队列。');
       return;
     }
     const nextMode = mode ?? form.startMode;
@@ -1244,7 +1248,7 @@ function AuctionCreatePage() {
     if (window.confirm('AI 已生成拍品介绍，是否确认填入？')) update({ description: next });
   };
 
-  return <section className="auctionCreatePage">{tip ? <span className="auctionUploadTipBridge" aria-hidden="true" /> : null}<StudioToastViewport toasts={toasts} /><PublishStepper step={step} setStep={(next) => { if (canEnter(next)) { setStep(next); setStepNotice(''); } }} canEnter={canEnter} issues={issues} /><div className="auctionCreateMeta"><AuctionCreateActions onDraft={saveDraft} onQueue={() => publish('仅保存草稿')} onNext={markAsNext} onStart={() => publish('立即开拍')} submitting={submitting} />{stepNotice ? <em>{stepNotice}</em> : null}{submitError ? <em>{submitError}</em> : null}</div><div className="auctionCreateLayout"><main className="auctionCreateMain">{step === 0 && <ProductInfoStep form={form} update={update} generateDescription={generateDescription} mainImageUploading={mainImageUploading} mainImageError={mainImageError} onMainImageSelect={(file) => void uploadMainImage(file)} onRemoveMainImage={removeMainImage} />}{step === 1 && <AuctionRuleStep form={form} update={update} issues={issues} />}{step === 2 && <LiveRoomStep form={form} update={update} />}{step === 3 && <PublishReviewStep form={form} issues={issues} />}<div className="auctionStepNav"><StudioButton type="button" variant="secondary" disabled={step === 0} onClick={() => setStep(Math.max(0, step - 1))}>上一步</StudioButton><StudioButton type="button" variant="primary" onClick={() => { if (step < 3) { if (currentStepErrors.length) { setStepNotice('请先完成当前步骤必填项和严重校验。'); return; } setStepNotice(''); setStep(step + 1); } else { publish(); } }} disabled={submitting}>{step < 3 ? '下一步' : (submitting ? (submitMode === '立即开拍' ? '正在立即开拍...' : '正在加入队列...') : '加入今日队列')}</StudioButton></div></main><StickyPreviewPanel form={form} issues={issues} previewMode={previewMode} setPreviewMode={setPreviewMode} step={step} /></div>{dialogOpen && <PublishConfirmDialog form={{ ...form, startMode: submitMode }} issues={issues} submitting={submitting} submitMode={submitMode} onClose={() => { if (!submitting) setDialogOpen(false); }} onConfirm={() => void confirmPublish()} />}</section>;
+  return <section className="auctionCreatePage">{tip ? <span className="auctionUploadTipBridge" aria-hidden="true" /> : null}<StudioToastViewport toasts={toasts} className="auctionCreateToastViewport" /><PublishStepper step={step} setStep={(next) => { if (canEnter(next)) { setStep(next); setStepNotice(''); } }} canEnter={canEnter} issues={issues} /><div className="auctionCreateMeta"><AuctionCreateActions onDraft={saveDraft} onQueue={() => publish('仅保存草稿')} onNext={markAsNext} onStart={() => publish('立即开拍')} submitting={submitting} /></div><div className="auctionCreateLayout"><main className="auctionCreateMain">{step === 0 && <ProductInfoStep form={form} update={update} generateDescription={generateDescription} mainImageUploading={mainImageUploading} mainImageError={mainImageError} onMainImageSelect={(file) => void uploadMainImage(file)} onRemoveMainImage={removeMainImage} />}{step === 1 && <AuctionRuleStep form={form} update={update} issues={issues} />}{step === 2 && <LiveRoomStep form={form} update={update} />}{step === 3 && <PublishReviewStep form={form} issues={issues} />}<div className="auctionStepNav"><StudioButton type="button" variant="secondary" disabled={step === 0} onClick={() => setStep(Math.max(0, step - 1))}>上一步</StudioButton><StudioButton type="button" variant="primary" onClick={() => { if (step < 3) { if (currentStepErrors.length) { showStepNotice('请先完成当前步骤必填项和严重校验。'); return; } setStepNotice(''); setStep(step + 1); } else { publish(); } }} disabled={submitting}>{step < 3 ? '下一步' : (submitting ? (submitMode === '立即开拍' ? '正在立即开拍...' : '正在加入队列...') : '加入今日队列')}</StudioButton></div></main><StickyPreviewPanel form={form} issues={issues} previewMode={previewMode} setPreviewMode={setPreviewMode} step={step} /></div>{dialogOpen && <PublishConfirmDialog form={{ ...form, startMode: submitMode }} issues={issues} submitting={submitting} submitMode={submitMode} onClose={() => { if (!submitting) setDialogOpen(false); }} onConfirm={() => void confirmPublish()} />}</section>;
 }
 
 

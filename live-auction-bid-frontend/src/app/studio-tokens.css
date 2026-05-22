@@ -2341,3 +2341,56 @@ button:disabled {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
+
+/* Add-lot validation tips: centered modal-like toast, larger and auto-dismissed by toast timer. */
+.laAdminShell .auctionCreateToastViewport {
+  left: 50% !important;
+  top: 50% !important;
+  right: auto !important;
+  width: min(620px, calc(100vw - 48px)) !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 220 !important;
+  place-items: center !important;
+}
+
+.laAdminShell .auctionCreateToastViewport .studioToast {
+  width: 100% !important;
+  min-height: 76px !important;
+  padding: 22px 26px !important;
+  border-radius: 28px !important;
+  gap: 16px !important;
+  box-shadow: 0 32px 90px rgba(15, 23, 42, .24), 0 10px 28px rgba(245, 158, 11, .16) !important;
+  animation: auctionCenteredToastIn .22s cubic-bezier(.2, .8, .2, 1) both !important;
+}
+
+.laAdminShell .auctionCreateToastViewport .studioToast > i {
+  width: 14px !important;
+  height: 14px !important;
+  box-shadow: 0 0 0 7px color-mix(in srgb, currentColor 14%, transparent) !important;
+}
+
+.laAdminShell .auctionCreateToastViewport .studioToast strong {
+  font-size: 20px !important;
+  line-height: 1.35 !important;
+  font-weight: 900 !important;
+  letter-spacing: -.02em !important;
+}
+
+@keyframes auctionCenteredToastIn {
+  from { opacity: 0; transform: translateY(10px) scale(.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 720px) {
+  .laAdminShell .auctionCreateToastViewport {
+    left: 50% !important;
+    top: 50% !important;
+    right: auto !important;
+    width: calc(100vw - 32px) !important;
+    transform: translate(-50%, -50%) !important;
+  }
+
+  .laAdminShell .auctionCreateToastViewport .studioToast strong {
+    font-size: 18px !important;
+  }
+}
