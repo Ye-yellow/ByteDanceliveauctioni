@@ -2313,3 +2313,31 @@ button:disabled {
 .laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateMeta > em {
   margin-right: auto;
 }
+
+/* Add-lot action row: occupy the full row with evenly sized, easy-hit buttons. */
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateMeta {
+  display: block !important;
+  min-height: 52px !important;
+  margin-top: 0 !important;
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateActions {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 14px !important;
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateActions .studioButton {
+  width: 100% !important;
+  height: 48px !important;
+  min-width: 0 !important;
+  font-size: 15px !important;
+  border-radius: 15px !important;
+}
+
+@media (max-width: 900px) {
+  .laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateActions {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
