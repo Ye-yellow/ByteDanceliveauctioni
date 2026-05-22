@@ -3168,3 +3168,91 @@ button:disabled {
     border-radius: 10px !important;
   }
 }
+
+/* Queue row right operation panel: group account, order state and actions as one clean block. */
+.laAdminShell .queueRowRight {
+  align-self: stretch !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-content: center !important;
+  gap: 10px !important;
+  padding: 12px !important;
+  border: 1px solid rgba(226, 232, 240, .92) !important;
+  border-radius: 22px !important;
+  background: linear-gradient(180deg, rgba(248,250,252,.92), rgba(255,255,255,.98)) !important;
+}
+.laAdminShell .queueRowRight .queueAccount,
+.laAdminShell .queueRowRight .orderState,
+.laAdminShell .queueRowRight > .mutedText {
+  min-width: 0 !important;
+}
+.laAdminShell .queueRowRight .queueAccount {
+  display: grid !important;
+  gap: 2px !important;
+}
+.laAdminShell .queueRowRight .queueAccount b {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 15px !important;
+  line-height: 20px !important;
+}
+.laAdminShell .queueRowRight .queueAccount span,
+.laAdminShell .queueRowRight .mutedText,
+.laAdminShell .queueRowRight .orderState span {
+  font-size: 12px !important;
+  line-height: 18px !important;
+}
+.laAdminShell .queueRowRight .orderState b {
+  font-size: 14px !important;
+  line-height: 19px !important;
+}
+.laAdminShell .queueRowRight > div:last-child {
+  grid-column: auto !important;
+}
+.laAdminShell .queueRowRight .auctionRowActions {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+.laAdminShell .queueRowRight .auctionRowActions button,
+.laAdminShell .queueRowRight .auctionRowActions a,
+.laAdminShell .queueRowRight .auctionRowActions summary {
+  display: inline-grid !important;
+  place-items: center !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 36px !important;
+  padding: 0 10px !important;
+  border-radius: 12px !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+  white-space: nowrap !important;
+}
+.laAdminShell .queueRowRight .queueMoreActions {
+  min-width: 0 !important;
+}
+.laAdminShell .queueRowRight .queueMoreActions summary {
+  width: 100% !important;
+}
+@container (min-width: 1321px) {
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowCard {
+    grid-template-columns: minmax(430px, 1.05fr) minmax(620px, 1.32fr) minmax(260px, .56fr) !important;
+  }
+}
+@container (max-width: 1180px) {
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight {
+    padding: 10px !important;
+    border-radius: 18px !important;
+  }
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions {
+    gap: 6px !important;
+  }
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions button,
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions a,
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions summary {
+    min-height: 32px !important;
+    padding-inline: 8px !important;
+    font-size: 11px !important;
+  }
+}
