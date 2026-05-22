@@ -53,8 +53,8 @@ export function AdminLayout({
           ))}
         </nav>
         <div className="adminSidebarFooter">
-          <a href="/" className="adminGhostLink">观众端 H5</a>
-          <span>真实后端契约 · 无 mock</span>
+          <a href="/home" className="adminGhostLink">返回 Home</a>
+          <span>后台 Web 专用 · 真实后端契约 · 无 mock</span>
         </div>
       </aside>
 

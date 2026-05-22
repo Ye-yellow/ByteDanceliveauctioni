@@ -1,8 +1,9 @@
+import { Suspense, lazy, type ReactNode } from 'react';
 import { currentAuth } from '../features/auth/api/authApi';
-import { HomePage } from '../pages/home/HomePage';
-import { HostConsolePage } from '../pages/host-console/HostConsolePage';
-import { LoginPage } from '../pages/login/LoginPage';
-import { LiveRoomPage } from '../pages/live-room/LiveRoomPage';
+
+const HomePage = lazy(() => import('../pages/home/HomePage').then((module) => ({ default: module.HomePage })));
+const LoginPage = lazy(() => import('../pages/login/LoginPage').then((module) => ({ default: module.LoginPage })));
+const HostConsolePage = lazy(() => import('../pages/host-console/HostConsolePage').then((module) => ({ default: module.HostConsolePage })));
 
 function isAdminPath(pathname: string) {
   return pathname.startsWith('/host') || pathname.startsWith('/admin');
@@ -11,11 +12,16 @@ function isAdminPath(pathname: string) {
 export function App() {
   const { pathname } = location;
 
-  if (pathname.startsWith('/login')) return <LoginPage />;
-  if (pathname.startsWith('/room') || pathname.startsWith('/live')) return <LiveRoomPage />;
+  if (pathname.startsWith('/login')) return <RouteSuspense><LoginPage /></RouteSuspense>;
   if (isAdminPath(pathname)) {
-    return currentAuth().user ? <HostConsolePage /> : <LoginPage title="登录后进入管理后台" />;
+    return <RouteSuspense>{currentAuth().user ? <HostConsolePage /> : <LoginPage title="登录后进入管理后台" />}</RouteSuspense>;
   }
 
-  return <HomePage />;
+  return <RouteSuspense><HomePage /></RouteSuspense>;
+}
+
+function RouteSuspense({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<main className="routeLoading" aria-busy="true"><span>LiveAuction Studio</span><b>正在加载工作台…</b></main>}>
+    {children}
+  </Suspense>;
 }

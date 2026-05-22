@@ -16,6 +16,26 @@ type SoftParticle = {
   color: string;
 };
 
+type PointerDisturbance = {
+  id: number;
+  x: number;
+  y: number;
+  text: string;
+  rotate: number;
+  size: number;
+};
+
+type TextParticle = {
+  x: number;
+  y: number;
+  tx: number;
+  ty: number;
+  vx: number;
+  vy: number;
+  size: number;
+  color: string;
+};
+
 const leftRightBlankZones = [
   { left: [1, 7], top: [12, 76] },
   { left: [88, 96], top: [12, 76] },
@@ -245,6 +265,218 @@ function SoftParticleCanvas() {
   }, []);
 
   return <canvas ref={canvasRef} className="softParticleCanvas" aria-hidden="true" />;
+}
+
+const disturbanceTexts = ['Bid +¥50', '+¥100', '¥520', '✦', '✿', '¥', '+15s', '成交'];
+
+function pickDisturbanceText(index: number) {
+  return disturbanceTexts[index % disturbanceTexts.length];
+}
+
+function MouseDisturbanceLayer() {
+  const [bursts, setBursts] = useState<PointerDisturbance[]>([]);
+  const seedRef = useRef(1);
+  const lastRef = useRef(0);
+  const quietTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const page = document.querySelector<HTMLElement>('.softHomePage');
+    const move = (event: PointerEvent) => {
+      const x = event.clientX;
+      const y = event.clientY;
+      page?.style.setProperty('--mouse-x', `${x}px`);
+      page?.style.setProperty('--mouse-y', `${y}px`);
+      page?.classList.add('isPointerDisturbing');
+      if (quietTimerRef.current) window.clearTimeout(quietTimerRef.current);
+      quietTimerRef.current = window.setTimeout(() => {
+        page?.classList.remove('isPointerDisturbing');
+      }, 520);
+
+      const now = performance.now();
+      if (now - lastRef.current < 90) return;
+      lastRef.current = now;
+      const id = seedRef.current;
+      seedRef.current += 1;
+      setBursts((current) => [
+        ...current.slice(-18),
+        {
+          id,
+          x: x + (Math.random() - 0.5) * 34,
+          y: y + (Math.random() - 0.5) * 34,
+          text: pickDisturbanceText(id + Math.floor(Math.random() * disturbanceTexts.length)),
+          rotate: -18 + Math.random() * 36,
+          size: 0.82 + Math.random() * 0.45,
+        },
+      ]);
+    };
+    const leave = () => page?.classList.remove('isPointerDisturbing');
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerleave', leave);
+    window.addEventListener('blur', leave);
+    return () => {
+      if (quietTimerRef.current) window.clearTimeout(quietTimerRef.current);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerleave', leave);
+      window.removeEventListener('blur', leave);
+    };
+  }, []);
+
+  return (
+    <div className="mouseDisturbanceLayer" aria-hidden="true">
+      {bursts.map((burst) => (
+        <span
+          key={burst.id}
+          className="mouseDisturbanceBurst"
+          style={{
+            left: burst.x,
+            top: burst.y,
+            rotate: `${burst.rotate}deg`,
+            scale: burst.size,
+          }}
+        >
+          {burst.text}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+const particleTitlePalette = ['#64D8F4', '#FFFFFF', '#F05A9A', '#BDAAF6', '#7EF2E5'];
+
+function ParticleTitleCanvas({ text }: { text: string }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let frame = 0;
+    let animation = 0;
+    let particles: TextParticle[] = [];
+    const pointer = { x: -9999, y: -9999, active: false };
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const build = () => {
+      const rect = canvas.getBoundingClientRect();
+      const parentRect = canvas.parentElement?.getBoundingClientRect();
+      const width = Math.max(320, Math.floor(parentRect?.width || rect.width));
+      const height = Math.max(120, Math.floor(parentRect?.height || rect.height));
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const offscreen = document.createElement('canvas');
+      offscreen.width = width;
+      offscreen.height = height;
+      const offCtx = offscreen.getContext('2d');
+      if (!offCtx) return;
+      offCtx.clearRect(0, 0, width, height);
+      offCtx.textAlign = 'center';
+      offCtx.textBaseline = 'middle';
+      offCtx.font = `500 ${Math.min(170, Math.max(112, width * 0.18))}px Georgia, 'Times New Roman', serif`;
+      offCtx.fillStyle = '#ffffff';
+      offCtx.fillText(text, width / 2, height / 2 + 2);
+
+      const data = offCtx.getImageData(0, 0, width, height).data;
+      const next: TextParticle[] = [];
+      const step = width > 900 ? 3 : 4;
+      for (let y = 0; y < height; y += step) {
+        for (let x = 0; x < width; x += step) {
+          const alpha = data[(y * width + x) * 4 + 3];
+          if (alpha > 58 && (x + y) % (step * 2) < step + 2) {
+            const color = particleTitlePalette[(x + y + next.length) % particleTitlePalette.length];
+            next.push({
+              x: width / 2 + (Math.random() - 0.5) * width * 0.9,
+              y: height / 2 + (Math.random() - 0.5) * height * 0.9,
+              tx: x,
+              ty: y,
+              vx: 0,
+              vy: 0,
+              size: 1.35 + Math.random() * 1.35,
+              color,
+            });
+          }
+        }
+      }
+      particles = next.slice(0, 3600);
+    };
+
+    const draw = () => {
+      const rect = canvas.getBoundingClientRect();
+      const width = rect.width;
+      const height = rect.height;
+      frame += 1;
+      ctx.clearRect(0, 0, width, height);
+
+      for (const p of particles) {
+        const dx = p.tx - p.x;
+        const dy = p.ty - p.y;
+        p.vx += dx * (reduceMotion ? 0.18 : 0.028);
+        p.vy += dy * (reduceMotion ? 0.18 : 0.028);
+
+        if (pointer.active) {
+          const mx = p.x - pointer.x;
+          const my = p.y - pointer.y;
+          const distanceSq = mx * mx + my * my;
+          const radius = 92;
+          if (distanceSq < radius * radius) {
+            const distance = Math.sqrt(distanceSq) || 1;
+            const force = (1 - distance / radius) * 9.5;
+            p.vx += (mx / distance) * force;
+            p.vy += (my / distance) * force;
+          }
+        }
+
+        const wave = reduceMotion ? 0 : Math.sin(frame * 0.035 + p.tx * 0.025) * 0.16;
+        p.vx += wave;
+        p.vx *= reduceMotion ? 0.36 : 0.84;
+        p.vy *= reduceMotion ? 0.36 : 0.84;
+        p.x += p.vx;
+        p.y += p.vy;
+
+        ctx.globalAlpha = 0.86;
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = pointer.active ? 9 : 5;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+      animation = requestAnimationFrame(draw);
+    };
+
+    const move = (event: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      pointer.x = event.clientX - rect.left;
+      pointer.y = event.clientY - rect.top;
+      pointer.active = pointer.x >= 0 && pointer.y >= 0 && pointer.x <= rect.width && pointer.y <= rect.height;
+    };
+    const leave = () => { pointer.active = false; };
+    const resize = () => build();
+
+    build();
+    draw();
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerleave', leave);
+    window.addEventListener('blur', leave);
+    window.addEventListener('resize', resize);
+    return () => {
+      cancelAnimationFrame(animation);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerleave', leave);
+      window.removeEventListener('blur', leave);
+      window.removeEventListener('resize', resize);
+    };
+  }, [text]);
+
+  return <canvas ref={canvasRef} className="particleTitleCanvas" aria-hidden="true" />;
 }
 
 function HandDrawnOrbit() {
@@ -658,6 +890,26 @@ function RippleBidField() {
   );
 }
 
+const sideActivityItems = [
+  { cls: 'sideActivityA', label: '自动延时', value: '+15s' },
+  { cls: 'sideActivityB', label: '领先提醒', value: '¥1,580' },
+  { cls: 'sideActivityC', label: '订单生成', value: '已成交' },
+  { cls: 'sideActivityE', label: '封顶成交', value: '¥2,999' },
+];
+
+function SideActivityField() {
+  return (
+    <div className="sideActivityField" aria-hidden="true">
+      {sideActivityItems.map((item) => (
+        <span key={item.cls} className={`sideActivityChip ${item.cls}`}>
+          <b>{item.label}</b>
+          <strong>{item.value}</strong>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 const featureItems = [
   { icon: <Gavel size={24} />, title: '直播拍卖', text: '实时竞价，公平透明' },
   { icon: <ShoppingBag size={24} />, title: '电商带货', text: '精选好物，轻松交易' },
@@ -667,7 +919,7 @@ const featureItems = [
 
 const statItems = [
   { icon: <Users size={22} />, value: '50,000+', label: '活跃主播' },
-  { icon: <Store size={22} />, value: '200,000+', label: '入驻商家' },
+  { icon: <Store size={22} />, value: '200,000+', label: '上架拍品' },
   { icon: <Heart size={22} />, value: '10,000,000+', label: '累计成交' },
 ];
 
@@ -683,6 +935,20 @@ const frozenLayoutStorageKey = 'liveauction.home.dragLayout.v1';
 
 type FrozenLayoutItem = { left: number; top: number };
 type FrozenLayoutMap = Record<string, FrozenLayoutItem>;
+
+const defaultFrozenHomeLayout: FrozenLayoutMap = {
+  liveAuctionFloat: { left: 2.2, top: 7.2 },
+  bidBubbleStack: { left: 14.8, top: 8.8 },
+  gavelSketch: { left: 42, top: 84.8 },
+  stickerLive: { left: -59.23, top: -39.51 },
+  stickerPetal: { left: -53.45, top: 113.77 },
+  rippleBidA: { left: 9.5, top: 9.04 },
+  rippleBidB: { left: -32.47, top: 26.86 },
+  rippleBidC: { left: 126.11, top: 8.34 },
+  rippleBidD: { left: -13.5, top: 63.35 },
+  rippleBidE: { left: 101.09, top: 48.15 },
+  rippleBidF: { left: 95.85, top: 89.83 },
+};
 
 function getFrozenLayoutKey(element: Element, index: number) {
   const preferred = [
@@ -704,9 +970,14 @@ function getFrozenLayoutKey(element: Element, index: number) {
 function readFrozenHomeLayout(): FrozenLayoutMap {
   try {
     const raw = window.localStorage.getItem(frozenLayoutStorageKey);
-    return raw ? JSON.parse(raw) as FrozenLayoutMap : {};
+    const saved = raw ? JSON.parse(raw) as FrozenLayoutMap : defaultFrozenHomeLayout;
+    return {
+      ...saved,
+      liveAuctionFloat: defaultFrozenHomeLayout.liveAuctionFloat,
+      bidBubbleStack: defaultFrozenHomeLayout.bidBubbleStack,
+    };
   } catch {
-    return {};
+    return defaultFrozenHomeLayout;
   }
 }
 
@@ -737,6 +1008,7 @@ export function HomePage() {
     <main className="marketingPage particleTheme softHomePage">
       <div className="softHomeBackdrop" aria-hidden="true" />
       <SoftParticleCanvas />
+      <MouseDisturbanceLayer />
       <SakuraStarFragments />
       <HandDrawnOrbit />
 
@@ -748,14 +1020,20 @@ export function HomePage() {
           <div className="gavelSketch" aria-hidden="true"><AuctionGavelIllustration /></div>
           <ScatterStickerField />
           <RippleBidField />
+          <SideActivityField />
           <RandomReactionField />
           <RandomProductField />
 
           <div className="softHeroCard heroCard">
             <span className="outlineWord" aria-hidden="true">LiveAuction</span>
-            <p className="softKicker">ByteDance <em>● LIVE</em></p>
-            <h1>LiveAuction</h1>
-            <p className="softSubtitle">连接主播与商家，开启高效直播拍卖与电商新体验</p>
+            <p className="softKicker softDisturbanceText" aria-label="ByteDance">
+              {'ByteDance'.split('').map((letter, index) => <span key={`${letter}-${index}`} style={{ '--letter-index': index } as React.CSSProperties}>{letter}</span>)}
+              <em>● LIVE</em>
+            </p>
+            <h1 className="softTitleDisturbance isParticleTitle" aria-label="LiveAuction">
+              <ParticleTitleCanvas text="LiveAuction" />
+            </h1>
+            <p className="softSubtitle">连接主播与用户，开启高效直播拍卖与电商新体验</p>
             <div className="softFeatureGrid" aria-label="核心能力">
               {featureItems.map((item) => (
                 <article key={item.title}>

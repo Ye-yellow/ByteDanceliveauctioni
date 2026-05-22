@@ -1,0 +1,2151 @@
+:root {
+  --studio-bg: #F6F8FC;
+  --studio-surface: #FFFFFF;
+  --studio-surface-soft: #F8FAFD;
+  --studio-border: #E5EAF2;
+
+  --studio-text: #172033;
+  --studio-text-2: #3D4963;
+  --studio-text-3: #7A8499;
+
+  --studio-primary: #3B82F6;
+  --studio-primary-hover: #2563EB;
+  --studio-primary-soft: #EFF6FF;
+
+  --studio-pink: #F472B6;
+  --studio-purple: #8B7CF6;
+  --studio-success: #16A34A;
+  --studio-warning: #F59E0B;
+  --studio-danger: #EF4444;
+
+  --studio-radius-sm: 10px;
+  --studio-radius-md: 14px;
+  --studio-radius-lg: 18px;
+  --studio-radius-xl: 24px;
+  --studio-radius-2xl: 32px;
+
+  --studio-space-1: 4px;
+  --studio-space-2: 8px;
+  --studio-space-3: 12px;
+  --studio-space-4: 16px;
+  --studio-space-5: 20px;
+  --studio-space-6: 24px;
+  --studio-space-8: 32px;
+
+  --studio-shadow-sm: 0 4px 14px rgba(15, 23, 42, 0.06);
+  --studio-shadow-md: 0 12px 32px rgba(15, 23, 42, 0.08);
+  --studio-shadow-lg: 0 24px 70px rgba(15, 23, 42, 0.12);
+  --studio-focus-ring: 0 0 0 4px rgba(59, 130, 246, 0.18);
+
+  --studio-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  --studio-page-max: 1480px;
+  --studio-sidebar-width: 260px;
+  --studio-topbar-height: 68px;
+  --studio-readable-width: 1120px;
+  --studio-control-min: 320px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--studio-font);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--studio-font);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: var(--studio-radius-md);
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-weight: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.laAdminShell {
+  --la-bg: var(--studio-bg);
+  --la-card: var(--studio-surface);
+  --la-card-soft: var(--studio-surface-soft);
+  --la-line: var(--studio-border);
+  --la-text-main: var(--studio-text);
+  --la-text-sub: var(--studio-text-3);
+  --la-primary-blue: var(--studio-primary);
+  --la-primary-purple: var(--studio-purple);
+  --la-primary-pink: var(--studio-pink);
+  --la-success: var(--studio-success);
+  --la-warning: var(--studio-warning);
+  --la-danger: var(--studio-danger);
+  font-family: var(--studio-font);
+  color: var(--studio-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.laAdminShell button,
+.laAdminShell input,
+.laAdminShell textarea,
+.laAdminShell select {
+  font-family: var(--studio-font);
+}
+
+.laAdminShell .laPrimaryBtn,
+.laAdminShell a.laPrimaryBtn,
+.laAdminShell button.laPrimaryBtn,
+.laAdminShell .laControlActions button,
+.laAdminShell .laWelcomeActions a {
+  border: 1px solid var(--studio-primary);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-primary);
+  background-image: none;
+  color: #fff;
+  box-shadow: var(--studio-shadow-sm);
+}
+
+.laAdminShell .laPrimaryBtn:hover,
+.laAdminShell a.laPrimaryBtn:hover,
+.laAdminShell button.laPrimaryBtn:hover,
+.laAdminShell .laControlActions button:hover,
+.laAdminShell .laWelcomeActions a:hover {
+  border-color: var(--studio-primary-hover);
+  background: var(--studio-primary-hover);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: var(--studio-shadow-md);
+}
+
+.laAdminShell .auctionGhostBtn,
+.laAdminShell .auctionCardActions a:not(.laPrimaryBtn),
+.laAdminShell .auctionCardActions button:not(.laPrimaryBtn):not(.danger),
+.laAdminShell .auctionRowActions a:not(.danger),
+.laAdminShell .auctionRowActions button:not(.danger),
+.laAdminShell button:not(.laPrimaryBtn):not(.danger):not(.loginSubmit):not(.loginGhost):not(.studioButton) {
+  border: 1px solid var(--studio-border);
+  background: var(--studio-surface);
+  background-image: none;
+  color: var(--studio-text-2);
+  box-shadow: var(--studio-shadow-sm);
+}
+
+.laAdminShell .auctionGhostBtn:hover,
+.laAdminShell .auctionCardActions a:not(.laPrimaryBtn):hover,
+.laAdminShell .auctionCardActions button:not(.laPrimaryBtn):not(.danger):hover,
+.laAdminShell .auctionRowActions a:not(.danger):hover,
+.laAdminShell .auctionRowActions button:not(.danger):hover,
+.laAdminShell button:not(.laPrimaryBtn):not(.danger):not(.loginSubmit):not(.loginGhost):not(.studioButton):hover {
+  border-color: #BFDBFE;
+  background: var(--studio-primary-soft);
+  color: var(--studio-primary-hover);
+}
+
+.laAdminShell .auctionStatusTabs button.active,
+.laAdminShell .publishStepper button.active,
+.laAdminShell .auctionDrawer nav button.active {
+  border: 1px solid #BFDBFE;
+  background: var(--studio-primary-soft);
+  background-image: none;
+  color: var(--studio-primary-hover);
+  box-shadow: none;
+}
+
+.laAdminShell .danger,
+.laAdminShell button.danger {
+  border: 1px solid var(--studio-danger);
+  background: var(--studio-danger);
+  background-image: none;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(239, 68, 68, 0.14);
+}
+
+.laAdminShell .danger:hover,
+.laAdminShell button.danger:hover {
+  border-color: #DC2626;
+  background: #DC2626;
+  color: #fff;
+}
+
+.adminShell {
+  --admin-primary: var(--studio-primary);
+  --admin-primary-hover: var(--studio-primary-hover);
+  --admin-primary-soft: var(--studio-primary-soft);
+  --admin-primary-border: #BFDBFE;
+  --admin-text: var(--studio-text-2);
+  --admin-border: var(--studio-border);
+  font-family: var(--studio-font);
+}
+
+.adminShell .primaryAction {
+  border: 1px solid var(--studio-primary);
+  background: var(--studio-primary);
+  background-image: none;
+  color: #fff;
+  box-shadow: var(--studio-shadow-sm);
+}
+
+.adminShell .primaryAction:hover {
+  border-color: var(--studio-primary-hover);
+  background: var(--studio-primary-hover);
+}
+
+.adminShell .secondaryAction,
+.adminShell .adminGhostLink,
+.adminShell .adminToolbarButton {
+  border: 1px solid var(--studio-border);
+  background: var(--studio-surface);
+  background-image: none;
+  color: var(--studio-text-2);
+  box-shadow: var(--studio-shadow-sm);
+}
+
+.adminShell .dangerAction {
+  border: 1px solid var(--studio-danger);
+  background: var(--studio-danger);
+  background-image: none;
+  color: #fff;
+}
+
+/* Studio AppShell: shared LiveAuction Studio backend layout. */
+.laAdminShell.studioShell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: var(--studio-sidebar-width) minmax(0, 1fr);
+  background: var(--studio-bg);
+  color: var(--studio-text);
+}
+
+.studioSidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  width: var(--studio-sidebar-width);
+  padding: 18px 14px;
+  overflow: auto;
+  background: rgba(255, 255, 255, 0.94);
+  border-right: 1px solid var(--studio-border);
+  box-shadow: 8px 0 24px rgba(15, 23, 42, 0.04);
+  backdrop-filter: none;
+}
+
+.studioBrand {
+  min-height: 58px;
+  padding: 8px 10px 18px;
+}
+
+.studioBrand > span {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-primary);
+  background-image: none;
+  box-shadow: 0 10px 22px rgba(59, 130, 246, 0.18);
+}
+
+.studioBrand strong {
+  font-size: 14px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.studioBrand small {
+  margin-top: 3px;
+  color: var(--studio-text-3);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.studioNav {
+  display: grid;
+  gap: 18px;
+}
+
+.studioNavGroup p {
+  margin: 0 10px 8px;
+  color: var(--studio-text-3);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.studioNav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  margin: 2px 0;
+  padding: 9px 11px;
+  border: 1px solid transparent;
+  border-radius: var(--studio-radius-md);
+  background: transparent;
+  color: var(--studio-text-2);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 650;
+  box-shadow: none;
+}
+
+.studioNav a svg {
+  color: var(--studio-text-3);
+  flex: 0 0 auto;
+}
+
+.studioNav a:hover {
+  background: var(--studio-surface-soft);
+  border-color: var(--studio-border);
+  color: var(--studio-text);
+}
+
+.studioNav a.active {
+  background: var(--studio-primary-soft);
+  border-color: #BFDBFE;
+  color: var(--studio-primary-hover);
+  box-shadow: none;
+}
+
+.studioNav a.active svg {
+  color: var(--studio-primary);
+}
+
+.studioMain {
+  min-width: 0;
+  background: var(--studio-bg);
+}
+
+.studioTopbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: var(--studio-topbar-height);
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(260px, 420px) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 0 28px;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid var(--studio-border);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.82);
+  backdrop-filter: none;
+}
+
+.studioTopbarTitle {
+  min-width: 0;
+}
+
+.studioTopbarTitle p,
+.studioTopbarTitle h1,
+.studioTopbarTitle span {
+  margin: 0;
+}
+
+.studioTopbarTitle p {
+  overflow: hidden;
+  color: var(--studio-text-3);
+  font-size: 12px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studioTopbarTitle h1 {
+  margin-top: 2px;
+  color: var(--studio-text);
+  font-size: 20px;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+}
+
+.studioTopbarTitle span {
+  display: block;
+  margin-top: 3px;
+  color: var(--studio-text-3);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.studioSearch {
+  height: 40px;
+  border-radius: 999px;
+  background: var(--studio-surface-soft);
+  border: 1px solid var(--studio-border);
+  box-shadow: none;
+  color: var(--studio-text-3);
+}
+
+.studioSearch input::placeholder {
+  color: var(--studio-text-3);
+}
+
+.studioTopActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.studioTopActions .laWsStatus {
+  height: 36px;
+  border: 1px solid #BBF7D0;
+  background: #F0FDF4;
+  color: var(--studio-success);
+  box-shadow: none;
+}
+
+.studioTopActions .laWsStatus b {
+  color: var(--studio-success);
+}
+
+.studioTopActions button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+  color: var(--studio-text-2);
+  box-shadow: none;
+}
+
+.studioAvatar {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  justify-content: center;
+  border: 0;
+  background: linear-gradient(135deg, var(--studio-primary), var(--studio-purple));
+  color: #fff;
+  box-shadow: var(--studio-shadow-sm);
+}
+
+.studioContent {
+  display: block;
+  padding: 24px 28px 40px;
+}
+
+.studioPage {
+  width: min(100%, var(--studio-page-max));
+  display: grid;
+  gap: 18px;
+}
+
+.studioPageHeader {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 0 2px 2px;
+}
+
+.studioPageHeader p,
+.studioPageHeader h2,
+.studioPageHeader span,
+.studioPageHeader b,
+.studioPageHeader small {
+  margin: 0;
+}
+
+.studioPageHeader p,
+.studioPageHeader span,
+.studioPageHeader small {
+  color: var(--studio-text-3);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.studioPageHeader h2 {
+  margin-top: 3px;
+  color: var(--studio-text);
+  font-size: 26px;
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+}
+
+.studioPageHeader > div:last-child {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  text-align: right;
+}
+
+.studioPageHeader b {
+  color: var(--studio-text-2);
+  font-size: 14px;
+}
+
+.studioPageBody {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+@media (max-width: 1180px) {
+  .studioTopbar {
+    grid-template-columns: minmax(200px, 1fr) minmax(220px, 360px) auto;
+    gap: 12px;
+    padding: 0 20px;
+  }
+
+  .studioTopActions .laWsStatus {
+    max-width: 112px;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 900px) {
+  .laAdminShell.studioShell {
+    grid-template-columns: 1fr;
+  }
+
+  .studioSidebar {
+    position: relative;
+    width: auto;
+    height: auto;
+  }
+
+  .studioNav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .studioTopbar {
+    position: relative;
+    height: auto;
+    grid-template-columns: 1fr;
+    padding: 14px 18px;
+  }
+
+  .studioTopActions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .studioContent {
+    padding: 18px 16px 32px;
+  }
+
+  .studioPageHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .studioPageHeader > div:last-child {
+    justify-items: start;
+    text-align: left;
+  }
+}
+
+/* Studio reusable UI components. */
+.studioButton{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;border-radius:var(--studio-radius-md);font-weight:650;text-decoration:none;white-space:nowrap;transition:background .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease}.studioButton-sm{height:32px;padding:0 11px;font-size:12px}.studioButton-md{height:40px;padding:0 15px;font-size:13px}.studioButton-lg{height:46px;padding:0 18px;font-size:14px}.studioButton-primary{background:var(--studio-primary);border-color:var(--studio-primary);color:#fff;box-shadow:var(--studio-shadow-sm)}.studioButton-primary:hover{background:var(--studio-primary-hover);border-color:var(--studio-primary-hover);box-shadow:var(--studio-shadow-md);transform:translateY(-1px)}.studioButton-secondary{background:var(--studio-surface);border-color:var(--studio-border);color:var(--studio-text-2);box-shadow:var(--studio-shadow-sm)}.studioButton-secondary:hover{background:var(--studio-primary-soft);border-color:#bfdbfe;color:var(--studio-primary-hover)}.studioButton-ghost{background:transparent;border-color:transparent;color:var(--studio-text-2);box-shadow:none}.studioButton-ghost:hover{background:var(--studio-surface-soft);border-color:var(--studio-border)}.studioButton-soft{background:var(--studio-primary-soft);border-color:#bfdbfe;color:var(--studio-primary-hover);box-shadow:none}.studioButton-danger{background:var(--studio-danger);border-color:var(--studio-danger);color:#fff;box-shadow:0 8px 18px rgba(239,68,68,.14)}.studioButton-danger:hover{background:#dc2626;border-color:#dc2626}.studioButton:disabled{opacity:.52;cursor:not-allowed;transform:none;box-shadow:none}.studioButtonSpinner{width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:studioSpin .8s linear infinite}@keyframes studioSpin{to{transform:rotate(360deg)}}
+.studioCard{min-width:0;background:var(--studio-surface);border:1px solid var(--studio-border);border-radius:var(--studio-radius-xl);box-shadow:var(--studio-shadow-sm)}.studioCard-sm{padding:14px}.studioCard-md{padding:20px}.studioCard-lg{padding:26px}.studioCardHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px}.studioCardHeader p{margin:0 0 5px;color:var(--studio-text-3);font-size:12px;font-weight:650;letter-spacing:.08em;text-transform:uppercase}.studioCardHeader h2{margin:0;color:var(--studio-text);font-size:19px;letter-spacing:-.03em}.studioCardActions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end}
+.studioBadge{display:inline-flex;align-items:center;gap:6px;width:max-content;padding:6px 9px;border-radius:999px;font-size:12px;font-weight:650;white-space:nowrap}.studioBadge i{width:7px;height:7px;border-radius:50%;background:currentColor}.studioBadge-neutral{background:#f1f5f9;color:var(--studio-text-3)}.studioBadge-success{background:#dcfce7;color:var(--studio-success)}.studioBadge-warning{background:#fef3c7;color:#b45309}.studioBadge-danger{background:#fee2e2;color:var(--studio-danger)}.studioBadge-info{background:var(--studio-primary-soft);color:var(--studio-primary-hover)}.studioBadge-purple{background:#ede9fe;color:#6d28d9}
+.studioField{display:grid;gap:8px;color:var(--studio-text-2);font-size:13px;font-weight:650}.studioField>span{color:var(--studio-text-2)}.studioField input,.studioField select,.studioField textarea{width:100%;border:1px solid var(--studio-border);border-radius:var(--studio-radius-md);background:var(--studio-surface);color:var(--studio-text);padding:10px 12px;outline:none;transition:border-color .16s ease,box-shadow .16s ease}.studioField input:focus,.studioField select:focus,.studioField textarea:focus{border-color:var(--studio-primary);box-shadow:0 0 0 4px rgba(59,130,246,.12)}.studioField small{color:var(--studio-text-3);font-size:12px;line-height:1.45}.studioField em{color:var(--studio-danger);font-size:12px;font-style:normal}
+.studioSectionHeader{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:0 2px}.studioSectionHeader p{margin:0 0 6px;color:var(--studio-text-3);font-size:12px;font-weight:650;letter-spacing:.08em}.studioSectionHeader h2{margin:0;color:var(--studio-text);font-size:28px;letter-spacing:-.045em}.studioSectionHeader span{display:block;margin-top:7px;color:var(--studio-text-3);font-size:14px;line-height:1.55}.studioSectionActions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.studioMetricCard{display:flex;gap:13px;align-items:flex-start;padding:17px;border-radius:var(--studio-radius-xl);background:var(--studio-surface);border:1px solid var(--studio-border);box-shadow:var(--studio-shadow-sm)}.studioMetricCard>span{display:grid;place-items:center;width:42px;height:42px;flex:0 0 auto;border-radius:var(--studio-radius-md);background:var(--studio-primary-soft);color:var(--studio-primary)}.studioMetricCard p{margin:0;color:var(--studio-text-3);font-size:12px;font-weight:650}.studioMetricCard strong{display:block;margin:5px 0 2px;color:var(--studio-text);font-size:25px;letter-spacing:-.04em}.studioMetricCard small{color:var(--studio-text-3);font-size:12px}.studioMetric-success>span{background:#dcfce7;color:var(--studio-success)}.studioMetric-warning>span{background:#fef3c7;color:#b45309}.studioMetric-danger>span{background:#fee2e2;color:var(--studio-danger)}.studioMetric-purple>span{background:#ede9fe;color:#6d28d9}
+.studioTableWrap{overflow:auto;background:var(--studio-surface);border:1px solid var(--studio-border);border-radius:var(--studio-radius-xl);box-shadow:var(--studio-shadow-sm)}.studioTableTools{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--studio-border);color:var(--studio-text-3);font-size:12px}.studioTable{width:100%;min-width:860px;border-collapse:separate;border-spacing:0}.studioTable th{background:var(--studio-surface-soft);color:var(--studio-text-3);font-size:12px;text-align:left;text-transform:uppercase;letter-spacing:.08em}.studioTable th,.studioTable td{padding:13px 14px;border-bottom:1px solid #eef2f7;vertical-align:middle}.studioTable td{color:var(--studio-text-2);font-size:13px}.studioTable tbody tr:hover{background:var(--studio-primary-soft)}.studioTableEmpty{display:grid;place-items:center;min-height:160px;color:var(--studio-text-3);font-weight:650}
+
+/* Studio component authority inside backend shell. */
+.laAdminShell .studioButton-primary{background:var(--studio-primary);border-color:var(--studio-primary);color:#fff;box-shadow:var(--studio-shadow-sm)}.laAdminShell .studioButton-primary:hover{background:var(--studio-primary-hover);border-color:var(--studio-primary-hover);color:#fff}.laAdminShell .studioButton-secondary{background:var(--studio-surface);border-color:var(--studio-border);color:var(--studio-text-2);box-shadow:var(--studio-shadow-sm)}.laAdminShell .studioButton-secondary:hover{background:var(--studio-primary-soft);border-color:#bfdbfe;color:var(--studio-primary-hover)}.laAdminShell .studioButton-soft{background:var(--studio-primary-soft);border-color:#bfdbfe;color:var(--studio-primary-hover);box-shadow:none}.laAdminShell .studioButton-ghost{background:transparent;border-color:transparent;color:var(--studio-text-2);box-shadow:none}.laAdminShell .studioButton-danger{background:var(--studio-danger);border-color:var(--studio-danger);color:#fff}.laAdminShell .studioCard{background:var(--studio-surface);border-color:var(--studio-border);box-shadow:var(--studio-shadow-sm)}
+.laAdminShell button.studioButton-primary,.laAdminShell a.studioButton-primary{background:var(--studio-primary);border-color:var(--studio-primary);color:#fff;box-shadow:var(--studio-shadow-sm)}.laAdminShell button.studioButton-primary:hover,.laAdminShell a.studioButton-primary:hover{background:var(--studio-primary-hover);border-color:var(--studio-primary-hover);color:#fff}.laAdminShell button.studioButton-secondary,.laAdminShell a.studioButton-secondary{background:var(--studio-surface);border-color:var(--studio-border);color:var(--studio-text-2);box-shadow:var(--studio-shadow-sm)}.laAdminShell button.studioButton-secondary:hover,.laAdminShell a.studioButton-secondary:hover{background:var(--studio-primary-soft);border-color:#bfdbfe;color:var(--studio-primary-hover)}.laAdminShell button.studioButton-soft,.laAdminShell a.studioButton-soft{background:var(--studio-primary-soft);border-color:#bfdbfe;color:var(--studio-primary-hover);box-shadow:none}
+
+/* Studio typography and spacing normalization. Scoped to backend only. */
+.laAdminShell {
+  --studio-fs-page: 28px;
+  --studio-lh-page: 34px;
+  --studio-fw-page: 750;
+  --studio-fs-section: 20px;
+  --studio-lh-section: 28px;
+  --studio-fw-section: 700;
+  --studio-fs-card: 16px;
+  --studio-lh-card: 24px;
+  --studio-fw-card: 700;
+  --studio-fs-body: 14px;
+  --studio-lh-body: 22px;
+  --studio-fw-body: 400;
+  --studio-fw-strong: 650;
+  --studio-fs-meta: 13px;
+  --studio-lh-meta: 20px;
+  --studio-fs-caption: 12px;
+  --studio-lh-caption: 18px;
+  --studio-fw-button: 650;
+  font-size: var(--studio-fs-body);
+  line-height: var(--studio-lh-body);
+  font-weight: var(--studio-fw-body);
+}
+
+.laAdminShell h1,
+.laAdminShell .studioTopbarTitle h1,
+.laAdminShell .studioPageHeader h2,
+.laAdminShell .auctionCreateHeader h2,
+.laAdminShell .auctionMgmtHeader h2,
+.laAdminShell .laWelcomeCard h2,
+.laAdminShell .laSettingsHero h2 {
+  font-size: var(--studio-fs-page);
+  line-height: var(--studio-lh-page);
+  font-weight: var(--studio-fw-page);
+  letter-spacing: -0.035em;
+}
+
+.laAdminShell h2,
+.laAdminShell .studioSectionHeader h2,
+.laAdminShell .auctionStepCard > header h3,
+.laAdminShell .controlTopBar h2,
+.laAdminShell .currentRoomOverview h3,
+.laAdminShell .auctionFocusCard h3,
+.laAdminShell .laPanel > header h2,
+.laAdminShell .studioCardHeader h2 {
+  font-size: var(--studio-fs-section);
+  line-height: var(--studio-lh-section);
+  font-weight: var(--studio-fw-section);
+  letter-spacing: -0.025em;
+}
+
+.laAdminShell h3,
+.laAdminShell h4,
+.laAdminShell .productPanel h4,
+.laAdminShell .stickyMiniCard h3,
+.laAdminShell .roomHealthCard b,
+.laAdminShell .fixedRoomCard b,
+.laAdminShell .trustCardPanel h3,
+.laAdminShell .controlBottomCard h3,
+.laAdminShell .controlSideCard h3,
+.laAdminShell .controlActionDeck h3 {
+  font-size: var(--studio-fs-card);
+  line-height: var(--studio-lh-card);
+  font-weight: var(--studio-fw-card);
+  letter-spacing: -0.015em;
+}
+
+.laAdminShell p,
+.laAdminShell td,
+.laAdminShell input,
+.laAdminShell textarea,
+.laAdminShell select,
+.laAdminShell .auctionField input,
+.laAdminShell .auctionField select,
+.laAdminShell .auctionField textarea,
+.laAdminShell .studioField input,
+.laAdminShell .studioField select,
+.laAdminShell .studioField textarea,
+.laAdminShell .laTable td,
+.laAdminShell .studioTable td,
+.laAdminShell .auctionMgmtTable td {
+  font-size: var(--studio-fs-body);
+  line-height: var(--studio-lh-body);
+  font-weight: var(--studio-fw-body);
+}
+
+.laAdminShell b,
+.laAdminShell strong,
+.laAdminShell .laTable td b,
+.laAdminShell .studioTable td b,
+.laAdminShell .auctionMgmtTable td b,
+.laAdminShell .lotProductCell b,
+.laAdminShell .accountCell b,
+.laAdminShell .ruleCell b {
+  font-weight: var(--studio-fw-strong);
+}
+
+.laAdminShell small,
+.laAdminShell .studioTopbarTitle p,
+.laAdminShell .studioTopbarTitle span,
+.laAdminShell .studioPageHeader p,
+.laAdminShell .studioPageHeader span,
+.laAdminShell .studioPageHeader small,
+.laAdminShell .auctionCreateHeader p,
+.laAdminShell .auctionCreateHeader span,
+.laAdminShell .auctionStepCard > header p,
+.laAdminShell .auctionStepCard > header span,
+.laAdminShell .studioSectionHeader p,
+.laAdminShell .studioSectionHeader span,
+.laAdminShell .studioCardHeader p,
+.laAdminShell .studioMetricCard p,
+.laAdminShell .studioMetricCard small,
+.laAdminShell .laStatCard p,
+.laAdminShell .laStatCard small,
+.laAdminShell .laTableTools,
+.laAdminShell .studioTableTools,
+.laAdminShell .auctionCreateMeta,
+.laAdminShell .ruleCell span,
+.laAdminShell .realtimeCell span,
+.laAdminShell .accountCell span,
+.laAdminShell .accountCell small {
+  font-size: var(--studio-fs-meta);
+  line-height: var(--studio-lh-meta);
+  font-weight: var(--studio-fw-body);
+  letter-spacing: 0;
+}
+
+.laAdminShell .studioNavGroup p,
+.laAdminShell .studioBadge,
+.laAdminShell .laStatusBadge,
+.laAdminShell .studioTable th,
+.laAdminShell .laTable th,
+.laAdminShell .auctionMgmtTable th,
+.laAdminShell .studioField small,
+.laAdminShell .studioField em,
+.laAdminShell .auctionField small,
+.laAdminShell .auctionField em {
+  font-size: var(--studio-fs-caption);
+  line-height: var(--studio-lh-caption);
+  font-weight: var(--studio-fw-strong);
+  letter-spacing: 0.04em;
+}
+
+.laAdminShell .studioNav a,
+.laAdminShell .laNav a {
+  font-size: var(--studio-fs-meta);
+  line-height: var(--studio-lh-meta);
+  font-weight: var(--studio-fw-strong);
+}
+
+.laAdminShell button,
+.laAdminShell a.studioButton,
+.laAdminShell .studioButton,
+.laAdminShell .laPrimaryBtn,
+.laAdminShell .auctionGhostBtn,
+.laAdminShell .auctionCardActions a,
+.laAdminShell .auctionRowActions button,
+.laAdminShell .auctionRowActions a,
+.laAdminShell .laWelcomeActions a {
+  font-size: var(--studio-fs-body);
+  line-height: 20px;
+  font-weight: var(--studio-fw-button);
+}
+
+.laAdminShell .studioButton-sm,
+.laAdminShell button.studioButton-sm,
+.laAdminShell a.studioButton-sm {
+  height: 32px;
+  padding: 0 12px;
+}
+
+.laAdminShell .studioButton-md,
+.laAdminShell button.studioButton-md,
+.laAdminShell a.studioButton-md,
+.laAdminShell .laPrimaryBtn,
+.laAdminShell .auctionGhostBtn {
+  height: 40px;
+  padding: 0 16px;
+}
+
+.laAdminShell .studioButton-lg,
+.laAdminShell button.studioButton-lg,
+.laAdminShell a.studioButton-lg {
+  height: 48px;
+  padding: 0 20px;
+}
+
+.laAdminShell .studioBadge,
+.laAdminShell .laStatusBadge {
+  padding: 6px 10px;
+  gap: 7px;
+  font-weight: var(--studio-fw-strong);
+}
+
+.laAdminShell .studioContent,
+.laAdminShell .laContent {
+  gap: 20px;
+}
+
+.laAdminShell .studioPage,
+.laAdminShell .studioPageBody,
+.laAdminShell .auctionCreatePage,
+.laAdminShell .auctionCreateMain,
+.laAdminShell .liveControlPage {
+  gap: 20px;
+}
+
+.laAdminShell .studioCard,
+.laAdminShell .laPanel,
+.laAdminShell .auctionStepCard,
+.laAdminShell .currentRoomOverview,
+.laAdminShell .auctionFocusCard,
+.laAdminShell .controlCard,
+.laAdminShell .controlSideCard,
+.laAdminShell .controlBottomCard,
+.laAdminShell .stickyPreviewPanel > article,
+.laAdminShell .mobilePreviewWrap {
+  padding: 20px;
+}
+
+.laAdminShell .studioCard-lg,
+.laAdminShell .laWelcomeCard,
+.laAdminShell .auctionCreateHeader {
+  padding: 24px;
+}
+
+.laAdminShell .studioCardHeader,
+.laAdminShell .laPanel > header,
+.laAdminShell .auctionStepCard > header,
+.laAdminShell .studioSectionHeader,
+.laAdminShell .controlCard > header,
+.laAdminShell .currentRoomOverview > header,
+.laAdminShell .auctionFocusCard > header {
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.laAdminShell .studioField,
+.laAdminShell .auctionField {
+  gap: 8px;
+  font-size: var(--studio-fs-meta);
+  line-height: var(--studio-lh-meta);
+  font-weight: var(--studio-fw-strong);
+}
+
+.laAdminShell .studioField > span,
+.laAdminShell .auctionField > span,
+.laAdminShell .fieldLabel {
+  font-size: var(--studio-fs-meta);
+  line-height: var(--studio-lh-meta);
+  font-weight: var(--studio-fw-strong);
+}
+
+.laAdminShell .studioField input,
+.laAdminShell .studioField select,
+.laAdminShell .studioField textarea,
+.laAdminShell .auctionField input,
+.laAdminShell .auctionField select,
+.laAdminShell .auctionField textarea {
+  min-height: 40px;
+  padding: 10px 12px;
+}
+
+.laAdminShell .studioTableTools,
+.laAdminShell .laTableTools {
+  padding: 14px 16px;
+}
+
+.laAdminShell .studioTable th,
+.laAdminShell .studioTable td,
+.laAdminShell .laTable th,
+.laAdminShell .laTable td,
+.laAdminShell .auctionMgmtTable th,
+.laAdminShell .auctionMgmtTable td {
+  padding: 14px 16px;
+}
+
+.laAdminShell .productCockpitGrid,
+.laAdminShell .baseInfoGrid,
+.laAdminShell .trustCardGrid,
+.laAdminShell .auctionFormGrid,
+.laAdminShell .laStatsGrid,
+.laAdminShell .laGrid,
+.laAdminShell .auctionMgmtTopGrid,
+.laAdminShell .auctionMgmtStats,
+.laAdminShell .controlRoomGrid {
+  gap: 16px;
+}
+
+.laAdminShell .laGrid,
+.laAdminShell .auctionMgmtTopGrid,
+.laAdminShell .controlRoomGrid {
+  gap: 20px;
+}
+
+.laAdminShell .studioMetricCard {
+  padding: 20px;
+}
+
+.laAdminShell .studioMetricCard strong,
+.laAdminShell .laStatCard strong {
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: var(--studio-fw-page);
+}
+
+.laAdminShell .currentLotPrice b,
+.laAdminShell .priceBoard strong,
+.laAdminShell .laPriceBoard strong {
+  font-weight: var(--studio-fw-page);
+}
+
+/* Today dashboard: anchor-team live workbench home. */
+.dashboardWelcomeCard{background:var(--studio-surface);border-color:var(--studio-border);box-shadow:var(--studio-shadow-sm)}.dashboardWelcomeCard .studioSectionHeader{align-items:center}.dashboardWelcomeActions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}.todayRoomStrip{display:grid;grid-template-columns:1.35fr 1.25fr 1fr .7fr 1fr .72fr;gap:0;overflow:hidden;background:var(--studio-surface);border:1px solid var(--studio-border);border-radius:var(--studio-radius-xl);box-shadow:var(--studio-shadow-sm)}.todayRoomStrip>div{display:grid;gap:4px;min-width:0;padding:16px 18px;border-right:1px solid var(--studio-border)}.todayRoomStrip>div:last-child{border-right:0}.todayRoomStrip span{color:var(--studio-text-3);font-size:13px;line-height:20px}.todayRoomStrip b{overflow:hidden;color:var(--studio-text);font-size:14px;line-height:22px;font-weight:650;text-overflow:ellipsis;white-space:nowrap}.todayCoreGrid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(280px,.88fr);gap:20px;align-items:stretch}.todayAuctionCard,.todayNextCard,.todayTodoCard{height:100%;border-color:var(--studio-border);box-shadow:var(--studio-shadow-sm)}.todayAuctionMedia{position:relative;display:grid;place-items:center;height:128px;margin:-2px 0 16px;border-radius:var(--studio-radius-lg);background:linear-gradient(135deg,#eef6ff,#f8fafc);border:1px solid var(--studio-border)}.todayAuctionMedia>span{display:grid;place-items:center;width:64px;height:64px;border-radius:22px;background:var(--studio-primary-soft);color:var(--studio-primary)}.todayAuctionMedia .studioBadge{position:absolute;right:12px;top:12px}.todayAuctionBody{display:grid;gap:14px}.todayAuctionBody h3,.todayNextProduct h3,.todayEmptyState h3{margin:0;color:var(--studio-text);font-size:20px;line-height:28px;font-weight:700}.todayCurrentPrice{display:grid;gap:2px}.todayCurrentPrice span{color:var(--studio-text-3);font-size:13px;line-height:20px}.todayCurrentPrice b{color:var(--studio-primary);font-size:30px;line-height:36px;font-weight:750;letter-spacing:-.04em}.todayAuctionFacts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.todayAuctionFacts span,.todayNextRules span{display:grid;gap:3px;padding:12px;border-radius:var(--studio-radius-md);background:var(--studio-surface-soft);border:1px solid var(--studio-border);color:var(--studio-text-3);font-size:13px;line-height:20px}.todayAuctionFacts b,.todayNextRules b{color:var(--studio-text);font-size:14px;line-height:22px;font-weight:650}.todayEmptyState{display:grid;justify-items:center;align-content:center;gap:12px;min-height:312px;text-align:center;color:var(--studio-text-3)}.todayEmptyState svg{color:var(--studio-primary)}.todayEmptyState p{max-width:320px;margin:0;color:var(--studio-text-3);font-size:14px;line-height:22px}.todayNextProduct{display:flex;align-items:center;gap:13px;margin-bottom:16px}.todayNextProduct>span{display:grid;place-items:center;width:58px;height:58px;border-radius:20px;background:var(--studio-primary-soft);color:var(--studio-primary);flex:0 0 auto}.todayNextProduct small{display:block;margin-top:3px;color:var(--studio-text-3);font-size:13px;line-height:20px}.todayNextRules{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px}.todayNextActions{display:flex;gap:10px;flex-wrap:wrap}.todayTodoList{display:grid;gap:10px}.todayTodoList>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:13px 14px;border-radius:var(--studio-radius-md);background:var(--studio-surface-soft);border:1px solid var(--studio-border)}.todayTodoList span{color:var(--studio-text);font-size:14px;line-height:22px;font-weight:650}.todayTodoList b{color:var(--studio-primary);font-size:22px;line-height:28px;font-weight:750}.todayTodoList small{grid-column:1/-1;color:var(--studio-text-3);font-size:13px;line-height:20px}.todayMetricGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.todayLowerGrid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(340px,.9fr);gap:20px}.todayQueueList,.todayActivityList{display:grid;gap:10px}.todayQueueList>div{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid var(--studio-border)}.todayQueueList>div:last-child,.todayActivityList>div:last-child{border-bottom:0}.todayQueueList b,.todayActivityList b{display:block;color:var(--studio-text);font-size:14px;line-height:22px;font-weight:650}.todayQueueList span,.todayActivityList small{display:block;color:var(--studio-text-3);font-size:13px;line-height:20px}.todayQueueList strong{color:var(--studio-text);font-size:14px;line-height:22px;font-weight:650}.todayActivityList>div{display:grid;grid-template-columns:auto minmax(0,1fr);gap:11px;padding:12px 0;border-bottom:1px solid var(--studio-border)}.todayActivityList>div>span{width:9px;height:9px;margin-top:7px;border-radius:50%;background:var(--studio-primary);box-shadow:0 0 0 4px var(--studio-primary-soft)}@media(max-width:1320px){.todayRoomStrip{grid-template-columns:repeat(3,minmax(0,1fr))}.todayRoomStrip>div:nth-child(3){border-right:0}.todayRoomStrip>div:nth-child(n+4){border-top:1px solid var(--studio-border)}.todayCoreGrid{grid-template-columns:1fr}.todayMetricGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.todayLowerGrid{grid-template-columns:1fr}}@media(max-width:760px){.todayRoomStrip,.todayMetricGrid,.todayAuctionFacts,.todayNextRules{grid-template-columns:1fr}.todayRoomStrip>div{border-right:0;border-top:1px solid var(--studio-border)}.todayRoomStrip>div:first-child{border-top:0}.dashboardWelcomeCard .studioSectionHeader{align-items:flex-start;flex-direction:column}.dashboardWelcomeActions{justify-content:flex-start}.todayQueueList>div{grid-template-columns:1fr}.todayCoreGrid{gap:16px}}
+
+/* Dashboard wide-canvas correction: today workbench should not look like a narrow admin panel on large screens. */
+.studioPage:has(.dashboardWelcomeCard){width:100%;max-width:none}.studioPage:has(.dashboardWelcomeCard)>.studioPageHeader{display:none}.studioPage:has(.dashboardWelcomeCard) .studioPageBody{gap:22px}.studioPage:has(.dashboardWelcomeCard) .dashboardWelcomeCard{min-height:132px}.studioPage:has(.dashboardWelcomeCard) .todayCoreGrid{grid-template-columns:minmax(480px,1.25fr) minmax(390px,1fr) minmax(340px,.86fr);align-items:stretch}.studioPage:has(.dashboardWelcomeCard) .todayAuctionMedia{height:150px}.studioPage:has(.dashboardWelcomeCard) .todayAuctionCard,.studioPage:has(.dashboardWelcomeCard) .todayNextCard,.studioPage:has(.dashboardWelcomeCard) .todayTodoCard{min-height:430px}.studioPage:has(.dashboardWelcomeCard) .todayMetricGrid{grid-template-columns:repeat(4,minmax(220px,1fr))}.studioPage:has(.dashboardWelcomeCard) .todayLowerGrid{grid-template-columns:minmax(620px,1.08fr) minmax(480px,.92fr)}.studioPage:has(.dashboardWelcomeCard) .todayRoomStrip{grid-template-columns:minmax(220px,1.25fr) minmax(220px,1.15fr) minmax(180px,.95fr) minmax(120px,.7fr) minmax(180px,.95fr) minmax(120px,.65fr)}@media(min-width:1800px){.studioPage:has(.dashboardWelcomeCard) .todayAuctionMedia{height:178px}.studioPage:has(.dashboardWelcomeCard) .todayAuctionCard,.studioPage:has(.dashboardWelcomeCard) .todayNextCard,.studioPage:has(.dashboardWelcomeCard) .todayTodoCard{min-height:470px}.studioPage:has(.dashboardWelcomeCard) .todayCurrentPrice b{font-size:34px;line-height:40px}.studioPage:has(.dashboardWelcomeCard) .todayAuctionBody h3,.studioPage:has(.dashboardWelcomeCard) .todayNextProduct h3{font-size:22px;line-height:30px}}@media(max-width:1320px){.studioPage:has(.dashboardWelcomeCard) .todayCoreGrid{grid-template-columns:1fr}.studioPage:has(.dashboardWelcomeCard) .todayAuctionCard,.studioPage:has(.dashboardWelcomeCard) .todayNextCard,.studioPage:has(.dashboardWelcomeCard) .todayTodoCard{min-height:auto}.studioPage:has(.dashboardWelcomeCard) .todayMetricGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.studioPage:has(.dashboardWelcomeCard) .todayLowerGrid{grid-template-columns:1fr}}
+
+/* Sidebar readability pass: nav should feel like a studio workbench, not tiny admin chrome. */
+.laAdminShell .studioSidebar{padding:20px 16px}.laAdminShell .studioBrand{padding:8px 8px 22px}.laAdminShell .studioBrand>span{width:44px;height:44px;border-radius:16px}.laAdminShell .studioBrand strong{font-size:15px;line-height:22px;font-weight:750}.laAdminShell .studioBrand small{font-size:13px;line-height:20px}.laAdminShell .studioNav{gap:22px}.laAdminShell .studioNavGroup p{margin:0 10px 10px;font-size:13px;line-height:20px;font-weight:650;letter-spacing:0;color:var(--studio-text-3)}.laAdminShell .studioNav a{min-height:44px;padding:10px 12px;border-radius:15px;font-size:15px;line-height:22px;font-weight:650;gap:11px}.laAdminShell .studioNav a svg{width:18px;height:18px;stroke-width:1.9}.laAdminShell .studioNav a.active{font-weight:700}.laAdminShell .studioNav a.active svg{stroke-width:2.1}@media(max-width:900px){.laAdminShell .studioNav a{font-size:14px;line-height:21px}.laAdminShell .studioNavGroup p{font-size:12px;line-height:18px}}
+
+/* Add-lot page redesign: product-to-auction preparation workbench. */
+.auctionCreatePage{max-width:none;width:100%;gap:20px}.auctionCreateHeader{padding:24px;background:var(--studio-surface);border:1px solid var(--studio-border);box-shadow:var(--studio-shadow-sm);border-radius:var(--studio-radius-xl)}.auctionCreateHeader:after{display:none}.auctionCreateHeader .studioSectionHeader{align-items:center}.auctionCreateHeader .studioSectionActions{gap:10px}.publishStepper{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.publishStepper button{min-height:66px;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;align-items:center;gap:2px 10px;padding:12px 14px;border:1px solid var(--studio-border);border-radius:var(--studio-radius-lg);background:var(--studio-surface);box-shadow:var(--studio-shadow-sm);color:var(--studio-text-2);text-align:left}.publishStepper button b{grid-row:1/3;display:grid;place-items:center;width:34px;height:34px;border-radius:12px;background:var(--studio-surface-soft);color:var(--studio-text-3);font-size:14px;font-weight:700}.publishStepper button span{font-size:15px;line-height:22px;font-weight:700;color:var(--studio-text)}.publishStepper button small{font-size:12px;line-height:18px;color:var(--studio-text-3);font-weight:650}.publishStepper button.active{border-color:#bfdbfe;background:var(--studio-primary-soft)}.publishStepper button.active b,.publishStepper button.done b{background:var(--studio-primary);color:#fff}.publishStepper button.done{border-color:#dbeafe}.publishStepper button.risk{border-color:#fde68a;background:#fffbeb}.publishStepper button.risk b{background:#f59e0b;color:#fff}.publishStepper button.locked{opacity:.52}.auctionCreateMeta{padding:0 2px;color:var(--studio-text-3);font-size:13px;line-height:20px}.auctionCreateLayout{display:grid;grid-template-columns:minmax(0,8fr) minmax(340px,4fr);gap:20px;align-items:start}.auctionCreateMain{display:grid;gap:20px;min-width:0}.stickyPreviewPanel{position:sticky;top:88px;display:grid;gap:14px;min-width:340px}.auctionStepCard{padding:24px;background:var(--studio-surface);border:1px solid var(--studio-border);border-radius:var(--studio-radius-xl);box-shadow:var(--studio-shadow-sm)}.auctionStepCard>header{display:flex;justify-content:space-between;gap:18px;margin-bottom:20px}.auctionStepCard>header span{max-width:520px;text-align:right;color:var(--studio-text-3)}.productInfoRedesign{display:grid;grid-template-columns:minmax(280px,38%) minmax(0,1fr);gap:20px}.productMediaColumn,.productBaseColumn,.productDetailRow{min-width:0}.productDetailRow{grid-column:1/-1}.productInfoRedesign .studioCard{height:100%}.productBaseGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.productBaseGrid .fieldSource,.productBaseGrid .fieldTitle,.productBaseGrid .fieldTags{grid-column:1/-1}.productDetailGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.productDetailGrid .fieldDescription{grid-row:span 2}.fieldMainImage .mainImageUpload{min-height:300px}.carouselUpload{min-height:78px}.auctionField input,.auctionField select,.auctionField textarea,.studioField input,.studioField select,.studioField textarea{min-height:44px;font-size:14px;line-height:22px}.productDetailGrid textarea{min-height:118px}.productDetailGrid .fieldDescription textarea{min-height:190px}.auctionTagPicker{gap:8px}.auctionTagPicker button{min-height:34px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:650}.ruleWorkbench .ruleCardGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.ruleFieldGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.ruleFieldGrid .fieldWide{grid-column:1/-1}.playTemplateList{display:grid;gap:10px}.playTemplateList button{display:grid;gap:4px;width:100%;padding:14px;border:1px solid var(--studio-border);border-radius:var(--studio-radius-md);background:var(--studio-surface-soft);text-align:left;color:var(--studio-text-2)}.playTemplateList button:hover{border-color:#bfdbfe;background:var(--studio-primary-soft)}.playTemplateList b{font-size:14px;line-height:22px}.playTemplateList span{font-size:13px;line-height:20px;color:var(--studio-text-3)}.ruleSimulator{margin-top:16px;border:1px solid var(--studio-border);background:var(--studio-surface-soft);border-radius:var(--studio-radius-lg);box-shadow:none}.mobilePreviewWrap,.stickyMiniCard{padding:16px;border:1px solid var(--studio-border);border-radius:var(--studio-radius-xl);background:var(--studio-surface);box-shadow:var(--studio-shadow-sm)}.mobileAuctionPhone{width:100%;max-width:280px;padding:14px;border-radius:26px}.phoneImage{height:132px}.stickyMiniCard h3{margin-bottom:10px}.stickyMiniCard div{padding:8px 0}.publishHealthCard p,.actionHintCard p{margin:8px 0;color:var(--studio-text-3);font-size:13px;line-height:20px}.auctionStepActions{position:sticky;bottom:12px;z-index:8;display:flex;justify-content:space-between;gap:12px;padding:12px;border-radius:var(--studio-radius-lg);background:rgba(255,255,255,.94);border:1px solid var(--studio-border);box-shadow:var(--studio-shadow-md);backdrop-filter:blur(14px)}.auctionStepActions>div{display:flex;gap:10px;flex-wrap:wrap}.publishDialogMask{z-index:60}@media(max-width:1366px){.auctionCreateLayout{grid-template-columns:minmax(0,8fr) minmax(340px,4fr)}.productInfoRedesign{grid-template-columns:minmax(250px,36%) minmax(0,1fr)}.fieldMainImage .mainImageUpload{min-height:260px}.ruleWorkbench .ruleCardGrid{grid-template-columns:1fr}.ruleFieldGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:1120px){.auctionCreateLayout{grid-template-columns:1fr}.stickyPreviewPanel{position:static;min-width:0;grid-template-columns:repeat(2,minmax(0,1fr))}.productInfoRedesign{grid-template-columns:1fr}.productDetailGrid{grid-template-columns:1fr}.mobileAuctionPhone{max-width:320px}.auctionStepActions{position:static}}@media(max-width:760px){.publishStepper,.productBaseGrid,.ruleFieldGrid,.stickyPreviewPanel{grid-template-columns:1fr}.auctionCreateHeader .studioSectionHeader,.auctionStepCard>header{display:block}.auctionStepCard>header span{text-align:left}.auctionStepActions{display:grid}.auctionStepActions>div{justify-content:stretch}.auctionStepActions .studioButton{flex:1 1 130px}}
+
+/* Override earlier step-1 fullwidth experiment: add-lot page must keep 8/4 form + sticky preview at 1366px. */
+.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench){display:grid;grid-template-columns:minmax(0,8fr) minmax(340px,4fr);gap:20px}.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) .stickyPreviewPanel{display:grid;position:sticky;top:88px;min-width:340px}.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) .auctionCreateMain{max-width:none}@media(max-width:900px){.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench){grid-template-columns:1fr}.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) .stickyPreviewPanel{position:static;min-width:0}}
+
+/* Step 3 briefing-card redesign for add-lot workbench. */
+.liveBriefingWorkbench .briefingCardGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:18px}.briefingCard{display:grid;gap:10px;min-height:156px;padding:16px;border:1px solid var(--studio-border);border-radius:var(--studio-radius-lg);background:var(--studio-surface);box-shadow:var(--studio-shadow-sm)}.briefingCard>div{display:flex;align-items:center;justify-content:space-between;gap:10px}.briefingCard b{font-size:15px;line-height:22px;color:var(--studio-text)}.briefingCard p{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:60px;margin:0;color:var(--studio-text-3);font-size:13px;line-height:20px}.briefingCard button{justify-self:start;min-height:34px;padding:0 12px;border:1px solid var(--studio-border);border-radius:10px;background:#fff;color:var(--studio-text-2);font-weight:650}.briefingCard.ready{border-color:#bbf7d0;background:#f8fffb}.briefingCard.pending{border-color:#fde68a;background:#fffbeb}.briefingConfigGrid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}.briefingConfigGrid .roomHealthCard{height:100%}.auctionFormGrid.twoCols{grid-template-columns:repeat(2,minmax(0,1fr))}@media(max-width:1366px){.liveBriefingWorkbench .briefingCardGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.briefingConfigGrid{grid-template-columns:1fr}.auctionFormGrid.twoCols{grid-template-columns:1fr}}@media(max-width:760px){.liveBriefingWorkbench .briefingCardGrid{grid-template-columns:1fr}}
+
+/* Add-lot final polish pass: keep the workbench readable under the 260px shell sidebar. */
+.laAdminShell .auctionCreatePage{container-type:inline-size}.laAdminShell .auctionCreatePage .auctionCreateHeader{padding:22px 24px}.laAdminShell .auctionCreatePage .auctionCreateHeader .studioSectionHeader{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px}.laAdminShell .auctionCreatePage .auctionCreateHeader .studioSectionActions{display:grid;grid-template-columns:repeat(2,max-content);justify-content:end}.laAdminShell .auctionCreatePage .publishStepper{gap:10px}.laAdminShell .auctionCreatePage .publishStepper button{min-height:62px;padding:10px 12px}.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench){grid-template-columns:minmax(0,1fr) 320px;gap:16px}.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) .stickyPreviewPanel{min-width:320px;gap:12px}.laAdminShell .auctionCreatePage .productInfoRedesign{grid-template-columns:minmax(285px,42%) minmax(0,1fr);gap:16px}.laAdminShell .auctionCreatePage .productInfoRedesign .studioCard{border-radius:18px}.laAdminShell .auctionCreatePage .productInfoRedesign .studioCardBody{padding:16px}.laAdminShell .auctionCreatePage .productBaseGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.laAdminShell .auctionCreatePage .productBaseGrid .fieldSource,.laAdminShell .auctionCreatePage .productBaseGrid .fieldTitle,.laAdminShell .auctionCreatePage .productBaseGrid .fieldTags{grid-column:1/-1}.laAdminShell .auctionCreatePage .fieldMainImage .mainImageUpload{min-height:286px}.laAdminShell .auctionCreatePage .fieldMainImage .mainImageUpload:not(.hasImage){gap:12px}.laAdminShell .auctionCreatePage .fieldMainImage .mainImageUpload:not(.hasImage) b{font-size:16px}.laAdminShell .auctionCreatePage .carouselUpload{min-height:72px}.laAdminShell .auctionCreatePage .productDetailGrid{grid-template-columns:1.15fr .85fr;gap:14px}.laAdminShell .auctionCreatePage .productDetailGrid .fieldDescription{grid-row:span 3}.laAdminShell .auctionCreatePage .productDetailGrid textarea{min-height:102px}.laAdminShell .auctionCreatePage .productDetailGrid .fieldDescription textarea{min-height:248px}.laAdminShell .auctionCreatePage .mobilePreviewWrap,.laAdminShell .auctionCreatePage .stickyMiniCard{padding:14px;border-radius:18px}.laAdminShell .auctionCreatePage .mobileAuctionPhone{max-width:248px;padding:12px;border-width:5px}.laAdminShell .auctionCreatePage .phoneImage{height:116px}.laAdminShell .auctionCreatePage .stickyMiniCard div{padding:7px 0}.laAdminShell .auctionCreatePage .auctionStepActions{align-items:center}.laAdminShell .auctionCreatePage .auctionStepActions>div:last-child{justify-content:flex-end}.laAdminShell .auctionCreatePage .auctionStepActions .studioButton{min-width:auto;padding-inline:14px}@container (max-width:980px){.laAdminShell .auctionCreatePage .auctionCreateHeader .studioSectionHeader{grid-template-columns:1fr}.laAdminShell .auctionCreatePage .auctionCreateHeader .studioSectionActions{justify-content:start}.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench){grid-template-columns:1fr}.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) .stickyPreviewPanel{position:static;min-width:0;grid-template-columns:repeat(2,minmax(0,1fr))}.laAdminShell .auctionCreatePage .productInfoRedesign{grid-template-columns:1fr}.laAdminShell .auctionCreatePage .productDetailGrid{grid-template-columns:1fr}.laAdminShell .auctionCreatePage .productDetailGrid .fieldDescription textarea{min-height:170px}}
+
+/* Correct add-lot adaptivity: decide by available content container, not viewport. */
+.laAdminShell .auctionCreatePage{container-type:inline-size}.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench){grid-template-columns:minmax(0,1fr) 340px}.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) .stickyPreviewPanel{min-width:340px}.laAdminShell .auctionCreatePage .productInfoRedesign{grid-template-columns:minmax(320px,40%) minmax(0,1fr)}@container (max-width:1180px){.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench){grid-template-columns:1fr}.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) .stickyPreviewPanel{position:static;min-width:0;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.laAdminShell .auctionCreatePage .auctionCreateMain{width:100%}.laAdminShell .auctionCreatePage .productInfoRedesign{grid-template-columns:minmax(330px,38%) minmax(0,1fr)}.laAdminShell .auctionCreatePage .fieldMainImage .mainImageUpload{min-height:320px}.laAdminShell .auctionCreatePage .mobileAuctionPhone{max-width:300px}.laAdminShell .auctionCreatePage .auctionStepActions{width:100%}}@container (max-width:760px){.laAdminShell .auctionCreatePage .productInfoRedesign,.laAdminShell .auctionCreatePage .productBaseGrid,.laAdminShell .auctionCreatePage .productDetailGrid,.laAdminShell .auctionCreatePage .stickyPreviewPanel{grid-template-columns:1fr}.laAdminShell .auctionCreatePage .auctionCreateHeader .studioSectionActions{grid-template-columns:1fr 1fr}.laAdminShell .auctionCreatePage .publishStepper{grid-template-columns:1fr 1fr}.laAdminShell .auctionCreatePage .auctionStepActions{position:static;display:grid}.laAdminShell .auctionCreatePage .auctionStepActions>div{display:grid;grid-template-columns:1fr 1fr}.laAdminShell .auctionCreatePage .auctionStepActions .studioButton{width:100%}}
+
+/* Small content width: preview/check cards become one column too. */
+@container (max-width:760px){.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) .stickyPreviewPanel{grid-template-columns:1fr}.laAdminShell .auctionCreatePage .productInfoRedesign{grid-template-columns:1fr}.laAdminShell .auctionCreatePage .productBaseGrid{grid-template-columns:1fr}.laAdminShell .auctionCreatePage .productDetailGrid{grid-template-columns:1fr}}
+
+/* Adaptive Grid layout for add-lot page: use available content width, not fixed viewport guesses. */
+.laAdminShell .auctionCreatePage{
+  --auction-preview-min: 340px;
+  --auction-gap: 20px;
+  container-type: inline-size;
+}
+
+.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench){
+  display: grid;
+  grid-template-columns: minmax(min(100%, 720px), 1fr) minmax(var(--auction-preview-min), 0.34fr);
+  gap: var(--auction-gap);
+  align-items: start;
+}
+
+.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) .auctionCreateMain,
+.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) .stickyPreviewPanel{
+  min-width: 0;
+}
+
+.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) .stickyPreviewPanel{
+  position: sticky;
+  top: 88px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.laAdminShell .auctionCreatePage .productInfoRedesign{
+  display: grid;
+  grid-template-columns: minmax(min(100%, 320px), 0.42fr) minmax(360px, 1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.laAdminShell .auctionCreatePage .productDetailRow{
+  grid-column: 1 / -1;
+}
+
+.laAdminShell .auctionCreatePage .productBaseGrid,
+.laAdminShell .auctionCreatePage .productDetailGrid,
+.laAdminShell .auctionCreatePage .ruleFieldGrid{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 14px;
+}
+
+.laAdminShell .auctionCreatePage .productBaseGrid .fieldSource,
+.laAdminShell .auctionCreatePage .productBaseGrid .fieldTitle,
+.laAdminShell .auctionCreatePage .productBaseGrid .fieldTags,
+.laAdminShell .auctionCreatePage .ruleFieldGrid .fieldWide{
+  grid-column: 1 / -1;
+}
+
+.laAdminShell .auctionCreatePage .ruleWorkbench .ruleCardGrid{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 16px;
+}
+
+.laAdminShell .auctionCreatePage .briefingCardGrid{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 14px;
+}
+
+/* If the actual content container is not wide enough for a useful form + preview split,
+   preview moves below and becomes an adaptive grid itself. */
+@container (max-width: 1180px){
+  .laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench){
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) .stickyPreviewPanel{
+    position: static;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  }
+
+  .laAdminShell .auctionCreatePage .productInfoRedesign{
+    grid-template-columns: minmax(min(100%, 340px), 0.4fr) minmax(360px, 1fr);
+  }
+}
+
+@container (max-width: 820px){
+  .laAdminShell .auctionCreatePage .productInfoRedesign,
+  .laAdminShell .auctionCreatePage .briefingConfigGrid{
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .laAdminShell .auctionCreatePage .auctionCreateHeader .studioSectionHeader{
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .laAdminShell .auctionCreatePage .auctionCreateHeader .studioSectionActions,
+  .laAdminShell .auctionCreatePage .auctionStepActions,
+  .laAdminShell .auctionCreatePage .auctionStepActions > div{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 136px), 1fr));
+  }
+
+  .laAdminShell .auctionCreatePage .auctionStepActions .studioButton{
+    width: 100%;
+  }
+}
+
+/* Multi-resolution scaling for the add-lot workbench: 1080p / 2K / 4K.
+   The page grows with the available studio canvas, but caps before line lengths become unreadable. */
+.laAdminShell .studioPage:has(.auctionCreatePage){
+  --studio-page-max: clamp(1180px, calc(100vw - var(--studio-sidebar-width) - 56px), 1920px);
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreatePage{
+  --auction-preview-min: clamp(340px, 22cqw, 420px);
+  --auction-gap: clamp(16px, 1.1cqw, 24px);
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateHeader,
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepCard{
+  padding: clamp(20px, 1.35cqw, 28px);
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateLayout:has(.productInfoWorkbench){
+  grid-template-columns: minmax(0, 1fr) minmax(var(--auction-preview-min), 0.32fr);
+  gap: var(--auction-gap);
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .productInfoRedesign{
+  grid-template-columns: minmax(min(100%, clamp(320px, 28cqw, 460px)), 0.42fr) minmax(420px, 1fr);
+  gap: var(--auction-gap);
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .mainImageUpload{
+  min-height: clamp(300px, 22cqw, 430px);
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .mobileAuctionPhone{
+  max-width: clamp(280px, 20cqw, 360px);
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .phoneImage{
+  height: clamp(128px, 9cqw, 190px);
+}
+
+@container (min-width: 1680px){
+  .laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateLayout:has(.productInfoWorkbench){
+    grid-template-columns: minmax(0, 1fr) minmax(400px, 0.28fr);
+  }
+
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productBaseGrid,
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productDetailGrid{
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+}
+
+@container (max-width: 1240px){
+  .laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateLayout:has(.productInfoWorkbench){
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateLayout:has(.productInfoWorkbench) .stickyPreviewPanel{
+    position: static;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  }
+
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productInfoRedesign{
+    grid-template-columns: minmax(min(100%, 360px), 0.42fr) minmax(360px, 1fr);
+  }
+}
+
+@container (max-width: 820px){
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productInfoRedesign{
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Add-lot final canvas fill: this page is a workbench, so it should use the whole studio canvas on 1080p/2K/4K. */
+.laAdminShell .studioPage:has(.auctionCreatePage){
+  width: 100%;
+  max-width: none;
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .studioPageBody,
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreatePage,
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateLayout,
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateMain{
+  width: 100%;
+  max-width: none;
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreatePage{
+  --auction-gap: clamp(18px, 0.72cqw, 28px);
+  --auction-preview-min: clamp(360px, 18cqw, 560px);
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateLayout:has(.productInfoWorkbench){
+  grid-template-columns: minmax(0, 1fr) minmax(var(--auction-preview-min), 0.28fr);
+  gap: var(--auction-gap);
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateLayout:has(.productInfoWorkbench) .stickyPreviewPanel{
+  min-width: 0;
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .productInfoRedesign{
+  grid-template-columns: minmax(360px, 0.36fr) minmax(520px, 0.64fr);
+  gap: var(--auction-gap);
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .productMediaColumn,
+.laAdminShell .studioPage:has(.auctionCreatePage) .productBaseColumn,
+.laAdminShell .studioPage:has(.auctionCreatePage) .productDetailRow,
+.laAdminShell .studioPage:has(.auctionCreatePage) .studioCard,
+.laAdminShell .studioPage:has(.auctionCreatePage) .studioCardBody{
+  min-width: 0;
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .productBaseGrid{
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .productDetailGrid{
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .productDetailGrid .fieldDescription{
+  grid-row: auto;
+  grid-column: span 2;
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .productDetailGrid .fieldDescription textarea,
+.laAdminShell .studioPage:has(.auctionCreatePage) .productDetailGrid textarea{
+  min-height: clamp(132px, 9cqw, 220px);
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .mainImageUpload{
+  min-height: clamp(340px, 18cqw, 520px);
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .stickyPreviewPanel{
+  align-content: start;
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .mobilePreviewWrap,
+.laAdminShell .studioPage:has(.auctionCreatePage) .stickyMiniCard{
+  width: 100%;
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .mobileAuctionPhone{
+  width: 100%;
+  max-width: min(100%, 420px);
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .phoneImage{
+  height: clamp(150px, 8cqw, 240px);
+}
+
+@container (min-width: 1900px){
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productInfoRedesign{
+    grid-template-columns: minmax(460px, 0.32fr) minmax(720px, 0.68fr);
+  }
+
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productBaseGrid{
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productDetailGrid{
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  }
+}
+
+@container (max-width: 1240px){
+  .laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateLayout:has(.productInfoWorkbench){
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateLayout:has(.productInfoWorkbench) .stickyPreviewPanel{
+    position: static;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  }
+
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productInfoRedesign{
+    grid-template-columns: minmax(min(100%, 360px), 0.38fr) minmax(360px, 1fr);
+  }
+}
+
+@container (max-width: 820px){
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productInfoRedesign,
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productBaseGrid,
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productDetailGrid,
+  .laAdminShell .studioPage:has(.auctionCreatePage) .stickyPreviewPanel{
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productDetailGrid .fieldDescription{
+    grid-column: auto;
+  }
+}
+
+/* Keep every panel at a useful size on ultra-wide screens: preview has a max, main canvas absorbs the rest. */
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateLayout:has(.productInfoWorkbench){
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 560px);
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .stickyPreviewPanel{
+  max-width: 560px;
+  justify-self: stretch;
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .productInfoRedesign{
+  grid-template-columns: minmax(420px, 0.34fr) minmax(640px, 0.66fr);
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .productBaseGrid{
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .productDetailGrid{
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+}
+
+@container (max-width: 1240px){
+  .laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateLayout:has(.productInfoWorkbench){
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .laAdminShell .studioPage:has(.auctionCreatePage) .stickyPreviewPanel{
+    max-width: none;
+  }
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productInfoRedesign{
+    grid-template-columns: minmax(min(100%, 360px), 0.38fr) minmax(360px, 1fr);
+  }
+}
+
+@container (max-width: 820px){
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productInfoRedesign{
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Standard desktop content width: keep basic fields in two columns instead of wasting vertical space. */
+@container (max-width: 1240px){
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productBaseGrid{
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  }
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productDetailGrid{
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  }
+}
+
+/* Task 8: demo-grade live control room redesign. Scoped to Host Console only. */
+.laAdminShell .liveControlPage{
+  --control-blue:#2563eb;
+  --control-purple:#7c3aed;
+  --control-pink:#e11d48;
+  --control-red:#dc2626;
+  --control-ink:#172033;
+  --control-muted:#667085;
+  --control-border:#dce7f5;
+  --control-surface:rgba(255,255,255,.92);
+  max-width:none;
+  width:100%;
+  gap:16px;
+}
+
+.laAdminShell .liveControlPage .controlTopBar,
+.laAdminShell .liveControlPage .controlCard,
+.laAdminShell .liveControlPage .roomLivePreview,
+.laAdminShell .liveControlPage .priceCommandBoard,
+.laAdminShell .liveControlPage .controlActionDeck,
+.laAdminShell .liveControlPage .controlSideCard,
+.laAdminShell .liveControlPage .controlBottomCard,
+.laAdminShell .liveControlPage .controlEmptyState{
+  border:1px solid var(--control-border);
+  background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(247,250,255,.9));
+  box-shadow:0 18px 44px rgba(36,56,96,.09), inset 0 1px 0 rgba(255,255,255,.9);
+  backdrop-filter:blur(18px);
+}
+
+.laAdminShell .liveControlPage .controlTopBar{
+  grid-template-columns:150px minmax(230px,.8fr) minmax(520px,1.65fr) auto;
+  gap:12px;
+  padding:14px 16px;
+  border-radius:24px;
+  align-items:center;
+}
+
+.laAdminShell .liveControlPage .controlBackLink{justify-self:start;white-space:nowrap}
+.laAdminShell .liveControlPage .controlTopIdentity h2{font-size:24px;line-height:30px;color:var(--control-ink)}
+.laAdminShell .liveControlPage .controlTopIdentity span{display:block;color:var(--control-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.laAdminShell .liveControlPage .controlTopMetrics{display:grid;grid-template-columns:1.25fr 1fr .9fr .82fr .72fr;gap:8px;min-width:0}
+.laAdminShell .liveControlPage .controlTopMetrics>span{display:grid;align-content:center;min-height:42px;border-radius:15px;background:#fff;border:1px solid #e5edf7;padding:7px 10px;color:var(--control-muted);font-size:12px;line-height:16px;font-weight:650;min-width:0}
+.laAdminShell .liveControlPage .controlTopMetrics b{display:block;color:var(--control-ink);font-size:13px;line-height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.laAdminShell .liveControlPage .controlTopMetrics .studioBadge{justify-self:start;margin-top:2px}
+.laAdminShell .liveControlPage .controlTopActions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:nowrap}
+.laAdminShell .liveControlPage .controlTopActions button{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+
+.laAdminShell .liveControlPage .controlRoomGrid{
+  display:grid;
+  grid-template-columns:340px minmax(0,1fr) 400px;
+  gap:16px;
+  align-items:start;
+}
+.laAdminShell .liveControlPage .controlLeftRail,
+.laAdminShell .liveControlPage .controlCenterRail,
+.laAdminShell .liveControlPage .controlRightRail{min-width:0;gap:12px}
+.laAdminShell .liveControlPage .briefingRailTitle{display:grid;gap:2px;padding:2px 4px 0}
+.laAdminShell .liveControlPage .briefingRailTitle span{color:var(--control-purple);font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.laAdminShell .liveControlPage .briefingRailTitle b{color:var(--control-ink);font-size:18px;line-height:24px}
+
+.laAdminShell .liveControlPage .liveFrame{height:176px;border-radius:20px;background:linear-gradient(135deg,#eaf2ff,#fff1f6)}
+.laAdminShell .liveControlPage .liveFrame:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(15,23,42,.42));pointer-events:none}
+.laAdminShell .liveControlPage .liveFrame b{z-index:1;font-size:30px;letter-spacing:-.04em}
+.laAdminShell .liveControlPage .roomLivePreview>div:last-child{grid-template-columns:repeat(3,minmax(0,1fr))}
+.laAdminShell .liveControlPage .controlLotImg{height:128px;border-radius:18px}
+.laAdminShell .liveControlPage .controlCard p{margin:8px 0 10px;color:var(--control-muted);font-size:13px;line-height:20px}
+.laAdminShell .liveControlPage .teleprompterCard{background:linear-gradient(145deg,#ffffff,#f7f2ff)}
+.laAdminShell .liveControlPage .teleprompterCard p{font-size:15px;line-height:24px;color:#29324a}
+.laAdminShell .liveControlPage .teleprompterCard b{color:var(--control-pink)}
+.laAdminShell .liveControlPage .teleprompterCard div{display:flex;flex-wrap:wrap;gap:7px}
+.laAdminShell .liveControlPage .teleprompterCard span{border-radius:999px;background:#f5f3ff;color:#6d28d9;padding:5px 9px;font-size:12px;font-weight:800}
+.laAdminShell .liveControlPage .trustCardList{max-height:250px;overflow:auto;padding-right:2px}
+.laAdminShell .liveControlPage .trustCardList div{border-radius:14px;padding:10px 11px}
+.laAdminShell .liveControlPage .trustCardList p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:5px 0}
+
+.laAdminShell .liveControlPage .playbookStageBar{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.laAdminShell .liveControlPage .playbookStageBar div{position:relative;min-height:58px;border-radius:17px;background:#fff;color:#73809a;box-shadow:0 8px 18px rgba(31,41,55,.04)}
+.laAdminShell .liveControlPage .playbookStageBar div.active{background:linear-gradient(135deg,#eff6ff,#f5f3ff);border-color:#c4b5fd;color:#5b21b6;box-shadow:0 14px 28px rgba(124,58,237,.12)}
+.laAdminShell .liveControlPage .commandArea{position:relative;display:grid;gap:12px;min-width:0}
+.laAdminShell .liveControlPage .priceCommandBoard{min-height:356px;padding:24px;border-radius:28px;background:radial-gradient(circle at 52% -10%,rgba(37,99,235,.18),transparent 38%),linear-gradient(145deg,#ffffff,#f8fbff 62%,#fff7fb);overflow:hidden}
+.laAdminShell .liveControlPage .priceCommandBoard:before{width:420px;height:420px;inset:-140px auto auto 50%;background:radial-gradient(circle,rgba(124,58,237,.18),rgba(37,99,235,.12) 45%,transparent 68%)}
+.laAdminShell .liveControlPage .priceCommandEyebrow{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;color:var(--control-purple);font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+.laAdminShell .liveControlPage .currentPriceFocus{position:relative;text-align:center}
+.laAdminShell .liveControlPage .priceCommandBoard p{font-size:13px;color:var(--control-muted)}
+.laAdminShell .liveControlPage .priceCommandBoard strong{font-size:clamp(72px,6.3vw,96px);line-height:.9;color:var(--control-blue);background:linear-gradient(90deg,#2563eb 0%,#7c3aed 48%,#e11d48 100%);-webkit-background-clip:text;background-clip:text;color:transparent;font-variant-numeric:tabular-nums;text-shadow:none}
+.laAdminShell .liveControlPage .serverCountdown{margin:18px auto 14px;padding:12px 18px;border-radius:22px;font-size:clamp(42px,4vw,62px);font-weight:900;letter-spacing:-.04em;color:var(--control-blue);font-variant-numeric:tabular-nums;background:#fff;box-shadow:0 16px 36px rgba(37,99,235,.13)}
+.laAdminShell .liveControlPage .serverCountdown.urgent{color:var(--control-pink);border-color:#fecdd3;box-shadow:0 18px 42px rgba(225,29,72,.16)}
+.laAdminShell .liveControlPage .priceCommandMetrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.laAdminShell .liveControlPage .priceCommandMetrics span{border-radius:17px;background:#fff;border:1px solid #e5edf7;color:var(--control-muted);padding:12px 10px;font-size:12px;line-height:18px}
+.laAdminShell .liveControlPage .priceCommandMetrics b{color:var(--control-ink);font-size:18px;line-height:24px;font-variant-numeric:tabular-nums}
+.laAdminShell .liveControlPage .priceCommandMetrics span:nth-child(1) b{color:var(--control-purple)}
+.laAdminShell .liveControlPage .priceCommandMetrics span:nth-child(2) b{color:var(--control-pink)}
+.laAdminShell .liveControlPage .emotionFeedbackLayer{position:absolute;left:18px;right:18px;top:98px;z-index:2;pointer-events:none;min-height:0}
+.laAdminShell .liveControlPage .emotionFeedbackLayer span{background:rgba(255,255,255,.94);box-shadow:0 16px 36px rgba(124,58,237,.16);border-color:#ddd6fe;color:#5b21b6}
+
+.laAdminShell .liveControlPage .controlActionDeck{padding:18px;border-radius:24px}
+.laAdminShell .liveControlPage .controlActionsGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.laAdminShell .liveControlPage .controlActionsGrid button{min-height:48px;border-radius:15px;background:#fff;color:#27334a;border:1px solid #dce7f5;box-shadow:0 9px 18px rgba(36,56,96,.06)}
+.laAdminShell .liveControlPage .controlActionsGrid button:nth-child(-n+3){background:linear-gradient(135deg,#eff6ff,#f5f3ff);border-color:#c7d2fe;color:#3730a3}
+.laAdminShell .liveControlPage .dangerActionStrip button{min-height:48px;border-radius:16px;background:#fff1f2!important;border-color:#fecdd3!important;color:#be123c!important}
+.laAdminShell .liveControlPage .dangerActionStrip .settleButton{background:linear-gradient(135deg,#2563eb,#7c3aed)!important;color:#fff!important;border-color:transparent!important;box-shadow:0 14px 28px rgba(79,70,229,.18)!important}
+
+.laAdminShell .liveControlPage .controlSideCard{border-radius:22px;padding:16px}
+.laAdminShell .liveControlPage .controlSideCard h3,.laAdminShell .liveControlPage .controlBottomCard h3,.laAdminShell .liveControlPage .controlActionDeck h3{color:var(--control-ink);margin-bottom:10px}
+.laAdminShell .liveControlPage .controlBidFeed,.laAdminShell .liveControlPage .controlRanking{max-height:294px;gap:7px}
+.laAdminShell .liveControlPage .controlBidFeed div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;border-radius:14px;background:#fff}
+.laAdminShell .liveControlPage .controlBidFeed b{margin:0;color:var(--control-pink);font-size:18px;font-variant-numeric:tabular-nums}
+.laAdminShell .liveControlPage .controlBidFeed small{grid-column:1/-1}
+.laAdminShell .liveControlPage .controlRanking div{grid-template-columns:38px minmax(0,1fr) auto;border-radius:14px;background:#fff}
+.laAdminShell .liveControlPage .controlRanking b{color:var(--control-purple)}
+.laAdminShell .liveControlPage .controlRanking strong{color:var(--control-blue);font-variant-numeric:tabular-nums}
+.laAdminShell .liveControlPage .systemHealthGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.laAdminShell .liveControlPage .systemHealthGrid span{background:#fff;border:1px solid #e5edf7;border-radius:14px;padding:9px;color:var(--control-muted)}
+.laAdminShell .liveControlPage .systemHealthGrid b{color:var(--control-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.laAdminShell .liveControlPage .controlBottomGrid{grid-template-columns:340px minmax(0,1fr);gap:16px}
+.laAdminShell .liveControlPage .controlBottomCard{border-radius:22px}
+.laAdminShell .liveControlPage .controlEventLog{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-height:220px;gap:8px}
+.laAdminShell .liveControlPage .controlEventLog div{border-radius:14px;background:#fff}
+
+@media(max-width:1500px){
+  .laAdminShell .liveControlPage .controlTopBar{grid-template-columns:140px minmax(220px,.75fr) minmax(450px,1.55fr)}
+  .laAdminShell .liveControlPage .controlTopActions{grid-column:1/-1;justify-content:flex-start}
+  .laAdminShell .liveControlPage .controlRoomGrid{grid-template-columns:340px minmax(0,1fr) 400px;gap:14px}
+  .laAdminShell .liveControlPage .priceCommandBoard strong{font-size:clamp(72px,5.5vw,88px)}
+}
+@media(max-width:1280px){
+  .laAdminShell .liveControlPage .controlTopBar,.laAdminShell .liveControlPage .controlRoomGrid,.laAdminShell .liveControlPage .controlBottomGrid{grid-template-columns:1fr}
+  .laAdminShell .liveControlPage .controlTopMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .laAdminShell .liveControlPage .controlLeftRail,.laAdminShell .liveControlPage .controlRightRail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .laAdminShell .liveControlPage .briefingRailTitle{grid-column:1/-1}
+}
+@media(max-width:760px){
+  .laAdminShell .liveControlPage .controlTopMetrics,.laAdminShell .liveControlPage .controlLeftRail,.laAdminShell .liveControlPage .controlRightRail,.laAdminShell .liveControlPage .playbookStageBar,.laAdminShell .liveControlPage .priceCommandMetrics,.laAdminShell .liveControlPage .controlActionsGrid,.laAdminShell .liveControlPage .systemHealthGrid,.laAdminShell .liveControlPage .controlEventLog{grid-template-columns:1fr}
+  .laAdminShell .liveControlPage .priceCommandBoard{padding:20px 14px;min-height:auto}
+  .laAdminShell .liveControlPage .priceCommandBoard strong{font-size:62px}
+  .laAdminShell .liveControlPage .serverCountdown{font-size:38px}
+}
+
+/* Task 7: 本场拍品队列 — card-table queue workbench. */
+.laAdminShell .auctionMgmtPage{
+  container-type:inline-size;
+}
+
+.laAdminShell .queueTopCards{
+  display:grid;
+  grid-template-columns:1.08fr 1fr .92fr;
+  gap:16px;
+}
+
+.laAdminShell .queueTopCard{
+  position:relative;
+  min-height:214px;
+  overflow:hidden;
+  padding:20px;
+  border:1px solid var(--studio-border);
+  border-radius:24px;
+  background:linear-gradient(180deg,#fff,#f8fbff);
+  box-shadow:var(--studio-shadow-sm);
+}
+
+.laAdminShell .queueTopCard::before{
+  content:"";
+  position:absolute;
+  inset:auto -30px -56px auto;
+  width:150px;
+  height:150px;
+  border-radius:999px;
+  background:#dbeafe;
+  opacity:.42;
+}
+
+.laAdminShell .queueTopCard.current.isLive{
+  border-color:#93c5fd;
+  box-shadow:0 0 0 3px #dbeafe, var(--studio-shadow-md);
+}
+
+.laAdminShell .queueTopCard.next.hasNext{
+  border-color:#ddd6fe;
+}
+
+.laAdminShell .queueTopCard.next.hasNext::after{
+  content:"NEXT";
+  position:absolute;
+  top:18px;
+  right:-28px;
+  width:112px;
+  padding:4px 0;
+  transform:rotate(35deg);
+  background:#ede9fe;
+  color:#6d28d9;
+  text-align:center;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+}
+
+.laAdminShell .queueTopCard.health::before{background:#dcfce7}.laAdminShell .queueTopCard header{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.laAdminShell .queueTopCard header>span{display:inline-flex;align-items:center;gap:8px;color:var(--studio-text-2);font-size:13px;font-weight:750}.laAdminShell .queueTopCard h3{position:relative;z-index:1;margin:0 0 12px;color:var(--studio-text);font-size:21px;line-height:28px;font-weight:760;letter-spacing:-.03em}.laAdminShell .queueTopCard p{position:relative;z-index:1;margin:10px 0 0;color:var(--studio-text-3);font-size:13px;line-height:20px}.laAdminShell .queuePriceLine{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:end}.laAdminShell .queuePriceLine span,.laAdminShell .queuePriceLine small{color:var(--studio-text-3);font-size:13px;font-weight:650}.laAdminShell .queuePriceLine b{grid-row:1/3;color:var(--studio-primary);font-size:34px;line-height:38px;font-weight:800;letter-spacing:-.05em}.laAdminShell .queueRulePills,.laAdminShell .queueHealthGrid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.laAdminShell .queueHealthGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.laAdminShell .queueRulePills span,.laAdminShell .queueHealthGrid span{display:grid;gap:2px;min-width:0;padding:10px 12px;border:1px solid var(--studio-border);border-radius:14px;background:rgba(255,255,255,.78);color:var(--studio-text-3);font-size:12px;font-weight:650}.laAdminShell .queueRulePills b,.laAdminShell .queueHealthGrid b{color:var(--studio-text);font-size:15px;line-height:22px;font-weight:750}.laAdminShell .queueTopActions{position:relative;z-index:1;display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.laAdminShell .queueTopActions button:not(.studioButton){min-height:32px;padding:0 12px;border:1px solid var(--studio-border);border-radius:10px;background:#fff;color:var(--studio-text-2);font-weight:650}.laAdminShell .auctionStatusTabs{border-radius:18px;background:#fff;box-shadow:var(--studio-shadow-sm)}.laAdminShell .auctionStatusTabs button{min-height:40px;border-radius:13px}.laAdminShell .auctionStatusTabs button.active{background:var(--studio-primary-soft);color:var(--studio-primary-hover);border:1px solid #bfdbfe;box-shadow:none}.laAdminShell .queueFilters{grid-template-columns:minmax(240px,1.5fr) repeat(4,minmax(120px,.72fr));align-items:center;border-radius:18px;background:#fff;box-shadow:var(--studio-shadow-sm)}.laAdminShell .auctionQueueList{display:grid;gap:12px}.laAdminShell .queueRowCard{display:grid;grid-template-columns:minmax(320px,1.15fr) minmax(430px,1.5fr) minmax(260px,.82fr);gap:16px;align-items:center;min-height:108px;padding:14px 16px;border:1px solid var(--studio-border);border-radius:22px;background:#fff;box-shadow:var(--studio-shadow-sm);cursor:pointer;transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease,background .18s ease}.laAdminShell .queueRowCard:hover{transform:translateY(-1px);border-color:#bfdbfe;box-shadow:var(--studio-shadow-md)}.laAdminShell .queueRowCard.isCurrent{border-color:#93c5fd;box-shadow:0 0 0 3px #dbeafe,var(--studio-shadow-md)}.laAdminShell .queueRowCard.isNext{border-color:#c4b5fd;background:linear-gradient(90deg,#faf8ff,#fff 42%)}.laAdminShell .queueRowCard.isNext .queueNo{background:#ede9fe;color:#6d28d9}.laAdminShell .queueRowCard.isCancelled{border-color:#fecdd3;background:#fff1f2}.laAdminShell .queueRowLeft{display:grid;grid-template-columns:auto 76px minmax(0,1fr);gap:13px;align-items:center;min-width:0}.laAdminShell .queueNo{display:grid;place-items:center;min-width:44px;height:32px;border-radius:999px;background:var(--studio-surface-soft);color:var(--studio-text-3);font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}.laAdminShell .queueRowLeft img{width:76px;height:76px;border-radius:18px;object-fit:cover;border:1px solid var(--studio-border);background:linear-gradient(135deg,#e0f2fe,#f5f3ff)}.laAdminShell .queueRowLeft h3{margin:0 0 8px;color:var(--studio-text);font-size:16px;line-height:22px;font-weight:760;letter-spacing:-.02em}.laAdminShell .queueTags{display:flex;gap:6px;flex-wrap:wrap}.laAdminShell .queueTags>span:not(.studioBadge):not(.laStatusBadge){display:inline-flex;align-items:center;min-height:24px;padding:0 8px;border-radius:999px;background:var(--studio-surface-soft);color:var(--studio-text-3);font-size:12px;font-weight:650}.laAdminShell .queueRowMiddle{display:grid;grid-template-columns:1.25fr .95fr .72fr .72fr .72fr .9fr;gap:8px;align-items:center}.laAdminShell .queueRowMiddle>span{min-width:0;padding:8px 10px;border-radius:12px;background:var(--studio-surface-soft);color:var(--studio-text-2);font-size:12px;line-height:18px;font-weight:650}.laAdminShell .queueRowMiddle b{display:block;margin-bottom:2px;color:var(--studio-text-3);font-size:11px;line-height:16px;font-weight:700}.laAdminShell .queueRowRight{display:grid;grid-template-columns:minmax(82px,.8fr) minmax(98px,1fr);gap:8px 10px;align-items:center}.laAdminShell .queueRowRight>div:last-child{grid-column:1/-1}.laAdminShell .queueAccount b,.laAdminShell .orderState b{display:block;color:var(--studio-text);font-size:13px;line-height:19px;font-weight:750}.laAdminShell .queueAccount span,.laAdminShell .orderState span,.laAdminShell .mutedText{display:block;color:var(--studio-text-3);font-size:12px;line-height:18px;font-weight:650}.laAdminShell .auctionRowActions{display:flex;flex-wrap:wrap;gap:6px;min-width:0}.laAdminShell .auctionRowActions button,.laAdminShell .auctionRowActions a,.laAdminShell .auctionRowActions summary{min-height:32px;padding:0 10px;border:1px solid var(--studio-border);border-radius:10px;background:#fff;color:var(--studio-text-2);font-size:12px;font-weight:700;text-decoration:none;box-shadow:none;cursor:pointer;list-style:none}.laAdminShell .auctionRowActions>a:nth-of-type(n+3),.laAdminShell .auctionRowActions>button:nth-of-type(n+4){display:none}.laAdminShell .queueMoreActions{position:relative}.laAdminShell .queueMoreActions summary::-webkit-details-marker{display:none}.laAdminShell .queueMoreActions>div{position:absolute;right:0;top:38px;z-index:9;display:grid;gap:6px;min-width:130px;padding:8px;border:1px solid var(--studio-border);border-radius:14px;background:#fff;box-shadow:var(--studio-shadow-lg)}.laAdminShell .queueMoreActions:not([open])>div{display:none}.laAdminShell .queueMoreActions>div a,.laAdminShell .queueMoreActions>div button{justify-content:flex-start;width:100%;white-space:nowrap}.laAdminShell .auctionRowActions .danger{border-color:var(--studio-danger);background:var(--studio-danger);color:#fff}.laAdminShell .orderState.danger b{color:#be123c}@container (max-width:1180px){.laAdminShell .queueTopCards{grid-template-columns:1fr}.laAdminShell .queueRowCard{grid-template-columns:1fr}.laAdminShell .queueRowMiddle{grid-template-columns:repeat(3,minmax(0,1fr))}.laAdminShell .queueRowRight{grid-template-columns:1fr 1fr}.laAdminShell .queueFilters{grid-template-columns:minmax(220px,1fr) repeat(2,minmax(120px,.6fr));}}@container (max-width:900px){.laAdminShell .queueTopCards,.laAdminShell .queueFilters{grid-template-columns:1fr}.laAdminShell .queueRowCard{min-height:auto;padding:14px;align-items:stretch}.laAdminShell .queueRowLeft{grid-template-columns:auto 68px minmax(0,1fr)}.laAdminShell .queueRowLeft img{width:68px;height:68px}.laAdminShell .queueRowMiddle,.laAdminShell .queueRowRight{grid-template-columns:1fr}.laAdminShell .auctionRowActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.laAdminShell .auctionRowActions button,.laAdminShell .auctionRowActions a,.laAdminShell .auctionRowActions summary{width:100%;justify-content:center}.laAdminShell .queueMoreActions>div{left:0;right:auto}.laAdminShell .queueRulePills{grid-template-columns:1fr}.laAdminShell .queueHealthGrid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+
+/* Task 11/12 responsive authority: backend shell, add-lot, queues, and control room. */
+.laAdminShell .studioPage{
+  width: min(100%, var(--studio-page-max));
+  max-width: var(--studio-page-max);
+  margin-inline: auto;
+}
+
+/* Explicit workbench canvases can use the full studio surface. */
+.laAdminShell .studioPage:has(.dashboardWelcomeCard),
+.laAdminShell .studioPage:has(.auctionCreatePage),
+.laAdminShell .studioPage:has(.liveControlPage){
+  width: 100%;
+  max-width: none;
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage),
+.laAdminShell .studioPage:has(.liveControlPage){
+  container-type: inline-size;
+}
+
+.laAdminShell .studioTopbar{
+  min-width: 0;
+}
+
+.laAdminShell .studioSearch,
+.laAdminShell .studioTopActions,
+.laAdminShell .studioTopbarTitle{
+  min-width: 0;
+}
+
+.laAdminShell .studioSearch input{
+  min-width: 0;
+}
+
+@media (max-width: 1180px){
+  .laAdminShell .studioTopbar{
+    grid-template-columns: minmax(180px, 1fr) minmax(220px, 320px) auto;
+  }
+}
+
+@media (max-width: 980px){
+  .laAdminShell .studioTopbar{
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px 14px;
+    height: auto;
+    min-height: var(--studio-topbar-height);
+    padding-block: 12px;
+  }
+
+  .laAdminShell .studioTopbar .studioSearch{
+    grid-column: 1 / -1;
+    order: 3;
+  }
+}
+
+@media (max-width: 900px){
+  .laAdminShell.studioShell{
+    display: block;
+  }
+
+  .laAdminShell .studioSidebar{
+    position: sticky;
+    top: 0;
+    z-index: 35;
+    max-height: none;
+    padding: 10px 12px;
+    border-right: 0;
+    border-bottom: 1px solid var(--studio-border);
+    box-shadow: 0 8px 20px rgba(15,23,42,.05);
+  }
+
+  .laAdminShell .studioBrand{
+    min-height: 42px;
+    padding: 0 4px 8px;
+  }
+
+  .laAdminShell .studioBrand > span{
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+  }
+
+  .laAdminShell .studioBrand small{
+    display: none;
+  }
+
+  .laAdminShell .studioNav{
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+  }
+
+  .laAdminShell .studioNavGroup{
+    display: contents;
+  }
+
+  .laAdminShell .studioNavGroup p{
+    display: none;
+  }
+
+  .laAdminShell .studioNav a{
+    flex: 0 0 auto;
+    min-height: 36px;
+    padding: 8px 10px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .laAdminShell .studioContent{
+    padding: 16px 14px 28px;
+  }
+}
+
+@media (max-width: 640px){
+  .laAdminShell .studioTopbar{
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .laAdminShell .studioTopActions{
+    justify-content: flex-start;
+  }
+
+  .laAdminShell .studioTopActions .laWsStatus{
+    max-width: calc(100vw - 120px);
+  }
+
+  .laAdminShell .studioTopbar .studioSearch{
+    display: none;
+  }
+}
+
+/* Add-lot: split only when the content container has enough width; otherwise preview moves below. */
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreatePage{
+  container-type: inline-size;
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateLayout:has(.productInfoWorkbench){
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 520px);
+}
+
+@container (max-width: 1079px){
+  .laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateLayout:has(.productInfoWorkbench){
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .laAdminShell .studioPage:has(.auctionCreatePage) .stickyPreviewPanel{
+    position: static;
+    max-width: none;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  }
+}
+
+@container (max-width: 760px){
+  .laAdminShell .studioPage:has(.auctionCreatePage) .stickyPreviewPanel,
+  .laAdminShell .studioPage:has(.auctionCreatePage) .publishStepper,
+  .laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions,
+  .laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions > div{
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Queue rows: under 900px turn the wide table into readable vertical cards. */
+@media (max-width: 900px){
+  .laAdminShell .auctionMgmtTable{
+    min-width: 0;
+  }
+
+  .laAdminShell .auctionMgmtTable thead{
+    display: none;
+  }
+
+  .laAdminShell .auctionMgmtTable,
+  .laAdminShell .auctionMgmtTable tbody,
+  .laAdminShell .auctionMgmtTable tr,
+  .laAdminShell .auctionMgmtTable td{
+    display: block;
+    width: 100%;
+  }
+
+  .laAdminShell .auctionMgmtTable tr{
+    padding: 12px;
+    border-bottom: 1px solid var(--studio-border);
+  }
+
+  .laAdminShell .auctionMgmtTable td{
+    padding: 8px 0;
+    border-bottom: 0;
+  }
+
+  .laAdminShell .auctionMgmtTable td + td{
+    border-top: 1px dashed var(--studio-border);
+  }
+
+  .laAdminShell .lotProductCell,
+  .laAdminShell .ruleCell,
+  .laAdminShell .realtimeCell,
+  .laAdminShell .auctionRowActions{
+    min-width: 0;
+  }
+}
+
+/* Control room: 3 columns when roomy; center-priority stack on medium; one column on mobile. */
+.laAdminShell .studioPage:has(.liveControlPage) .liveControlPage{
+  container-type: inline-size;
+}
+
+.laAdminShell .studioPage:has(.liveControlPage) .controlRoomGrid{
+  display: grid;
+  grid-template-areas: "briefing center side";
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr) minmax(320px, 400px);
+  align-items: start;
+}
+
+.laAdminShell .studioPage:has(.liveControlPage) .controlLeftRail{ grid-area: briefing; }
+.laAdminShell .studioPage:has(.liveControlPage) .controlCenterRail{ grid-area: center; }
+.laAdminShell .studioPage:has(.liveControlPage) .controlRightRail{ grid-area: side; }
+
+@container (max-width: 1079px){
+  .laAdminShell .studioPage:has(.liveControlPage) .controlRoomGrid{
+    grid-template-areas:
+      "center"
+      "briefing"
+      "side";
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .laAdminShell .studioPage:has(.liveControlPage) .controlLeftRail,
+  .laAdminShell .studioPage:has(.liveControlPage) .controlRightRail{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .laAdminShell .studioPage:has(.liveControlPage) .controlCenterRail{
+    max-width: 980px;
+    width: 100%;
+    justify-self: center;
+  }
+}
+
+@container (max-width: 899px){
+  .laAdminShell .studioPage:has(.liveControlPage) .controlLeftRail,
+  .laAdminShell .studioPage:has(.liveControlPage) .controlRightRail,
+  .laAdminShell .studioPage:has(.liveControlPage) .controlBottomGrid,
+  .laAdminShell .studioPage:has(.liveControlPage) .priceCommandMetrics,
+  .laAdminShell .studioPage:has(.liveControlPage) .controlActionsGrid,
+  .laAdminShell .studioPage:has(.liveControlPage) .systemHealthGrid,
+  .laAdminShell .studioPage:has(.liveControlPage) .settleSummary,
+  .laAdminShell .studioPage:has(.liveControlPage) .reasonGrid,
+  .laAdminShell .studioPage:has(.liveControlPage) .playbookStageBar{
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .laAdminShell .studioPage:has(.liveControlPage) .controlCenterRail{
+    max-width: none;
+  }
+}
+
+/* Queue page container hook for card/list responsive rows. */
+.laAdminShell .studioPage:has(.auctionMgmtPage){
+  container-type: inline-size;
+}
+
+/* Task 8 PM follow-up: prepared control stage, detector hooks, and 1366-friendly layout. */
+.laAdminShell .liveControlPage.preparedControlStage .auctionMgmtNotice{
+  display:flex;align-items:center;gap:8px;border:1px solid #bfdbfe;border-radius:18px;background:#eff6ff;color:#1d4ed8;padding:12px 14px;font-weight:700;
+}
+.laAdminShell .liveControlPage.preparedControlStage .auctionMgmtNotice.danger{border-color:#fecdd3;background:#fff1f2;color:#be123c}
+.laAdminShell .liveControlPage .controlStatusBar{position:relative}
+.laAdminShell .liveControlPage .auctionCommandCenter{isolation:isolate}
+.laAdminShell .liveControlPage .livePriceBig{font-variant-numeric:tabular-nums}
+.laAdminShell .liveControlPage .liveFrame.prepared{background:linear-gradient(135deg,#edf4ff,#f7f2ff)}
+.laAdminShell .liveControlPage .liveFrame.prepared img{opacity:.24;filter:saturate(.75)}
+.laAdminShell .liveControlPage .liveFrame.prepared span{background:#f59e0b;box-shadow:0 0 0 6px rgba(245,158,11,.14)}
+.laAdminShell .liveControlPage .liveFrame.prepared b{font-size:26px;color:#fff}
+.laAdminShell .liveControlPage .preparedCommandCenter{background:radial-gradient(circle at 50% -8%,rgba(245,158,11,.2),transparent 34%),linear-gradient(145deg,#fff,#f8fbff 62%,#fff8ed)}
+.laAdminShell .liveControlPage .preparedCommandCenter .livePriceBig{background:linear-gradient(90deg,#94a3b8,#2563eb 48%,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent}
+.laAdminShell .liveControlPage .serverCountdown.prepared{color:#f59e0b;border-color:#fde68a;background:#fffbeb;box-shadow:0 14px 30px rgba(245,158,11,.12)}
+.laAdminShell .liveControlPage .emotionFeedbackLayer.prepared{position:static;min-height:42px;margin-top:-4px;pointer-events:auto}
+.laAdminShell .liveControlPage .emotionFeedbackLayer.prepared span{animation:none;color:#92400e;border-color:#fde68a;background:#fffbeb;box-shadow:none}
+.laAdminShell .liveControlPage .preparedActionDeck .controlActionsGrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.laAdminShell .liveControlPage .controlActionLink{display:grid;place-items:center;min-height:48px;border:1px solid #dce7f5;border-radius:15px;background:linear-gradient(135deg,#eff6ff,#f5f3ff);color:#3730a3;text-decoration:none;font-weight:750;box-shadow:0 9px 18px rgba(36,56,96,.06)}
+
+@container (max-width:1150px){
+  .laAdminShell .liveControlPage .controlRoomGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .laAdminShell .liveControlPage .controlCenterRail{grid-column:1/-1;order:-1}
+  .laAdminShell .liveControlPage .controlLeftRail,.laAdminShell .liveControlPage .controlRightRail{display:flex;flex-direction:column}
+  .laAdminShell .liveControlPage .controlBottomGrid{grid-template-columns:1fr}
+}
+@media(max-width:1500px){
+  .laAdminShell .liveControlPage .controlRoomGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .laAdminShell .liveControlPage .controlCenterRail{grid-column:1/-1;order:-1}
+  .laAdminShell .liveControlPage .controlLeftRail,.laAdminShell .liveControlPage .controlRightRail{display:flex;flex-direction:column}
+  .laAdminShell .liveControlPage .controlBottomGrid{grid-template-columns:1fr}
+  .laAdminShell .liveControlPage .priceCommandBoard{min-height:310px}
+}
+@media(max-width:760px){
+  .laAdminShell .liveControlPage .preparedActionDeck .controlActionsGrid{grid-template-columns:1fr}
+}
+
+/* Task 7 PM pass: empty queue, clean filters, 1035px horizontal row cards. */
+.laAdminShell .queueTopCards{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+.laAdminShell .queueTopCard{
+  min-height:230px;
+  border-radius:26px;
+  box-shadow:var(--studio-shadow-md);
+}
+.laAdminShell .queueTopCard.current.isEmpty{
+  background:linear-gradient(135deg,#ffffff,#eef6ff 78%);
+  border-color:#bfdbfe;
+}
+.laAdminShell .queueTopCard.next.isEmpty{
+  background:linear-gradient(135deg,#ffffff,#f5f3ff 78%);
+  border-color:#ddd6fe;
+}
+.laAdminShell .queueTopCard.health{
+  background:linear-gradient(135deg,#ffffff,#f0fdf4 82%);
+  border-color:#bbf7d0;
+}
+.laAdminShell .queueTopCard h3{font-size:22px;line-height:30px}.laAdminShell .queueTopCard header>span{font-size:14px}.laAdminShell .queueFilters{grid-template-columns:minmax(260px,1.45fr) repeat(4,minmax(116px,.75fr));gap:10px}.laAdminShell .queueFilters select,.laAdminShell .queueFilters input{min-height:42px}.laAdminShell .queueRowCard{grid-template-columns:minmax(230px,1.05fr) minmax(300px,1.35fr) minmax(220px,.9fr);min-height:112px}.laAdminShell .queueRowMiddle{grid-template-columns:repeat(2,minmax(0,1fr));}.laAdminShell .queueEmptyWorkbench{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:center;padding:28px;border:1px solid #bfdbfe;border-radius:28px;background:linear-gradient(135deg,#fff,#f8fbff 52%,#eff6ff);box-shadow:var(--studio-shadow-md)}.laAdminShell .queueEmptyIcon{display:grid;place-items:center;width:72px;height:72px;border-radius:24px;background:var(--studio-primary-soft);color:var(--studio-primary)}.laAdminShell .queueEmptyWorkbench p{margin:0 0 4px;color:var(--studio-primary);font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.laAdminShell .queueEmptyWorkbench h3{margin:0;color:var(--studio-text);font-size:22px;line-height:30px;font-weight:780;letter-spacing:-.03em}.laAdminShell .queueEmptyWorkbench span{display:block;margin-top:6px;color:var(--studio-text-3);font-size:14px;line-height:22px}.laAdminShell .queueEmptyActions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}.laAdminShell .queueEmptyChecklist{grid-column:2/-1;display:flex;gap:10px;flex-wrap:wrap}.laAdminShell .queueEmptyChecklist span{display:inline-flex;align-items:center;gap:6px;margin:0;padding:8px 10px;border:1px solid var(--studio-border);border-radius:999px;background:#fff;color:var(--studio-text-2);font-size:12px;font-weight:700}.laAdminShell .preparedControlHero{display:flex;justify-content:space-between;gap:18px;align-items:center;padding:24px;border:1px solid var(--studio-border);border-radius:26px;background:#fff;box-shadow:var(--studio-shadow-sm)}.laAdminShell .preparedControlHero p{margin:0 0 4px;color:var(--studio-primary);font-size:12px;font-weight:800;letter-spacing:.08em}.laAdminShell .preparedControlHero h2{margin:0;color:var(--studio-text)}.laAdminShell .preparedControlHero span{color:var(--studio-text-3)}
+@container (max-width:1180px){
+  .laAdminShell .queueTopCards{grid-template-columns:repeat(3,minmax(0,1fr));}
+  .laAdminShell .queueRowCard{grid-template-columns:minmax(230px,1.05fr) minmax(300px,1.35fr) minmax(220px,.9fr);}
+  .laAdminShell .queueRowMiddle{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .laAdminShell .queueRowRight{grid-template-columns:minmax(78px,.8fr) minmax(96px,1fr);}
+  .laAdminShell .queueFilters{grid-template-columns:minmax(260px,1.45fr) repeat(4,minmax(116px,.75fr));}
+}
+@container (max-width:900px){
+  .laAdminShell .queueTopCards,.laAdminShell .queueFilters{grid-template-columns:1fr;}
+  .laAdminShell .queueRowCard{grid-template-columns:1fr;}
+  .laAdminShell .queueRowMiddle,.laAdminShell .queueRowRight{grid-template-columns:1fr;}
+  .laAdminShell .queueEmptyWorkbench{grid-template-columns:1fr;text-align:left}.laAdminShell .queueEmptyChecklist{grid-column:1}.laAdminShell .queueEmptyActions{justify-content:flex-start}.laAdminShell .preparedControlHero{align-items:flex-start;flex-direction:column}
+}
+
+/* Inner add-lot form container: when preview is beside the form, keep product fields from overflowing the narrowed main rail. */
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateMain{
+  container-type: inline-size;
+}
+
+@container (max-width: 760px){
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productInfoRedesign,
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productBaseGrid,
+  .laAdminShell .studioPage:has(.auctionCreatePage) .productDetailGrid{
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* PM responsive contract for Tasks 11/12: container-first backend pages.
+   Breakpoints below are based on the actual page/content rail, not the viewport
+   (1366 viewport leaves roughly 1035px after the 260px sidebar). */
+.laAdminShell .studioPage:has(.auctionMgmtPage),
+.laAdminShell .studioPage:has(.auctionCreatePage),
+.laAdminShell .studioPage:has(.liveControlPage){
+  container-type: inline-size;
+}
+
+/* Wide canvases fill large monitors, but dense side rails keep readable caps. */
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateLayout:has(.productInfoWorkbench){
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 520px);
+  max-width: 1840px;
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .stickyPreviewPanel{
+  max-width: 520px;
+}
+
+.laAdminShell .studioPage:has(.liveControlPage) .controlRoomGrid{
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr) minmax(320px, 400px);
+  max-width: 1880px;
+}
+
+.laAdminShell .studioPage:has(.liveControlPage) .controlLeftRail,
+.laAdminShell .studioPage:has(.liveControlPage) .controlRightRail{
+  max-width: 400px;
+}
+
+.laAdminShell .studioPage:has(.liveControlPage) .controlCenterRail{
+  min-width: 0;
+}
+
+/* At the common 1366 desktop content width (~1035px), add-lot preview moves below. */
+@container (max-width: 1079px){
+  .laAdminShell .studioPage:has(.auctionCreatePage) .auctionCreateLayout:has(.productInfoWorkbench){
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .laAdminShell .studioPage:has(.auctionCreatePage) .stickyPreviewPanel{
+    position: static;
+    max-width: none;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  }
+
+  .laAdminShell .studioPage:has(.liveControlPage) .controlRoomGrid{
+    grid-template-areas:
+      "center"
+      "briefing"
+      "side";
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .laAdminShell .studioPage:has(.liveControlPage) .controlLeftRail,
+  .laAdminShell .studioPage:has(.liveControlPage) .controlRightRail{
+    max-width: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .laAdminShell .studioPage:has(.liveControlPage) .controlCenterRail{
+    max-width: 980px;
+    width: 100%;
+    justify-self: center;
+  }
+}
+
+/* Queue PM rule: at ~1035px content width, row cards remain horizontal.
+   They only collapse below tablet width. */
+@container (min-width: 901px) and (max-width: 1180px){
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowCard{
+    grid-template-columns: minmax(240px, .92fr) minmax(330px, 1.2fr) minmax(210px, .72fr) !important;
+    gap: 12px;
+    padding: 13px 14px;
+  }
+
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowLeft{
+    grid-template-columns: auto 62px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowLeft img{
+    width: 62px;
+    height: 62px;
+    border-radius: 15px;
+  }
+
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowMiddle{
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight{
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .auctionRowActions{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .auctionRowActions button,
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .auctionRowActions a,
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .auctionRowActions summary{
+    width: 100%;
+    padding-inline: 8px;
+  }
+}
+
+@container (max-width: 900px){
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowCard{
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Hourly UI pass: collapse the full-width dashboard before laptop viewports overflow.
+   At 1366px the fixed 260px rail leaves roughly 1050px for content, so the 2K/4K
+   dashboard track minimums must not remain active until the old 1320px breakpoint. */
+@media(max-width:1500px){
+  .studioPage:has(.dashboardWelcomeCard) .todayCoreGrid,
+  .studioPage:has(.dashboardWelcomeCard) .todayLowerGrid{grid-template-columns:1fr}
+  .studioPage:has(.dashboardWelcomeCard) .todayAuctionCard,
+  .studioPage:has(.dashboardWelcomeCard) .todayNextCard,
+  .studioPage:has(.dashboardWelcomeCard) .todayTodoCard{min-height:auto}
+  .studioPage:has(.dashboardWelcomeCard) .todayMetricGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dashboardWelcomeCard .studioSectionHeader{align-items:flex-start;flex-direction:column}
+  .dashboardWelcomeActions{justify-content:flex-start}
+}
+
+/* Task 9/11 hardening: post-live deal and bid tables must never push the studio shell wider than the viewport. */
+.laAdminShell .postLivePage,
+.laAdminShell .postLiveGrid,
+.laAdminShell .studioTableWrap,
+.laAdminShell .studioTableTools,
+.laAdminShell .bidFilterBar,
+.laAdminShell .postLiveFilters{
+  min-width:0;
+  max-width:100%;
+}
+
+.laAdminShell .bidFilterBar,
+.laAdminShell .postLiveFilters{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(118px,1fr));
+  gap:8px;
+  align-items:end;
+}
+
+.laAdminShell .bidFilterBar label{
+  display:grid;
+  gap:5px;
+  min-width:0;
+  color:var(--studio-text-3);
+  font-size:12px;
+  font-weight:700;
+}
+
+.laAdminShell .bidFilterBar input,
+.laAdminShell .bidFilterBar select{
+  width:100%;
+  min-width:0;
+  height:34px;
+  border:1px solid var(--studio-border);
+  border-radius:11px;
+  background:#fff;
+  color:var(--studio-text-2);
+  padding:0 9px;
+  font:inherit;
+}
+
+.laAdminShell .postLiveFilters span{
+  min-width:0;
+  padding:8px 10px;
+  border:1px solid var(--studio-border);
+  border-radius:999px;
+  background:#fff;
+  color:var(--studio-text-3);
+  font-size:12px;
+  font-weight:700;
+  text-align:center;
+}
+
+.laAdminShell .bidIdentityCell,
+.laAdminShell .orderProductCell,
+.laAdminShell .moneyText,
+.laAdminShell .latencyText,
+.laAdminShell .latencyDanger,
+.laAdminShell .studioTable code{
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+
+.laAdminShell .latencyDanger{color:var(--studio-danger);font-weight:750}.laAdminShell .latencyText{color:var(--studio-success);font-weight:750}
+
+@container (max-width: 760px){
+  .laAdminShell .studioPage:has(.postLivePage) .studioTableWrap{
+    overflow:visible;
+    border:0;
+    background:transparent;
+    box-shadow:none;
+  }
+
+  .laAdminShell .studioPage:has(.postLivePage) .studioTableTools{
+    align-items:stretch;
+    flex-direction:column;
+    border:1px solid var(--studio-border);
+    border-radius:18px;
+    background:#fff;
+    box-shadow:var(--studio-shadow-sm);
+  }
+
+  .laAdminShell .studioPage:has(.postLivePage) .studioTable{
+    display:block;
+    min-width:0;
+    width:100%;
+  }
+
+  .laAdminShell .studioPage:has(.postLivePage) .studioTable thead{display:none}
+  .laAdminShell .studioPage:has(.postLivePage) .studioTable tbody{display:grid;gap:12px;margin-top:12px}
+  .laAdminShell .studioPage:has(.postLivePage) .studioTable tr{
+    display:grid;
+    gap:0;
+    width:100%;
+    padding:14px;
+    border:1px solid var(--studio-border);
+    border-radius:22px;
+    background:#fff;
+    box-shadow:var(--studio-shadow-sm);
+  }
+
+  .laAdminShell .studioPage:has(.postLivePage) .studioTable td{
+    display:grid;
+    grid-template-columns:minmax(82px,.38fr) minmax(0,1fr);
+    gap:12px;
+    align-items:center;
+    width:100%;
+    padding:9px 0;
+    border-bottom:0;
+  }
+
+  .laAdminShell .studioPage:has(.postLivePage) .studioTable td + td{border-top:1px dashed var(--studio-border)}
+  .laAdminShell .studioPage:has(.postLivePage) .studioTable td::before{
+    content:attr(data-label);
+    color:var(--studio-text-3);
+    font-size:12px;
+    font-weight:750;
+  }
+
+  .laAdminShell .studioPage:has(.postLivePage) .orderProductCell{
+    grid-template-columns:46px minmax(0,1fr);
+  }
+
+  .laAdminShell .studioPage:has(.postLivePage) .orderProductCell img{
+    width:46px;
+    height:46px;
+    border-radius:12px;
+  }
+
+  .laAdminShell .studioPage:has(.postLivePage) .laRowActions{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    width:100%;
+  }
+
+  .laAdminShell .studioPage:has(.postLivePage) .laRowActions button,
+  .laAdminShell .studioPage:has(.postLivePage) .laRowActions a{
+    width:100%;
+    justify-content:center;
+  }
+}
+
+@media(max-width:420px){
+  .laAdminShell .studioPage:has(.postLivePage) .studioTable td{
+    grid-template-columns:1fr;
+    gap:5px;
+  }
+}
+
+/* Hourly task 10/11 pass: legacy admin tables become readable cards on mobile too.
+   StudioTable already emits data-label, so team/product/alert pages no longer rely on
+   a tiny horizontal scroller at 640px. Post-live tables keep their dedicated rules. */
+@media(max-width:760px){
+  .laAdminShell .studioPage:not(:has(.postLivePage)) .studioTableWrap{
+    overflow:visible;
+    border:0;
+    background:transparent;
+    box-shadow:none;
+  }
+
+  .laAdminShell .studioPage:not(:has(.postLivePage)) .studioTableTools{
+    align-items:stretch;
+    flex-direction:column;
+    border:1px solid var(--studio-border);
+    border-radius:18px;
+    background:#fff;
+    box-shadow:var(--studio-shadow-sm);
+  }
+
+  .laAdminShell .studioPage:not(:has(.postLivePage)) .studioTable{
+    display:block;
+    min-width:0;
+    width:100%;
+  }
+
+  .laAdminShell .studioPage:not(:has(.postLivePage)) .studioTable thead{display:none}
+  .laAdminShell .studioPage:not(:has(.postLivePage)) .studioTable tbody{display:grid;gap:12px;margin-top:12px}
+  .laAdminShell .studioPage:not(:has(.postLivePage)) .studioTable tr{
+    display:grid;
+    width:100%;
+    padding:14px;
+    border:1px solid var(--studio-border);
+    border-radius:22px;
+    background:#fff;
+    box-shadow:var(--studio-shadow-sm);
+  }
+
+  .laAdminShell .studioPage:not(:has(.postLivePage)) .studioTable td{
+    display:grid;
+    grid-template-columns:minmax(92px,.38fr) minmax(0,1fr);
+    gap:12px;
+    align-items:center;
+    width:100%;
+    padding:9px 0;
+    border-bottom:0;
+    min-width:0;
+  }
+
+  .laAdminShell .studioPage:not(:has(.postLivePage)) .studioTable td + td{border-top:1px dashed var(--studio-border)}
+  .laAdminShell .studioPage:not(:has(.postLivePage)) .studioTable td::before{
+    content:attr(data-label);
+    color:var(--studio-text-3);
+    font-size:12px;
+    font-weight:750;
+  }
+}
+
+@media(max-width:420px){
+  .laAdminShell .studioPage:not(:has(.postLivePage)) .studioTable td{
+    grid-template-columns:1fr;
+    gap:5px;
+  }
+}

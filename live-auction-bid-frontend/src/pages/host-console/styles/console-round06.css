@@ -1,0 +1,711 @@
+/* Round 06: scoped backend console responsive and command-center polish.
+   Keep Home/Login untouched by targeting only studio/console classes. */
+
+.studioShell * {
+  box-sizing: border-box;
+}
+
+.studioTopbar,
+.studioSidebar,
+.studioPageHeader,
+.auctionMgmtHeader,
+.controlTopBar,
+.studioCard,
+.studioTableWrap,
+.auctionMgmtTableWrap {
+  min-width: 0;
+}
+
+.studioTopbarTitle,
+.studioTopActions,
+.controlTopMetrics,
+.controlTopActions,
+.auctionMgmtHeader > div,
+.auctionFilterBar,
+.studioTableTools {
+  min-width: 0;
+}
+
+.studioTopbarTitle h1,
+.studioTopbarTitle p,
+.studioTopbarTitle span,
+.controlTopBar h2,
+.auctionMgmtHeader h2,
+.lotProductCell b,
+.accountCell b,
+.orderState b {
+  overflow-wrap: anywhere;
+}
+
+/* Make the live control page read as a cockpit at common 1366/1440 demo widths. */
+@media (min-width: 1280px) and (max-width: 1499px) {
+  .controlRoomGrid {
+    grid-template-columns: minmax(292px, 318px) minmax(430px, 1fr) minmax(330px, 360px) !important;
+    gap: 14px !important;
+  }
+
+  .controlCard,
+  .controlSideCard,
+  .controlBottomCard,
+  .controlActionDeck,
+  .priceCommandBoard {
+    padding: 14px !important;
+  }
+
+  .priceCommandBoard strong {
+    font-size: clamp(56px, 6.2vw, 78px) !important;
+  }
+
+  .serverCountdown {
+    font-size: clamp(34px, 4vw, 48px) !important;
+    padding: 12px 16px !important;
+  }
+
+  .controlActionsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .playbookStageBar {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .playbookStageBar div {
+    padding-inline: 8px !important;
+    line-height: 1.25 !important;
+  }
+
+  .controlTopMetrics > span {
+    min-width: 104px;
+  }
+}
+
+/* Tablet: center command area first, side rails become readable support panels. */
+@media (max-width: 1279px) {
+  .controlCenterRail {
+    order: -1;
+  }
+
+  .controlLeftRail,
+  .controlRightRail {
+    align-items: stretch;
+  }
+
+  .auctionCreateLayout,
+  .controlRoomGrid,
+  .controlBottomGrid,
+  .auctionMgmtHeroGrid,
+  .techWorkbench {
+    min-width: 0;
+  }
+}
+
+/* Mobile backend shell: compact top navigation instead of a clipped desktop sidebar. */
+@media (max-width: 900px) {
+  .laAdminShell.studioShell {
+    display: block !important;
+    overflow-x: hidden;
+  }
+
+  .studioSidebar {
+    position: sticky !important;
+    top: 0;
+    z-index: 40;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 10px 12px 8px !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid rgba(210, 222, 241, .76);
+    background: rgba(255,255,255,.82) !important;
+    backdrop-filter: blur(18px) saturate(1.08);
+  }
+
+  .studioBrand {
+    padding: 0 4px 8px !important;
+    gap: 9px !important;
+  }
+
+  .studioBrand > span {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 14px !important;
+    flex: 0 0 auto;
+  }
+
+  .studioBrand strong {
+    font-size: 15px !important;
+  }
+
+  .studioBrand small {
+    display: none !important;
+  }
+
+  .laAdminShell .studioNav,
+  .studioNav {
+    display: flex !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 2px 4px 8px !important;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .laAdminShell .studioNav::-webkit-scrollbar,
+  .studioNav::-webkit-scrollbar {
+    height: 0;
+  }
+
+  .studioPage:has(.dashboardWelcomeCard) .todayRoomStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .studioPage:has(.dashboardWelcomeCard) .todayRoomStrip > div {
+    border-top: 1px solid var(--studio-border);
+  }
+
+  .studioPage:has(.dashboardWelcomeCard) .todayRoomStrip > div:nth-child(1),
+  .studioPage:has(.dashboardWelcomeCard) .todayRoomStrip > div:nth-child(2) {
+    border-top: 0;
+  }
+
+  .studioPage:has(.dashboardWelcomeCard) .todayRoomStrip > div:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .studioNavGroup {
+    display: flex !important;
+    flex: 0 0 auto;
+    gap: 8px !important;
+    min-width: max-content !important;
+  }
+
+  .studioNavGroup > p {
+    display: none !important;
+  }
+
+  .studioNav a {
+    flex: 0 0 auto;
+    min-height: 42px;
+    margin: 0 !important;
+    padding: 9px 12px !important;
+    white-space: nowrap;
+    scroll-snap-align: start;
+  }
+
+  .studioTopbar {
+    position: static !important;
+    height: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+    padding: 10px 14px !important;
+    background: rgba(255,255,255,.64) !important;
+  }
+
+  .studioTopbarTitle h1 {
+    display: none !important;
+  }
+
+  .studioTopbarTitle p,
+  .studioTopbarTitle span {
+    font-size: 11px !important;
+    line-height: 1.35;
+  }
+
+  .studioSearch {
+    display: none !important;
+  }
+
+  .studioTopActions {
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 6px !important;
+  }
+
+  .laWsStatus {
+    max-width: 168px;
+    height: 34px !important;
+    padding: 0 10px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .laTopActions button,
+  .laAvatar {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px;
+  }
+
+  .studioContent {
+    padding: 14px 12px 22px !important;
+  }
+
+  .studioPageHeader,
+  .auctionMgmtHeader,
+  .controlTopBar,
+  .auctionCreateHeader {
+    border-radius: 22px !important;
+  }
+
+  .studioPageHeader {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    padding: 18px !important;
+  }
+
+  .studioPageHeader h2,
+  .auctionMgmtHeader h2,
+  .auctionCreateHeader h2,
+  .controlTopBar h2 {
+    font-size: clamp(24px, 7vw, 32px) !important;
+    line-height: 1.08 !important;
+  }
+
+  .controlTopBar,
+  .auctionMgmtHeader,
+  .auctionCreateHeader,
+  .studioSectionHeader,
+  .studioCardHeader,
+  .studioTableTools {
+    align-items: flex-start !important;
+  }
+
+  .studioTableTools {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .controlTopMetrics,
+  .controlTopActions,
+  .auctionMgmtHeader > div:last-child,
+  .studioSectionActions,
+  .studioCardActions {
+    justify-content: flex-start !important;
+  }
+
+  .auctionFilterBar {
+    grid-template-columns: 1fr !important;
+  }
+
+  .priceCommandMetrics,
+  .roomMetricGrid,
+  .auctionMgmtStats,
+  .postLiveWorkbench,
+  .riskSignalList {
+    grid-template-columns: 1fr !important;
+  }
+
+  .controlBidFeed,
+  .controlRanking,
+  .controlEventLog {
+    max-height: none !important;
+  }
+
+  .auctionDrawer > section {
+    width: min(100vw, 560px) !important;
+    padding: 18px 14px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .studioBrand strong {
+    font-size: 14px !important;
+  }
+
+  .studioTopbarTitle span {
+    display: none !important;
+  }
+
+  .laWsStatus {
+    max-width: 138px;
+  }
+
+  .studioPageBody {
+    gap: 14px !important;
+  }
+
+  .studioPage:has(.dashboardWelcomeCard) .todayRoomStrip {
+    grid-template-columns: 1fr !important;
+  }
+
+  .studioPage:has(.dashboardWelcomeCard) .todayRoomStrip > div {
+    border-right: 0 !important;
+  }
+
+  .studioPage:has(.dashboardWelcomeCard) .todayRoomStrip > div:nth-child(2) {
+    border-top: 1px solid var(--studio-border);
+  }
+
+  .studioCard,
+  .controlCard,
+  .controlSideCard,
+  .controlBottomCard,
+  .controlActionDeck,
+  .priceCommandBoard,
+  .auctionStepCard,
+  .currentRoomOverview,
+  .auctionFocusCard {
+    border-radius: 20px !important;
+    padding: 16px !important;
+  }
+
+  .priceCommandBoard strong {
+    font-size: clamp(44px, 17vw, 58px) !important;
+  }
+
+  .serverCountdown {
+    width: 100%;
+    justify-content: center;
+    font-size: clamp(28px, 10vw, 36px) !important;
+    padding: 12px !important;
+  }
+
+  .controlActionsGrid,
+  .dangerActionStrip,
+  .auctionStepActions,
+  .publishConfirmDialog footer,
+  .controlDialog footer,
+  .cancelDialog footer {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .publishStepper {
+    grid-template-columns: 1fr !important;
+  }
+
+  .mobileAuctionPhone {
+    width: min(280px, 100%) !important;
+  }
+
+  .studioToastViewport {
+    top: 12px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    transform: none !important;
+  }
+}
+
+/* Round 07: convergence pass — design-system guardrails, multi-resolution shell, and safer responsive tables. */
+.studioSkipLink {
+  position: fixed;
+  left: 18px;
+  top: 12px;
+  z-index: 999;
+  transform: translateY(-140%);
+  border-radius: 999px;
+  background: var(--studio-text);
+  color: #fff;
+  padding: 10px 14px;
+  font-weight: 900;
+  text-decoration: none;
+  box-shadow: var(--studio-shadow-md);
+  transition: transform .16s ease;
+}
+
+.studioSkipLink:focus-visible {
+  transform: translateY(0);
+  outline: 0;
+}
+
+.studioShell {
+  background:
+    radial-gradient(circle at 0 0, rgba(142, 200, 232, .2), transparent 28vw),
+    radial-gradient(circle at 100% 8%, rgba(244, 166, 193, .16), transparent 30vw),
+    var(--studio-bg);
+}
+
+.studioPage {
+  width: min(100%, var(--studio-page-max));
+  margin-inline: auto;
+}
+
+.studioButton,
+.studioNav a,
+.studioTopActions button,
+.auctionStatusTabs button,
+.auctionTagPicker button,
+.publishStepper button,
+.auctionDrawer button {
+  touch-action: manipulation;
+}
+
+.studioButton:focus-visible,
+.studioNav a:focus-visible,
+.studioTopActions button:focus-visible,
+.auctionStatusTabs button:focus-visible,
+.auctionDrawer button:focus-visible,
+.studioField input:focus-visible,
+.studioField textarea:focus-visible,
+.studioField select:focus-visible {
+  outline: 0;
+  box-shadow: var(--studio-focus-ring), var(--studio-shadow-sm) !important;
+}
+
+.studioCard,
+.queueTopCard,
+.auctionFocusCard,
+.currentRoomOverview,
+.auctionCreateHeader,
+.auctionMgmtHeader,
+.controlTopBar,
+.realtimeSyncCapsule {
+  border-color: color-mix(in srgb, var(--studio-border) 86%, white);
+}
+
+.studioTableWrap {
+  overflow: hidden;
+}
+
+.studioTableWrap:has(.studioTable) {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.studioTable {
+  width: 100%;
+}
+
+.studioTable td,
+.studioTable th {
+  white-space: nowrap;
+}
+
+.studioTable td:first-child,
+.studioTable th:first-child,
+.studioTable td:nth-child(2),
+.studioTable th:nth-child(2) {
+  white-space: normal;
+}
+
+.realtimeSyncCapsule,
+.queueTopCards,
+.auctionMgmtStats,
+.todayMetricGrid,
+.todayCoreGrid,
+.todayLowerGrid,
+.controlBottomGrid,
+.postLiveWorkbench,
+.techWorkbench {
+  container-type: inline-size;
+}
+
+@media (min-width: 1500px) {
+  .studioPage {
+    --studio-page-max: 1640px;
+  }
+
+  .studioContent {
+    padding-inline: clamp(28px, 3vw, 54px) !important;
+  }
+
+  .todayCoreGrid,
+  .queueTopCards,
+  .auctionMgmtStats {
+    gap: 18px !important;
+  }
+}
+
+@media (min-width: 1800px) {
+  .studioPage {
+    --studio-page-max: 1760px;
+  }
+
+  .controlRoomGrid {
+    grid-template-columns: minmax(330px, 380px) minmax(620px, 1fr) minmax(360px, 420px) !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  .queueTopCards,
+  .todayCoreGrid,
+  .todayLowerGrid,
+  .controlBottomGrid,
+  .postLiveWorkbench,
+  .techWorkbench {
+    grid-template-columns: 1fr !important;
+  }
+
+  .realtimeSyncCapsule {
+    grid-template-columns: 1fr !important;
+    align-items: stretch !important;
+  }
+
+  .syncCapsuleMetrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .studioTableWrap:has(.studioTable) {
+    overflow: visible;
+  }
+
+  .studioTable,
+  .studioTable thead,
+  .studioTable tbody,
+  .studioTable tr,
+  .studioTable th,
+  .studioTable td {
+    display: block;
+    min-width: 0 !important;
+  }
+
+  .studioTable thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .studioTable tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .studioTable tr {
+    border: 1px solid var(--studio-border);
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: var(--studio-shadow-sm);
+    overflow: hidden;
+  }
+
+  .studioTable td {
+    display: grid;
+    grid-template-columns: minmax(86px, 34%) minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    padding: 10px 12px !important;
+    border-bottom: 1px solid #eef2f7;
+    white-space: normal;
+  }
+
+  .studioTable td::before {
+    content: attr(data-label);
+    color: var(--studio-text-3);
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .studioTable td:last-child {
+    border-bottom: 0;
+  }
+
+  .syncCapsuleMetrics,
+  .queueHealthGrid,
+  .todayAuctionFacts,
+  .todayNextRules,
+  .nextRuleGrid,
+  .lotMiniMetrics,
+  .roomMetricGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .studioSidebar {
+    padding-inline: 8px !important;
+  }
+
+  .studioTopbar,
+  .studioContent {
+    padding-inline: 10px !important;
+  }
+
+  .studioButton,
+  .studioNav a {
+    min-height: 40px;
+    padding-inline: 10px !important;
+  }
+
+  .studioPageHeader h2,
+  .auctionMgmtHeader h2,
+  .auctionCreateHeader h2,
+  .controlTopBar h2 {
+    font-size: 24px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studioShell *,
+  .studioShell *::before,
+  .studioShell *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+/* 2026-05-22 fix: add-lot workbench must occupy the whole content canvas.
+   The previous desktop rules could leave the form/preview cluster visually parked on the left
+   on wide screens, even though the page header stretched. Keep this override last and explicit. */
+.laAdminShell .studioPage:has(.auctionCreatePage),
+.laAdminShell .auctionCreatePage,
+.laAdminShell .auctionCreatePage .auctionCreateLayout,
+.laAdminShell .auctionCreatePage .auctionCreateMain {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) clamp(420px, 28vw, 620px) !important;
+  gap: clamp(20px, 1.45vw, 34px) !important;
+  align-items: start !important;
+}
+
+.laAdminShell .auctionCreatePage .auctionCreateMain,
+.laAdminShell .auctionCreatePage .productInfoWorkbench,
+.laAdminShell .auctionCreatePage .productInfoRedesign {
+  min-width: 0 !important;
+}
+
+.laAdminShell .auctionCreatePage .productInfoRedesign {
+  grid-template-columns: minmax(420px, 0.38fr) minmax(620px, 0.62fr) !important;
+  gap: clamp(18px, 1.25vw, 28px) !important;
+}
+
+.laAdminShell .auctionCreatePage .stickyPreviewPanel {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  justify-self: stretch !important;
+}
+
+.laAdminShell .auctionCreatePage .mobilePreviewWrap,
+.laAdminShell .auctionCreatePage .stickyMiniCard {
+  width: 100% !important;
+}
+
+@media (max-width: 1280px) {
+  .laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) {
+    grid-template-columns: 1fr !important;
+  }
+
+  .laAdminShell .auctionCreatePage .stickyPreviewPanel {
+    position: static !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .laAdminShell .auctionCreatePage .productInfoRedesign {
+    grid-template-columns: minmax(320px, 0.4fr) minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 860px) {
+  .laAdminShell .auctionCreatePage .productInfoRedesign,
+  .laAdminShell .auctionCreatePage .stickyPreviewPanel {
+    grid-template-columns: 1fr !important;
+  }
+}

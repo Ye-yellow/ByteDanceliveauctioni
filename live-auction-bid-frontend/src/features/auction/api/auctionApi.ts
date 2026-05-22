@@ -1,7 +1,28 @@
 import { API_BASE } from '../../../shared/config/env';
 import { assertOkResult } from '../../../shared/api/result';
 import { accessToken } from '../../auth/api/authStore';
-import type { CancelLotReply, CreateLotReply, CreateLotRequest, GetRoomSnapshotReply, ListLotsReply, Lot, PlaceBidReply, PlaceBidRequest, RevealTrustCardReply, RoomSnapshot, SettleLotReply, StartDuelReply, StartLotReply, TrustRevealCard } from '../../../shared/api/types';
+import { forceRelogin } from '../../../shared/api/authExpired';
+import { clientLog, createRequestId } from '../../../shared/lib/clientLogger';
+import type { CancelLotReply, CreateLotReply, CreateLotRequest, GetRoomSnapshotReply, ListLotsReply, Lot, RevealTrustCardReply, RoomSnapshot, SettleLotReply, StartDuelReply, StartLotReply, TrustRevealCard, UploadedAsset, UploadImageReply } from '../../../shared/api/types';
+
+function formatApiError(input: { status?: number; code?: number; message?: string; requestId?: string; result?: { code?: number; message?: string; traceId?: string; trace_id?: string }; error?: string }) {
+  const code = input.code ?? input.result?.code;
+  const requestId = input.requestId ?? input.result?.traceId ?? input.result?.trace_id;
+  const message = input.message || input.result?.message || input.error || (input.status ? `HTTP ${input.status}` : 'request failed');
+  const meta = [code !== undefined ? `code=${code}` : '', requestId ? `requestId=${requestId}` : ''].filter(Boolean).join('，');
+  return meta ? `${message}（${meta}）` : message;
+}
+
+async function readErrorMessage(response: Response): Promise<string> {
+  const text = await response.text();
+  if (!text) return `HTTP ${response.status}`;
+  try {
+    const body = JSON.parse(text) as { code?: number; message?: string; requestId?: string; result?: { code?: number; message?: string; traceId?: string; trace_id?: string }; error?: string };
+    return formatApiError({ ...body, status: response.status });
+  } catch {
+    return `${text}（HTTP ${response.status}）`;
+  }
+}
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const token = accessToken();
@@ -13,7 +34,11 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
       ...(init?.headers ?? {}),
     },
   });
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) {
+    const message = await readErrorMessage(r);
+    if (r.status === 401) forceRelogin(`登录已过期，请重新登录（${message}）`);
+    throw new Error(r.status === 401 ? `登录已过期，请重新登录（${message}）` : message);
+  }
   return r.json() as Promise<T>;
 }
 
@@ -27,16 +52,76 @@ export async function listLots(roomId = 'demo'): Promise<Lot[]> {
   return reply.lots ?? [];
 }
 
+export async function getRoomSnapshot(roomId = 'demo'): Promise<RoomSnapshot> {
+  const reply = assertOkResult(await request<GetRoomSnapshotReply>(`/api/${'rooms'}/${encodeURIComponent(roomId)}/snapshot`));
+  if (!reply.snapshot) throw new Error('response missing snapshot');
+  return reply.snapshot;
+}
+
+export async function uploadImage(file: File, input?: { roomId?: string; bizType?: string }): Promise<UploadedAsset> {
+  const token = accessToken();
+  const form = new FormData();
+  form.append('file', file);
+  if (input?.roomId) form.append('roomId', input.roomId);
+  if (input?.bizType) form.append('bizType', input.bizType);
+  const requestId = createRequestId('upload');
+  const startedAt = performance.now();
+  clientLog('info', 'upload_image.request', {
+    requestId,
+    endpoint: '/api/uploads/images',
+    roomId: input?.roomId,
+    bizType: input?.bizType,
+    fileName: file.name,
+    fileType: file.type,
+    fileSize: file.size,
+    hasToken: Boolean(token),
+  });
+  try {
+    const r = await fetch(`${API_BASE}/api/uploads/images`, {
+      method: 'POST',
+      headers: {
+        'X-Request-Id': requestId,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: form,
+    });
+    if (!r.ok) {
+      const message = await readErrorMessage(r);
+      if (r.status === 401) forceRelogin(`登录已过期，请重新登录（${message}）`);
+      throw new Error(r.status === 401 ? `登录已过期，请重新登录（${message}）` : message);
+    }
+    const reply = await r.json() as UploadImageReply;
+    const code = reply.code ?? reply.result?.code ?? 0;
+    if (code !== 0) throw new Error(formatApiError(reply));
+    const asset = reply.data?.asset ?? reply.asset;
+    if (!asset?.imageUrl) throw new Error('response missing uploaded image url');
+    clientLog('info', 'upload_image.success', {
+      requestId: reply.requestId ?? requestId,
+      durationMs: Math.round(performance.now() - startedAt),
+      code,
+      assetId: asset.id,
+      imageUrl: asset.imageUrl,
+      objectKey: asset.objectKey,
+      mimeType: asset.mimeType,
+      sizeBytes: asset.sizeBytes,
+    });
+    return asset;
+  } catch (error) {
+    clientLog('error', 'upload_image.failure', {
+      requestId,
+      durationMs: Math.round(performance.now() - startedAt),
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+}
+
 export async function createLot(payload: CreateLotRequest) {
   return requireLot(assertOkResult(await request<CreateLotReply>('/api/lots', { method: 'POST', body: JSON.stringify(payload) })));
 }
 
 export async function startLot(lotId: string) {
   return requireLot(assertOkResult(await request<StartLotReply>(`/api/lots/${lotId}/start`, { method: 'POST', body: JSON.stringify({}) })));
-}
-
-export async function placeBid(lotId: string, payload: PlaceBidRequest) {
-  return assertOkResult(await request<PlaceBidReply>(`/api/lots/${lotId}/bid`, { method: 'POST', body: JSON.stringify(payload) }));
 }
 
 export async function revealTrustCard(lotId: string, cardId: string) {
@@ -55,10 +140,4 @@ export async function settleLot(lotId: string) {
 
 export async function cancelLot(lotId: string, reason: string) {
   return requireLot(assertOkResult(await request<CancelLotReply>(`/api/lots/${lotId}/cancel`, { method: 'POST', body: JSON.stringify({ lotId, reason }) })));
-}
-
-export async function getRoomSnapshot(roomId = 'demo'): Promise<RoomSnapshot> {
-  const reply = assertOkResult(await request<GetRoomSnapshotReply>(`/api/rooms/${roomId}/snapshot`));
-  if (!reply.snapshot) throw new Error('response missing room snapshot');
-  return reply.snapshot;
 }

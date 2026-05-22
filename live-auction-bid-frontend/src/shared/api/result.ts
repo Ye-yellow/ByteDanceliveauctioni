@@ -27,10 +27,11 @@ export class ApiResultError extends Error {
   }
 }
 
-export function assertOkResult<T extends { result?: ReplyResult }>(reply: T): T {
+export function assertOkResult<T extends { result?: Partial<ReplyResult> }>(reply: T): T {
   const result = reply.result;
-  if (result && result.code !== RESULT_CODE_OK) {
-    throw new ApiResultError(result);
+  // proto3 JSON 会省略默认值 code=0，所以 { message: 'ok' } 也应视为成功。
+  if (result && (result.code ?? RESULT_CODE_OK) !== RESULT_CODE_OK) {
+    throw new ApiResultError(result as ReplyResult);
   }
   return reply;
 }
