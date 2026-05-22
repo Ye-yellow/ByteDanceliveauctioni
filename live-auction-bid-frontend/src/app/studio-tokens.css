@@ -3445,3 +3445,354 @@ button:disabled {
   max-inline-size: 100% !important;
   justify-self: stretch !important;
 }
+
+/* Product library page: full-width asset workbench, aligned with queue/control console style. */
+.laAdminShell .studioPage:has(.productLibraryPage) {
+  width: 100% !important;
+  max-width: none !important;
+  margin-inline: 0 !important;
+  container-type: inline-size;
+}
+.laAdminShell .studioContent:has(.productLibraryPage) {
+  padding-inline: 28px !important;
+  padding-top: 26px !important;
+}
+.laAdminShell .productLibraryPage {
+  display: grid;
+  gap: 20px;
+  width: 100%;
+}
+.laAdminShell .productLibraryHero {
+  position: relative;
+  overflow: hidden;
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 30px 34px;
+  border: 1px solid rgba(214, 224, 242, .94);
+  border-radius: 32px;
+  background: radial-gradient(circle at 86% 18%, rgba(59,130,246,.18), transparent 34%), radial-gradient(circle at 8% 100%, rgba(34,197,94,.12), transparent 30%), linear-gradient(135deg, #ffffff, #f7fbff 52%, #f5f3ff);
+  box-shadow: 0 24px 58px rgba(37, 99, 235, .10);
+}
+.laAdminShell .productLibraryHero::after {
+  content: "";
+  position: absolute;
+  right: 30%;
+  top: -70px;
+  width: 220px;
+  height: 220px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, .08);
+  pointer-events: none;
+}
+.laAdminShell .productLibraryHero p,
+.laAdminShell .productLibraryHero h2,
+.laAdminShell .productLibraryHero span {
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+.laAdminShell .productLibraryHero p {
+  color: var(--studio-primary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.laAdminShell .productLibraryHero h2 {
+  margin-top: 7px;
+  color: var(--studio-text);
+  font-size: 34px;
+  line-height: 42px;
+  font-weight: 900;
+  letter-spacing: -.06em;
+}
+.laAdminShell .productLibraryHero span {
+  display: block;
+  max-width: 620px;
+  margin-top: 8px;
+  color: var(--studio-text-3);
+  font-size: 15px;
+  line-height: 24px;
+  font-weight: 650;
+}
+.laAdminShell .productLibraryHeroActions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.laAdminShell .productLibraryHeroActions .studioButton {
+  min-width: 118px;
+  height: 50px;
+  border-radius: 17px;
+  font-size: 15px;
+  font-weight: 900;
+}
+.laAdminShell .productLibraryStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+.laAdminShell .productLibraryStats > div {
+  min-height: 120px;
+  padding: 22px 24px;
+  border: 1px solid var(--studio-border);
+  border-radius: 26px;
+  background: linear-gradient(180deg, #fff, #f8fbff);
+  box-shadow: 0 18px 38px rgba(15, 23, 42, .07);
+}
+.laAdminShell .productLibraryStats span,
+.laAdminShell .productLibraryStats small {
+  display: block;
+  color: var(--studio-text-3);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 750;
+}
+.laAdminShell .productLibraryStats b {
+  display: block;
+  margin: 8px 0 2px;
+  color: var(--studio-text);
+  font-size: 34px;
+  line-height: 40px;
+  font-weight: 900;
+  letter-spacing: -.055em;
+}
+.laAdminShell .productLibraryFilters {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.35fr) repeat(3, minmax(170px, .45fr));
+  gap: 12px;
+  align-items: center;
+  min-height: 70px;
+  padding: 12px;
+  border: 1px solid var(--studio-border);
+  border-radius: 24px;
+  background: rgba(255,255,255,.92);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, .06);
+}
+.laAdminShell .productLibraryFilters label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid #e5edf7;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--studio-text-3);
+}
+.laAdminShell .productLibraryFilters input,
+.laAdminShell .productLibraryFilters select {
+  width: 100%;
+  min-width: 0;
+  height: 46px;
+  border: 1px solid #e5edf7;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--studio-text-2);
+  font-size: 14px;
+  font-weight: 760;
+  outline: none;
+}
+.laAdminShell .productLibraryFilters label input {
+  height: auto;
+  border: 0;
+  border-radius: 0;
+}
+.laAdminShell .productLibraryFilters select {
+  padding: 0 14px;
+}
+.laAdminShell .productLibraryList {
+  display: grid;
+  gap: 16px;
+}
+.laAdminShell .productLibraryRow {
+  display: grid;
+  grid-template-columns: minmax(420px, 1.1fr) minmax(540px, 1.25fr) minmax(430px, .95fr);
+  gap: 24px;
+  align-items: center;
+  min-height: 154px;
+  padding: 22px 24px;
+  border: 1px solid var(--studio-border);
+  border-radius: 30px;
+  background: linear-gradient(180deg, #fff, #fbfdff);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, .08);
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.laAdminShell .productLibraryRow:hover {
+  transform: translateY(-1px);
+  border-color: #bfdbfe;
+  box-shadow: 0 24px 54px rgba(37, 99, 235, .12);
+}
+.laAdminShell .productIdentity {
+  display: grid;
+  grid-template-columns: 54px 92px minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  min-width: 0;
+}
+.laAdminShell .productLibraryNo {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 38px;
+  border-radius: 999px;
+  background: var(--studio-surface-soft);
+  color: var(--studio-text-3);
+  font-size: 13px;
+  font-weight: 900;
+}
+.laAdminShell .productLibraryThumb {
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  border-radius: 26px;
+  border: 1px solid #dbeafe;
+  background: radial-gradient(circle at 30% 22%, rgba(255,255,255,.95), transparent 26%), linear-gradient(135deg, #dbeafe, #f5f3ff);
+  color: var(--studio-primary);
+  box-shadow: 0 16px 30px rgba(37, 99, 235, .12);
+}
+.laAdminShell .productIdentity h3 {
+  margin: 0 0 12px;
+  color: var(--studio-text);
+  font-size: 23px;
+  line-height: 30px;
+  font-weight: 900;
+  letter-spacing: -.045em;
+}
+.laAdminShell .productLibraryTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.laAdminShell .productLibraryTags > span:not(.laStatusBadge) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--studio-surface-soft);
+  color: var(--studio-text-3);
+  font-size: 13px;
+  font-weight: 760;
+}
+.laAdminShell .productLibraryMetrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.laAdminShell .productLibraryMetrics span {
+  min-height: 72px;
+  display: grid;
+  gap: 5px;
+  align-content: center;
+  padding: 13px 14px;
+  border-radius: 18px;
+  background: var(--studio-surface-soft);
+  color: var(--studio-text-2);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 850;
+}
+.laAdminShell .productLibraryMetrics b {
+  color: var(--studio-text-3);
+  font-size: 12px;
+  line-height: 17px;
+  font-weight: 900;
+  letter-spacing: .02em;
+}
+.laAdminShell .productLibraryActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.laAdminShell .productLibraryActions a,
+.laAdminShell .productLibraryActions button {
+  display: inline-grid;
+  place-items: center;
+  min-height: 50px;
+  padding: 0 16px;
+  border: 1px solid #dbe7f7;
+  border-radius: 17px;
+  background: linear-gradient(180deg, #fff, #f8fbff);
+  color: var(--studio-text-2);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, .08);
+}
+.laAdminShell .productLibraryActions .primary {
+  border-color: #2563eb;
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: #fff;
+  box-shadow: 0 18px 36px rgba(37, 99, 235, .24);
+}
+@container (max-width: 1320px) {
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryFilters { grid-template-columns: minmax(0, 1fr) repeat(2, minmax(140px, .45fr)); }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryFilters select:last-child { display: none; }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryRow { grid-template-columns: minmax(320px, .95fr) minmax(390px, 1fr) minmax(280px, .72fr); gap: 16px; padding: 18px; }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productIdentity { grid-template-columns: 44px 74px minmax(0, 1fr); gap: 13px; }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryNo { width: 44px; height: 32px; font-size: 12px; }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryThumb { width: 74px; height: 74px; border-radius: 20px; }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productIdentity h3 { font-size: 18px; line-height: 25px; }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryMetrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryMetrics span { min-height: 56px; padding: 9px 10px; font-size: 13px; line-height: 18px; }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryActions a,
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryActions button { min-height: 42px; border-radius: 14px; font-size: 13px; }
+}
+@container (max-width: 860px) {
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryHero { align-items: flex-start; flex-direction: column; }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryStats,
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryFilters,
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryRow,
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryMetrics,
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryActions { grid-template-columns: minmax(0, 1fr); }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryFilters select:last-child { display: block; }
+}
+
+/* Product library laptop fit: avoid wide table overflow after the fixed sidebar. */
+.laAdminShell .productLibraryPage,
+.laAdminShell .productLibraryHero,
+.laAdminShell .productLibraryStats,
+.laAdminShell .productLibraryFilters,
+.laAdminShell .productLibraryList,
+.laAdminShell .productLibraryRow,
+.laAdminShell .productIdentity,
+.laAdminShell .productLibraryMetrics,
+.laAdminShell .productLibraryActions {
+  min-width: 0 !important;
+}
+@container (max-width: 1320px) {
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryPage {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryRow {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, .46fr) !important;
+    grid-template-areas:
+      "identity actions"
+      "metrics metrics" !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productIdentity { grid-area: identity !important; }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryMetrics { grid-area: metrics !important; }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryActions { grid-area: actions !important; align-self: center !important; }
+}
+@container (max-width: 860px) {
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryRow {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-areas: "identity" "metrics" "actions" !important;
+  }
+}

@@ -1605,7 +1605,26 @@ function SettleLotDialog({ lot, onClose, onConfirm }: { lot: Lot; onClose: () =>
 
 function ControlPage() { return <LiveControlPage />; }
 
-function ProductsPage() { return <Panel title="拍品库" action={<button className="laPrimaryBtn">添加拍品</button>}><DataTable rows={products} rowKey={(r) => r.name} columns={[{ label: '拍品名称', render: (r) => <b>{r.name}</b> }, { label: '图片', render: () => <span className="laThumb"><ShoppingBag size={18} /></span> }, { label: '分类', render: (r) => r.category }, { label: '估值', render: (r) => r.estimate }, { label: '库存', render: (r) => r.stock }, { label: '加入本场队列', render: (r) => r.auction }, { label: '创建时间', render: (r) => r.created }, { label: '状态', render: (r) => <StatusBadge label={r.status} /> }, { label: '操作', render: () => <div className="laRowActions"><a>编辑拍品资料</a><a>加入本场队列</a><a>下架</a></div> }]} /></Panel>; }
+function ProductsPage() {
+  const totalStock = products.reduce((sum, item) => sum + item.stock, 0);
+  const readyCount = products.filter((item) => ['已上架', '竞拍中'].includes(item.status)).length;
+  const settledCount = products.filter((item) => item.status === '已成交').length;
+  return <section className="productLibraryPage">
+    <section className="productLibraryHero">
+      <div><p>当前直播间 / 拍品库</p><h2>拍品库</h2><span>沉淀可复拍、可排队、可复盘的拍品资产，商品助理在这里完成上架前准备。</span></div>
+      <div className="productLibraryHeroActions"><a className="studioButton studioButton-secondary studioButton-lg" href="/admin/auctions">本场队列</a><a className="studioButton studioButton-primary studioButton-lg" href="/admin/auctions/create">添加拍品</a></div>
+    </section>
+    <section className="productLibraryStats"><div><span>库内拍品</span><b>{products.length}</b><small>当前直播间资产</small></div><div><span>可排队</span><b>{readyCount}</b><small>已上架 / 竞拍中</small></div><div><span>总库存</span><b>{totalStock}</b><small>可用于复拍</small></div><div><span>已成交</span><b>{settledCount}</b><small>可复制重拍</small></div></section>
+    <section className="productLibraryFilters"><label><Search size={17} /><input placeholder="搜索拍品名 / 竞拍 ID / 分类" /></label><select defaultValue="全部分类" aria-label="分类"><option>全部分类</option><option>珠宝配饰</option><option>艺术收藏</option><option>箱包奢品</option><option>生活方式</option></select><select defaultValue="全部状态" aria-label="状态"><option>全部状态</option><option>已上架</option><option>竞拍中</option><option>已成交</option></select><select defaultValue="最近创建" aria-label="排序"><option>最近创建</option><option>估值最高</option><option>库存最多</option></select></section>
+    <section className="productLibraryList" aria-label="拍品库列表">
+      {products.map((product, index) => <article className="productLibraryRow" key={product.name}>
+        <div className="productIdentity"><span className="productLibraryNo">#{String(index + 1).padStart(2, '0')}</span><div className="productLibraryThumb"><ShoppingBag size={28} /></div><div><h3>{product.name}</h3><div className="productLibraryTags"><StatusBadge label={product.status} /><span>{product.category}</span><span>{product.auction}</span></div></div></div>
+        <div className="productLibraryMetrics"><span><b>估值</b>{product.estimate}</span><span><b>库存</b>{product.stock}</span><span><b>创建时间</b>{product.created}</span><span><b>队列绑定</b>{product.auction}</span></div>
+        <div className="productLibraryActions"><a href="/admin/auctions/create">编辑资料</a><a className="primary" href="/admin/auctions">加入本场队列</a><button type="button">复制重拍</button><button type="button">下架</button></div>
+      </article>)}
+    </section>
+  </section>;
+}
 function OrdersPage() {
   const [activeTab, setActiveTab] = useState('全部');
   const [detail, setDetail] = useState<OrderRow | null>(orders[0] || null);
