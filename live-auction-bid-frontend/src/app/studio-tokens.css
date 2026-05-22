@@ -3796,3 +3796,71 @@ button:disabled {
     grid-template-areas: "identity" "metrics" "actions" !important;
   }
 }
+
+/* Queue top cards: unify action button sizing across current/next cards. */
+.laAdminShell .queueTopCard .queueTopActions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+  margin-top: 18px !important;
+}
+.laAdminShell .queueTopCard .queueTopActions > a,
+.laAdminShell .queueTopCard .queueTopActions > button {
+  box-sizing: border-box !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  min-width: 116px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  padding: 0 18px !important;
+  border-radius: 16px !important;
+  font-size: 15px !important;
+  line-height: 20px !important;
+  font-weight: 900 !important;
+  letter-spacing: -.02em !important;
+  text-decoration: none !important;
+  border: 1px solid #dbe7f7 !important;
+  background: linear-gradient(180deg, #ffffff, #f8fbff) !important;
+  color: #172033 !important;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, .09), inset 0 1px 0 rgba(255,255,255,.96) !important;
+}
+.laAdminShell .queueTopCard .queueTopActions > .studioButton-primary,
+.laAdminShell .queueTopCard .queueTopActions > button:not(.studioButton):first-child {
+  border-color: #2563eb !important;
+  background: linear-gradient(135deg, #2563eb, #4f46e5) !important;
+  color: #fff !important;
+  box-shadow: 0 16px 32px rgba(37, 99, 235, .24) !important;
+}
+.laAdminShell .queueTopCard .queueTopActions > .studioButton-soft,
+.laAdminShell .queueTopCard .queueTopActions > .studioButton-secondary,
+.laAdminShell .queueTopCard .queueTopActions > button:not(.studioButton) {
+  border-color: #dbe7f7 !important;
+  background: linear-gradient(180deg, #ffffff, #f8fbff) !important;
+  color: #334155 !important;
+}
+.laAdminShell .queueTopCard .queueTopActions > a:hover,
+.laAdminShell .queueTopCard .queueTopActions > button:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+  border-color: #bfdbfe !important;
+  box-shadow: 0 18px 34px rgba(37, 99, 235, .13) !important;
+}
+.laAdminShell .queueTopCard .queueTopActions > button:disabled,
+.laAdminShell .queueTopCard .queueTopActions > .studioButton-secondary[disabled] {
+  opacity: 1 !important;
+  color: #64748b !important;
+  background: linear-gradient(180deg, #f8fafc, #eef2f7) !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+}
+@container (max-width: 1180px) {
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > a,
+  .laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > button {
+    min-width: 108px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding-inline: 14px !important;
+    border-radius: 14px !important;
+    font-size: 14px !important;
+  }
+}
