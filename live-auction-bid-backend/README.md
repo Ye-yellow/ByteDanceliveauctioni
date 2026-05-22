@@ -10,6 +10,8 @@
 
 P0 硬点：0 元起拍、固定加价、封顶价自动成交、10-30 秒自动延时、异常取消、订单管理、移动 H5 观众端、WebSocket 心跳重连/快照恢复、被超越/领先/延时/结束提醒、100+ 并发出价一致性。
 
+端划分说明：后端仍提供完整竞拍、出价、用户、WebSocket 契约；但当前兄弟前端 `live-auction-bid-frontend` 只作为商家/主播/运营后台 Web。用户 H5 竞拍端和小程序端后续应作为独立项目接入同一后端契约，不在当前后台前端仓库中实现入口或页面。
+
 工程铁律和完整纲领见根文档：[`PROJECT_CHARTER.md`](./PROJECT_CHARTER.md)。
 
 ## 已落地的主链路
@@ -48,6 +50,31 @@ password: admin_dev_password
 curl http://127.0.0.1:18080/healthz
 curl http://127.0.0.1:18080/readyz
 ```
+
+### 火山引擎 TOS 图片上传配置
+
+前端添加拍品页统一调用 `POST /api/uploads/images`，后端通过 `StorageProvider` 接火山引擎 TOS。AK/SK 只放运行环境变量，不进入前端或仓库。
+
+本地 Docker Compose 可复制模板后填写密钥：
+
+```bash
+cd deploy
+cp .env.example .env
+# 编辑 deploy/.env，填入 AUCTION_TOS_ACCESS_KEY / AUCTION_TOS_SECRET_KEY
+```
+
+当前公共读 Bucket 配置：
+
+```env
+AUCTION_STORAGE_PROVIDER=tos
+AUCTION_TOS_ENDPOINT=https://tos-cn-beijing.volces.com
+AUCTION_TOS_REGION=cn-beijing
+AUCTION_TOS_BUCKET=liveauction
+AUCTION_TOS_PUBLIC_BASE_URL=https://liveauction.tos-cn-beijing.volces.com
+AUCTION_TOS_USE_SSL=true
+```
+
+上传接口会：校验权限与图片类型 → 生成 `{bizType}/{yyyy}/{mm}/{assetId}.{ext}` 对象键 → 上传 TOS → 写入 `asset_files` → 返回 `asset.imageUrl` 给前端预览和 `createLot.imageUrl` 使用。
 
 用户与出价示例：
 

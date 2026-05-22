@@ -333,6 +333,9 @@ message BidRule {
 
   // 最多延时次数，避免竞拍无限延长。
   int32 max_extend_count = 6;
+
+  // 封顶价。达到或超过后可以自动成交；为空表示不启用封顶价。
+  Money cap_price = 7;
 }
 
 // TrustRevealCard 表示一个可揭示的信任信息卡片。

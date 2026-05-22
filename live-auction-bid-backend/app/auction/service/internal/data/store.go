@@ -102,6 +102,7 @@ func (s *Store) migrate(ctx context.Context) error {
 		&AuctionLotModel{},
 		&AuctionBidModel{},
 		&AuctionEventModel{},
+		&AssetFileModel{},
 		&AuctionUserModel{},
 		&AuctionUserSessionModel{},
 	)

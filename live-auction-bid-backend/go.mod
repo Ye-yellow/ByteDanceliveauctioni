@@ -6,6 +6,7 @@ require (
 	github.com/go-kratos/kratos/v2 v2.8.4
 	github.com/gorilla/websocket v1.5.3
 	github.com/redis/go-redis/v9 v9.5.1
+	github.com/volcengine/ve-tos-golang-sdk/v2 v2.9.5
 	golang.org/x/crypto v0.33.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20240318140521-94a12d6c2237
 	google.golang.org/grpc v1.64.1
@@ -25,8 +26,8 @@ require (
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/kr/text v0.2.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240318140521-94a12d6c2237 // indirect

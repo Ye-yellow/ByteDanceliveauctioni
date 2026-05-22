@@ -19,6 +19,7 @@ func TestLotStateMachine(t *testing.T) {
 	lot, err := auction.NewLotFromRequest("lot_1", &v1.CreateLotRequest{
 		RoomId: "demo",
 		Title:  "测试拍品",
+		ImageUrl: "https://example.com/lot.jpg",
 		Rule: &v1.BidRule{
 			StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
 			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
@@ -62,6 +63,7 @@ func TestCancelLotStateMachineAllowsOnlyLiveAndRecordsReason(t *testing.T) {
 	lot, err := auction.NewLotFromRequest("lot_cancel", &v1.CreateLotRequest{
 		RoomId: "demo",
 		Title:  "取消测试拍品",
+		ImageUrl: "https://example.com/lot.jpg",
 		Rule: &v1.BidRule{
 			StartPrice:             &v1.Money{Amount: 0, Currency: "CNY"},
 			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
@@ -94,6 +96,50 @@ func TestCancelLotStateMachineAllowsOnlyLiveAndRecordsReason(t *testing.T) {
 	}
 }
 
+func TestAntiSnipeExtensionKeepsDuelStateInSync(t *testing.T) {
+	lot, err := auction.NewLotFromRequest("lot_extend", &v1.CreateLotRequest{
+		RoomId: "demo",
+		Title:  "延时测试拍品",
+		ImageUrl: "https://example.com/lot.jpg",
+		Rule: &v1.BidRule{
+			StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
+			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+			DurationSeconds:        60,
+			AntiSnipeWindowSeconds: 10,
+			AntiSnipeExtendSeconds: 15,
+			MaxExtendCount:         2,
+		},
+	})
+	if err != nil {
+		t.Fatalf("create lot failed: %v", err)
+	}
+	if err := auction.StartLot(lot, 1000); err != nil {
+		t.Fatalf("start lot failed: %v", err)
+	}
+	originalEndsAt := lot.EndsAtUnixMs
+	if err := auction.AcceptBid(lot, v1.Bid{UserId: "u1", Nickname: "用户1", Amount: &v1.Money{Amount: 11000, Currency: "CNY"}}, originalEndsAt-5_000); err != nil {
+		t.Fatalf("bid in anti-snipe window failed: %v", err)
+	}
+	if lot.EndsAtUnixMs != originalEndsAt+15_000 {
+		t.Fatalf("expected lot ends_at to extend from %d to %d, got %d", originalEndsAt, originalEndsAt+15_000, lot.EndsAtUnixMs)
+	}
+	if lot.GetDuelState().GetExtendCount() != 1 || lot.GetDuelState().GetLotId() != lot.Id || lot.GetDuelState().GetEndsAtUnixMs() != lot.EndsAtUnixMs || lot.GetDuelState().GetMaxExtendCount() != 2 {
+		t.Fatalf("duel state should mirror anti-snipe extension counters: %+v", lot.GetDuelState())
+	}
+
+	secondEndsAt := lot.EndsAtUnixMs
+	if err := auction.AcceptBid(lot, v1.Bid{UserId: "u2", Nickname: "用户2", Amount: &v1.Money{Amount: 12000, Currency: "CNY"}}, secondEndsAt-5_000); err != nil {
+		t.Fatalf("second extension bid failed: %v", err)
+	}
+	thirdEndsAt := lot.EndsAtUnixMs
+	if err := auction.AcceptBid(lot, v1.Bid{UserId: "u3", Nickname: "用户3", Amount: &v1.Money{Amount: 13000, Currency: "CNY"}}, thirdEndsAt-5_000); err != nil {
+		t.Fatalf("third bid at max extension boundary failed: %v", err)
+	}
+	if lot.EndsAtUnixMs != thirdEndsAt || lot.GetDuelState().GetExtendCount() != 2 {
+		t.Fatalf("extension should stop at max count, lot=%+v duel=%+v", lot, lot.GetDuelState())
+	}
+}
+
 func TestBuildRanking(t *testing.T) {
 	bids := []v1.Bid{
 		{UserId: "u1", Nickname: "用户1", Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, CreatedAtUnixMs: 1000},
@@ -117,6 +163,7 @@ func TestCreateLotRejectsMismatchedCurrency(t *testing.T) {
 	_, err := auction.NewLotFromRequest("lot_1", &v1.CreateLotRequest{
 		RoomId: "demo",
 		Title:  "测试拍品",
+		ImageUrl: "https://example.com/lot.jpg",
 		Rule: &v1.BidRule{
 			StartPrice:             &v1.Money{Currency: "CNY", Amount: 10000},
 			MinIncrement:           &v1.Money{Currency: "USD", Amount: 1000},
@@ -131,6 +178,42 @@ func TestCreateLotRejectsMismatchedCurrency(t *testing.T) {
 	}
 }
 
+func TestCreateLotValidatesRequiredImageAndCapPrice(t *testing.T) {
+	base := &v1.CreateLotRequest{
+		RoomId: "demo",
+		Title:  "封顶价测试拍品",
+		ImageUrl: "https://example.com/lot.jpg",
+		Rule: &v1.BidRule{
+			StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
+			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+			DurationSeconds:        300,
+			AntiSnipeWindowSeconds: 15,
+			AntiSnipeExtendSeconds: 15,
+			MaxExtendCount:         3,
+			CapPrice:               &v1.Money{Amount: 50000, Currency: "CNY"},
+		},
+	}
+	lot, err := auction.NewLotFromRequest("lot_cap", base)
+	if err != nil {
+		t.Fatalf("valid cap price should pass: %v", err)
+	}
+	if lot.GetRule().GetCapPrice().GetAmount() != 50000 {
+		t.Fatalf("cap price should be kept on lot: %+v", lot.GetRule().GetCapPrice())
+	}
+
+	missingImage := proto.Clone(base).(*v1.CreateLotRequest)
+	missingImage.ImageUrl = ""
+	if _, err := auction.NewLotFromRequest("lot_no_image", missingImage); err == nil || !strings.Contains(err.Error(), "image url") {
+		t.Fatalf("missing image should be rejected, got %v", err)
+	}
+
+	badCap := proto.Clone(base).(*v1.CreateLotRequest)
+	badCap.Rule.CapPrice = &v1.Money{Amount: 9000, Currency: "CNY"}
+	if _, err := auction.NewLotFromRequest("lot_bad_cap", badCap); err == nil || !strings.Contains(err.Error(), "greater than start price") {
+		t.Fatalf("cap <= start should be rejected, got %v", err)
+	}
+}
+
 func TestPlaceBidRejectsMissingUserInsteadOfDefaulting(t *testing.T) {
 	store := newTestStore()
 	uc := auction.NewAuctionUsecase(store, store, store, nil)
@@ -139,6 +222,7 @@ func TestPlaceBidRejectsMissingUserInsteadOfDefaulting(t *testing.T) {
 	lot, err := uc.CreateLot(ctx, &v1.CreateLotRequest{
 		RoomId: "demo",
 		Title:  "测试拍品",
+		ImageUrl: "https://example.com/lot.jpg",
 		Rule: &v1.BidRule{
 			StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
 			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
@@ -170,6 +254,7 @@ func TestLotSaveRejectsStaleExpectedVersion(t *testing.T) {
 	lot, err := auction.NewLotFromRequest("lot_conflict", &v1.CreateLotRequest{
 		RoomId: "demo",
 		Title:  "版本冲突测试",
+		ImageUrl: "https://example.com/lot.jpg",
 		Rule: &v1.BidRule{
 			StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
 			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
@@ -216,6 +301,7 @@ func TestCommitAcceptedBidRejectsStaleLotWithoutAppendingBid(t *testing.T) {
 	lot, err := auction.NewLotFromRequest("lot_bid_conflict", &v1.CreateLotRequest{
 		RoomId: "demo",
 		Title:  "出价事务冲突测试",
+		ImageUrl: "https://example.com/lot.jpg",
 		Rule: &v1.BidRule{
 			StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
 			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
@@ -407,6 +493,7 @@ func TestAuctionUsecaseCoreClosurePublishesEventsAndSnapshot(t *testing.T) {
 	lot, err := uc.CreateLot(ctx, &v1.CreateLotRequest{
 		RoomId:      "room_core",
 		Title:       "核心闭环拍品",
+		ImageUrl: "https://example.com/lot.jpg",
 		Description: "核心业务闭环测试",
 		Rule: &v1.BidRule{
 			StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
@@ -497,6 +584,7 @@ func TestAuctionUsecaseCancelLotPersistsAndPublishesEvent(t *testing.T) {
 	lot, err := uc.CreateLot(ctx, &v1.CreateLotRequest{
 		RoomId: "room_cancel",
 		Title:  "异常取消拍品",
+		ImageUrl: "https://example.com/lot.jpg",
 		Rule: &v1.BidRule{
 			StartPrice:             &v1.Money{Amount: 0, Currency: "CNY"},
 			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
@@ -531,6 +619,44 @@ func TestAuctionUsecaseCancelLotPersistsAndPublishesEvent(t *testing.T) {
 	}
 	pub.assertContains(t, v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CANCELLED)
 	assertEventTypesContain(t, store.eventTypes(), v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CANCELLED)
+}
+
+func TestPlaceBidAntiSnipeExtensionPersistsLotUpdatedEvent(t *testing.T) {
+	store := newTestStore()
+	pub := &testPublisher{}
+	uc := auction.NewAuctionUsecase(store, store, store, pub)
+	ctx := context.Background()
+
+	lot, err := uc.CreateLot(ctx, &v1.CreateLotRequest{
+		RoomId: "room_extend",
+		Title:  "延时事件拍品",
+		ImageUrl: "https://example.com/lot.jpg",
+		Rule: &v1.BidRule{
+			StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
+			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+			DurationSeconds:        60,
+			AntiSnipeWindowSeconds: 70,
+			AntiSnipeExtendSeconds: 15,
+			MaxExtendCount:         3,
+		},
+	})
+	if err != nil {
+		t.Fatalf("create lot failed: %v", err)
+	}
+	started, err := uc.StartLot(ctx, lot.Id)
+	if err != nil {
+		t.Fatalf("start lot failed: %v", err)
+	}
+	originalEndsAt := started.EndsAtUnixMs
+	updated, bid, ranking, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{LotId: lot.Id, Amount: &v1.Money{Amount: 11000, Currency: "CNY"}}, "u1", "用户1")
+	if err != nil || bid == nil || len(ranking) != 1 {
+		t.Fatalf("extension bid failed: updated=%+v bid=%+v ranking=%+v err=%v", updated, bid, ranking, err)
+	}
+	if updated.EndsAtUnixMs <= originalEndsAt || updated.GetDuelState().GetExtendCount() != 1 || updated.GetDuelState().GetLotId() != updated.Id || updated.GetDuelState().GetEndsAtUnixMs() != updated.EndsAtUnixMs {
+		t.Fatalf("accepted bid should extend live lot and sync duel state: before=%d after=%+v", originalEndsAt, updated)
+	}
+	pub.assertContains(t, v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_UPDATED)
+	assertEventTypesContain(t, store.eventTypes(), v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_UPDATED)
 }
 
 type testPublisher struct {
@@ -577,6 +703,7 @@ func TestStartDuelWithOnlyUserBDoesNotDuplicateUsers(t *testing.T) {
 	lot, err := auction.NewLotFromRequest("lot_duel", &v1.CreateLotRequest{
 		RoomId: "demo",
 		Title:  "Duel 指定测试",
+		ImageUrl: "https://example.com/lot.jpg",
 		Rule: &v1.BidRule{
 			StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
 			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},

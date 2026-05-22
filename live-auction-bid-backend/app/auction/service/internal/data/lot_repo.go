@@ -98,6 +98,13 @@ func (s *Store) List(ctx context.Context, roomID string, status v1.LotStatus) ([
 }
 
 func lotToModel(lot *v1.Lot) (*AuctionLotModel, error) {
+	var capAmount *int64
+	var capCurrency string
+	if lot.GetRule().GetCapPrice() != nil {
+		amount := lot.GetRule().GetCapPrice().GetAmount()
+		capAmount = &amount
+		capCurrency = lot.GetRule().GetCapPrice().GetCurrency()
+	}
 	payload, err := protojson.Marshal(lot)
 	if err != nil {
 		return nil, err
@@ -113,6 +120,8 @@ func lotToModel(lot *v1.Lot) (*AuctionLotModel, error) {
 		StartPriceCurrency:     lot.GetRule().GetStartPrice().GetCurrency(),
 		MinIncrementAmount:     lot.GetRule().GetMinIncrement().GetAmount(),
 		MinIncrementCurrency:   lot.GetRule().GetMinIncrement().GetCurrency(),
+		CapPriceAmount:         capAmount,
+		CapPriceCurrency:       capCurrency,
 		DurationSeconds:        lot.GetRule().GetDurationSeconds(),
 		AntiSnipeWindowSeconds: lot.GetRule().GetAntiSnipeWindowSeconds(),
 		AntiSnipeExtendSeconds: lot.GetRule().GetAntiSnipeExtendSeconds(),
@@ -140,6 +149,14 @@ func modelToLot(model *AuctionLotModel) (*v1.Lot, error) {
 	lot := &v1.Lot{}
 	if err := protojson.Unmarshal([]byte(model.Payload), lot); err != nil {
 		return nil, err
+	}
+	if lot.Rule == nil {
+		lot.Rule = &v1.BidRule{}
+	}
+	if model.CapPriceAmount != nil {
+		lot.Rule.CapPrice = &v1.Money{Amount: *model.CapPriceAmount, Currency: model.CapPriceCurrency}
+	} else {
+		lot.Rule.CapPrice = nil
 	}
 	return lot, nil
 }

@@ -13,6 +13,7 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
 	"live-auction-bid/backend/app/auction/service/internal/realtime"
 	"live-auction-bid/backend/app/auction/service/internal/server"
+	"live-auction-bid/backend/app/auction/service/internal/storage"
 	appsvc "live-auction-bid/backend/app/auction/service/internal/service"
 )
 
@@ -45,6 +46,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	imageStorage, err := newImageStorageFromEnv()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	userUsecase := userbiz.NewUsecase(store, authManager)
 	if err := bootstrapAdmin(ctx, userUsecase); err != nil {
 		log.Fatal(err)
@@ -74,7 +80,7 @@ func main() {
 	}()
 
 	readiness := server.Readiness{Store: store, Outbox: outboxWorker, Consul: consulRegistration}
-	httpServer := server.NewHTTPServer(addr, auctionService, userService, hub, readiness, authManager.Middleware())
+	httpServer := server.NewHTTPServer(addr, auctionService, userService, hub, readiness, authManager, authManager.Middleware(), imageStorage, store)
 
 	log.Printf("auction backend listening on %s via kratos http", addr)
 	if err := httpServer.Start(ctx); err != nil {
@@ -113,4 +119,40 @@ func bootstrapAdmin(ctx context.Context, users *userbiz.Usecase) error {
 		return errors.New("bootstrap admin username, password and nickname must be configured together")
 	}
 	return users.BootstrapAdmin(ctx, username, password, nickname)
+}
+
+
+func newImageStorageFromEnv() (storage.StorageProvider, error) {
+	provider := getenv("AUCTION_STORAGE_PROVIDER", "")
+	if provider == "" {
+		return nil, nil
+	}
+	if provider != "tos" {
+		return nil, errors.New("unsupported auction storage provider: " + provider)
+	}
+	return storage.NewTOSStorage(storage.TOSConfig{
+		Endpoint:      getenv("AUCTION_TOS_ENDPOINT", "tos-cn-beijing.volces.com"),
+		Region:        getenv("AUCTION_TOS_REGION", "cn-beijing"),
+		Bucket:        getenv("AUCTION_TOS_BUCKET", "live-auction-assets"),
+		AccessKey:     os.Getenv("AUCTION_TOS_ACCESS_KEY"),
+		SecretKey:     os.Getenv("AUCTION_TOS_SECRET_KEY"),
+		PublicBaseURL: os.Getenv("AUCTION_TOS_PUBLIC_BASE_URL"),
+		UseSSL:        getenvBool("AUCTION_TOS_USE_SSL", true),
+	})
+}
+
+func getenvBool(key string, fallback bool) bool {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	switch value {
+	case "1", "true", "TRUE", "True", "yes", "YES", "on", "ON":
+		return true
+	case "0", "false", "FALSE", "False", "no", "NO", "off", "OFF":
+		return false
+	default:
+		log.Fatalf("invalid %s bool: %s", key, value)
+		return fallback
+	}
 }

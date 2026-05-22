@@ -13,6 +13,8 @@ type AuctionLotModel struct {
 	StartPriceCurrency     string `gorm:"column:start_price_currency;type:varchar(16);not null"`
 	MinIncrementAmount     int64  `gorm:"column:min_increment_amount;not null"`
 	MinIncrementCurrency   string `gorm:"column:min_increment_currency;type:varchar(16);not null"`
+	CapPriceAmount         *int64 `gorm:"column:cap_price_amount"`
+	CapPriceCurrency       string `gorm:"column:cap_price_currency;type:varchar(16)"`
 	DurationSeconds        int32  `gorm:"column:duration_seconds;type:int;not null"`
 	AntiSnipeWindowSeconds int32  `gorm:"column:anti_snipe_window_seconds;type:int;not null"`
 	AntiSnipeExtendSeconds int32  `gorm:"column:anti_snipe_extend_seconds;type:int;not null"`
@@ -96,3 +98,23 @@ type AuctionUserSessionModel struct {
 }
 
 func (AuctionUserSessionModel) TableName() string { return "auction_user_sessions" }
+
+
+type AssetFileModel struct {
+	ID              string `gorm:"column:id;type:varchar(64);primaryKey"`
+	OwnerUserID     string `gorm:"column:owner_user_id;type:varchar(64);not null;index:idx_asset_owner"`
+	RoomID          string `gorm:"column:room_id;type:varchar(64);not null;default:'';index:idx_asset_room"`
+	BizType         string `gorm:"column:biz_type;type:varchar(64);not null;index:idx_asset_biz_type"`
+	StorageProvider string `gorm:"column:storage_provider;type:varchar(32);not null"`
+	Bucket          string `gorm:"column:bucket;type:varchar(128);not null"`
+	ObjectKey       string `gorm:"column:object_key;type:varchar(512);not null;uniqueIndex:idx_asset_object_key"`
+	PublicURL       string `gorm:"column:public_url;type:varchar(1024);not null"`
+	OriginalName    string `gorm:"column:original_name;type:varchar(255);not null;default:''"`
+	MimeType        string `gorm:"column:mime_type;type:varchar(64);not null"`
+	SizeBytes       int64  `gorm:"column:size_bytes;not null"`
+	SHA256          string `gorm:"column:sha256;type:char(64);not null;index:idx_asset_sha256"`
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+func (AssetFileModel) TableName() string { return "asset_files" }

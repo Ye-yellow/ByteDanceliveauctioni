@@ -21,15 +21,43 @@ func NewLotFromRequest(id string, req *v1.CreateLotRequest) (*v1.Lot, error) {
 	if req.GetRule() == nil || req.GetRule().GetStartPrice() == nil || req.GetRule().GetMinIncrement() == nil {
 		return nil, errors.New("bid rule, start price and min increment are required")
 	}
+	if req.GetImageUrl() == "" {
+		return nil, errors.New("lot image url is required")
+	}
 	if req.GetRule().GetStartPrice().GetCurrency() == "" || req.GetRule().GetMinIncrement().GetCurrency() == "" {
 		return nil, errors.New("start price and min increment currency are required")
 	}
 	if req.GetRule().GetStartPrice().GetCurrency() != req.GetRule().GetMinIncrement().GetCurrency() {
 		return nil, errors.New("start price and min increment currency must match")
 	}
-	if req.GetRule().GetDurationSeconds() <= 0 || req.GetRule().GetAntiSnipeWindowSeconds() <= 0 ||
-		req.GetRule().GetAntiSnipeExtendSeconds() <= 0 || req.GetRule().GetMaxExtendCount() <= 0 {
-		return nil, errors.New("duration, anti-snipe window, anti-snipe extension and max extension count must be greater than zero")
+	if req.GetRule().GetStartPrice().GetAmount() < 0 {
+		return nil, errors.New("start price amount must be >= 0")
+	}
+	if req.GetRule().GetMinIncrement().GetAmount() <= 0 {
+		return nil, errors.New("min increment amount must be > 0")
+	}
+	if req.GetRule().GetDurationSeconds() < 60 {
+		return nil, errors.New("duration seconds must be >= 60")
+	}
+	if req.GetRule().GetAntiSnipeWindowSeconds() <= 0 {
+		return nil, errors.New("anti-snipe window seconds must be > 0")
+	}
+	if req.GetRule().GetAntiSnipeExtendSeconds() < 10 || req.GetRule().GetAntiSnipeExtendSeconds() > 30 {
+		return nil, errors.New("anti-snipe extend seconds must be between 10 and 30")
+	}
+	if req.GetRule().GetMaxExtendCount() <= 0 {
+		return nil, errors.New("max extend count must be > 0")
+	}
+	if capPrice := req.GetRule().GetCapPrice(); capPrice != nil {
+		if capPrice.GetCurrency() == "" {
+			return nil, errors.New("cap price currency is required")
+		}
+		if capPrice.GetCurrency() != req.GetRule().GetStartPrice().GetCurrency() || capPrice.GetCurrency() != req.GetRule().GetMinIncrement().GetCurrency() {
+			return nil, errors.New("cap price currency must match start price and min increment currency")
+		}
+		if capPrice.GetAmount() <= req.GetRule().GetStartPrice().GetAmount() {
+			return nil, errors.New("cap price amount must be greater than start price amount")
+		}
 	}
 
 	trustCards := make([]*v1.TrustRevealCard, 0, len(req.GetTrustCards()))
@@ -116,6 +144,21 @@ func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 	lot.LeadingUserId = bid.UserId
 	lot.LeadingNickname = bid.Nickname
 	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_BIDDING_ACTIVE
+	if lot.GetRule().GetCapPrice() != nil {
+		if bid.GetAmount().GetCurrency() != lot.GetRule().GetCapPrice().GetCurrency() {
+			return errors.New("bid currency must match cap price currency")
+		}
+		if bid.GetAmount().GetAmount() >= lot.GetRule().GetCapPrice().GetAmount() {
+			lot.Status = v1.LotStatus_LOT_STATUS_SETTLED
+			lot.SettledAtUnixMs = nowMs
+			lot.WinnerUserId = bid.UserId
+			lot.WinnerNickname = bid.Nickname
+			lot.FinalPrice = bid.GetAmount()
+			lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_SETTLE_READY
+			lot.Version++
+			return nil
+		}
+	}
 
 	remainingMs := lot.EndsAtUnixMs - nowMs
 	windowMs := int64(lot.GetRule().GetAntiSnipeWindowSeconds()) * 1000
@@ -126,9 +169,12 @@ func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 	if remainingMs > 0 && remainingMs <= windowMs && extendCount < lot.GetRule().GetMaxExtendCount() {
 		lot.EndsAtUnixMs += int64(lot.GetRule().GetAntiSnipeExtendSeconds()) * 1000
 		if lot.DuelState == nil {
-			lot.DuelState = &v1.DuelState{}
+			lot.DuelState = &v1.DuelState{LotId: lot.Id, MaxExtendCount: lot.GetRule().GetMaxExtendCount()}
 		}
 		lot.DuelState.ExtendCount++
+		lot.DuelState.LotId = lot.Id
+		lot.DuelState.EndsAtUnixMs = lot.EndsAtUnixMs
+		lot.DuelState.MaxExtendCount = lot.GetRule().GetMaxExtendCount()
 	}
 
 	lot.Version++

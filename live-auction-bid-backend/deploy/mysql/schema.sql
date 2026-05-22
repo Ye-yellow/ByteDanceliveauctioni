@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS auction_lots (
   start_price_currency VARCHAR(16) NOT NULL,
   min_increment_amount BIGINT NOT NULL,
   min_increment_currency VARCHAR(16) NOT NULL,
+  cap_price_amount BIGINT NULL,
+  cap_price_currency VARCHAR(16) NULL,
   duration_seconds INT NOT NULL,
   anti_snipe_window_seconds INT NOT NULL,
   anti_snipe_extend_seconds INT NOT NULL,
@@ -100,4 +102,27 @@ CREATE TABLE IF NOT EXISTS auction_user_sessions (
   INDEX idx_user_sessions (user_id),
   UNIQUE INDEX idx_refresh_token_hash (refresh_token_hash),
   INDEX idx_session_expiry (refresh_expires_at_unix_ms)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+CREATE TABLE IF NOT EXISTS asset_files (
+  id VARCHAR(64) PRIMARY KEY,
+  owner_user_id VARCHAR(64) NOT NULL,
+  room_id VARCHAR(64) NOT NULL DEFAULT '',
+  biz_type VARCHAR(64) NOT NULL,
+  storage_provider VARCHAR(32) NOT NULL,
+  bucket VARCHAR(128) NOT NULL,
+  object_key VARCHAR(512) NOT NULL,
+  public_url VARCHAR(1024) NOT NULL,
+  original_name VARCHAR(255) NOT NULL DEFAULT '',
+  mime_type VARCHAR(64) NOT NULL,
+  size_bytes BIGINT NOT NULL,
+  sha256 CHAR(64) NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
+  INDEX idx_asset_owner (owner_user_id),
+  INDEX idx_asset_room (room_id),
+  INDEX idx_asset_biz_type (biz_type),
+  INDEX idx_asset_sha256 (sha256),
+  UNIQUE INDEX idx_asset_object_key (object_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

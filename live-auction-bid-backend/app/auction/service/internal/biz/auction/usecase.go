@@ -141,6 +141,11 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest,
 		Amount:          req.GetAmount(),
 		CreatedAtUnixMs: clock.NowMs(),
 	}
+	endsBeforeBid := lot.EndsAtUnixMs
+	extendCountBeforeBid := int32(0)
+	if lot.GetDuelState() != nil {
+		extendCountBeforeBid = lot.GetDuelState().GetExtendCount()
+	}
 	if err := AcceptBid(lot, bid, clock.NowMs()); err != nil {
 		bids, listErr := uc.bids.ListByLot(ctx, lot.Id)
 		if listErr != nil {
@@ -178,6 +183,13 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest,
 	rankingEvent := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_RANKING_UPDATED, lot)
 	rankingEvent.Ranking = ranking
 	commitEvents := []v1.AuctionEvent{acceptedEvent, rankingEvent}
+	if lot.EndsAtUnixMs != endsBeforeBid || lot.GetDuelState().GetExtendCount() != extendCountBeforeBid {
+		updatedEvent := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_UPDATED, lot)
+		updatedEvent.Bid = &bid
+		updatedEvent.Ranking = ranking
+		updatedEvent.DuelState = lot.DuelState
+		commitEvents = append(commitEvents, updatedEvent)
+	}
 	if lot.GetDuelState().GetActive() {
 		duelEvent := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_DUEL_STARTED, lot)
 		duelEvent.Ranking = ranking
