@@ -13,8 +13,8 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
 	"live-auction-bid/backend/app/auction/service/internal/realtime"
 	"live-auction-bid/backend/app/auction/service/internal/server"
-	"live-auction-bid/backend/app/auction/service/internal/storage"
 	appsvc "live-auction-bid/backend/app/auction/service/internal/service"
+	"live-auction-bid/backend/app/auction/service/internal/storage"
 )
 
 func main() {
@@ -50,6 +50,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	assetCleanupWorker := data.NewAssetCleanupWorker(store, imageStorage, getenvDuration("AUCTION_TEMP_ASSET_CLEANUP_INTERVAL", time.Hour), 100)
+	assetCleanupWorker.Start(ctx)
 
 	userUsecase := userbiz.NewUsecase(store, authManager)
 	if err := bootstrapAdmin(ctx, userUsecase); err != nil {
@@ -120,7 +122,6 @@ func bootstrapAdmin(ctx context.Context, users *userbiz.Usecase) error {
 	}
 	return users.BootstrapAdmin(ctx, username, password, nickname)
 }
-
 
 func newImageStorageFromEnv() (storage.StorageProvider, error) {
 	provider := getenv("AUCTION_STORAGE_PROVIDER", "")

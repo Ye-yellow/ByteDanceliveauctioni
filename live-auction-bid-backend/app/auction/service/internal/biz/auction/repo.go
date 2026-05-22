@@ -9,7 +9,7 @@ import (
 // LotRepository 管理拍品聚合持久化。
 // biz 只依赖接口，不关心内存、MySQL 或其他存储实现。
 type LotRepository interface {
-	Create(ctx context.Context, lot *v1.Lot, events []v1.AuctionEvent) error
+	Create(ctx context.Context, lot *v1.Lot, ownerUserID string, events []v1.AuctionEvent) error
 	Save(ctx context.Context, lot *v1.Lot, expectedVersion int64, events []v1.AuctionEvent) error
 	FindByID(ctx context.Context, lotID string) (*v1.Lot, error)
 	List(ctx context.Context, roomID string, status v1.LotStatus) ([]*v1.Lot, error)

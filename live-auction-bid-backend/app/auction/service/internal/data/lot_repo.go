@@ -10,7 +10,7 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 )
 
-func (s *Store) Create(ctx context.Context, lot *v1.Lot, events []v1.AuctionEvent) error {
+func (s *Store) Create(ctx context.Context, lot *v1.Lot, ownerUserID string, events []v1.AuctionEvent) error {
 	if lot == nil {
 		return errors.New("lot is required")
 	}
@@ -22,11 +22,27 @@ func (s *Store) Create(ctx context.Context, lot *v1.Lot, events []v1.AuctionEven
 		if err := tx.Create(model).Error; err != nil {
 			return err
 		}
+		if err := attachAssetFilesByURL(tx, ownerUserID, lot.Id, lotAssetURLs(lot)); err != nil {
+			return err
+		}
 		return createEventModels(ctx, tx, events)
 	}); err != nil {
 		return err
 	}
 	return s.streamEvents(ctx, events)
+}
+
+func lotAssetURLs(lot *v1.Lot) []string {
+	if lot == nil {
+		return nil
+	}
+	urls := []string{lot.ImageUrl}
+	for _, card := range lot.TrustCards {
+		if card != nil && card.ImageUrl != "" {
+			urls = append(urls, card.ImageUrl)
+		}
+	}
+	return urls
 }
 
 func (s *Store) Save(ctx context.Context, lot *v1.Lot, expectedVersion int64, events []v1.AuctionEvent) error {

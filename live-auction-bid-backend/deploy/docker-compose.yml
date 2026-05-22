@@ -28,6 +28,7 @@ services:
       AUCTION_TOS_SECRET_KEY: "${AUCTION_TOS_SECRET_KEY:-}"
       AUCTION_TOS_PUBLIC_BASE_URL: "${AUCTION_TOS_PUBLIC_BASE_URL:-https://liveauction.tos-cn-beijing.volces.com}"
       AUCTION_TOS_USE_SSL: "${AUCTION_TOS_USE_SSL:-true}"
+      AUCTION_TEMP_ASSET_CLEANUP_INTERVAL: "${AUCTION_TEMP_ASSET_CLEANUP_INTERVAL:-1h}"
     ports:
       - "18080:18080"
     depends_on:

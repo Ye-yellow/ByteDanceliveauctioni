@@ -26,6 +26,8 @@ const maxImageUploadBytes = 5 << 20
 
 type assetStore interface {
 	SaveAssetFile(ctx context.Context, asset data.AssetFile) error
+	FindTemporaryAssetForDelete(ctx context.Context, assetID, ownerUserID string) (*data.AssetFile, error)
+	MarkAssetDeleted(ctx context.Context, assetID, ownerUserID string) error
 }
 
 type uploadHandler struct {
@@ -49,12 +51,14 @@ type uploadImageData struct {
 }
 
 type uploadedAsset struct {
-	ID        string `json:"id"`
-	ImageURL  string `json:"imageUrl"`
-	Bucket    string `json:"bucket"`
-	ObjectKey string `json:"objectKey"`
-	MimeType  string `json:"mimeType"`
-	SizeBytes int64  `json:"sizeBytes"`
+	ID              string `json:"id"`
+	ImageURL        string `json:"imageUrl"`
+	Bucket          string `json:"bucket"`
+	ObjectKey       string `json:"objectKey"`
+	MimeType        string `json:"mimeType"`
+	SizeBytes       int64  `json:"sizeBytes"`
+	Status          string `json:"status"`
+	ExpiresAtUnixMs int64  `json:"expiresAtUnixMs"`
 }
 
 func registerUploadHTTP(srv interface {
@@ -62,6 +66,7 @@ func registerUploadHTTP(srv interface {
 }, authManager *auth.Manager, store assetStore, provider storage.StorageProvider) {
 	h := &uploadHandler{auth: authManager, store: store, storage: provider}
 	srv.HandleFunc("/api/uploads/images", h.handleImageUpload)
+	srv.HandleFunc("/api/uploads/images/", h.handleImageDelete)
 }
 
 func (h *uploadHandler) handleImageUpload(w http.ResponseWriter, r *http.Request) {
@@ -129,7 +134,8 @@ func (h *uploadHandler) handleImageUpload(w http.ResponseWriter, r *http.Request
 		bizType = "lot_image"
 	}
 	now := time.Now()
-	objectKey := fmt.Sprintf("%s/%04d/%02d/%s.%s", bizType, now.Year(), int(now.Month()), assetID, ext)
+	expiresAt := now.Add(24 * time.Hour).UnixMilli()
+	objectKey := fmt.Sprintf("temp/%s/%04d/%02d/%s.%s", bizType, now.Year(), int(now.Month()), assetID, ext)
 	sum := sha256.Sum256(dataBytes)
 	sha := hex.EncodeToString(sum[:])
 
@@ -149,6 +155,7 @@ func (h *uploadHandler) handleImageUpload(w http.ResponseWriter, r *http.Request
 		OwnerUserID:     claims.UserID,
 		RoomID:          strings.TrimSpace(r.FormValue("roomId")),
 		BizType:         bizType,
+		Status:          data.AssetStatusTemporary,
 		StorageProvider: stored.Provider,
 		Bucket:          stored.Bucket,
 		ObjectKey:       stored.ObjectKey,
@@ -157,13 +164,14 @@ func (h *uploadHandler) handleImageUpload(w http.ResponseWriter, r *http.Request
 		MimeType:        mimeType,
 		SizeBytes:       int64(len(dataBytes)),
 		SHA256:          sha,
+		ExpiresAtUnixMs: expiresAt,
 	}
 	if err := h.store.SaveAssetFile(r.Context(), asset); err != nil {
 		_ = h.storage.DeleteObject(context.Background(), stored.ObjectKey)
 		writeUploadError(w, http.StatusInternalServerError, requestID, "save asset file failed: "+err.Error())
 		return
 	}
-	responseAsset := &uploadedAsset{ID: asset.ID, ImageURL: asset.PublicURL, Bucket: asset.Bucket, ObjectKey: asset.ObjectKey, MimeType: asset.MimeType, SizeBytes: asset.SizeBytes}
+	responseAsset := &uploadedAsset{ID: asset.ID, ImageURL: asset.PublicURL, Bucket: asset.Bucket, ObjectKey: asset.ObjectKey, MimeType: asset.MimeType, SizeBytes: asset.SizeBytes, Status: asset.Status, ExpiresAtUnixMs: asset.ExpiresAtUnixMs}
 	writeJSON(w, http.StatusOK, uploadImageResponse{
 		Code:             0,
 		Message:          "success",
@@ -173,6 +181,42 @@ func (h *uploadHandler) handleImageUpload(w http.ResponseWriter, r *http.Request
 		Asset:            responseAsset,
 	})
 	logUploadInfo("upload_image.success", requestID, "asset_id", asset.ID, "image_url", asset.PublicURL, "size_bytes", asset.SizeBytes, "mime_type", asset.MimeType, "duration_ms", time.Since(startedAt).Milliseconds())
+}
+
+func (h *uploadHandler) handleImageDelete(w http.ResponseWriter, r *http.Request) {
+	requestID := uploadRequestID(r)
+	w.Header().Set("X-Request-Id", requestID)
+	if r.Method != http.MethodDelete {
+		writeUploadError(w, http.StatusMethodNotAllowed, requestID, "method not allowed")
+		return
+	}
+	claims, err := h.authenticate(r)
+	if err != nil {
+		writeUploadError(w, http.StatusUnauthorized, requestID, err.Error())
+		return
+	}
+	assetID := strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/uploads/images/"), "/")
+	if assetID == "" {
+		writeUploadError(w, http.StatusBadRequest, requestID, "asset id is required")
+		return
+	}
+	asset, err := h.store.FindTemporaryAssetForDelete(r.Context(), assetID, claims.UserID)
+	if err != nil {
+		writeUploadError(w, http.StatusNotFound, requestID, "temporary asset not found or already attached")
+		return
+	}
+	if h.storage != nil {
+		if err := h.storage.DeleteObject(r.Context(), asset.ObjectKey); err != nil {
+			writeUploadError(w, http.StatusBadGateway, requestID, "delete image from object storage failed: "+err.Error())
+			return
+		}
+	}
+	if err := h.store.MarkAssetDeleted(r.Context(), asset.ID, claims.UserID); err != nil {
+		writeUploadError(w, http.StatusInternalServerError, requestID, "mark asset deleted failed: "+err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, uploadImageResponse{Code: 0, Message: "success", RequestID: requestID, ServerTimeUnixMs: time.Now().UnixMilli()})
+	logUploadInfo("upload_image.deleted", requestID, "asset_id", asset.ID, "object_key", asset.ObjectKey)
 }
 
 func (h *uploadHandler) authenticate(r *http.Request) (*auth.Claims, error) {
@@ -230,6 +274,8 @@ func uploadErrorCode(status int) int {
 		return 403001
 	case http.StatusMethodNotAllowed:
 		return 405001
+	case http.StatusNotFound:
+		return 404001
 	case http.StatusBadGateway:
 		return 502001
 	case http.StatusServiceUnavailable:

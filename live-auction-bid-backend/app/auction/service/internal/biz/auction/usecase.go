@@ -30,7 +30,7 @@ func NewAuctionUsecase(lots LotRepository, bids BidRepository, eventStore EventR
 	return &AuctionUsecase{lots: lots, bids: bids, eventsStore: eventStore, events: events}
 }
 
-func (uc *AuctionUsecase) CreateLot(ctx context.Context, req *v1.CreateLotRequest) (*v1.Lot, error) {
+func (uc *AuctionUsecase) CreateLot(ctx context.Context, req *v1.CreateLotRequest, ownerUserID string) (*v1.Lot, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
@@ -39,7 +39,7 @@ func (uc *AuctionUsecase) CreateLot(ctx context.Context, req *v1.CreateLotReques
 		return nil, err
 	}
 	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CREATED, lot)
-	if err := uc.lots.Create(ctx, lot, []v1.AuctionEvent{event}); err != nil {
+	if err := uc.lots.Create(ctx, lot, ownerUserID, []v1.AuctionEvent{event}); err != nil {
 		return nil, err
 	}
 	if err := uc.broadcast(ctx, event); err != nil {

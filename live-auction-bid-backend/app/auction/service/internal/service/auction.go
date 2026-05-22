@@ -22,10 +22,11 @@ func NewAuctionService(auction *auction.AuctionUsecase) *AuctionService {
 }
 
 func (s *AuctionService) CreateLot(ctx context.Context, req *v1.CreateLotRequest) (*v1.CreateLotReply, error) {
-	if _, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_ADMIN); err != nil {
+	claims, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_ADMIN)
+	if err != nil {
 		return &v1.CreateLotReply{Result: ErrorResult(err)}, nil
 	}
-	lot, err := s.auction.CreateLot(ctx, req)
+	lot, err := s.auction.CreateLot(ctx, req, claims.UserID)
 	if err != nil {
 		return &v1.CreateLotReply{Result: ErrorResult(err)}, nil
 	}
