@@ -46,7 +46,7 @@ export type SettleLotReply = { lot?: Lot; event?: AuctionEvent; result?: ReplyRe
 export type CancelLotReply = { lot?: Lot; event?: AuctionEvent; result?: ReplyResult };
 export type GetRoomSnapshotReply = { snapshot?: RoomSnapshot; result?: ReplyResult };
 
-export type UploadedAsset = { id: string; imageUrl: string; bucket: string; objectKey: string; mimeType: string; sizeBytes: number | string };
+export type UploadedAsset = { id: string; imageUrl: string; bucket: string; objectKey: string; mimeType: string; sizeBytes: number | string; status?: string; expiresAtUnixMs?: number | string };
 export type UploadImageReply = {
   code?: number;
   message?: string;

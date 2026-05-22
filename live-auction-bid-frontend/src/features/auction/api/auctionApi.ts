@@ -116,6 +116,29 @@ export async function uploadImage(file: File, input?: { roomId?: string; bizType
   }
 }
 
+export async function deleteUploadedImage(assetId: string, options?: { keepalive?: boolean; silent?: boolean }): Promise<void> {
+  if (!assetId) return;
+  const token = accessToken();
+  const requestId = createRequestId('delete-upload');
+  const r = await fetch(`${API_BASE}/api/uploads/images/${encodeURIComponent(assetId)}`, {
+    method: 'DELETE',
+    keepalive: options?.keepalive,
+    headers: {
+      'X-Request-Id': requestId,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!r.ok) {
+    const message = await readErrorMessage(r);
+    if (options?.silent) {
+      clientLog('warn', 'upload_image.delete_failure', { requestId, assetId, message });
+      return;
+    }
+    throw new Error(message);
+  }
+  clientLog('info', 'upload_image.deleted', { requestId, assetId });
+}
+
 export async function createLot(payload: CreateLotRequest) {
   return requireLot(assertOkResult(await request<CreateLotReply>('/api/lots', { method: 'POST', body: JSON.stringify(payload) })));
 }

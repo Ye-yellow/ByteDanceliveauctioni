@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -40,7 +40,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { currentAuth } from '../../features/auth/api/authApi';
-import { cancelLot, createLot, getRoomSnapshot, listLots, revealTrustCard, settleLot, startDuel, startLot, uploadImage } from '../../features/auction/api/auctionApi';
+import { cancelLot, createLot, deleteUploadedImage, getRoomSnapshot, listLots, revealTrustCard, settleLot, startDuel, startLot, uploadImage } from '../../features/auction/api/auctionApi';
 import { WS_BASE } from '../../shared/config/env';
 import { normalizeAuctionEvent, resultMessage } from '../../shared/api/result';
 import { formatAuctionLeftMs, getLotLeftMs, getServerOffsetMs } from '../../shared/lib/time';
@@ -725,6 +725,7 @@ type AuctionCreateForm = {
   productName: string;
   mainImageName: string;
   mainImageUrl: string;
+  mainImageAssetId: string;
   carouselImages: string[];
   category: '珠宝' | '艺术品' | '奢侈品' | '潮玩' | '其他';
   description: string;
@@ -775,6 +776,7 @@ const initialAuctionCreateForm: AuctionCreateForm = {
   productName: '',
   mainImageName: '',
   mainImageUrl: '',
+  mainImageAssetId: '',
   carouselImages: [],
   category: '其他',
   description: '',
@@ -955,7 +957,7 @@ function ProductInfoStep({ form, update, generateDescription, mainImageUploading
     update({ carouselImages: files.map((file) => file.name).slice(0, 6) });
   };
   return <section className="auctionStepCard productInfoWorkbench"><header><div><p>Step 1</p><h3>拍品资料</h3></div><span>先把拍品素材和基础交易信息准备好，讲解卡细节可以在第三步继续完善。</span></header><div className="productInfoRedesign">
-    <div className="productMediaColumn"><StudioCard title="拍品素材" subtitle="Media" padding="md"><Field className="fieldMainImage" label="拍品主图" hint="上传后直接作为 createLot.imageUrl 和移动端主图。" error={mainImageError}><div className={`auctionUpload mainImageUpload ${mainImageUploading ? 'isUploading' : ''} ${form.mainImageUrl ? 'hasImage' : ''}`}>{form.mainImageUrl ? <img src={form.mainImageUrl} alt="拍品主图回显" /> : <ShoppingBag size={34} />}<b>{mainImageUploading ? '图片上传中...' : form.mainImageName || '点击上传主图'}</b>{form.mainImageUrl ? <span>点击可重新上传</span> : null}<input type="file" accept="image/*" disabled={mainImageUploading} onChange={uploadMain} /></div>{form.mainImageUrl ? <div className="mainImageControl"><span>{isStableImageUrl(form.mainImageUrl) ? '主图已上传，URL 稳定' : '主图地址不可用于提交'}</span><button type="button" onClick={onRemoveMainImage} disabled={mainImageUploading}>删除主图</button></div> : null}</Field><Field className="fieldCarousel" label="拍品轮播图" hint="最多 6 张"><div className="auctionUpload carouselUpload"><Package size={22} /><b>{form.carouselImages.length ? `${form.carouselImages.length} 张已选择` : '上传轮播图'}</b><input type="file" accept="image/*" multiple onChange={uploadCarousel} /></div></Field></StudioCard></div>
+    <div className="productMediaColumn"><StudioCard title="拍品素材" subtitle="Media" padding="md"><Field className="fieldMainImage" label="拍品主图" hint="先上传到 OSS 临时目录；保存拍品后绑定，未保存或删除会清理 OSS 临时文件。" error={mainImageError}><div className={`auctionUpload mainImageUpload ${mainImageUploading ? 'isUploading' : ''} ${form.mainImageUrl ? 'hasImage' : ''}`}>{form.mainImageUrl ? <img src={form.mainImageUrl} alt="拍品主图回显" /> : <ShoppingBag size={34} />}<b>{mainImageUploading ? '图片上传中...' : form.mainImageName || '点击上传主图'}</b>{form.mainImageUrl ? <span>点击可重新上传</span> : null}<input type="file" accept="image/*" disabled={mainImageUploading} onChange={uploadMain} /></div>{form.mainImageUrl ? <div className="mainImageControl"><span>{form.mainImageAssetId ? 'OSS 临时图片，保存后自动绑定' : (isStableImageUrl(form.mainImageUrl) ? '主图已上传，URL 稳定' : '主图地址不可用于提交')}</span><button type="button" onClick={onRemoveMainImage} disabled={mainImageUploading}>删除主图</button></div> : null}</Field><Field className="fieldCarousel" label="拍品轮播图" hint="最多 6 张"><div className="auctionUpload carouselUpload"><Package size={22} /><b>{form.carouselImages.length ? `${form.carouselImages.length} 张已选择` : '上传轮播图'}</b><input type="file" accept="image/*" multiple onChange={uploadCarousel} /></div></Field></StudioCard></div>
     <div className="productBaseColumn"><StudioCard title="基础信息" subtitle="Basic Info" padding="md"><div className="productBaseGrid"><Field className="fieldSource" label="拍品来源"><Segmented value={form.productSource} options={['选择已有拍品', '添加拍品']} onChange={(value) => update({ productSource: value })} /></Field><Field className="fieldTitle" label="拍品名称"><input value={form.productName} onChange={(e) => update({ productName: e.target.value })} placeholder="请输入竞拍拍品名称" /></Field><Field label="拍品分类"><select value={form.category} onChange={(e) => update({ category: e.target.value as AuctionCreateForm['category'] })}>{['珠宝', '艺术品', '奢侈品', '潮玩', '其他'].map((item) => <option key={item}>{item}</option>)}</select></Field><Field label="拍品估值"><input type="number" value={form.estimate} onChange={(e) => update({ estimate: Number(e.target.value) })} /></Field><Field label="库存数量"><input type="number" min={1} value={form.stock} onChange={(e) => update({ stock: Number(e.target.value) })} /></Field><Field className="fieldTags" label="拍品标签"><div className="auctionTagPicker">{productTags.map((tag) => <button key={tag} type="button" className={form.tags.includes(tag) ? 'active' : ''} onClick={() => update({ tags: form.tags.includes(tag) ? form.tags.filter((item) => item !== tag) : [...form.tags, tag] })}>{tag}</button>)}</div></Field></div></StudioCard></div>
     <div className="productDetailRow"><StudioCard title="拍品介绍与保障说明" subtitle="Story & Service" padding="md"><div className="productDetailGrid"><Field className="fieldDescription" label="拍品介绍" hint="AI 生成内容需用户确认后填入"><textarea value={form.description} onChange={(e) => update({ description: e.target.value })} rows={5} placeholder="描述拍品材质、成色、亮点和竞拍价值" /><button type="button" className="auctionInlineAi" onClick={generateDescription}><Sparkles size={15} /> AI 生成拍品介绍</button></Field><Field label="瑕疵说明"><textarea value={form.flawDescription} onChange={(e) => update({ flawDescription: e.target.value })} rows={4} placeholder="如实记录磨损、划痕、缺件或使用痕迹" /></Field><Field label="证书信息"><textarea value={form.certificateInfo} onChange={(e) => update({ certificateInfo: e.target.value })} rows={4} placeholder="证书编号、鉴定机构、材质证明等" /></Field><Field label="售后说明"><textarea value={form.serviceNotes} onChange={(e) => update({ serviceNotes: e.target.value, afterSale: e.target.value })} rows={4} placeholder="退换、支付、保价发货、客服承诺等" /></Field></div></StudioCard></div>
   </div></section>;
@@ -1070,11 +1072,20 @@ function AuctionCreatePage() {
   const [mainImageError, setMainImageError] = useState('');
   const [stepNotice, setStepNotice] = useState('');
   const [tip, setTip] = useState<AuctionTip | null>(null);
+  const savedAssetIds = useRef(new Set<string>());
   const { toasts, showToast } = useStudioToast();
   const update = (patch: Partial<AuctionCreateForm>) => setForm((current) => ({ ...current, ...patch }));
   const showTip = (nextTip: AuctionTip) => {
     setTip(nextTip);
     showToast({ tone: nextTip.tone === 'error' ? 'danger' : nextTip.tone, title: nextTip.text });
+  };
+  const cleanupTemporaryAsset = async (assetId: string, options?: { keepalive?: boolean; silent?: boolean }) => {
+    if (!assetId || savedAssetIds.current.has(assetId)) return;
+    try {
+      await deleteUploadedImage(assetId, options);
+    } catch (error) {
+      if (!options?.silent) throw error;
+    }
   };
   const uploadMainImage = async (file: File) => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -1100,24 +1111,30 @@ function AuctionCreatePage() {
     setMainImageUploading(true);
     setMainImageError('');
     showTip({ tone: 'warning', text: '正在上传拍品主图...' });
-    update({ mainImageName: file.name, mainImageUrl: '' });
+    const previousAssetId = form.mainImageAssetId;
+    update({ mainImageName: file.name, mainImageUrl: '', mainImageAssetId: '' });
     try {
+      if (previousAssetId) await cleanupTemporaryAsset(previousAssetId, { silent: true });
       const asset = await uploadImage(file, { roomId: currentHostRoom.id, bizType: 'lot_image' });
-      update({ mainImageName: file.name, mainImageUrl: asset.imageUrl });
-      showTip({ tone: 'success', text: '主图上传成功，已写入稳定 imageUrl' });
+      update({ mainImageName: file.name, mainImageUrl: asset.imageUrl, mainImageAssetId: asset.id });
+      showTip({ tone: 'success', text: '主图已上传到 OSS 临时区，保存拍品后会自动绑定' });
     } catch (e) {
       const message = resultMessage(e);
       setMainImageError(message);
       showToast({ id: 'image-upload-failed', tone: 'danger', title: '图片上传失败，请重试', description: message });
       console.error('[uploadImage] failed', e);
-      update({ mainImageName: '', mainImageUrl: '' });
+      update({ mainImageName: '', mainImageUrl: '', mainImageAssetId: '' });
     } finally {
       setMainImageUploading(false);
     }
   };
   const removeMainImage = () => {
+    const assetId = form.mainImageAssetId;
     setMainImageError('');
-    update({ mainImageName: '', mainImageUrl: '' });
+    update({ mainImageName: '', mainImageUrl: '', mainImageAssetId: '' });
+    if (assetId) {
+      void cleanupTemporaryAsset(assetId, { silent: true }).then(() => showToast({ id: 'image-temp-deleted', tone: 'success', title: '临时图片已从 OSS 删除' }));
+    }
   };
   const issues = useMemo(() => validateAuctionCreateForm(form), [form]);
   const hasErrors = issues.some((issue) => issue.level === 'error');
@@ -1134,6 +1151,16 @@ function AuctionCreatePage() {
     const timer = window.setTimeout(() => setTip(null), tip.tone === 'warning' ? 1800 : 4200);
     return () => window.clearTimeout(timer);
   }, [tip]);
+
+  useEffect(() => {
+    const assetId = form.mainImageAssetId;
+    const handlePageHide = () => {
+      if (!assetId || savedAssetIds.current.has(assetId)) return;
+      void cleanupTemporaryAsset(assetId, { keepalive: true, silent: true });
+    };
+    window.addEventListener('pagehide', handlePageHide);
+    return () => window.removeEventListener('pagehide', handlePageHide);
+  }, [form.mainImageAssetId]);
 
   const saveDraft = () => {
     update({ lifecycle: 'DRAFT' });
@@ -1190,6 +1217,7 @@ function AuctionCreatePage() {
     setSubmitError('');
     try {
       const created = await createLot(fromFormToCreateLotRequest(requestForm));
+      if (requestForm.mainImageAssetId) savedAssetIds.current.add(requestForm.mainImageAssetId);
       if (submitMode === '立即开拍') {
         const started = await startLot(created.id);
         location.href = `/admin/auctions/${started.id}/control`;
