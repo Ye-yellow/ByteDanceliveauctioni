@@ -2588,3 +2588,18 @@ button:disabled {
   width: 10px !important;
   height: 10px !important;
 }
+
+/* Autosave capsule tuning v2: make it clearly readable on wide title bars. */
+.laAdminShell .autoSaveIndicator {
+  min-height: 54px !important;
+  padding: 0 26px !important;
+  gap: 12px !important;
+  font-size: 17px !important;
+  line-height: 24px !important;
+  font-weight: 900 !important;
+  letter-spacing: -.01em !important;
+}
+.laAdminShell .autoSaveIndicator span {
+  width: 12px !important;
+  height: 12px !important;
+}
