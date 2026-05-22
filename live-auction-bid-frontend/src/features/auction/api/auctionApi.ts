@@ -1,6 +1,7 @@
 import { API_BASE } from '../../../shared/config/env';
 import { assertOkResult } from '../../../shared/api/result';
 import { accessToken } from '../../auth/api/authStore';
+import { refreshAccessToken } from '../../auth/api/authApi';
 import { forceRelogin } from '../../../shared/api/authExpired';
 import { clientLog, createRequestId } from '../../../shared/lib/clientLogger';
 import type { CancelLotReply, CreateLotReply, CreateLotRequest, GetRoomSnapshotReply, ListLotsReply, Lot, RevealTrustCardReply, RoomSnapshot, SettleLotReply, StartDuelReply, StartLotReply, TrustRevealCard, UploadedAsset, UploadImageReply } from '../../../shared/api/types';
@@ -26,14 +27,18 @@ async function readErrorMessage(response: Response): Promise<string> {
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const token = accessToken();
-  const r = await fetch(`${API_BASE}${url}`, {
+  const buildInit = (nextToken: string | null): RequestInit => ({
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(nextToken ? { Authorization: `Bearer ${nextToken}` } : {}),
       ...(init?.headers ?? {}),
     },
   });
+  let r = await fetch(`${API_BASE}${url}`, buildInit(token));
+  if (r.status === 401 && await refreshAccessToken()) {
+    r = await fetch(`${API_BASE}${url}`, buildInit(accessToken()));
+  }
   if (!r.ok) {
     const message = await readErrorMessage(r);
     if (r.status === 401) forceRelogin(`登录已过期，请重新登录（${message}）`);
@@ -59,7 +64,6 @@ export async function getRoomSnapshot(roomId = 'demo'): Promise<RoomSnapshot> {
 }
 
 export async function uploadImage(file: File, input?: { roomId?: string; bizType?: string }): Promise<UploadedAsset> {
-  const token = accessToken();
   const form = new FormData();
   form.append('file', file);
   if (input?.roomId) form.append('roomId', input.roomId);
@@ -74,17 +78,19 @@ export async function uploadImage(file: File, input?: { roomId?: string; bizType
     fileName: file.name,
     fileType: file.type,
     fileSize: file.size,
-    hasToken: Boolean(token),
+    hasToken: Boolean(accessToken()),
   });
   try {
-    const r = await fetch(`${API_BASE}/api/uploads/images`, {
+    const doUpload = () => fetch(`${API_BASE}/api/uploads/images`, {
       method: 'POST',
       headers: {
         'X-Request-Id': requestId,
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(accessToken() ? { Authorization: `Bearer ${accessToken()}` } : {}),
       },
       body: form,
     });
+    let r = await doUpload();
+    if (r.status === 401 && await refreshAccessToken()) r = await doUpload();
     if (!r.ok) {
       const message = await readErrorMessage(r);
       if (r.status === 401) forceRelogin(`登录已过期，请重新登录（${message}）`);
@@ -118,16 +124,17 @@ export async function uploadImage(file: File, input?: { roomId?: string; bizType
 
 export async function deleteUploadedImage(assetId: string, options?: { keepalive?: boolean; silent?: boolean }): Promise<void> {
   if (!assetId) return;
-  const token = accessToken();
   const requestId = createRequestId('delete-upload');
-  const r = await fetch(`${API_BASE}/api/uploads/images/${encodeURIComponent(assetId)}`, {
+  const doDelete = () => fetch(`${API_BASE}/api/uploads/images/${encodeURIComponent(assetId)}`, {
     method: 'DELETE',
     keepalive: options?.keepalive,
     headers: {
       'X-Request-Id': requestId,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(accessToken() ? { Authorization: `Bearer ${accessToken()}` } : {}),
     },
   });
+  let r = await doDelete();
+  if (r.status === 401 && !options?.keepalive && await refreshAccessToken()) r = await doDelete();
   if (!r.ok) {
     const message = await readErrorMessage(r);
     if (options?.silent) {

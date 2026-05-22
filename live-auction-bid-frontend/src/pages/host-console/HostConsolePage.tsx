@@ -812,6 +812,27 @@ const initialAuctionCreateForm: AuctionCreateForm = {
   lifecycle: 'DRAFT',
 };
 
+const AUCTION_CREATE_DRAFT_KEY = `liveAuction.createLotDraft.${currentHostRoom.id}.v2`;
+
+function loadAuctionCreateDraft(): AuctionCreateForm {
+  try {
+    const raw = localStorage.getItem(AUCTION_CREATE_DRAFT_KEY);
+    if (!raw) return initialAuctionCreateForm;
+    const parsed = JSON.parse(raw) as Partial<AuctionCreateForm>;
+    return { ...initialAuctionCreateForm, ...parsed, roomId: currentHostRoom.id };
+  } catch {
+    return initialAuctionCreateForm;
+  }
+}
+
+function saveAuctionCreateDraft(form: AuctionCreateForm) {
+  localStorage.setItem(AUCTION_CREATE_DRAFT_KEY, JSON.stringify(form));
+}
+
+function clearAuctionCreateDraft() {
+  localStorage.removeItem(AUCTION_CREATE_DRAFT_KEY);
+}
+
 function formatMoney(value: number | '') {
   if (value === '') return '未设置';
   return `¥${Number(value).toLocaleString('zh-CN')}`;
@@ -1061,7 +1082,7 @@ function PublishConfirmDialog({ form, issues, submitting, submitMode, onClose, o
 
 function AuctionCreatePage() {
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState<AuctionCreateForm>(initialAuctionCreateForm);
+  const [form, setForm] = useState<AuctionCreateForm>(() => loadAuctionCreateDraft());
   const [previewMode, setPreviewMode] = useState<PreviewMode>('默认态');
   const [draftSavedAt, setDraftSavedAt] = useState('刚刚自动保存');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -1153,19 +1174,14 @@ function AuctionCreatePage() {
   }, [tip]);
 
   useEffect(() => {
-    const assetId = form.mainImageAssetId;
-    const handlePageHide = () => {
-      if (!assetId || savedAssetIds.current.has(assetId)) return;
-      void cleanupTemporaryAsset(assetId, { keepalive: true, silent: true });
-    };
-    window.addEventListener('pagehide', handlePageHide);
-    return () => window.removeEventListener('pagehide', handlePageHide);
-  }, [form.mainImageAssetId]);
+    saveAuctionCreateDraft(form);
+  }, [form]);
 
   const saveDraft = () => {
     update({ lifecycle: 'DRAFT' });
+    saveAuctionCreateDraft({ ...form, lifecycle: 'DRAFT' });
     setDraftSavedAt(`${new Date().toLocaleTimeString('zh-CN', { hour12: false })} 已保存草稿`);
-    showToast({ id: 'draft-saved', tone: 'success', title: '草稿已保存', description: '本地表单状态已保留，可继续补充讲解卡或规则。' });
+    showToast({ id: 'draft-saved', tone: 'success', title: '草稿已保存', description: '刷新页面后会自动恢复当前填写内容和已上传临时主图。' });
   };
   const openPreview = () => {
     setPreviewMode('默认态');
@@ -1218,6 +1234,7 @@ function AuctionCreatePage() {
     try {
       const created = await createLot(fromFormToCreateLotRequest(requestForm));
       if (requestForm.mainImageAssetId) savedAssetIds.current.add(requestForm.mainImageAssetId);
+      clearAuctionCreateDraft();
       if (submitMode === '立即开拍') {
         const started = await startLot(created.id);
         location.href = `/admin/auctions/${started.id}/control`;
