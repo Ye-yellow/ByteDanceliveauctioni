@@ -3991,3 +3991,110 @@ button:disabled {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Add-lot media preview: product images must not be hard-cropped. Hosts need to verify the whole picture. */
+.laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .mainImageUpload.hasImage{
+  display: block !important;
+  position: relative !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  height: auto !important;
+  aspect-ratio: 4 / 3 !important;
+  max-height: 420px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-radius: 20px !important;
+  background:
+    linear-gradient(45deg, rgba(148,163,184,.12) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(148,163,184,.12) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(148,163,184,.12) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(148,163,184,.12) 75%),
+    #f8fafc !important;
+  background-position: 0 0, 0 12px, 12px -12px, -12px 0 !important;
+  background-size: 24px 24px !important;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .mainImageUpload.hasImage > img{
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+  object-position: center !important;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .mainImageUpload.hasImage > b,
+.laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .mainImageUpload.hasImage > span{
+  position: absolute !important;
+  z-index: 2 !important;
+  bottom: 12px !important;
+  max-width: calc(100% - 30px) !important;
+  min-height: 30px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 0 10px !important;
+  border-radius: 999px !important;
+  background: rgba(15, 23, 42, .64) !important;
+  color: #fff !important;
+  box-shadow: 0 10px 24px rgba(15,23,42,.18) !important;
+  backdrop-filter: blur(10px) !important;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .mainImageUpload.hasImage > b{
+  left: 12px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 13px !important;
+  line-height: 18px !important;
+  font-weight: 850 !important;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .mainImageUpload.hasImage > span{
+  right: 12px !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+  font-weight: 850 !important;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .mainImageUpload.hasImage > input{
+  z-index: 4 !important;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .phoneImage{
+  background:
+    radial-gradient(circle at 22% 12%, rgba(147, 197, 253, .2), transparent 36%),
+    linear-gradient(135deg, #f8fbff, #fff5f9) !important;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .phoneImage img{
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+  object-position: center !important;
+}
+@container (max-width: 760px){
+  .laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .mainImageUpload.hasImage{
+    max-height: none !important;
+  }
+}
+
+/* Hard bound phone preview media box; replaced elements must never overflow their frame. */
+.laAdminShell .studioPage:has(.auctionCreatePage) .phoneImage{
+  position: relative !important;
+  display: block !important;
+  overflow: hidden !important;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .phoneImage > img{
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  object-fit: contain !important;
+  object-position: center !important;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .phoneImage > svg{
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
