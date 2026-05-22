@@ -3864,3 +3864,130 @@ button:disabled {
     font-size: 14px !important;
   }
 }
+
+/* Add-lot carousel upload: always render uploaded images as bounded thumbnails. */
+.laAdminShell .studioPage:has(.auctionCreatePage) .fieldCarousel,
+.laAdminShell .studioPage:has(.auctionCreatePage) .fieldCarousel .studioFieldControl{
+  min-width: 0;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .carouselUpload{
+  position: relative;
+  overflow: hidden;
+  min-height: 86px;
+  border-style: dashed;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .carouselUpload span{
+  display: block;
+  max-width: 100%;
+  color: var(--studio-text-3);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 650;
+  text-align: center;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .carouselUpload input:disabled{
+  cursor: not-allowed;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .carouselPreviewGrid{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .carouselPreviewGrid figure{
+  position: relative;
+  display: block;
+  margin: 0;
+  min-width: 0;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(203, 213, 225, .86);
+  background: linear-gradient(145deg, #f8fafc, #eef4ff);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .08);
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .carouselPreviewGrid figure > img{
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: cover;
+  object-position: center;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .carouselPreviewGrid figure.isPending{
+  display: grid;
+  place-items: center;
+  color: var(--studio-text-3);
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .carouselPreviewGrid figcaption{
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px 7px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, .66);
+  color: #fff;
+  backdrop-filter: blur(10px);
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .carouselPreviewGrid figcaption b{
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.22);
+  font-size: 11px;
+  line-height: 1;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .carouselPreviewGrid figcaption span{
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 750;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .carouselPreviewGrid figure > button{
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.75);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, .68);
+  color: #fff;
+  font-size: 19px;
+  line-height: 1;
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, .18);
+  cursor: pointer;
+}
+.laAdminShell .studioPage:has(.auctionCreatePage) .carouselPreviewGrid figure > button:hover{
+  background: rgba(220, 38, 38, .9);
+  transform: translateY(-1px);
+}
+@container (max-width: 980px){
+  .laAdminShell .studioPage:has(.auctionCreatePage) .carouselPreviewGrid{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container (max-width: 620px){
+  .laAdminShell .studioPage:has(.auctionCreatePage) .carouselPreviewGrid{
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -726,13 +726,15 @@ function CancelAuctionDialog({ lot, onClose, onConfirm }: { lot: Lot; onClose: (
 
 type AuctionLifecycleState = 'DRAFT' | 'READY' | 'SCHEDULED' | 'PREHEATING' | 'LIVE' | 'EXTENDED' | 'SOLD' | 'UNSOLD' | 'CANCELLED' | 'ABNORMAL';
 type PreviewMode = '默认态' | '领先态' | '被超越态' | '竞拍延时态' | '成交态';
+type CarouselImage = { id: string; name: string; url: string; assetId: string };
+
 type AuctionCreateForm = {
   productSource: '选择已有拍品' | '添加拍品';
   productName: string;
   mainImageName: string;
   mainImageUrl: string;
   mainImageAssetId: string;
-  carouselImages: string[];
+  carouselImages: CarouselImage[];
   category: '珠宝' | '艺术品' | '奢侈品' | '潮玩' | '其他';
   description: string;
   flawDescription: string;
@@ -826,7 +828,8 @@ function loadAuctionCreateDraft(): AuctionCreateForm {
     const raw = localStorage.getItem(AUCTION_CREATE_DRAFT_KEY);
     if (!raw) return initialAuctionCreateForm;
     const parsed = JSON.parse(raw) as Partial<AuctionCreateForm>;
-    return { ...initialAuctionCreateForm, ...parsed, roomId: currentHostRoom.id };
+    const carouselImages = normalizeCarouselImages(parsed.carouselImages);
+    return { ...initialAuctionCreateForm, ...parsed, carouselImages, roomId: currentHostRoom.id };
   } catch {
     return initialAuctionCreateForm;
   }
@@ -838,6 +841,28 @@ function saveAuctionCreateDraft(form: AuctionCreateForm) {
 
 function clearAuctionCreateDraft() {
   localStorage.removeItem(AUCTION_CREATE_DRAFT_KEY);
+}
+
+
+function normalizeCarouselImages(value: unknown): CarouselImage[] {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 6).map((item, index) => {
+    if (typeof item === 'string') {
+      return { id: `legacy-carousel-${index}-${item}`, name: item, url: '', assetId: '' };
+    }
+    if (item && typeof item === 'object') {
+      const image = item as Partial<CarouselImage>;
+      const name = String(image.name || `轮播图 ${index + 1}`);
+      const url = String(image.url || '');
+      const assetId = String(image.assetId || '');
+      return { id: String(image.id || assetId || `${index}-${name}`), name, url, assetId };
+    }
+    return null;
+  }).filter((item): item is CarouselImage => Boolean(item));
+}
+
+function formAssetIds(form: AuctionCreateForm) {
+  return [form.mainImageAssetId, ...form.carouselImages.map((image) => image.assetId)].filter(Boolean);
 }
 
 function formatMoney(value: number | '') {
@@ -862,10 +887,20 @@ function trustCardContent(value: string, fallback = '待补充') {
 }
 
 function buildTrustCards(form: AuctionCreateForm): CreateLotRequest['trustCards'] {
+  const carouselCards = form.carouselImages
+    .filter((image) => isStableImageUrl(image.url))
+    .map((image, index) => ({
+      id: `carousel-image-card-${index + 1}`,
+      type: 'TRUST_CARD_TYPE_DETAIL' as const,
+      title: `轮播图 ${index + 1}`,
+      content: `${image.name}：拍品轮播素材，保存后用于观众端商品图册预览。`,
+      imageUrl: image.url,
+    }));
   return [
     { id: 'certificate-card', type: 'TRUST_CARD_TYPE_CERTIFICATE', title: '证书卡', content: trustCardContent(form.certificateInfo, '证书信息待补充') },
     { id: 'flaw-card', type: 'TRUST_CARD_TYPE_FLAW', title: '瑕疵说明卡', content: trustCardContent(form.flawDescription, '瑕疵说明待补充') },
     { id: 'detail-card', type: 'TRUST_CARD_TYPE_DETAIL', title: '细节图卡', content: trustCardContent(form.detailNotes, '细节说明待补充'), imageUrl: form.mainImageUrl || undefined },
+    ...carouselCards,
     { id: 'service-card', type: 'TRUST_CARD_TYPE_SERVICE', title: '售后说明卡', content: trustCardContent(form.serviceNotes, '售后说明待补充') },
     { id: 'price-ref-card', type: 'TRUST_CARD_TYPE_PRICE_REF', title: '价格参考卡', content: trustCardContent(form.priceReference, '价格参考待补充') },
   ];
@@ -979,7 +1014,7 @@ function Segmented<T extends string>({ value, options, onChange }: { value: T; o
   return <div className="auctionSegmented">{options.map((option) => <button key={option} type="button" className={value === option ? 'active' : ''} onClick={() => onChange(option)}>{option}</button>)}</div>;
 }
 
-function ProductInfoStep({ form, update, generateDescription, mainImageUploading, mainImageError, onMainImageSelect, onRemoveMainImage }: { form: AuctionCreateForm; update: (patch: Partial<AuctionCreateForm>) => void; generateDescription: () => void; mainImageUploading: boolean; mainImageError: string; onMainImageSelect: (file: File) => void; onRemoveMainImage: () => void }) {
+function ProductInfoStep({ form, update, generateDescription, mainImageUploading, mainImageError, carouselUploading, carouselImageError, onMainImageSelect, onRemoveMainImage, onCarouselImagesSelect, onRemoveCarouselImage }: { form: AuctionCreateForm; update: (patch: Partial<AuctionCreateForm>) => void; generateDescription: () => void; mainImageUploading: boolean; mainImageError: string; carouselUploading: boolean; carouselImageError: string; onMainImageSelect: (file: File) => void; onRemoveMainImage: () => void; onCarouselImagesSelect: (files: File[]) => void; onRemoveCarouselImage: (assetId: string) => void }) {
   const uploadMain = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
@@ -987,12 +1022,13 @@ function ProductInfoStep({ form, update, generateDescription, mainImageUploading
     onMainImageSelect(file);
   };
   const uploadCarousel = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []).slice(0, 6);
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
     if (!files.length) return;
-    update({ carouselImages: files.map((file) => file.name).slice(0, 6) });
+    onCarouselImagesSelect(files);
   };
   return <section className="auctionStepCard productInfoWorkbench"><header><div><p>Step 1</p><h3>拍品资料</h3></div><span>先把拍品素材和基础交易信息准备好，讲解卡细节可以在第三步继续完善。</span></header><div className="productInfoRedesign">
-    <div className="productMediaColumn"><StudioCard title="拍品素材" subtitle="Media" padding="md"><Field className="fieldMainImage" label="拍品主图" hint="先上传到 OSS 临时目录；保存拍品后绑定，未保存或删除会清理 OSS 临时文件。" error={mainImageError}><div className={`auctionUpload mainImageUpload ${mainImageUploading ? 'isUploading' : ''} ${form.mainImageUrl ? 'hasImage' : ''}`}>{form.mainImageUrl ? <img src={form.mainImageUrl} alt="拍品主图回显" /> : <ShoppingBag size={34} />}<b>{mainImageUploading ? '图片上传中...' : form.mainImageName || '点击上传主图'}</b>{form.mainImageUrl ? <span>点击可重新上传</span> : null}<input type="file" accept="image/*" disabled={mainImageUploading} onChange={uploadMain} /></div>{form.mainImageUrl ? <div className="mainImageControl"><span>{form.mainImageAssetId ? 'OSS 临时图片，保存后自动绑定' : (isStableImageUrl(form.mainImageUrl) ? '主图已上传，URL 稳定' : '主图地址不可用于提交')}</span><button type="button" onClick={onRemoveMainImage} disabled={mainImageUploading}>删除主图</button></div> : null}</Field><Field className="fieldCarousel" label="拍品轮播图" hint="最多 6 张"><div className="auctionUpload carouselUpload"><Package size={22} /><b>{form.carouselImages.length ? `${form.carouselImages.length} 张已选择` : '上传轮播图'}</b><input type="file" accept="image/*" multiple onChange={uploadCarousel} /></div></Field></StudioCard></div>
+    <div className="productMediaColumn"><StudioCard title="拍品素材" subtitle="Media" padding="md"><Field className="fieldMainImage" label="拍品主图" hint="先上传到 OSS 临时目录；保存拍品后绑定，未保存或删除会清理 OSS 临时文件。" error={mainImageError}><div className={`auctionUpload mainImageUpload ${mainImageUploading ? 'isUploading' : ''} ${form.mainImageUrl ? 'hasImage' : ''}`}>{form.mainImageUrl ? <img src={form.mainImageUrl} alt="拍品主图回显" /> : <ShoppingBag size={34} />}<b>{mainImageUploading ? '图片上传中...' : form.mainImageName || '点击上传主图'}</b>{form.mainImageUrl ? <span>点击可重新上传</span> : null}<input type="file" accept="image/*" disabled={mainImageUploading} onChange={uploadMain} /></div>{form.mainImageUrl ? <div className="mainImageControl"><span>{form.mainImageAssetId ? 'OSS 临时图片，保存后自动绑定' : (isStableImageUrl(form.mainImageUrl) ? '主图已上传，URL 稳定' : '主图地址不可用于提交')}</span><button type="button" onClick={onRemoveMainImage} disabled={mainImageUploading}>删除主图</button></div> : null}</Field><Field className="fieldCarousel" label="拍品轮播图" hint="最多 6 张，可一次多选；保存拍品后自动绑定，删除会清理 OSS 临时文件。" error={carouselImageError}><div className={`auctionUpload carouselUpload ${carouselUploading ? 'isUploading' : ''}`}><Package size={22} /><b>{carouselUploading ? '轮播图上传中...' : form.carouselImages.length ? `继续添加（已 ${form.carouselImages.length}/6 张）` : '上传轮播图'}</b><span>支持 JPG / PNG / WebP，多选后下方立即预览</span><input type="file" accept="image/*" multiple disabled={carouselUploading || form.carouselImages.length >= 6} onChange={uploadCarousel} /></div>{form.carouselImages.length ? <div className="carouselPreviewGrid">{form.carouselImages.map((image, index) => <figure key={image.id || image.assetId || image.name} className={image.url ? '' : 'isPending'}>{image.url ? <img src={image.url} alt={`轮播图 ${index + 1}`} /> : <Package size={18} />}<figcaption><b>{index + 1}</b><span>{image.name}</span></figcaption><button type="button" aria-label={`删除轮播图 ${index + 1}`} onClick={() => onRemoveCarouselImage(image.assetId)}>×</button></figure>)}</div> : null}</Field></StudioCard></div>
     <div className="productBaseColumn"><StudioCard title="基础信息" subtitle="Basic Info" padding="md"><div className="productBaseGrid"><Field className="fieldSource" label="拍品来源"><Segmented value={form.productSource} options={['选择已有拍品', '添加拍品']} onChange={(value) => update({ productSource: value })} /></Field><Field className="fieldTitle" label="拍品名称"><input value={form.productName} onChange={(e) => update({ productName: e.target.value })} placeholder="请输入竞拍拍品名称" /></Field><Field label="拍品分类"><select value={form.category} onChange={(e) => update({ category: e.target.value as AuctionCreateForm['category'] })}>{['珠宝', '艺术品', '奢侈品', '潮玩', '其他'].map((item) => <option key={item}>{item}</option>)}</select></Field><Field label="拍品估值"><input type="number" value={form.estimate} onChange={(e) => update({ estimate: Number(e.target.value) })} /></Field><Field label="库存数量"><input type="number" min={1} value={form.stock} onChange={(e) => update({ stock: Number(e.target.value) })} /></Field><Field className="fieldTags" label="拍品标签"><div className="auctionTagPicker">{productTags.map((tag) => <button key={tag} type="button" className={form.tags.includes(tag) ? 'active' : ''} onClick={() => update({ tags: form.tags.includes(tag) ? form.tags.filter((item) => item !== tag) : [...form.tags, tag] })}>{tag}</button>)}</div></Field></div></StudioCard></div>
     <div className="productDetailRow"><StudioCard title="拍品介绍与保障说明" subtitle="Story & Service" padding="md"><div className="productDetailGrid"><Field className="fieldDescription" label="拍品介绍" hint="AI 生成内容需用户确认后填入"><textarea value={form.description} onChange={(e) => update({ description: e.target.value })} rows={5} placeholder="描述拍品材质、成色、亮点和竞拍价值" /><button type="button" className="auctionInlineAi" onClick={generateDescription}><Sparkles size={15} /> AI 生成拍品介绍</button></Field><Field label="瑕疵说明"><textarea value={form.flawDescription} onChange={(e) => update({ flawDescription: e.target.value })} rows={4} placeholder="如实记录磨损、划痕、缺件或使用痕迹" /></Field><Field label="证书信息"><textarea value={form.certificateInfo} onChange={(e) => update({ certificateInfo: e.target.value })} rows={4} placeholder="证书编号、鉴定机构、材质证明等" /></Field><Field label="售后说明"><textarea value={form.serviceNotes} onChange={(e) => update({ serviceNotes: e.target.value, afterSale: e.target.value })} rows={4} placeholder="退换、支付、保价发货、客服承诺等" /></Field></div></StudioCard></div>
   </div></section>;
@@ -1099,6 +1135,8 @@ function AuctionCreatePage() {
   const [submitError, setSubmitError] = useState('');
   const [mainImageUploading, setMainImageUploading] = useState(false);
   const [mainImageError, setMainImageError] = useState('');
+  const [carouselUploading, setCarouselUploading] = useState(false);
+  const [carouselImageError, setCarouselImageError] = useState('');
   const [, setStepNotice] = useState('');
   const [tip, setTip] = useState<AuctionTip | null>(null);
   const savedAssetIds = useRef(new Set<string>());
@@ -1138,7 +1176,7 @@ function AuctionCreatePage() {
       }
       const saved = await patchDraftLot(draftId, payload);
       const savedAt = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
-      savedAssetIds.current = new Set([input.mainImageAssetId].filter(Boolean));
+      savedAssetIds.current = new Set(formAssetIds(input));
       setForm((current) => {
         const next = { ...current, draftLotId: saved.id || draftId };
         saveAuctionCreateDraft(next);
@@ -1206,6 +1244,53 @@ function AuctionCreatePage() {
       void cleanupTemporaryAsset(assetId, { silent: true }).then(() => showToast({ id: 'image-temp-deleted', tone: 'success', title: '临时图片已从 OSS 删除' }));
     }
   };
+
+  const uploadCarouselImages = async (files: File[]) => {
+    const slots = Math.max(0, 6 - form.carouselImages.length);
+    const picked = files.slice(0, slots);
+    if (!picked.length) {
+      const message = form.carouselImages.length >= 6 ? '轮播图最多上传 6 张，请先删除后再添加' : '请选择图片文件';
+      setCarouselImageError(message);
+      showTip({ tone: 'error', text: message });
+      return;
+    }
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const allowedExt = /\.(jpe?g|png|webp)$/i;
+    const invalid = picked.find((file) => (file.type ? !allowedTypes.includes(file.type) : !allowedExt.test(file.name)) || file.size > 5 * 1024 * 1024);
+    if (invalid) {
+      const message = invalid.size > 5 * 1024 * 1024 ? '单张轮播图不能超过 5MB' : '轮播图只支持 JPG、PNG 或 WebP';
+      setCarouselImageError(message);
+      showTip({ tone: 'error', text: message });
+      return;
+    }
+    setCarouselUploading(true);
+    setCarouselImageError('');
+    showTip({ tone: 'warning', text: `正在上传 ${picked.length} 张轮播图...` });
+    const uploaded: CarouselImage[] = [];
+    try {
+      for (const file of picked) {
+        const asset = await uploadImage(file, { roomId: currentHostRoom.id, bizType: 'lot_carousel' });
+        uploaded.push({ id: asset.id, name: file.name, url: asset.imageUrl, assetId: asset.id });
+      }
+      update({ carouselImages: [...form.carouselImages, ...uploaded].slice(0, 6) });
+      showTip({ tone: 'success', text: `已上传 ${uploaded.length} 张轮播图，可在下方预览` });
+    } catch (e) {
+      await Promise.all(uploaded.map((image) => cleanupTemporaryAsset(image.assetId, { silent: true })));
+      const message = resultMessage(e);
+      setCarouselImageError(message);
+      showToast({ id: 'carousel-upload-failed', tone: 'danger', title: '轮播图上传失败，请重试', description: message });
+      console.error('[uploadCarouselImages] failed', e);
+    } finally {
+      setCarouselUploading(false);
+    }
+  };
+  const removeCarouselImage = (assetId: string) => {
+    const target = form.carouselImages.find((image) => image.assetId === assetId);
+    update({ carouselImages: form.carouselImages.filter((image) => image.assetId !== assetId) });
+    if (target?.assetId) {
+      void cleanupTemporaryAsset(target.assetId, { silent: true }).then(() => showToast({ id: `carousel-temp-deleted-${target.assetId}`, tone: 'success', title: '轮播图临时图片已删除' }));
+    }
+  };
   const issues = useMemo(() => validateAuctionCreateForm(form), [form]);
   const currentStepErrors = issuesForStep(issues, step).filter((issue) => issue.level === 'error');
   const canEnter = (targetStep: number) => canEnterPublishStep(issues, targetStep);
@@ -1233,9 +1318,9 @@ function AuctionCreatePage() {
   };
 
   const queueCurrentLot = async () => {
-    if (mainImageUploading) {
+    if (mainImageUploading || carouselUploading) {
       setStep(0);
-      showStepNotice('拍品主图仍在处理，请等待完成后再加入队列。');
+      showStepNotice('拍品图片仍在处理，请等待上传完成后再加入队列。');
       return;
     }
     const nextIssues = validateAuctionCreateForm(form);
@@ -1250,7 +1335,7 @@ function AuctionCreatePage() {
     try {
       const saved = await saveCurrentDraft(form, { silent: true });
       const queued = await queueLot(saved.id);
-      if (form.mainImageAssetId) savedAssetIds.current.add(form.mainImageAssetId);
+      formAssetIds(form).forEach((assetId) => savedAssetIds.current.add(assetId));
       clearAuctionCreateDraft();
       showToast({ id: 'lot-queued', tone: 'success', title: '拍品已加入本场队列', description: `队列位置 #${queued.queuePosition || queued.lot.queuePosition || '-'}，正在前往本场拍品队列。` });
       window.setTimeout(() => { location.href = '/admin/auctions?queued=1'; }, 350);
@@ -1270,7 +1355,7 @@ function AuctionCreatePage() {
   return <section className="auctionCreatePage">{tip ? <span className="auctionUploadTipBridge" aria-hidden="true" /> : null}<StudioToastViewport toasts={toasts} className="auctionCreateToastViewport" />
     <div className="auctionCreateTitleBar"><div><p>当前直播间 / 添加拍品</p><h2>添加拍品</h2><span>草稿静默自动保存，资料完成后只执行“加入本场队列”。</span></div><AutoSaveIndicator status={autoSaveStatus} savedAt={autoSavedAt} onRetry={retryAutoSave} /></div>
     <PublishStepper step={step} setStep={(next) => { if (canEnter(next)) { setStep(next); setStepNotice(''); } }} canEnter={canEnter} issues={issues} />
-    <div className="auctionCreateLayout"><main className="auctionCreateMain">{submitError ? <div className="auctionMgmtNotice danger"><AlertTriangle size={16} />{submitError}</div> : null}{step === 0 && <ProductInfoStep form={form} update={update} generateDescription={generateDescription} mainImageUploading={mainImageUploading} mainImageError={mainImageError} onMainImageSelect={(file) => void uploadMainImage(file)} onRemoveMainImage={removeMainImage} />}{step === 1 && <AuctionRuleStep form={form} update={update} issues={issues} />}{step === 2 && <LiveRoomStep form={form} update={update} />}{step === 3 && <PublishReviewStep form={form} issues={issues} />}<div className="auctionStepNav"><StudioButton type="button" variant="secondary" disabled={step === 0 || submitting} onClick={() => setStep(Math.max(0, step - 1))}>上一步</StudioButton><StudioButton type="button" variant="primary" onClick={() => { if (step < 3) { if (currentStepErrors.length) { showStepNotice('请先完成当前步骤必填项和严重校验。'); return; } setStepNotice(''); setStep(step + 1); } else { void queueCurrentLot(); } }} disabled={submitting}>{step < 3 ? '下一步' : (submitting ? '正在加入本场队列...' : '加入本场队列')}</StudioButton></div></main><StickyPreviewPanel form={form} issues={issues} previewMode={previewMode} setPreviewMode={setPreviewMode} step={step} /></div></section>;
+    <div className="auctionCreateLayout"><main className="auctionCreateMain">{submitError ? <div className="auctionMgmtNotice danger"><AlertTriangle size={16} />{submitError}</div> : null}{step === 0 && <ProductInfoStep form={form} update={update} generateDescription={generateDescription} mainImageUploading={mainImageUploading} mainImageError={mainImageError} carouselUploading={carouselUploading} carouselImageError={carouselImageError} onMainImageSelect={(file) => void uploadMainImage(file)} onRemoveMainImage={removeMainImage} onCarouselImagesSelect={(files) => void uploadCarouselImages(files)} onRemoveCarouselImage={removeCarouselImage} />}{step === 1 && <AuctionRuleStep form={form} update={update} issues={issues} />}{step === 2 && <LiveRoomStep form={form} update={update} />}{step === 3 && <PublishReviewStep form={form} issues={issues} />}<div className="auctionStepNav"><StudioButton type="button" variant="secondary" disabled={step === 0 || submitting} onClick={() => setStep(Math.max(0, step - 1))}>上一步</StudioButton><StudioButton type="button" variant="primary" onClick={() => { if (step < 3) { if (currentStepErrors.length) { showStepNotice('请先完成当前步骤必填项和严重校验。'); return; } setStepNotice(''); setStep(step + 1); } else { void queueCurrentLot(); } }} disabled={submitting}>{step < 3 ? '下一步' : (submitting ? '正在加入本场队列...' : '加入本场队列')}</StudioButton></div></main><StickyPreviewPanel form={form} issues={issues} previewMode={previewMode} setPreviewMode={setPreviewMode} step={step} /></div></section>;
 }
 
 
