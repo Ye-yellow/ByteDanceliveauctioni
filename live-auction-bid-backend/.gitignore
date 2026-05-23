@@ -13,7 +13,5 @@ node_modules/
 dist/
 .codex/
 .agents/
-新建文件夹/
-
 # local uGit clone/scratch
 auction-backend/
