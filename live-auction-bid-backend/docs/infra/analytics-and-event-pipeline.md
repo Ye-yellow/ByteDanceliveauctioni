@@ -59,3 +59,4 @@ func GoTrack(ctx context.Context, eventName string, f func(context.Context) erro
     }()
 }
 ```
+

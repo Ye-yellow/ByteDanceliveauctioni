@@ -58,3 +58,4 @@ func VerifyAndDecode(ctx context.Context, req *RequestEnvelope) (*DecodedRequest
     return &DecodedRequest{PlainPayload: plain, Key: key}, nil
 }
 ```
+

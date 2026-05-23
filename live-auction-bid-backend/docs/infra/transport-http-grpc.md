@@ -59,3 +59,4 @@ func NewHTTPServer(c *ServerConfig, logger Logger, tracer Tracer, h *GameService
     return srv
 }
 ```
+

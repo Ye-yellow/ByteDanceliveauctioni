@@ -56,3 +56,4 @@ func NewExternalClients(cfg ExternalConfig) (*ExternalClients, error) {
     return &ExternalClients{Payment: payment, Auth: auth}, nil
 }
 ```
+

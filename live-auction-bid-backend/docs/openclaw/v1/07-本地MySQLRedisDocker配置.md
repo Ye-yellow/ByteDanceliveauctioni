@@ -1,6 +1,6 @@
 # 07-本地 MySQL / Redis / Docker 配置
 
-> 状态：V1 本地基础设施主路径说明
+> 状态：V1 本地基础设施主路径说明  
 > 目标：GORM + MySQL + Redis + Consul/Docker Compose 作为默认系统路径，不保留内存或 `database/sql` fallback。
 
 ## 1. 当前边界

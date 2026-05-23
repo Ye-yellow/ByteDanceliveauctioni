@@ -58,3 +58,4 @@ func (h RedisNameHelper) CreateKey(parts ...any) string {
     return strings.Join(toStrings(parts...), ":")
 }
 ```
+

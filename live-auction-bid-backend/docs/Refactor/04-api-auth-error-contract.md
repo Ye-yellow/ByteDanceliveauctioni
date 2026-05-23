@@ -44,7 +44,7 @@ PATH=/home/ye/go/bin:$PATH make api PROTOC=/tmp/openclaw-tools/protoc/bin/protoc
 | `409002` | `USERNAME_TAKEN` | 展示用户名已存在 |
 | `404001` | `NOT_FOUND` | 展示资源不存在 |
 | `500000` | `INTERNAL_ERROR` | 展示通用系统错误，不泄露原始 err |
-
+ 
 后端 `ErrorResult` 必须稳定输出上述 code。Admin/H5 只在 `TOKEN_EXPIRED` 上 refresh；`LOGIN_REQUIRED`、`TOKEN_INVALID`、`SESSION_EXPIRED` 直接清理登录态。
 
 ## P2 查询接口
