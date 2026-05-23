@@ -19,8 +19,6 @@ dist-ssr
 coverage
 .codex
 .agents
-新建文件夹
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
