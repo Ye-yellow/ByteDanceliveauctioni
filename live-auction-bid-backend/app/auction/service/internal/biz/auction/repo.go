@@ -48,6 +48,7 @@ type PaymentRepository interface {
 // 伴随 lot/bid 状态变化的事件必须随对应 repository 方法进入同一个 MySQL 事务。
 type EventRepository interface {
 	PersistEvents(ctx context.Context, events []v1.AuctionEvent) error
+	ListRoomEvents(ctx context.Context, query RoomEventQuery) (RoomEventList, error)
 }
 
 // EventPublisher 发布领域事件。

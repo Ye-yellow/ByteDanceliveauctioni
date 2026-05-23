@@ -103,12 +103,13 @@ type PaymentSummary struct {
 }
 
 type OrderQuery struct {
-	Page        int         `json:"page"`
-	PageSize    int         `json:"pageSize"`
-	Status      OrderStatus `json:"status,omitempty"`
-	LotID       string      `json:"lotId,omitempty"`
-	Buyer       string      `json:"buyer,omitempty"`
-	BuyerUserID string      `json:"buyerUserId,omitempty"`
+	Page          int           `json:"page"`
+	PageSize      int           `json:"pageSize"`
+	Status        OrderStatus   `json:"status,omitempty"`
+	PaymentStatus PaymentStatus `json:"paymentStatus,omitempty"`
+	LotID         string        `json:"lotId,omitempty"`
+	Buyer         string        `json:"buyer,omitempty"`
+	BuyerUserID   string        `json:"buyerUserId,omitempty"`
 }
 
 type OrderList struct {
@@ -122,6 +123,7 @@ type LotQuery struct {
 	Page     int          `json:"page"`
 	PageSize int          `json:"pageSize"`
 	Status   v1.LotStatus `json:"status,omitempty"`
+	View     string       `json:"view,omitempty"`
 	Keyword  string       `json:"keyword,omitempty"`
 	RoomID   string       `json:"roomId,omitempty"`
 }
@@ -131,6 +133,17 @@ type LotList struct {
 	Total    int64     `json:"total"`
 	Page     int       `json:"page"`
 	PageSize int       `json:"pageSize"`
+}
+
+type RoomEventQuery struct {
+	RoomID    string `json:"roomId"`
+	PageSize  int    `json:"pageSize"`
+	PageToken string `json:"pageToken,omitempty"`
+}
+
+type RoomEventList struct {
+	Events        []*v1.AuctionEvent `json:"events"`
+	NextPageToken string             `json:"nextPageToken,omitempty"`
 }
 
 type BidRecord struct {

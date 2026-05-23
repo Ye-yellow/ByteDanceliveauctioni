@@ -58,6 +58,12 @@ func (s *Store) ListUsers(ctx context.Context, query user.ListUsersQuery) (user.
 	db := s.db.WithContext(ctx).Model(&AuctionUserModel{})
 	if query.Role != v1.UserRole_USER_ROLE_UNSPECIFIED {
 		db = db.Where("role = ?", int32(query.Role))
+	} else {
+		db = db.Where("role IN ?", []int32{
+			int32(v1.UserRole_USER_ROLE_ANCHOR),
+			int32(v1.UserRole_USER_ROLE_OPERATOR),
+			int32(v1.UserRole_USER_ROLE_ADMIN),
+		})
 	}
 	if keyword := strings.TrimSpace(query.Keyword); keyword != "" {
 		like := "%" + strings.ToLower(keyword) + "%"

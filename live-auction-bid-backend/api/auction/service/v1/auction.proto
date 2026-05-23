@@ -173,6 +173,26 @@ service AuctionService {
       get: "/api/rooms/{room_id}/snapshot"
     };
   }
+
+  // 获取直播间在线状态。
+  //
+  // 调用方：主播端/运营端。
+  // 用途：工作台展示当前房间 WebSocket 真实连接情况。
+  rpc GetRoomPresence(GetRoomPresenceRequest) returns (GetRoomPresenceReply) {
+    option (google.api.http) = {
+      get: "/api/rooms/{room_id}/presence"
+    };
+  }
+
+  // 查询直播间最近事件。
+  //
+  // 调用方：主播端/运营端。
+  // 用途：工作台恢复最近出价、开拍、成交、取消、支付等操作日志。
+  rpc ListRoomEvents(ListRoomEventsRequest) returns (ListRoomEventsReply) {
+    option (google.api.http) = {
+      get: "/api/rooms/{room_id}/events"
+    };
+  }
 }
 
 // ============================================================================
@@ -595,6 +615,24 @@ message Lot {
 
   // 本场队列位置，从 1 开始。未入队时为 0。
   int32 queue_position = 24;
+
+  // 商品轮播图 URL。
+  repeated string gallery_image_urls = 25;
+
+  // 商品分类。
+  string category = 26;
+
+  // 商品标签。
+  repeated string tags = 27;
+
+  // 参考估价。
+  Money estimate_price = 28;
+
+  // 库存件数。
+  int32 stock = 29;
+
+  // 售后说明。
+  string after_sale_notes = 30;
 }
 
 // ============================================================================
@@ -622,6 +660,24 @@ message RoomSnapshot {
 
   // 服务端当前时间，Unix 毫秒。用于前端校准倒计时。
   int64 server_time_unix_ms = 6;
+}
+
+// RoomPresence 表示直播间实时连接状态。
+message RoomPresence {
+  // 直播间 ID。
+  string room_id = 1;
+
+  // 总 WebSocket 连接数。
+  int32 total_connections = 2;
+
+  // 观众连接数，不包含主播/运营/管理员后台连接。
+  int32 viewer_connections = 3;
+
+  // 后台工作台连接数，包含主播/运营/管理员。
+  int32 operator_connections = 4;
+
+  // 服务端当前时间，Unix 毫秒。
+  int64 server_time_unix_ms = 5;
 }
 
 // AuctionEvent 表示直播间实时事件。
@@ -688,6 +744,24 @@ message CreateLotRequest {
 
   // 预置的信任揭示卡片。创建时默认 revealed=false。
   repeated TrustRevealCard trust_cards = 6;
+
+  // 商品轮播图 URL。
+  repeated string gallery_image_urls = 7;
+
+  // 商品分类。
+  string category = 8;
+
+  // 商品标签。
+  repeated string tags = 9;
+
+  // 参考估价。
+  Money estimate_price = 10;
+
+  // 库存件数。
+  int32 stock = 11;
+
+  // 售后说明。
+  string after_sale_notes = 12;
 }
 
 // PatchLotDraftRequest 表示添加拍品页静默草稿保存请求。
@@ -713,6 +787,24 @@ message PatchLotDraftRequest {
 
   // 信任揭示卡片。
   repeated TrustRevealCard trust_cards = 7;
+
+  // 商品轮播图 URL。
+  repeated string gallery_image_urls = 8;
+
+  // 商品分类。
+  string category = 9;
+
+  // 商品标签。
+  repeated string tags = 10;
+
+  // 参考估价。
+  Money estimate_price = 11;
+
+  // 库存件数。
+  int32 stock = 12;
+
+  // 售后说明。
+  string after_sale_notes = 13;
 }
 
 // QueueLotRequest 表示将草稿提交进入本场拍品队列。
@@ -815,6 +907,24 @@ message CancelLotRequest {
 message GetRoomSnapshotRequest {
   // 直播间 ID。
   string room_id = 1;
+}
+
+// GetRoomPresenceRequest 表示获取直播间在线状态请求。
+message GetRoomPresenceRequest {
+  // 直播间 ID。
+  string room_id = 1;
+}
+
+// ListRoomEventsRequest 表示查询直播间最近事件请求。
+message ListRoomEventsRequest {
+  // 直播间 ID。
+  string room_id = 1;
+
+  // 分页大小。
+  int32 page_size = 2;
+
+  // 分页游标。为空表示第一页。
+  string page_token = 3;
 }
 
 // ============================================================================
@@ -963,6 +1073,27 @@ message CancelLotReply {
 message GetRoomSnapshotReply {
   // 直播间权威快照。
   RoomSnapshot snapshot = 1;
+
+  // 统一返回头。
+  ReplyResult result = 99;
+}
+
+// GetRoomPresenceReply 表示获取直播间在线状态响应。
+message GetRoomPresenceReply {
+  // 直播间在线状态。
+  RoomPresence presence = 1;
+
+  // 统一返回头。
+  ReplyResult result = 99;
+}
+
+// ListRoomEventsReply 表示查询直播间最近事件响应。
+message ListRoomEventsReply {
+  // 最近事件，按发生时间倒序。
+  repeated AuctionEvent events = 1;
+
+  // 下一页游标。为空表示没有下一页。
+  string next_page_token = 2;
 
   // 统一返回头。
   ReplyResult result = 99;

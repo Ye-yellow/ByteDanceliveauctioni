@@ -54,7 +54,7 @@ PATH=/home/ye/go/bin:$PATH make api PROTOC=/tmp/openclaw-tools/protoc/bin/protoc
 | Method | Path | 权限 | Query | 返回 |
 | --- | --- | --- | --- | --- |
 | `GET` | `/api/admin/orders` | `ANCHOR/OPERATOR/ADMIN` | `page,pageSize,status,lotId,buyer` | `orders,total,page,pageSize` |
-| `GET` | `/api/admin/users` | `ADMIN` | `page,pageSize,role,keyword` | `users,total,page,pageSize` |
+| `GET` | `/api/admin/users` | `ADMIN` | `page,pageSize,role,keyword`；仅后台团队角色，显式查询 `BUYER` fail-fast | `users,total,page,pageSize` |
 | `GET` | `/api/admin/lots` | `ANCHOR/OPERATOR/ADMIN` | `page,pageSize,status,keyword,roomId` | `lots,total,page,pageSize` |
 | `GET` | `/api/me/orders` | `BUYER` | `page,pageSize,status,lotId` | 当前买家自己的 `orders,total,page,pageSize` |
 | `GET` | `/api/me/bids` | `BUYER` | `page,pageSize,lotId` | 当前买家自己的 `bids,total,page,pageSize` |

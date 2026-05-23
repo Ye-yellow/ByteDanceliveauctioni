@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
@@ -14,11 +15,20 @@ import (
 // 分层规则：这里只做 proto 入参组装、调用 usecase、包装 proto reply，不写竞拍业务规则。
 type AuctionService struct {
 	v1.UnimplementedAuctionServiceServer
-	auction *auction.AuctionUsecase
+	auction  *auction.AuctionUsecase
+	presence RoomPresenceProvider
 }
 
-func NewAuctionService(auction *auction.AuctionUsecase) *AuctionService {
-	return &AuctionService{auction: auction}
+type RoomPresenceProvider interface {
+	RoomPresence(roomID string) *v1.RoomPresence
+}
+
+func NewAuctionService(auction *auction.AuctionUsecase, presence ...RoomPresenceProvider) *AuctionService {
+	s := &AuctionService{auction: auction}
+	if len(presence) > 0 {
+		s.presence = presence[0]
+	}
+	return s
 }
 
 func (s *AuctionService) CreateLot(ctx context.Context, req *v1.CreateLotRequest) (*v1.CreateLotReply, error) {
@@ -173,6 +183,35 @@ func (s *AuctionService) GetRoomSnapshot(ctx context.Context, req *v1.GetRoomSna
 		return &v1.GetRoomSnapshotReply{Result: ErrorResult(ctx, err)}, nil
 	}
 	return &v1.GetRoomSnapshotReply{Result: okResult(ctx), Snapshot: snapshot}, nil
+}
+
+func (s *AuctionService) GetRoomPresence(ctx context.Context, req *v1.GetRoomPresenceRequest) (*v1.GetRoomPresenceReply, error) {
+	if _, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_ADMIN); err != nil {
+		return &v1.GetRoomPresenceReply{Result: ErrorResult(ctx, err)}, nil
+	}
+	if s.presence == nil {
+		return &v1.GetRoomPresenceReply{Result: ErrorResult(ctx, errors.New("room presence provider is required"))}, nil
+	}
+	presence := s.presence.RoomPresence(req.GetRoomId())
+	if presence.GetRoomId() == "" {
+		return &v1.GetRoomPresenceReply{Result: ErrorResult(ctx, errors.New("room id is required"))}, nil
+	}
+	return &v1.GetRoomPresenceReply{Result: okResult(ctx), Presence: presence}, nil
+}
+
+func (s *AuctionService) ListRoomEvents(ctx context.Context, req *v1.ListRoomEventsRequest) (*v1.ListRoomEventsReply, error) {
+	if _, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_ADMIN); err != nil {
+		return &v1.ListRoomEventsReply{Result: ErrorResult(ctx, err)}, nil
+	}
+	list, err := s.auction.ListRoomEvents(ctx, auction.RoomEventQuery{
+		RoomID:    req.GetRoomId(),
+		PageSize:  int(req.GetPageSize()),
+		PageToken: req.GetPageToken(),
+	})
+	if err != nil {
+		return &v1.ListRoomEventsReply{Result: ErrorResult(ctx, err)}, nil
+	}
+	return &v1.ListRoomEventsReply{Result: okResult(ctx), Events: list.Events, NextPageToken: list.NextPageToken}, nil
 }
 
 func (s *AuctionService) GetLotResult(ctx context.Context, lotID string) (*auction.LotResult, error) {

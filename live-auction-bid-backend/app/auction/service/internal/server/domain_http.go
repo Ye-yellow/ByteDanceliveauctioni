@@ -176,11 +176,12 @@ func registerDomainHTTP(srv *httptransport.Server, service *appsvc.AuctionServic
 func orderQueryFromHTTP(ctx httptransport.Context) auction.OrderQuery {
 	query := ctx.Query()
 	return auction.OrderQuery{
-		Page:     intQuery(query.Get("page")),
-		PageSize: intQuery(query.Get("pageSize")),
-		Status:   auction.OrderStatus(strings.TrimSpace(query.Get("status"))),
-		LotID:    strings.TrimSpace(query.Get("lotId")),
-		Buyer:    strings.TrimSpace(query.Get("buyer")),
+		Page:          intQuery(query.Get("page")),
+		PageSize:      intQuery(query.Get("pageSize")),
+		Status:        auction.OrderStatus(strings.TrimSpace(query.Get("status"))),
+		PaymentStatus: auction.PaymentStatus(strings.TrimSpace(query.Get("paymentStatus"))),
+		LotID:         strings.TrimSpace(query.Get("lotId")),
+		Buyer:         strings.TrimSpace(query.Get("buyer")),
 	}
 }
 
@@ -199,6 +200,7 @@ func lotQueryFromHTTP(ctx httptransport.Context) auction.LotQuery {
 		Page:     intQuery(query.Get("page")),
 		PageSize: intQuery(query.Get("pageSize")),
 		Status:   lotStatusFromString(query.Get("status")),
+		View:     strings.TrimSpace(query.Get("view")),
 		Keyword:  strings.TrimSpace(query.Get("keyword")),
 		RoomID:   strings.TrimSpace(query.Get("roomId")),
 	}

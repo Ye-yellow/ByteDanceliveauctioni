@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -59,7 +60,7 @@ func TestLotStateMachine(t *testing.T) {
 	}
 }
 
-func TestCancelLotStateMachineAllowsOnlyLiveAndRecordsReason(t *testing.T) {
+func TestCancelLotStateMachineAllowsPreStartAndRejectsLive(t *testing.T) {
 	lot, err := auction.NewLotFromRequest("lot_cancel", &v1.CreateLotRequest{
 		RoomId:   "demo",
 		Title:    "取消测试拍品",
@@ -76,22 +77,68 @@ func TestCancelLotStateMachineAllowsOnlyLiveAndRecordsReason(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create lot failed: %v", err)
 	}
-	if err := auction.CancelLot(lot, "主播网络异常", 2000); err == nil || !strings.Contains(err.Error(), "only live lot") {
-		t.Fatalf("draft lot should not be cancellable, got %v", err)
+	if err := auction.CancelLot(lot, "资料误填", 2000); err != nil {
+		t.Fatalf("draft lot should be cancellable, got %v", err)
 	}
-	if err := auction.StartLot(lot, 1000); err != nil {
+	if lot.Status != v1.LotStatus_LOT_STATUS_CANCELLED || lot.CancelReason != "资料误填" || lot.CancelledAtUnixMs != 2000 {
+		t.Fatalf("draft cancel state mismatch: %+v", lot)
+	}
+
+	liveLot, err := auction.NewLotFromRequest("lot_live_cancel", &v1.CreateLotRequest{
+		RoomId:   "demo",
+		Title:    "开拍后不可取消拍品",
+		ImageUrl: "https://example.com/lot.jpg",
+		Rule: &v1.BidRule{
+			StartPrice:             &v1.Money{Amount: 0, Currency: "CNY"},
+			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+			DurationSeconds:        300,
+			AntiSnipeWindowSeconds: 15,
+			AntiSnipeExtendSeconds: 15,
+			MaxExtendCount:         3,
+		},
+	})
+	if err != nil {
+		t.Fatalf("create live lot failed: %v", err)
+	}
+	if err := auction.StartLot(liveLot, 1000); err != nil {
 		t.Fatalf("start lot failed: %v", err)
 	}
-	if err := auction.CancelLot(lot, "", 2000); err == nil || !strings.Contains(err.Error(), "cancel reason") {
+	if err := auction.CancelLot(liveLot, "", 2000); err == nil || !strings.Contains(err.Error(), "only draft, ready, or queued lot") {
+		t.Fatalf("live lot should be rejected before reason validation, got %v", err)
+	}
+	if err := auction.CancelLot(liveLot, "主播网络异常", 3000); err == nil || !strings.Contains(err.Error(), "only draft, ready, or queued lot") {
+		t.Fatalf("live lot should not be cancellable, got %v", err)
+	}
+
+	queuedLot, err := auction.NewLotFromRequest("lot_queue_cancel", &v1.CreateLotRequest{
+		RoomId:   "demo",
+		Title:    "队列取消拍品",
+		ImageUrl: "https://example.com/lot.jpg",
+		Rule: &v1.BidRule{
+			StartPrice:             &v1.Money{Amount: 0, Currency: "CNY"},
+			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+			DurationSeconds:        300,
+			AntiSnipeWindowSeconds: 15,
+			AntiSnipeExtendSeconds: 15,
+			MaxExtendCount:         3,
+		},
+	})
+	if err != nil {
+		t.Fatalf("create queued lot failed: %v", err)
+	}
+	queuedLot.Status = v1.LotStatus_LOT_STATUS_QUEUED
+	queuedLot.QueueStatus = v1.LotQueueStatus_LOT_QUEUE_STATUS_QUEUED
+	queuedLot.QueuePosition = 1
+	if err := auction.CancelLot(queuedLot, "", 2000); err == nil || !strings.Contains(err.Error(), "cancel reason") {
 		t.Fatalf("empty cancel reason should be rejected, got %v", err)
 	}
-	if err := auction.CancelLot(lot, "主播网络异常", 3000); err != nil {
-		t.Fatalf("cancel live lot failed: %v", err)
+	if err := auction.CancelLot(queuedLot, "误加入队列", 3000); err != nil {
+		t.Fatalf("cancel queued lot failed: %v", err)
 	}
-	if lot.Status != v1.LotStatus_LOT_STATUS_CANCELLED || lot.CancelReason != "主播网络异常" || lot.CancelledAtUnixMs != 3000 {
-		t.Fatalf("cancelled lot state mismatch: %+v", lot)
+	if queuedLot.Status != v1.LotStatus_LOT_STATUS_CANCELLED || queuedLot.QueueStatus != v1.LotQueueStatus_LOT_QUEUE_STATUS_NONE || queuedLot.QueuePosition != 0 || queuedLot.CancelReason != "误加入队列" || queuedLot.CancelledAtUnixMs != 3000 {
+		t.Fatalf("queued cancel state mismatch: %+v", queuedLot)
 	}
-	if err := auction.AcceptBid(lot, v1.Bid{UserId: "u1", Nickname: "用户1", Amount: &v1.Money{Amount: 1000, Currency: "CNY"}}, 4000); err == nil || !strings.Contains(err.Error(), "lot is not live") {
+	if err := auction.AcceptBid(queuedLot, v1.Bid{UserId: "u1", Nickname: "用户1", Amount: &v1.Money{Amount: 1000, Currency: "CNY"}}, 4000); err == nil || !strings.Contains(err.Error(), "lot is not live") {
 		t.Fatalf("cancelled lot should reject bids, got %v", err)
 	}
 }
@@ -212,6 +259,196 @@ func TestCreateLotValidatesRequiredImageAndCapPrice(t *testing.T) {
 	if _, err := auction.NewLotFromRequest("lot_bad_cap", badCap); err == nil || !strings.Contains(err.Error(), "greater than start price") {
 		t.Fatalf("cap <= start should be rejected, got %v", err)
 	}
+}
+
+func TestCreateLotKeepsAddLotDetailFields(t *testing.T) {
+	lot, err := auction.NewLotFromRequest("lot_detail", &v1.CreateLotRequest{
+		RoomId:           "demo",
+		Title:            "添加拍品详情测试",
+		Description:      "带图库和保障卡的拍品",
+		ImageUrl:         "https://tos.example.com/main.jpg",
+		GalleryImageUrls: []string{" https://tos.example.com/gallery-a.jpg ", "https://tos.example.com/gallery-b.jpg"},
+		Category:         "珠宝首饰",
+		Tags:             []string{" 翡翠 ", "收藏级"},
+		EstimatePrice:    &v1.Money{Amount: 280000, Currency: "CNY"},
+		Stock:            3,
+		AfterSaleNotes:   "支持复检",
+		Rule: &v1.BidRule{
+			StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
+			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+			DurationSeconds:        300,
+			AntiSnipeWindowSeconds: 15,
+			AntiSnipeExtendSeconds: 15,
+			MaxExtendCount:         3,
+		},
+		TrustCards: []*v1.TrustRevealCard{{
+			Type:     v1.TrustCardType_TRUST_CARD_TYPE_CERTIFICATE,
+			Title:    "证书",
+			Content:  "NGTC 可查",
+			ImageUrl: "https://tos.example.com/cert.jpg",
+		}},
+	})
+	if err != nil {
+		t.Fatalf("create lot with add-lot detail fields failed: %v", err)
+	}
+	if lot.GetGalleryImageUrls()[0] != "https://tos.example.com/gallery-a.jpg" || lot.GetCategory() != "珠宝首饰" || lot.GetTags()[0] != "翡翠" {
+		t.Fatalf("detail fields should be normalized and kept: %+v", lot)
+	}
+	if lot.GetEstimatePrice().GetAmount() != 280000 || lot.GetStock() != 3 || lot.GetAfterSaleNotes() != "支持复检" {
+		t.Fatalf("price/stock/after-sale fields should be kept: %+v", lot)
+	}
+	if lot.GetTrustCards()[0].GetImageUrl() != "https://tos.example.com/cert.jpg" || lot.GetTrustCards()[0].GetLotId() != lot.GetId() {
+		t.Fatalf("trust card image and identity should be kept: %+v", lot.GetTrustCards()[0])
+	}
+}
+
+func TestCreateLotRejectsTemporaryPreviewImageURLs(t *testing.T) {
+	base := &v1.CreateLotRequest{
+		RoomId:   "demo",
+		Title:    "临时图片地址测试",
+		ImageUrl: "https://tos.example.com/main.jpg",
+		Rule: &v1.BidRule{
+			StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
+			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+			DurationSeconds:        300,
+			AntiSnipeWindowSeconds: 15,
+			AntiSnipeExtendSeconds: 15,
+			MaxExtendCount:         3,
+		},
+	}
+
+	cases := []struct {
+		name    string
+		mutate  func(*v1.CreateLotRequest)
+		wantErr string
+	}{
+		{
+			name: "main blob",
+			mutate: func(req *v1.CreateLotRequest) {
+				req.ImageUrl = "blob:http://localhost/preview"
+			},
+			wantErr: "imageUrl",
+		},
+		{
+			name: "gallery data url",
+			mutate: func(req *v1.CreateLotRequest) {
+				req.GalleryImageUrls = []string{"data:image/png;base64,abc"}
+			},
+			wantErr: "galleryImageUrls",
+		},
+		{
+			name: "trust card blob",
+			mutate: func(req *v1.CreateLotRequest) {
+				req.TrustCards = []*v1.TrustRevealCard{{
+					Type:     v1.TrustCardType_TRUST_CARD_TYPE_CERTIFICATE,
+					Title:    "证书",
+					Content:  "NGTC 可查",
+					ImageUrl: "blob:http://localhost/cert",
+				}}
+			},
+			wantErr: "trustCards.imageUrl",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := proto.Clone(base).(*v1.CreateLotRequest)
+			tc.mutate(req)
+			if _, err := auction.NewLotFromRequest("lot_bad_preview", req); err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+				t.Fatalf("expected %s error, got %v", tc.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestListLotsByQueryViewsRespectPageBoundaries(t *testing.T) {
+	store := newTestStore()
+	uc := auction.NewAuctionUsecase(store, store, store, nil)
+	ctx := context.Background()
+
+	createLotWithStatus := func(id string, status v1.LotStatus) {
+		t.Helper()
+		lot, err := auction.NewLotFromRequest(id, &v1.CreateLotRequest{
+			RoomId:   "room_views",
+			Title:    "视图边界 " + id,
+			ImageUrl: "https://example.com/" + id + ".jpg",
+			Rule: &v1.BidRule{
+				StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
+				MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+				DurationSeconds:        300,
+				AntiSnipeWindowSeconds: 15,
+				AntiSnipeExtendSeconds: 15,
+				MaxExtendCount:         3,
+			},
+		})
+		if err != nil {
+			t.Fatalf("create lot %s failed: %v", id, err)
+		}
+		lot.Status = status
+		if status == v1.LotStatus_LOT_STATUS_QUEUED {
+			lot.QueueStatus = v1.LotQueueStatus_LOT_QUEUE_STATUS_QUEUED
+			lot.QueuePosition = 1
+		}
+		if status == v1.LotStatus_LOT_STATUS_CANCELLED {
+			lot.CancelReason = "误加入队列"
+			lot.CancelledAtUnixMs = 1000
+		}
+		if err := store.Create(ctx, lot, "owner", nil); err != nil {
+			t.Fatalf("store lot %s failed: %v", id, err)
+		}
+	}
+
+	createLotWithStatus("lot_draft", v1.LotStatus_LOT_STATUS_DRAFT)
+	createLotWithStatus("lot_ready", v1.LotStatus_LOT_STATUS_READY)
+	createLotWithStatus("lot_queued", v1.LotStatus_LOT_STATUS_QUEUED)
+	createLotWithStatus("lot_live", v1.LotStatus_LOT_STATUS_LIVE)
+	createLotWithStatus("lot_settled", v1.LotStatus_LOT_STATUS_SETTLED)
+	createLotWithStatus("lot_cancelled", v1.LotStatus_LOT_STATUS_CANCELLED)
+	createLotWithStatus("lot_failed", v1.LotStatus_LOT_STATUS_FAILED)
+
+	library, err := uc.ListLotsByQuery(ctx, auction.LotQuery{RoomID: "room_views", View: "library", Page: 1, PageSize: 20})
+	if err != nil {
+		t.Fatalf("list library failed: %v", err)
+	}
+	if library.Total != 2 {
+		t.Fatalf("library should only include draft/ready, got total=%d lots=%v", library.Total, testLotIDs(library.Lots))
+	}
+
+	current, err := uc.ListLotsByQuery(ctx, auction.LotQuery{RoomID: "room_views", View: "current", Page: 1, PageSize: 20})
+	if err != nil {
+		t.Fatalf("list current failed: %v", err)
+	}
+	if current.Total != 4 {
+		t.Fatalf("current should exclude terminal records, got total=%d lots=%v", current.Total, testLotIDs(current.Lots))
+	}
+
+	history, err := uc.ListLotsByQuery(ctx, auction.LotQuery{RoomID: "room_views", View: "history", Page: 1, PageSize: 20})
+	if err != nil {
+		t.Fatalf("list history failed: %v", err)
+	}
+	if history.Total != 3 {
+		t.Fatalf("history should include settled/cancelled/failed, got total=%d lots=%v", history.Total, testLotIDs(history.Lots))
+	}
+
+	cancelledInLibrary, err := uc.ListLotsByQuery(ctx, auction.LotQuery{RoomID: "room_views", View: "library", Status: v1.LotStatus_LOT_STATUS_CANCELLED, Page: 1, PageSize: 20})
+	if err != nil {
+		t.Fatalf("list cancelled in library failed: %v", err)
+	}
+	if cancelledInLibrary.Total != 0 {
+		t.Fatalf("cancelled lots must not leak into library view, got total=%d", cancelledInLibrary.Total)
+	}
+
+	if _, err := uc.ListLotsByQuery(ctx, auction.LotQuery{RoomID: "room_views", View: "legacy"}); err == nil || !strings.Contains(err.Error(), "unsupported lot list view") {
+		t.Fatalf("invalid view should failfast, got %v", err)
+	}
+}
+
+func testLotIDs(lots []*v1.Lot) []string {
+	ids := make([]string, 0, len(lots))
+	for _, lot := range lots {
+		ids = append(ids, lot.GetId())
+	}
+	return ids
 }
 
 func TestPlaceBidRejectsMissingUserInsteadOfDefaulting(t *testing.T) {
@@ -441,7 +678,16 @@ func (s *testStore) ListLots(ctx context.Context, query auction.LotQuery) (aucti
 		if query.Status != v1.LotStatus_LOT_STATUS_UNSPECIFIED && lot.Status != query.Status {
 			continue
 		}
-		if keyword != "" && !strings.Contains(strings.ToLower(lot.Id+" "+lot.Title+" "+lot.Description), keyword) {
+		if strings.EqualFold(query.View, "current") && !isCurrentLotStatusForTest(lot.Status) {
+			continue
+		}
+		if strings.EqualFold(query.View, "history") && !isHistoryLotStatusForTest(lot.Status) {
+			continue
+		}
+		if strings.EqualFold(query.View, "library") && !isLibraryLotStatusForTest(lot.Status) {
+			continue
+		}
+		if keyword != "" && !strings.Contains(strings.ToLower(lot.Id+" "+lot.Title+" "+lot.Description+" "+lot.CancelReason), keyword) {
 			continue
 		}
 		lots = append(lots, proto.Clone(lot).(*v1.Lot))
@@ -457,6 +703,28 @@ func (s *testStore) ListLots(ctx context.Context, query auction.LotQuery) (aucti
 		end = len(lots)
 	}
 	return auction.LotList{Lots: lots[start:end], Total: total, Page: query.Page, PageSize: query.PageSize}, nil
+}
+
+func isCurrentLotStatusForTest(status v1.LotStatus) bool {
+	switch status {
+	case v1.LotStatus_LOT_STATUS_DRAFT, v1.LotStatus_LOT_STATUS_READY, v1.LotStatus_LOT_STATUS_QUEUED, v1.LotStatus_LOT_STATUS_LIVE, v1.LotStatus_LOT_STATUS_EXTENDED:
+		return true
+	default:
+		return false
+	}
+}
+
+func isHistoryLotStatusForTest(status v1.LotStatus) bool {
+	switch status {
+	case v1.LotStatus_LOT_STATUS_SETTLED, v1.LotStatus_LOT_STATUS_CANCELLED, v1.LotStatus_LOT_STATUS_FAILED:
+		return true
+	default:
+		return false
+	}
+}
+
+func isLibraryLotStatusForTest(status v1.LotStatus) bool {
+	return status == v1.LotStatus_LOT_STATUS_DRAFT || status == v1.LotStatus_LOT_STATUS_READY
 }
 
 func (s *testStore) ListExpiredOpen(ctx context.Context, nowMs int64, limit int) ([]*v1.Lot, error) {
@@ -658,6 +926,50 @@ func (s *testStore) PersistEvents(ctx context.Context, events []v1.AuctionEvent)
 	return nil
 }
 
+func (s *testStore) ListRoomEvents(ctx context.Context, query auction.RoomEventQuery) (auction.RoomEventList, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if query.RoomID == "" {
+		return auction.RoomEventList{}, errors.New("room id is required")
+	}
+	_, pageSize := auction.NormalizePagination(1, query.PageSize)
+	offset := 0
+	if strings.TrimSpace(query.PageToken) != "" {
+		nextOffset, err := strconv.Atoi(query.PageToken)
+		if err != nil || nextOffset < 0 {
+			return auction.RoomEventList{}, errors.New("invalid page token")
+		}
+		offset = nextOffset
+	}
+	events := make([]v1.AuctionEvent, 0, len(s.events))
+	for _, event := range s.events {
+		if event.RoomId == query.RoomID {
+			events = append(events, event)
+		}
+	}
+	sort.SliceStable(events, func(i, j int) bool {
+		if events[i].OccurredAtUnixMs == events[j].OccurredAtUnixMs {
+			return events[i].Id > events[j].Id
+		}
+		return events[i].OccurredAtUnixMs > events[j].OccurredAtUnixMs
+	})
+	if offset > len(events) {
+		offset = len(events)
+	}
+	end := offset + pageSize
+	nextPageToken := ""
+	if end < len(events) {
+		nextPageToken = strconv.Itoa(end)
+	} else {
+		end = len(events)
+	}
+	result := make([]*v1.AuctionEvent, 0, end-offset)
+	for _, event := range events[offset:end] {
+		result = append(result, proto.Clone(&event).(*v1.AuctionEvent))
+	}
+	return auction.RoomEventList{Events: result, NextPageToken: nextPageToken}, nil
+}
+
 func (s *testStore) eventTypes() []v1.AuctionEventType {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -822,7 +1134,7 @@ func TestAuctionUsecaseCoreClosurePublishesEventsAndSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("snapshot failed: %v", err)
 	}
-	if snapshot.CurrentLot == nil || len(snapshot.Ranking) != 2 || len(snapshot.RecentBids) != 4 {
+	if snapshot.CurrentLot != nil || len(snapshot.Ranking) != 0 || len(snapshot.RecentBids) != 0 {
 		t.Fatalf("snapshot mismatch: %+v", snapshot)
 	}
 
@@ -915,7 +1227,7 @@ func TestAuctionUsecaseCancelLotPersistsAndPublishesEvent(t *testing.T) {
 
 	lot, err := uc.CreateLot(ctx, &v1.CreateLotRequest{
 		RoomId:   "room_cancel",
-		Title:    "异常取消拍品",
+		Title:    "取消拍品",
 		ImageUrl: "https://example.com/lot.jpg",
 		Rule: &v1.BidRule{
 			StartPrice:             &v1.Money{Amount: 0, Currency: "CNY"},
@@ -929,24 +1241,22 @@ func TestAuctionUsecaseCancelLotPersistsAndPublishesEvent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create lot failed: %v", err)
 	}
-	if _, err := uc.CancelLot(ctx, lot.Id, "op", "未开拍误操作"); err == nil || !strings.Contains(err.Error(), "only live lot") {
-		t.Fatalf("draft cancel should be rejected, got %v", err)
+	queued, _, err := uc.QueueLot(ctx, lot.Id, "test-owner")
+	if err != nil {
+		t.Fatalf("queue lot failed: %v", err)
 	}
-	if _, err := uc.StartLot(ctx, lot.Id); err != nil {
-		t.Fatalf("start lot failed: %v", err)
-	}
-	cancelled, err := uc.CancelLot(ctx, lot.Id, "op", "主播网络异常")
+	cancelled, err := uc.CancelLot(ctx, queued.Id, "op", "未开拍误操作")
 	if err != nil {
 		t.Fatalf("cancel lot failed: %v", err)
 	}
-	if cancelled.Status != v1.LotStatus_LOT_STATUS_CANCELLED || cancelled.CancelReason != "主播网络异常" || cancelled.CancelledAtUnixMs == 0 {
+	if cancelled.Status != v1.LotStatus_LOT_STATUS_CANCELLED || cancelled.QueueStatus != v1.LotQueueStatus_LOT_QUEUE_STATUS_NONE || cancelled.QueuePosition != 0 || cancelled.CancelReason != "未开拍误操作" || cancelled.CancelledAtUnixMs == 0 {
 		t.Fatalf("cancelled lot mismatch: %+v", cancelled)
 	}
 	fresh, err := store.FindByID(ctx, lot.Id)
 	if err != nil {
 		t.Fatalf("find cancelled lot failed: %v", err)
 	}
-	if fresh.Status != v1.LotStatus_LOT_STATUS_CANCELLED || fresh.CancelReason != "主播网络异常" {
+	if fresh.Status != v1.LotStatus_LOT_STATUS_CANCELLED || fresh.CancelReason != "未开拍误操作" {
 		t.Fatalf("persisted cancelled lot mismatch: %+v", fresh)
 	}
 	pub.assertContains(t, v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CANCELLED)

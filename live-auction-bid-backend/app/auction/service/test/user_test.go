@@ -87,6 +87,12 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 	if anchor.GetRole() != v1.UserRole_USER_ROLE_ANCHOR {
 		t.Fatalf("expected anchor role, got %+v", anchor)
 	}
+	if _, err := uc.AdminCreateUser(adminCtx, &v1.AdminCreateUserRequest{Username: "buyer_from_admin", Password: "password123", Nickname: "后台买家", Role: v1.UserRole_USER_ROLE_BUYER}); !apperr.IsInvalidArgument(err) {
+		t.Fatalf("expected invalid argument for admin creating buyer, got %v", err)
+	}
+	if _, err := uc.AdminCreateUser(adminCtx, &v1.AdminCreateUserRequest{Username: "missing_role", Password: "password123", Nickname: "缺少角色"}); !apperr.IsInvalidArgument(err) {
+		t.Fatalf("expected invalid argument for missing admin user role, got %v", err)
+	}
 	anchorCtx := auth.WithClaims(ctx, &auth.Claims{UserID: anchor.Id, Username: anchor.Username, Nickname: anchor.Nickname, Role: v1.UserRole_USER_ROLE_ANCHOR})
 	if _, err := uc.AdminCreateUser(anchorCtx, &v1.AdminCreateUserRequest{Username: "anchor_child", Password: "password123", Nickname: "主播子账号"}); !apperr.IsPermissionDenied(err) {
 		t.Fatalf("expected permission denied for anchor admin create, got %v", err)
@@ -97,6 +103,9 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 	}
 	if operator.GetRole() != v1.UserRole_USER_ROLE_OPERATOR {
 		t.Fatalf("expected operator role, got %+v", operator)
+	}
+	if _, err := uc.AdminUpdateUserRole(adminCtx, registered.GetId(), v1.UserRole_USER_ROLE_BUYER); !apperr.IsInvalidArgument(err) {
+		t.Fatalf("expected invalid argument for admin updating role to buyer, got %v", err)
 	}
 	operatorCtx := auth.WithClaims(ctx, &auth.Claims{UserID: operator.Id, Username: operator.Username, Nickname: operator.Nickname, Role: v1.UserRole_USER_ROLE_OPERATOR})
 	if _, err := uc.AdminUpdateUserRole(operatorCtx, registered.GetId(), v1.UserRole_USER_ROLE_ANCHOR); !apperr.IsPermissionDenied(err) {
@@ -112,6 +121,18 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 	}
 	if userList.Total != 1 || len(userList.Users) != 1 || userList.Users[0].GetRole() != v1.UserRole_USER_ROLE_OPERATOR {
 		t.Fatalf("expected filtered operator user list, got %+v", userList)
+	}
+	if _, err := uc.ListUsers(adminCtx, userbiz.ListUsersQuery{Role: v1.UserRole_USER_ROLE_BUYER, Page: 1, PageSize: 10}); !apperr.IsInvalidArgument(err) {
+		t.Fatalf("expected invalid argument for admin listing buyer users, got %v", err)
+	}
+	backofficeList, err := uc.ListUsers(adminCtx, userbiz.ListUsersQuery{Page: 1, PageSize: 10})
+	if err != nil {
+		t.Fatalf("admin list backoffice users failed: %v", err)
+	}
+	for _, user := range backofficeList.Users {
+		if user.GetRole() == v1.UserRole_USER_ROLE_BUYER {
+			t.Fatalf("admin list users must not return buyer accounts: %+v", backofficeList)
+		}
 	}
 	if _, err := uc.ListUsers(operatorCtx, userbiz.ListUsersQuery{}); !apperr.IsPermissionDenied(err) {
 		t.Fatalf("expected operator list users denied, got %v", err)
@@ -217,6 +238,9 @@ func (r *testUserRepo) ListUsers(ctx context.Context, query userbiz.ListUsersQue
 	keyword := strings.ToLower(strings.TrimSpace(query.Keyword))
 	for _, user := range r.usersByID {
 		if query.Role != v1.UserRole_USER_ROLE_UNSPECIFIED && user.Role != query.Role {
+			continue
+		}
+		if query.Role == v1.UserRole_USER_ROLE_UNSPECIFIED && user.Role == v1.UserRole_USER_ROLE_BUYER {
 			continue
 		}
 		if keyword != "" && !strings.Contains(strings.ToLower(user.Id+" "+user.Username+" "+user.Nickname), keyword) {

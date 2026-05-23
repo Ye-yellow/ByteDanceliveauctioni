@@ -113,11 +113,8 @@ func (uc *Usecase) AdminCreateUser(ctx context.Context, req *v1.AdminCreateUserR
 		return nil, err
 	}
 	role := req.GetRole()
-	if role == v1.UserRole_USER_ROLE_UNSPECIFIED {
-		role = v1.UserRole_USER_ROLE_BUYER
-	}
-	if !isValidRole(role) {
-		return nil, fmt.Errorf("%w: invalid user role", apperr.ErrInvalidArgument)
+	if !isManagedTeamRole(role) {
+		return nil, fmt.Errorf("%w: admin can only create streamer team subaccounts", apperr.ErrInvalidArgument)
 	}
 	user, _, err := uc.createUser(ctx, username, password, nickname, role)
 	if err != nil {
@@ -133,8 +130,8 @@ func (uc *Usecase) AdminUpdateUserRole(ctx context.Context, userID string, role 
 	if strings.TrimSpace(userID) == "" {
 		return nil, fmt.Errorf("%w: user id is required", apperr.ErrInvalidArgument)
 	}
-	if !isValidRole(role) {
-		return nil, fmt.Errorf("%w: invalid user role", apperr.ErrInvalidArgument)
+	if !isManagedTeamRole(role) {
+		return nil, fmt.Errorf("%w: admin can only update streamer team subaccount roles", apperr.ErrInvalidArgument)
 	}
 	user, err := uc.repo.UpdateUserRole(ctx, strings.TrimSpace(userID), role, uc.now().UnixMilli())
 	if err != nil {
@@ -148,8 +145,8 @@ func (uc *Usecase) ListUsers(ctx context.Context, query ListUsersQuery) (ListUse
 		return ListUsersResult{}, err
 	}
 	query.Page, query.PageSize = normalizePagination(query.Page, query.PageSize)
-	if query.Role != v1.UserRole_USER_ROLE_UNSPECIFIED && !isValidRole(query.Role) {
-		return ListUsersResult{}, fmt.Errorf("%w: invalid user role", apperr.ErrInvalidArgument)
+	if query.Role != v1.UserRole_USER_ROLE_UNSPECIFIED && !isBackofficeRole(query.Role) {
+		return ListUsersResult{}, fmt.Errorf("%w: admin users query only supports backoffice roles", apperr.ErrInvalidArgument)
 	}
 	result, err := uc.repo.ListUsers(ctx, query)
 	if err != nil {
@@ -273,6 +270,27 @@ func isValidRole(role v1.UserRole) bool {
 	switch role {
 	case v1.UserRole_USER_ROLE_BUYER,
 		v1.UserRole_USER_ROLE_ANCHOR,
+		v1.UserRole_USER_ROLE_OPERATOR,
+		v1.UserRole_USER_ROLE_ADMIN:
+		return true
+	default:
+		return false
+	}
+}
+
+func isManagedTeamRole(role v1.UserRole) bool {
+	switch role {
+	case v1.UserRole_USER_ROLE_ANCHOR,
+		v1.UserRole_USER_ROLE_OPERATOR:
+		return true
+	default:
+		return false
+	}
+}
+
+func isBackofficeRole(role v1.UserRole) bool {
+	switch role {
+	case v1.UserRole_USER_ROLE_ANCHOR,
 		v1.UserRole_USER_ROLE_OPERATOR,
 		v1.UserRole_USER_ROLE_ADMIN:
 		return true

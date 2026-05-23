@@ -39,6 +39,7 @@ func lotAssetURLs(lot *v1.Lot) []string {
 		return nil
 	}
 	urls := []string{lot.ImageUrl}
+	urls = append(urls, lot.GetGalleryImageUrls()...)
 	for _, card := range lot.TrustCards {
 		if card != nil && card.ImageUrl != "" {
 			urls = append(urls, card.ImageUrl)
@@ -139,20 +140,28 @@ func (s *Store) ListLots(ctx context.Context, query auction.LotQuery) (auction.L
 	if query.RoomID != "" {
 		db = db.Where("room_id = ?", query.RoomID)
 	}
+	if statuses := lotStatusesForView(query.View); len(statuses) > 0 {
+		db = db.Where("status IN ?", statuses)
+	}
 	if query.Status != v1.LotStatus_LOT_STATUS_UNSPECIFIED {
 		db = db.Where("status = ?", int32(query.Status))
 	}
 	if keyword := strings.TrimSpace(query.Keyword); keyword != "" {
 		like := "%" + keyword + "%"
-		db = db.Where("id LIKE ? OR title LIKE ? OR description LIKE ?", like, like, like)
+		db = db.Where("id LIKE ? OR title LIKE ? OR description LIKE ? OR cancel_reason LIKE ?", like, like, like, like)
 	}
 	var total int64
 	if err := db.Count(&total).Error; err != nil {
 		return auction.LotList{}, err
 	}
 	var models []AuctionLotModel
-	if err := db.
-		Order("updated_at DESC").
+	ordered := db
+	if query.Status == v1.LotStatus_LOT_STATUS_QUEUED {
+		ordered = ordered.Order("queue_position ASC")
+	} else {
+		ordered = ordered.Order("updated_at DESC")
+	}
+	if err := ordered.
 		Order("id ASC").
 		Offset(auction.PageOffset(query.Page, query.PageSize)).
 		Limit(query.PageSize).
@@ -168,6 +177,34 @@ func (s *Store) ListLots(ctx context.Context, query auction.LotQuery) (auction.L
 		lots = append(lots, lot)
 	}
 	return auction.LotList{Lots: lots, Total: total, Page: query.Page, PageSize: query.PageSize}, nil
+}
+
+func lotStatusesForView(view string) []int32 {
+	switch strings.ToLower(strings.TrimSpace(view)) {
+	case "current":
+		return []int32{
+			int32(v1.LotStatus_LOT_STATUS_DRAFT),
+			int32(v1.LotStatus_LOT_STATUS_READY),
+			int32(v1.LotStatus_LOT_STATUS_QUEUED),
+			int32(v1.LotStatus_LOT_STATUS_SCHEDULED),
+			int32(v1.LotStatus_LOT_STATUS_LIVE),
+			int32(v1.LotStatus_LOT_STATUS_EXTENDED),
+		}
+	case "history":
+		return []int32{
+			int32(v1.LotStatus_LOT_STATUS_SETTLED),
+			int32(v1.LotStatus_LOT_STATUS_SOLD),
+			int32(v1.LotStatus_LOT_STATUS_CANCELLED),
+			int32(v1.LotStatus_LOT_STATUS_FAILED),
+		}
+	case "library":
+		return []int32{
+			int32(v1.LotStatus_LOT_STATUS_DRAFT),
+			int32(v1.LotStatus_LOT_STATUS_READY),
+		}
+	default:
+		return nil
+	}
 }
 
 func (s *Store) ListExpiredOpen(ctx context.Context, nowMs int64, limit int) ([]*v1.Lot, error) {
@@ -282,6 +319,9 @@ func modelToLot(model *AuctionLotModel) (*v1.Lot, error) {
 	}
 	if lot.Rule == nil {
 		lot.Rule = &v1.BidRule{}
+	}
+	if lot.Stock < 1 {
+		lot.Stock = 1
 	}
 	lot.QueueStatus = normalizeQueueStatus(v1.LotQueueStatus(model.QueueStatus))
 	lot.QueuePosition = model.QueuePosition

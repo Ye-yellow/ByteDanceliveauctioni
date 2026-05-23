@@ -169,6 +169,23 @@ func (h *Hub) roomConnections(roomID string) []*connection {
 	return connections
 }
 
+func (h *Hub) RoomPresence(roomID string) *v1.RoomPresence {
+	connections := h.roomConnections(roomID)
+	presence := &v1.RoomPresence{
+		RoomId:           roomID,
+		TotalConnections: int32(len(connections)),
+		ServerTimeUnixMs: clock.NowMs(),
+	}
+	for _, conn := range connections {
+		if conn.canReceivePrivateEvents() {
+			presence.OperatorConnections++
+			continue
+		}
+		presence.ViewerConnections++
+	}
+	return presence
+}
+
 func (h *Hub) enqueueSnapshot(ctx context.Context, conn *connection) {
 	if h.snapshot == nil {
 		return

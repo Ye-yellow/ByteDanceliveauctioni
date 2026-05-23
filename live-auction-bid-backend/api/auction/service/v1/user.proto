@@ -48,7 +48,7 @@ service UserService {
     };
   }
 
-  // 管理员创建任意角色账号。
+  // 主播主账号创建团队子账号；不创建买家或新的主账号。
   rpc AdminCreateUser(AdminCreateUserRequest) returns (AdminCreateUserReply) {
     option (google.api.http) = {
       post: "/api/admin/users"
@@ -56,7 +56,7 @@ service UserService {
     };
   }
 
-  // 管理员修改用户角色。
+  // 主播主账号修改团队子账号角色；不允许改为买家或新的主账号。
   rpc AdminUpdateUserRole(AdminUpdateUserRoleRequest) returns (AdminUpdateUserRoleReply) {
     option (google.api.http) = {
       post: "/api/admin/users/{user_id}/role"

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"google.golang.org/protobuf/proto"
@@ -225,6 +226,12 @@ func (uc *AuctionUsecase) ListLots(ctx context.Context, roomID string, status v1
 
 func (uc *AuctionUsecase) ListLotsByQuery(ctx context.Context, query LotQuery) (LotList, error) {
 	query.Page, query.PageSize = NormalizePagination(query.Page, query.PageSize)
+	query.View = strings.ToLower(strings.TrimSpace(query.View))
+	switch query.View {
+	case "", "all", "current", "history", "library":
+	default:
+		return LotList{}, fmt.Errorf("%w: unsupported lot list view: %s", apperr.ErrInvalidArgument, query.View)
+	}
 	return uc.lots.ListLots(ctx, query)
 }
 
@@ -650,6 +657,16 @@ func (uc *AuctionUsecase) ListOrders(ctx context.Context, query OrderQuery) (Ord
 	return uc.orders.ListOrders(ctx, query)
 }
 
+func (uc *AuctionUsecase) ListRoomEvents(ctx context.Context, query RoomEventQuery) (RoomEventList, error) {
+	if query.RoomID == "" {
+		return RoomEventList{}, errors.New("room id is required")
+	}
+	if uc.eventsStore == nil {
+		return RoomEventList{}, errors.New("event repository is required")
+	}
+	return uc.eventsStore.ListRoomEvents(ctx, query)
+}
+
 func (uc *AuctionUsecase) ListOrdersByBuyerQuery(ctx context.Context, buyerUserID string, query OrderQuery) (OrderList, error) {
 	if buyerUserID == "" {
 		return OrderList{}, fmt.Errorf("%w: buyer user id is required", apperr.ErrInvalidArgument)
@@ -810,7 +827,6 @@ func (uc *AuctionUsecase) Snapshot(ctx context.Context, roomID string) (*v1.Room
 			current = lot
 			break
 		}
-		current = lot
 	}
 
 	snapshot := &v1.RoomSnapshot{

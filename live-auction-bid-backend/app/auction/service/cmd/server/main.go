@@ -66,7 +66,7 @@ func main() {
 	auctionCloseWorker := auction.NewAuctionCloseWorker(auctionUsecase, getenvDuration("AUCTION_CLOSE_WORKER_INTERVAL", 2*time.Second), 100)
 	auctionCloseWorker.Start(ctx)
 	hub.BindSnapshotProvider(auctionUsecase)
-	auctionService := appsvc.NewAuctionService(auctionUsecase)
+	auctionService := appsvc.NewAuctionService(auctionUsecase, hub)
 	userService := appsvc.NewUserService(userUsecase)
 	consulRegistration, err := server.RegisterConsulService(context.Background(), server.ConsulConfig{
 		Addr:           getenv("AUCTION_CONSUL_ADDR", "127.0.0.1:18500"),

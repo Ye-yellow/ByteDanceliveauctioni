@@ -2,6 +2,8 @@ package auction
 
 import (
 	"fmt"
+	"net/url"
+	"strings"
 
 	"google.golang.org/protobuf/proto"
 
@@ -37,23 +39,38 @@ func NewLotDraftFromRequest(id string, req *v1.CreateLotRequest, requireComplete
 	}
 
 	trustCards := cloneTrustCards(req.GetTrustCards())
+	stock, err := normalizeStock(req.GetStock())
+	if err != nil {
+		return nil, err
+	}
 	lot := &v1.Lot{
-		Id:            id,
-		RoomId:        req.GetRoomId(),
-		Title:         req.GetTitle(),
-		Description:   req.GetDescription(),
-		ImageUrl:      req.GetImageUrl(),
-		Status:        v1.LotStatus_LOT_STATUS_DRAFT,
-		QueueStatus:   v1.LotQueueStatus_LOT_QUEUE_STATUS_NONE,
-		Rule:          rule,
-		CurrentPrice:  currentPrice,
-		FinalPrice:    &v1.Money{Currency: currentPrice.GetCurrency()},
-		Version:       1,
-		TrustCards:    trustCards,
-		DuelState:     &v1.DuelState{},
-		PlaybookStage: v1.PlaybookStage_PLAYBOOK_STAGE_WARM_UP,
+		Id:               id,
+		RoomId:           req.GetRoomId(),
+		Title:            req.GetTitle(),
+		Description:      req.GetDescription(),
+		ImageUrl:         req.GetImageUrl(),
+		Status:           v1.LotStatus_LOT_STATUS_DRAFT,
+		QueueStatus:      v1.LotQueueStatus_LOT_QUEUE_STATUS_NONE,
+		Rule:             rule,
+		CurrentPrice:     currentPrice,
+		FinalPrice:       &v1.Money{Currency: currentPrice.GetCurrency()},
+		Version:          1,
+		TrustCards:       trustCards,
+		DuelState:        &v1.DuelState{},
+		PlaybookStage:    v1.PlaybookStage_PLAYBOOK_STAGE_WARM_UP,
+		GalleryImageUrls: cloneStringSlice(req.GetGalleryImageUrls()),
+		Category:         req.GetCategory(),
+		Tags:             cloneStringSlice(req.GetTags()),
+		EstimatePrice:    cloneMoney(req.GetEstimatePrice()),
+		Stock:            stock,
+		AfterSaleNotes:   req.GetAfterSaleNotes(),
 	}
 	normalizeTrustCards(lot)
+	if requireComplete {
+		if err := validateLotMedia(lot); err != nil {
+			return nil, err
+		}
+	}
 	return lot, nil
 }
 
@@ -63,6 +80,9 @@ func ValidateLotReady(title, imageURL string, rule *v1.BidRule) error {
 	}
 	if imageURL == "" {
 		return fmt.Errorf("%w: lot image url is required", apperr.ErrInvalidArgument)
+	}
+	if err := validateHTTPImageURL("imageUrl", imageURL); err != nil {
+		return err
 	}
 	if rule == nil || rule.GetStartPrice() == nil || rule.GetMinIncrement() == nil {
 		return fmt.Errorf("%w: bid rule, start price and min increment are required", apperr.ErrInvalidArgument)
@@ -128,7 +148,32 @@ func ApplyDraftPatch(lot *v1.Lot, req *v1.PatchLotDraftRequest) error {
 		lot.Description = req.GetDescription()
 	}
 	if req.GetImageUrl() != "" {
+		if err := validateHTTPImageURL("imageUrl", req.GetImageUrl()); err != nil {
+			return err
+		}
 		lot.ImageUrl = req.GetImageUrl()
+	}
+	if len(req.GetGalleryImageUrls()) > 0 {
+		lot.GalleryImageUrls = cloneStringSlice(req.GetGalleryImageUrls())
+	}
+	if req.GetCategory() != "" {
+		lot.Category = req.GetCategory()
+	}
+	if len(req.GetTags()) > 0 {
+		lot.Tags = cloneStringSlice(req.GetTags())
+	}
+	if req.GetEstimatePrice() != nil {
+		lot.EstimatePrice = cloneMoney(req.GetEstimatePrice())
+	}
+	if req.GetStock() != 0 {
+		stock, err := normalizeStock(req.GetStock())
+		if err != nil {
+			return err
+		}
+		lot.Stock = stock
+	}
+	if req.GetAfterSaleNotes() != "" {
+		lot.AfterSaleNotes = req.GetAfterSaleNotes()
 	}
 	if req.GetRule() != nil {
 		lot.Rule = cloneRule(req.GetRule())
@@ -140,6 +185,9 @@ func ApplyDraftPatch(lot *v1.Lot, req *v1.PatchLotDraftRequest) error {
 	if len(req.GetTrustCards()) > 0 {
 		lot.TrustCards = cloneTrustCards(req.GetTrustCards())
 		normalizeTrustCards(lot)
+	}
+	if err := validateLotMedia(lot); err != nil {
+		return err
 	}
 	if lot.QueueStatus == v1.LotQueueStatus_LOT_QUEUE_STATUS_UNSPECIFIED {
 		lot.QueueStatus = v1.LotQueueStatus_LOT_QUEUE_STATUS_NONE
@@ -156,6 +204,9 @@ func QueueLot(lot *v1.Lot, queuePosition int32) error {
 		return fmt.Errorf("%w: only not-started lot can be queued, current status: %s", apperr.ErrInvalidArgument, lot.Status)
 	}
 	if err := ValidateLotReady(lot.GetTitle(), lot.GetImageUrl(), lot.GetRule()); err != nil {
+		return err
+	}
+	if err := validateLotMedia(lot); err != nil {
 		return err
 	}
 	if lot.QueueStatus == v1.LotQueueStatus_LOT_QUEUE_STATUS_QUEUED && lot.QueuePosition > 0 {
@@ -178,6 +229,78 @@ func cloneRule(rule *v1.BidRule) *v1.BidRule {
 		return nil
 	}
 	return proto.Clone(rule).(*v1.BidRule)
+}
+
+func cloneMoney(money *v1.Money) *v1.Money {
+	if money == nil {
+		return nil
+	}
+	return proto.Clone(money).(*v1.Money)
+}
+
+func cloneStringSlice(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		if trimmed := strings.TrimSpace(value); trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
+}
+
+func normalizeStock(stock int32) (int32, error) {
+	if stock < 0 {
+		return 0, fmt.Errorf("%w: stock must be >= 1", apperr.ErrInvalidArgument)
+	}
+	if stock == 0 {
+		return 1, nil
+	}
+	return stock, nil
+}
+
+func validateLotMedia(lot *v1.Lot) error {
+	if lot == nil {
+		return nil
+	}
+	if len(lot.GetGalleryImageUrls()) > 6 {
+		return fmt.Errorf("%w: gallery image urls must be <= 6", apperr.ErrInvalidArgument)
+	}
+	for _, imageURL := range lot.GetGalleryImageUrls() {
+		if err := validateHTTPImageURL("galleryImageUrls", imageURL); err != nil {
+			return err
+		}
+	}
+	for _, card := range lot.GetTrustCards() {
+		if card != nil && card.GetImageUrl() != "" {
+			if err := validateHTTPImageURL("trustCards.imageUrl", card.GetImageUrl()); err != nil {
+				return err
+			}
+		}
+	}
+	if lot.GetStock() < 1 {
+		return fmt.Errorf("%w: stock must be >= 1", apperr.ErrInvalidArgument)
+	}
+	return nil
+}
+
+func validateHTTPImageURL(field, value string) error {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	if len(value) > 1024 {
+		return fmt.Errorf("%w: %s must be <= 1024 chars", apperr.ErrInvalidArgument, field)
+	}
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return fmt.Errorf("%w: %s must be a valid http or https URL", apperr.ErrInvalidArgument, field)
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return fmt.Errorf("%w: %s must be a valid http or https URL", apperr.ErrInvalidArgument, field)
+	}
+	return nil
 }
 
 func cloneTrustCards(cards []*v1.TrustRevealCard) []*v1.TrustRevealCard {
@@ -401,21 +524,32 @@ func CancelLot(lot *v1.Lot, reason string, nowMs int64) error {
 	if lot == nil {
 		return fmt.Errorf("%w: lot is required", apperr.ErrInvalidArgument)
 	}
-	if !IsAuctionOpenStatus(lot.Status) {
-		return fmt.Errorf("%w: only live lot can be cancelled, current status: %s", apperr.ErrInvalidArgument, lot.Status)
+	if !IsPreStartCancellableStatus(lot.Status) {
+		return fmt.Errorf("%w: only draft, ready, or queued lot can be cancelled, current status: %s", apperr.ErrInvalidArgument, lot.Status)
 	}
 	if reason == "" {
 		return fmt.Errorf("%w: cancel reason is required", apperr.ErrInvalidArgument)
 	}
 	lot.Status = v1.LotStatus_LOT_STATUS_CANCELLED
+	lot.QueueStatus = v1.LotQueueStatus_LOT_QUEUE_STATUS_NONE
+	lot.QueuePosition = 0
 	lot.CancelReason = reason
 	lot.CancelledAtUnixMs = nowMs
-	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_SETTLE_READY
+	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_UNSPECIFIED
 	if lot.DuelState != nil {
 		lot.DuelState.Active = false
 	}
 	lot.Version++
 	return nil
+}
+
+func IsPreStartCancellableStatus(status v1.LotStatus) bool {
+	switch status {
+	case v1.LotStatus_LOT_STATUS_DRAFT, v1.LotStatus_LOT_STATUS_READY, v1.LotStatus_LOT_STATUS_QUEUED:
+		return true
+	default:
+		return false
+	}
 }
 
 func FailExpiredLot(lot *v1.Lot, reason string, nowMs int64) error {

@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gorm.io/gorm"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
+	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 )
 
 func (s *Store) Publish(ctx context.Context, event v1.AuctionEvent) error {
@@ -26,6 +28,51 @@ func (s *Store) PersistEvents(ctx context.Context, events []v1.AuctionEvent) err
 		return err
 	}
 	return s.streamEvents(ctx, events)
+}
+
+func (s *Store) ListRoomEvents(ctx context.Context, query auction.RoomEventQuery) (auction.RoomEventList, error) {
+	if strings.TrimSpace(query.RoomID) == "" {
+		return auction.RoomEventList{}, errors.New("room id is required")
+	}
+	_, pageSize := auction.NormalizePagination(1, query.PageSize)
+	offset := 0
+	if token := strings.TrimSpace(query.PageToken); token != "" {
+		nextOffset, err := strconv.Atoi(token)
+		if err != nil || nextOffset < 0 {
+			return auction.RoomEventList{}, errors.New("invalid page token")
+		}
+		offset = nextOffset
+	}
+
+	var models []AuctionEventModel
+	if err := s.db.WithContext(ctx).
+		Where("room_id = ?", query.RoomID).
+		Order("occurred_at_unix_ms DESC").
+		Order("id DESC").
+		Offset(offset).
+		Limit(pageSize + 1).
+		Find(&models).Error; err != nil {
+		return auction.RoomEventList{}, err
+	}
+
+	hasNext := len(models) > pageSize
+	if hasNext {
+		models = models[:pageSize]
+	}
+	events := make([]*v1.AuctionEvent, 0, len(models))
+	for i := range models {
+		event := v1.AuctionEvent{}
+		if err := protojson.Unmarshal([]byte(models[i].Payload), &event); err != nil {
+			return auction.RoomEventList{}, err
+		}
+		events = append(events, &event)
+	}
+
+	nextPageToken := ""
+	if hasNext {
+		nextPageToken = strconv.Itoa(offset + pageSize)
+	}
+	return auction.RoomEventList{Events: events, NextPageToken: nextPageToken}, nil
 }
 
 func createEventModels(ctx context.Context, tx *gorm.DB, events []v1.AuctionEvent) error {

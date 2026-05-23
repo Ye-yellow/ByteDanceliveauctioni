@@ -110,6 +110,9 @@ func (s *Store) ListOrders(ctx context.Context, query auction.OrderQuery) (aucti
 	if query.Status != "" {
 		db = db.Where("status = ?", string(query.Status))
 	}
+	if query.PaymentStatus != "" {
+		db = db.Where("payment_status = ?", string(query.PaymentStatus))
+	}
 	if query.LotID != "" {
 		db = db.Where("lot_id = ?", query.LotID)
 	}
