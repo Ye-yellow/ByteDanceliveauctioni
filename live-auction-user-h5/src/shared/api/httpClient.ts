@@ -1,7 +1,7 @@
 import { AppApiError, AuthExpiredError, isAuthResultCode, isRefreshableAuthResultCode, resultCode, resultMessage, resultTraceId } from './errors';
 import type { ReplyResult } from './types';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:18080';
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 const CLIENT_APP = 'buyer-h5';
 const CLIENT_VERSION = import.meta.env.VITE_CLIENT_VERSION || import.meta.env.VITE_APP_VERSION || 'dev';
 

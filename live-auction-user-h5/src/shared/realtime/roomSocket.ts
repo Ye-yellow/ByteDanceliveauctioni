@@ -15,7 +15,11 @@ export type RoomSocketOptions = {
   heartbeatTimeoutMs?: number;
 };
 
-const WS_BASE = import.meta.env.VITE_WS_BASE || 'ws://localhost:18080';
+function defaultWsBase(): string {
+  return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`;
+}
+
+const WS_BASE = import.meta.env.VITE_WS_BASE || defaultWsBase();
 
 function roomUrl(roomId: string, lastEventId?: string): string {
   const url = new URL(`/ws/rooms/${encodeURIComponent(roomId)}`, WS_BASE);

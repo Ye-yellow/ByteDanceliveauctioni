@@ -35,6 +35,8 @@ VITE_DEMO_BUYER_PASSWORD=
 VITE_DEMO_BUYER_NICKNAME=H5 买家
 ```
 
+- 本地开发不设置 `VITE_API_BASE_URL` / `VITE_WS_BASE` 时，会走 Vite 同源代理转发到 `http://127.0.0.1:18080`，避免浏览器跨端口 CORS 预检失败。
+- 对比旧后端或其它本地后端时，可用 `VITE_DEV_PROXY_TARGET=http://127.0.0.1:18081 VITE_DEV_WS_PROXY_TARGET=ws://127.0.0.1:18081 npm run dev` 改代理目标。
 - `VITE_AUTH_MODE=demo`：本地开发默认模式，H5 会自动 login/register demo buyer，方便联调出价。
 - `VITE_AUTH_MODE=real`：生产模式，H5 不会静默创建 demo 用户；买家必须在直播页登录或注册后才能出价。
 - 生产构建必须显式设置 `VITE_AUTH_MODE=real`，避免线上自动创建 demo 买家账号。
