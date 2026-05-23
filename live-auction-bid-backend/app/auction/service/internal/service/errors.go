@@ -1,56 +1,85 @@
 package service
 
 import (
+	"context"
+
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
+	"live-auction-bid/backend/app/auction/service/internal/pkg/requestctx"
 )
 
 const (
 	ResultCodeOK                 int32 = 0
 	ResultCodeInvalidArgument    int32 = 400001
-	ResultCodeUnauthenticated    int32 = 401001
-	ResultCodePermissionDenied   int32 = 403001
+	ResultCodeLoginRequired      int32 = 401001
+	ResultCodeTokenExpired       int32 = 401002
+	ResultCodeTokenInvalid       int32 = 401003
+	ResultCodeSessionExpired     int32 = 401004
+	ResultCodeInvalidCredentials int32 = 401005
+	ResultCodeForbidden          int32 = 403001
 	ResultCodeLotVersionConflict int32 = 409001
 	ResultCodeUsernameTaken      int32 = 409002
-	ResultCodeInvalidCredentials int32 = 401002
-	ResultCodeInvalidToken       int32 = 401003
 	ResultCodeUserNotFound       int32 = 404001
 	ResultCodeInternalError      int32 = 500000
+
+	ResultCodeUnauthenticated  = ResultCodeLoginRequired
+	ResultCodeInvalidToken     = ResultCodeTokenInvalid
+	ResultCodePermissionDenied = ResultCodeForbidden
 )
 
-const MessageLotVersionConflict = "lot state changed, please refresh and retry"
+const (
+	MessageOK                 = "ok"
+	MessageLotVersionConflict = "lot state changed, please refresh and retry"
+	MessageInternalError      = "internal error, please try again later"
+	MessageTokenExpired       = "access token expired, please refresh"
+	MessageSessionExpired     = "session expired, please login again"
+)
 
-func okResult() *v1.ReplyResult {
-	return &v1.ReplyResult{Code: ResultCodeOK, Message: "ok"}
+func OKResult(ctx context.Context) *v1.ReplyResult {
+	return okResult(ctx)
 }
 
-func ErrorResult(err error) *v1.ReplyResult {
+func okResult(ctx context.Context) *v1.ReplyResult {
+	return &v1.ReplyResult{Code: ResultCodeOK, Message: MessageOK, TraceId: requestctx.TraceID(ctx)}
+}
+
+func ErrorResult(ctx context.Context, err error) *v1.ReplyResult {
 	if err == nil {
-		return okResult()
+		return okResult(ctx)
 	}
+	traceID := requestctx.TraceID(ctx)
 	if apperr.IsLotVersionConflict(err) {
-		return &v1.ReplyResult{Code: ResultCodeLotVersionConflict, Message: MessageLotVersionConflict}
+		return &v1.ReplyResult{Code: ResultCodeLotVersionConflict, Message: MessageLotVersionConflict, TraceId: traceID}
 	}
 	if apperr.IsInvalidArgument(err) {
-		return &v1.ReplyResult{Code: ResultCodeInvalidArgument, Message: err.Error()}
+		return &v1.ReplyResult{Code: ResultCodeInvalidArgument, Message: err.Error(), TraceId: traceID}
 	}
 	if apperr.IsUnauthenticated(err) {
-		return &v1.ReplyResult{Code: ResultCodeUnauthenticated, Message: "login required"}
+		return &v1.ReplyResult{Code: ResultCodeLoginRequired, Message: "login required", TraceId: traceID}
 	}
 	if apperr.IsPermissionDenied(err) {
-		return &v1.ReplyResult{Code: ResultCodePermissionDenied, Message: "permission denied"}
+		return &v1.ReplyResult{Code: ResultCodeForbidden, Message: "permission denied", TraceId: traceID}
 	}
 	if apperr.IsUsernameTaken(err) {
-		return &v1.ReplyResult{Code: ResultCodeUsernameTaken, Message: "username already exists"}
+		return &v1.ReplyResult{Code: ResultCodeUsernameTaken, Message: "username already exists", TraceId: traceID}
 	}
 	if apperr.IsInvalidCredentials(err) {
-		return &v1.ReplyResult{Code: ResultCodeInvalidCredentials, Message: "invalid username or password"}
+		return &v1.ReplyResult{Code: ResultCodeInvalidCredentials, Message: "invalid username or password", TraceId: traceID}
+	}
+	if apperr.IsSessionExpired(err) {
+		return &v1.ReplyResult{Code: ResultCodeSessionExpired, Message: MessageSessionExpired, TraceId: traceID}
+	}
+	if apperr.IsTokenExpired(err) {
+		return &v1.ReplyResult{Code: ResultCodeTokenExpired, Message: MessageTokenExpired, TraceId: traceID}
 	}
 	if apperr.IsInvalidToken(err) {
-		return &v1.ReplyResult{Code: ResultCodeInvalidToken, Message: "invalid token"}
+		return &v1.ReplyResult{Code: ResultCodeTokenInvalid, Message: "invalid token", TraceId: traceID}
 	}
 	if apperr.IsUserNotFound(err) {
-		return &v1.ReplyResult{Code: ResultCodeUserNotFound, Message: "user not found"}
+		return &v1.ReplyResult{Code: ResultCodeUserNotFound, Message: "user not found", TraceId: traceID}
 	}
-	return &v1.ReplyResult{Code: ResultCodeInternalError, Message: err.Error()}
+	if apperr.IsNotFound(err) {
+		return &v1.ReplyResult{Code: ResultCodeUserNotFound, Message: "not found", TraceId: traceID}
+	}
+	return &v1.ReplyResult{Code: ResultCodeInternalError, Message: MessageInternalError, TraceId: traceID}
 }

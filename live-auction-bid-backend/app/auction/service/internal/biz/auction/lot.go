@@ -1,12 +1,12 @@
 package auction
 
 import (
-	"errors"
 	"fmt"
 
 	"google.golang.org/protobuf/proto"
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
+	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
 )
 
@@ -16,10 +16,10 @@ func NewLotFromRequest(id string, req *v1.CreateLotRequest) (*v1.Lot, error) {
 
 func NewLotDraftFromRequest(id string, req *v1.CreateLotRequest, requireComplete bool) (*v1.Lot, error) {
 	if req == nil {
-		return nil, errors.New("create lot request is required")
+		return nil, fmt.Errorf("%w: create lot request is required", apperr.ErrInvalidArgument)
 	}
 	if requireComplete && req.GetRoomId() == "" {
-		return nil, errors.New("room id is required")
+		return nil, fmt.Errorf("%w: room id is required", apperr.ErrInvalidArgument)
 	}
 	if requireComplete {
 		if err := ValidateLotReady(req.GetTitle(), req.GetImageUrl(), req.GetRule()); err != nil {
@@ -59,47 +59,47 @@ func NewLotDraftFromRequest(id string, req *v1.CreateLotRequest, requireComplete
 
 func ValidateLotReady(title, imageURL string, rule *v1.BidRule) error {
 	if title == "" {
-		return errors.New("lot title is required")
+		return fmt.Errorf("%w: lot title is required", apperr.ErrInvalidArgument)
 	}
 	if imageURL == "" {
-		return errors.New("lot image url is required")
+		return fmt.Errorf("%w: lot image url is required", apperr.ErrInvalidArgument)
 	}
 	if rule == nil || rule.GetStartPrice() == nil || rule.GetMinIncrement() == nil {
-		return errors.New("bid rule, start price and min increment are required")
+		return fmt.Errorf("%w: bid rule, start price and min increment are required", apperr.ErrInvalidArgument)
 	}
 	if rule.GetStartPrice().GetCurrency() == "" || rule.GetMinIncrement().GetCurrency() == "" {
-		return errors.New("start price and min increment currency are required")
+		return fmt.Errorf("%w: start price and min increment currency are required", apperr.ErrInvalidArgument)
 	}
 	if rule.GetStartPrice().GetCurrency() != rule.GetMinIncrement().GetCurrency() {
-		return errors.New("start price and min increment currency must match")
+		return fmt.Errorf("%w: start price and min increment currency must match", apperr.ErrInvalidArgument)
 	}
 	if rule.GetStartPrice().GetAmount() < 0 {
-		return errors.New("start price amount must be >= 0")
+		return fmt.Errorf("%w: start price amount must be >= 0", apperr.ErrInvalidArgument)
 	}
 	if rule.GetMinIncrement().GetAmount() <= 0 {
-		return errors.New("min increment amount must be > 0")
+		return fmt.Errorf("%w: min increment amount must be > 0", apperr.ErrInvalidArgument)
 	}
 	if rule.GetDurationSeconds() < 60 {
-		return errors.New("duration seconds must be >= 60")
+		return fmt.Errorf("%w: duration seconds must be >= 60", apperr.ErrInvalidArgument)
 	}
 	if rule.GetAntiSnipeWindowSeconds() <= 0 {
-		return errors.New("anti-snipe window seconds must be > 0")
+		return fmt.Errorf("%w: anti-snipe window seconds must be > 0", apperr.ErrInvalidArgument)
 	}
 	if rule.GetAntiSnipeExtendSeconds() < 10 || rule.GetAntiSnipeExtendSeconds() > 30 {
-		return errors.New("anti-snipe extend seconds must be between 10 and 30")
+		return fmt.Errorf("%w: anti-snipe extend seconds must be between 10 and 30", apperr.ErrInvalidArgument)
 	}
 	if rule.GetMaxExtendCount() <= 0 {
-		return errors.New("max extend count must be > 0")
+		return fmt.Errorf("%w: max extend count must be > 0", apperr.ErrInvalidArgument)
 	}
 	if capPrice := rule.GetCapPrice(); capPrice != nil {
 		if capPrice.GetCurrency() == "" {
-			return errors.New("cap price currency is required")
+			return fmt.Errorf("%w: cap price currency is required", apperr.ErrInvalidArgument)
 		}
 		if capPrice.GetCurrency() != rule.GetStartPrice().GetCurrency() || capPrice.GetCurrency() != rule.GetMinIncrement().GetCurrency() {
-			return errors.New("cap price currency must match start price and min increment currency")
+			return fmt.Errorf("%w: cap price currency must match start price and min increment currency", apperr.ErrInvalidArgument)
 		}
 		if capPrice.GetAmount() <= rule.GetStartPrice().GetAmount() {
-			return errors.New("cap price amount must be greater than start price amount")
+			return fmt.Errorf("%w: cap price amount must be greater than start price amount", apperr.ErrInvalidArgument)
 		}
 	}
 	return nil
@@ -107,16 +107,16 @@ func ValidateLotReady(title, imageURL string, rule *v1.BidRule) error {
 
 func ApplyDraftPatch(lot *v1.Lot, req *v1.PatchLotDraftRequest) error {
 	if lot == nil {
-		return errors.New("lot is required")
+		return fmt.Errorf("%w: lot is required", apperr.ErrInvalidArgument)
 	}
 	if req == nil {
-		return errors.New("patch lot draft request is required")
+		return fmt.Errorf("%w: patch lot draft request is required", apperr.ErrInvalidArgument)
 	}
 	if lot.Status == v1.LotStatus_LOT_STATUS_LIVE || lot.Status == v1.LotStatus_LOT_STATUS_SETTLED || lot.Status == v1.LotStatus_LOT_STATUS_CANCELLED {
-		return fmt.Errorf("only not-started lot can be edited, current status: %s", lot.Status)
+		return fmt.Errorf("%w: only not-started lot can be edited, current status: %s", apperr.ErrInvalidArgument, lot.Status)
 	}
 	if lot.QueueStatus == v1.LotQueueStatus_LOT_QUEUE_STATUS_NEXT {
-		return errors.New("next lot cannot be edited from add-lot draft page")
+		return fmt.Errorf("%w: next lot cannot be edited from add-lot draft page", apperr.ErrInvalidArgument)
 	}
 	if req.GetRoomId() != "" {
 		lot.RoomId = req.GetRoomId()
@@ -150,10 +150,10 @@ func ApplyDraftPatch(lot *v1.Lot, req *v1.PatchLotDraftRequest) error {
 
 func QueueLot(lot *v1.Lot, queuePosition int32) error {
 	if lot == nil {
-		return errors.New("lot is required")
+		return fmt.Errorf("%w: lot is required", apperr.ErrInvalidArgument)
 	}
 	if lot.Status == v1.LotStatus_LOT_STATUS_LIVE || lot.Status == v1.LotStatus_LOT_STATUS_SETTLED || lot.Status == v1.LotStatus_LOT_STATUS_CANCELLED {
-		return fmt.Errorf("only not-started lot can be queued, current status: %s", lot.Status)
+		return fmt.Errorf("%w: only not-started lot can be queued, current status: %s", apperr.ErrInvalidArgument, lot.Status)
 	}
 	if err := ValidateLotReady(lot.GetTitle(), lot.GetImageUrl(), lot.GetRule()); err != nil {
 		return err
@@ -162,7 +162,7 @@ func QueueLot(lot *v1.Lot, queuePosition int32) error {
 		return nil
 	}
 	if queuePosition <= 0 {
-		return errors.New("queue position is required")
+		return fmt.Errorf("%w: queue position is required", apperr.ErrInvalidArgument)
 	}
 	lot.Status = v1.LotStatus_LOT_STATUS_QUEUED
 	lot.QueueStatus = v1.LotQueueStatus_LOT_QUEUE_STATUS_QUEUED
@@ -204,13 +204,13 @@ func normalizeTrustCards(lot *v1.Lot) {
 
 func StartLot(lot *v1.Lot, nowMs int64) error {
 	if lot == nil {
-		return errors.New("lot is required")
+		return fmt.Errorf("%w: lot is required", apperr.ErrInvalidArgument)
 	}
 	if lot.GetRule() == nil || lot.GetRule().GetStartPrice() == nil {
-		return errors.New("lot bid rule and start price are required")
+		return fmt.Errorf("%w: lot bid rule and start price are required", apperr.ErrInvalidArgument)
 	}
 	if lot.Status != v1.LotStatus_LOT_STATUS_DRAFT && lot.Status != v1.LotStatus_LOT_STATUS_QUEUED {
-		return fmt.Errorf("only draft or queued lot can be started, current status: %s", lot.Status)
+		return fmt.Errorf("%w: only draft or queued lot can be started, current status: %s", apperr.ErrInvalidArgument, lot.Status)
 	}
 	lot.Status = v1.LotStatus_LOT_STATUS_LIVE
 	lot.StartedAtUnixMs = nowMs
@@ -223,28 +223,28 @@ func StartLot(lot *v1.Lot, nowMs int64) error {
 
 func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 	if lot == nil {
-		return errors.New("lot is required")
+		return fmt.Errorf("%w: lot is required", apperr.ErrInvalidArgument)
 	}
 	if lot.GetRule() == nil || lot.GetRule().GetMinIncrement() == nil || lot.GetCurrentPrice() == nil {
-		return errors.New("lot rule, min increment and current price are required")
+		return fmt.Errorf("%w: lot rule, min increment and current price are required", apperr.ErrInvalidArgument)
 	}
-	if lot.Status != v1.LotStatus_LOT_STATUS_LIVE {
-		return errors.New("lot is not live")
+	if !IsAuctionOpenStatus(lot.Status) {
+		return fmt.Errorf("%w: lot is not live", apperr.ErrInvalidArgument)
 	}
 	if lot.EndsAtUnixMs > 0 && nowMs > lot.EndsAtUnixMs {
-		return errors.New("auction has ended")
+		return fmt.Errorf("%w: auction has ended", apperr.ErrInvalidArgument)
 	}
 	if bid.GetAmount() == nil || bid.GetAmount().GetCurrency() == "" {
-		return errors.New("bid amount and currency are required")
+		return fmt.Errorf("%w: bid amount and currency are required", apperr.ErrInvalidArgument)
 	}
 	if bid.GetUserId() == "" || bid.GetNickname() == "" {
-		return errors.New("bid user id and nickname are required")
+		return fmt.Errorf("%w: bid user id and nickname are required", apperr.ErrInvalidArgument)
 	}
 	if bid.GetAmount().GetCurrency() != lot.GetCurrentPrice().GetCurrency() {
-		return errors.New("bid currency must match lot currency")
+		return fmt.Errorf("%w: bid currency must match lot currency", apperr.ErrInvalidArgument)
 	}
 	if bid.GetAmount().GetAmount() < lot.GetCurrentPrice().GetAmount()+lot.GetRule().GetMinIncrement().GetAmount() {
-		return errors.New("bid amount is lower than current price plus min increment")
+		return fmt.Errorf("%w: bid amount is lower than current price plus min increment", apperr.ErrInvalidArgument)
 	}
 	lot.CurrentPrice = bid.GetAmount()
 	lot.LeadingUserId = bid.UserId
@@ -252,7 +252,7 @@ func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_BIDDING_ACTIVE
 	if lot.GetRule().GetCapPrice() != nil {
 		if bid.GetAmount().GetCurrency() != lot.GetRule().GetCapPrice().GetCurrency() {
-			return errors.New("bid currency must match cap price currency")
+			return fmt.Errorf("%w: bid currency must match cap price currency", apperr.ErrInvalidArgument)
 		}
 		if bid.GetAmount().GetAmount() >= lot.GetRule().GetCapPrice().GetAmount() {
 			lot.Status = v1.LotStatus_LOT_STATUS_SETTLED
@@ -261,6 +261,9 @@ func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 			lot.WinnerNickname = bid.Nickname
 			lot.FinalPrice = bid.GetAmount()
 			lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_SETTLE_READY
+			if lot.DuelState != nil {
+				lot.DuelState.Active = false
+			}
 			lot.Version++
 			return nil
 		}
@@ -281,6 +284,7 @@ func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 		lot.DuelState.LotId = lot.Id
 		lot.DuelState.EndsAtUnixMs = lot.EndsAtUnixMs
 		lot.DuelState.MaxExtendCount = lot.GetRule().GetMaxExtendCount()
+		lot.Status = v1.LotStatus_LOT_STATUS_EXTENDED
 	}
 
 	lot.Version++
@@ -289,10 +293,10 @@ func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 
 func RevealTrustCard(lot *v1.Lot, cardID string, nowMs int64) (*v1.TrustRevealCard, error) {
 	if lot == nil {
-		return nil, errors.New("lot is required")
+		return nil, fmt.Errorf("%w: lot is required", apperr.ErrInvalidArgument)
 	}
 	if cardID == "" {
-		return nil, errors.New("trust card id is required")
+		return nil, fmt.Errorf("%w: trust card id is required", apperr.ErrInvalidArgument)
 	}
 	for _, card := range lot.TrustCards {
 		if card.Id == cardID {
@@ -303,18 +307,18 @@ func RevealTrustCard(lot *v1.Lot, cardID string, nowMs int64) (*v1.TrustRevealCa
 			return card, nil
 		}
 	}
-	return nil, errors.New("trust card not found")
+	return nil, fmt.Errorf("%w: trust card not found", apperr.ErrInvalidArgument)
 }
 
 func StartDuel(lot *v1.Lot, ranking []*v1.RankingItem, nowMs int64, userAID, userBID string) error {
 	if lot == nil {
-		return errors.New("lot is required")
+		return fmt.Errorf("%w: lot is required", apperr.ErrInvalidArgument)
 	}
-	if lot.Status != v1.LotStatus_LOT_STATUS_LIVE {
-		return errors.New("only live lot can enter duel mode")
+	if !IsAuctionOpenStatus(lot.Status) {
+		return fmt.Errorf("%w: only live lot can enter duel mode", apperr.ErrInvalidArgument)
 	}
 	if len(ranking) < 2 {
-		return errors.New("at least two bidders are required to enter duel mode")
+		return fmt.Errorf("%w: at least two bidders are required to enter duel mode", apperr.ErrInvalidArgument)
 	}
 
 	var userA, userB *v1.RankingItem
@@ -327,13 +331,13 @@ func StartDuel(lot *v1.Lot, ranking []*v1.RankingItem, nowMs int64, userAID, use
 		}
 	}
 	if userAID != "" && userA == nil {
-		return errors.New("duel user A is not in ranking")
+		return fmt.Errorf("%w: duel user A is not in ranking", apperr.ErrInvalidArgument)
 	}
 	if userBID != "" && userB == nil {
-		return errors.New("duel user B is not in ranking")
+		return fmt.Errorf("%w: duel user B is not in ranking", apperr.ErrInvalidArgument)
 	}
 	if userA != nil && userB != nil && userA.UserId == userB.UserId {
-		return errors.New("duel users must be different")
+		return fmt.Errorf("%w: duel users must be different", apperr.ErrInvalidArgument)
 	}
 	for _, item := range ranking {
 		if userA == nil && (userB == nil || item.UserId != userB.UserId) {
@@ -346,7 +350,7 @@ func StartDuel(lot *v1.Lot, ranking []*v1.RankingItem, nowMs int64, userAID, use
 		}
 	}
 	if userA == nil || userB == nil || userA.UserId == userB.UserId {
-		return errors.New("at least two distinct bidders are required to enter duel mode")
+		return fmt.Errorf("%w: at least two distinct bidders are required to enter duel mode", apperr.ErrInvalidArgument)
 	}
 
 	extendCount := int32(0)
@@ -372,10 +376,13 @@ func StartDuel(lot *v1.Lot, ranking []*v1.RankingItem, nowMs int64, userAID, use
 
 func SettleLot(lot *v1.Lot, nowMs int64) error {
 	if lot == nil {
-		return errors.New("lot is required")
+		return fmt.Errorf("%w: lot is required", apperr.ErrInvalidArgument)
 	}
-	if lot.Status != v1.LotStatus_LOT_STATUS_LIVE {
-		return fmt.Errorf("only live lot can be settled, current status: %s", lot.Status)
+	if !IsAuctionOpenStatus(lot.Status) {
+		return fmt.Errorf("%w: only live lot can be settled, current status: %s", apperr.ErrInvalidArgument, lot.Status)
+	}
+	if lot.LeadingUserId == "" {
+		return fmt.Errorf("%w: lot has no accepted bid to settle", apperr.ErrInvalidArgument)
 	}
 	lot.Status = v1.LotStatus_LOT_STATUS_SETTLED
 	lot.SettledAtUnixMs = nowMs
@@ -392,15 +399,36 @@ func SettleLot(lot *v1.Lot, nowMs int64) error {
 
 func CancelLot(lot *v1.Lot, reason string, nowMs int64) error {
 	if lot == nil {
-		return errors.New("lot is required")
+		return fmt.Errorf("%w: lot is required", apperr.ErrInvalidArgument)
 	}
-	if lot.Status != v1.LotStatus_LOT_STATUS_LIVE {
-		return fmt.Errorf("only live lot can be cancelled, current status: %s", lot.Status)
+	if !IsAuctionOpenStatus(lot.Status) {
+		return fmt.Errorf("%w: only live lot can be cancelled, current status: %s", apperr.ErrInvalidArgument, lot.Status)
 	}
 	if reason == "" {
-		return errors.New("cancel reason is required")
+		return fmt.Errorf("%w: cancel reason is required", apperr.ErrInvalidArgument)
 	}
 	lot.Status = v1.LotStatus_LOT_STATUS_CANCELLED
+	lot.CancelReason = reason
+	lot.CancelledAtUnixMs = nowMs
+	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_SETTLE_READY
+	if lot.DuelState != nil {
+		lot.DuelState.Active = false
+	}
+	lot.Version++
+	return nil
+}
+
+func FailExpiredLot(lot *v1.Lot, reason string, nowMs int64) error {
+	if lot == nil {
+		return fmt.Errorf("%w: lot is required", apperr.ErrInvalidArgument)
+	}
+	if !IsAuctionOpenStatus(lot.Status) {
+		return fmt.Errorf("%w: only live lot can be failed, current status: %s", apperr.ErrInvalidArgument, lot.Status)
+	}
+	if reason == "" {
+		return fmt.Errorf("%w: fail reason is required", apperr.ErrInvalidArgument)
+	}
+	lot.Status = v1.LotStatus_LOT_STATUS_FAILED
 	lot.CancelReason = reason
 	lot.CancelledAtUnixMs = nowMs
 	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_SETTLE_READY

@@ -51,14 +51,14 @@ CREATE TABLE IF NOT EXISTS auction_bids (
   nickname VARCHAR(128) NOT NULL,
   amount BIGINT NOT NULL,
   currency VARCHAR(16) NOT NULL,
-  idempotency_key VARCHAR(128) NULL,
+  idempotency_key VARCHAR(128) NOT NULL,
   created_at_unix_ms BIGINT NOT NULL,
   payload JSON NOT NULL,
   created_at DATETIME(3) NULL,
   INDEX idx_lot_created (lot_id, created_at_unix_ms),
   INDEX idx_lot_amount (lot_id, amount),
   INDEX idx_lot_user (lot_id, user_id),
-  UNIQUE INDEX idx_lot_idem (lot_id, idempotency_key)
+  UNIQUE INDEX idx_lot_user_idem (lot_id, user_id, idempotency_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS auction_events (
@@ -77,6 +77,57 @@ CREATE TABLE IF NOT EXISTS auction_events (
   INDEX idx_lot_occurred (lot_id, occurred_at_unix_ms),
   INDEX idx_type_occurred (type, occurred_at_unix_ms),
   INDEX idx_streamed_at (streamed_at_unix_ms)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS auction_orders (
+  id VARCHAR(64) PRIMARY KEY,
+  lot_id VARCHAR(64) NOT NULL,
+  room_id VARCHAR(64) NOT NULL,
+  lot_title VARCHAR(255) NOT NULL,
+  lot_image_url VARCHAR(1024) NOT NULL,
+  buyer_user_id VARCHAR(64) NOT NULL,
+  buyer_nickname VARCHAR(128) NOT NULL,
+  status VARCHAR(32) NOT NULL,
+  payment_status VARCHAR(32) NOT NULL,
+  payment_id VARCHAR(64) NOT NULL DEFAULT '',
+  amount BIGINT NOT NULL,
+  currency VARCHAR(16) NOT NULL,
+  created_at_unix_ms BIGINT NOT NULL,
+  updated_at_unix_ms BIGINT NOT NULL,
+  expires_at_unix_ms BIGINT NOT NULL,
+  paid_at_unix_ms BIGINT NOT NULL DEFAULT 0,
+  version BIGINT NOT NULL,
+  payload JSON NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
+  UNIQUE INDEX uk_lot_order (lot_id),
+  INDEX idx_order_room_created (room_id, created_at_unix_ms),
+  INDEX idx_order_buyer_status (buyer_user_id, status),
+  INDEX idx_order_payment_status (payment_status),
+  INDEX idx_order_expiry (expires_at_unix_ms)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS auction_payments (
+  id VARCHAR(64) PRIMARY KEY,
+  order_id VARCHAR(64) NOT NULL,
+  lot_id VARCHAR(64) NOT NULL,
+  buyer_user_id VARCHAR(64) NOT NULL,
+  status VARCHAR(32) NOT NULL,
+  amount BIGINT NOT NULL,
+  currency VARCHAR(16) NOT NULL,
+  idempotency_key VARCHAR(128) NULL,
+  created_at_unix_ms BIGINT NOT NULL,
+  updated_at_unix_ms BIGINT NOT NULL,
+  succeeded_at_unix_ms BIGINT NOT NULL DEFAULT 0,
+  payload JSON NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
+  INDEX idx_payment_order (order_id),
+  INDEX idx_payment_lot (lot_id),
+  INDEX idx_payment_buyer (buyer_user_id),
+  INDEX idx_payment_status (status),
+  INDEX idx_payment_created (created_at_unix_ms),
+  UNIQUE INDEX uk_order_payment_idem (order_id, idempotency_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS auction_users (

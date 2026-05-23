@@ -3,10 +3,12 @@ package data
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"gorm.io/gorm"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
+	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 )
 
@@ -105,7 +107,11 @@ func (s *Store) List(ctx context.Context, roomID string, status v1.LotStatus) ([
 	}
 	query := s.db.WithContext(ctx).Where("room_id = ?", roomID)
 	if status != 0 {
-		query = query.Where("status = ?", int32(status))
+		if status == v1.LotStatus_LOT_STATUS_LIVE {
+			query = query.Where("status IN ?", []int32{int32(v1.LotStatus_LOT_STATUS_LIVE), int32(v1.LotStatus_LOT_STATUS_EXTENDED)})
+		} else {
+			query = query.Where("status = ?", int32(status))
+		}
 	}
 	var models []AuctionLotModel
 	if status == v1.LotStatus_LOT_STATUS_QUEUED {
@@ -114,6 +120,70 @@ func (s *Store) List(ctx context.Context, roomID string, status v1.LotStatus) ([
 		query = query.Order("updated_at DESC")
 	}
 	if err := query.Order("id ASC").Find(&models).Error; err != nil {
+		return nil, err
+	}
+	lots := make([]*v1.Lot, 0, len(models))
+	for i := range models {
+		lot, err := modelToLot(&models[i])
+		if err != nil {
+			return nil, err
+		}
+		lots = append(lots, lot)
+	}
+	return lots, nil
+}
+
+func (s *Store) ListLots(ctx context.Context, query auction.LotQuery) (auction.LotList, error) {
+	query.Page, query.PageSize = auction.NormalizePagination(query.Page, query.PageSize)
+	db := s.db.WithContext(ctx).Model(&AuctionLotModel{})
+	if query.RoomID != "" {
+		db = db.Where("room_id = ?", query.RoomID)
+	}
+	if query.Status != v1.LotStatus_LOT_STATUS_UNSPECIFIED {
+		db = db.Where("status = ?", int32(query.Status))
+	}
+	if keyword := strings.TrimSpace(query.Keyword); keyword != "" {
+		like := "%" + keyword + "%"
+		db = db.Where("id LIKE ? OR title LIKE ? OR description LIKE ?", like, like, like)
+	}
+	var total int64
+	if err := db.Count(&total).Error; err != nil {
+		return auction.LotList{}, err
+	}
+	var models []AuctionLotModel
+	if err := db.
+		Order("updated_at DESC").
+		Order("id ASC").
+		Offset(auction.PageOffset(query.Page, query.PageSize)).
+		Limit(query.PageSize).
+		Find(&models).Error; err != nil {
+		return auction.LotList{}, err
+	}
+	lots := make([]*v1.Lot, 0, len(models))
+	for i := range models {
+		lot, err := modelToLot(&models[i])
+		if err != nil {
+			return auction.LotList{}, err
+		}
+		lots = append(lots, lot)
+	}
+	return auction.LotList{Lots: lots, Total: total, Page: query.Page, PageSize: query.PageSize}, nil
+}
+
+func (s *Store) ListExpiredOpen(ctx context.Context, nowMs int64, limit int) ([]*v1.Lot, error) {
+	if nowMs <= 0 {
+		return nil, errors.New("now ms is required")
+	}
+	if limit <= 0 {
+		limit = 100
+	}
+	var models []AuctionLotModel
+	if err := s.db.WithContext(ctx).
+		Where("status IN ? AND ends_at_unix_ms > 0 AND ends_at_unix_ms <= ?", []int32{int32(v1.LotStatus_LOT_STATUS_LIVE), int32(v1.LotStatus_LOT_STATUS_EXTENDED)}, nowMs).
+		Order("ends_at_unix_ms ASC").
+		Order("id ASC").
+		Limit(limit).
+		Find(&models).Error; err != nil {
 		return nil, err
 	}
 	lots := make([]*v1.Lot, 0, len(models))

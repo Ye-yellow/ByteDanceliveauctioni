@@ -1,8 +1,21 @@
 .env
 .DS_Store
 *.log
+*.tsbuildinfo
+*.Zone.Identifier
+*:Zone.Identifier
+*.tar.gz
+*.zip
 bin/
 coverage.out
+coverage/
+node_modules/
+dist/
+.codex/
+.agents/
+.AGENT/
+.AGNET/
+新建文件夹/
 
 # local uGit clone/scratch
 auction-backend/

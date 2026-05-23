@@ -17,8 +17,11 @@ import (
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/data"
+	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
+	"live-auction-bid/backend/app/auction/service/internal/pkg/requestctx"
+	appsvc "live-auction-bid/backend/app/auction/service/internal/service"
 	"live-auction-bid/backend/app/auction/service/internal/storage"
 )
 
@@ -37,9 +40,11 @@ type uploadHandler struct {
 }
 
 type uploadImageResponse struct {
-	Code             int              `json:"code"`
+	Result           *v1.ReplyResult  `json:"result"`
+	Code             int32            `json:"code"`
 	Message          string           `json:"message"`
 	RequestID        string           `json:"requestId"`
+	TraceID          string           `json:"traceId,omitempty"`
 	ServerTimeUnixMs int64            `json:"serverTimeUnixMs"`
 	Data             *uploadImageData `json:"data,omitempty"`
 	// Asset is kept temporarily for old clients. New clients should read data.asset.
@@ -72,38 +77,41 @@ func registerUploadHTTP(srv interface {
 func (h *uploadHandler) handleImageUpload(w http.ResponseWriter, r *http.Request) {
 	startedAt := time.Now()
 	requestID := uploadRequestID(r)
-	w.Header().Set("X-Request-Id", requestID)
+	traceID := uploadTraceID(r, requestID)
+	if requestctx.RequestID(r.Context()) == "" {
+		r = r.WithContext(requestctx.WithRequestContext(r.Context(), requestctx.RequestContext{RequestID: requestID, TraceID: traceID, ServerTimeMs: time.Now().UnixMilli()}))
+	}
+	w.Header().Set(requestctx.HeaderRequestID, requestID)
+	w.Header().Set(requestctx.HeaderTraceID, traceID)
+	w.Header().Set(requestctx.HeaderServerTime, fmt.Sprintf("%d", time.Now().UnixMilli()))
 	logUploadInfo("upload_image.request", requestID, "method", r.Method, "path", r.URL.Path, "remote", r.RemoteAddr)
 	if r.Method != http.MethodPost {
-		writeUploadError(w, http.StatusMethodNotAllowed, requestID, "method not allowed")
+		writeUploadError(w, http.StatusMethodNotAllowed, r.Context(), fmt.Errorf("%w: method not allowed", apperr.ErrInvalidArgument), nil)
 		return
 	}
-	claims, err := h.authenticate(r)
+	ctx, claims, err := h.authenticate(r.Context(), r)
 	if err != nil {
-		writeUploadError(w, http.StatusUnauthorized, requestID, err.Error())
+		writeUploadError(w, uploadAuthStatus(err), ctx, err, nil)
 		return
 	}
-	if claims.Role != v1.UserRole_USER_ROLE_ANCHOR && claims.Role != v1.UserRole_USER_ROLE_OPERATOR && claims.Role != v1.UserRole_USER_ROLE_ADMIN {
-		writeUploadError(w, http.StatusForbidden, requestID, "permission denied")
-		return
-	}
+	r = r.WithContext(ctx)
 	if h.storage == nil {
-		writeUploadError(w, http.StatusServiceUnavailable, requestID, "image storage provider is not configured")
+		writeUploadError(w, http.StatusServiceUnavailable, r.Context(), errors.New("image storage provider is not configured"), nil)
 		return
 	}
 	if h.store == nil {
-		writeUploadError(w, http.StatusServiceUnavailable, requestID, "asset store is not configured")
+		writeUploadError(w, http.StatusServiceUnavailable, r.Context(), errors.New("asset store is not configured"), nil)
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxImageUploadBytes+1024)
 	if err := r.ParseMultipartForm(maxImageUploadBytes + 1024); err != nil {
-		writeUploadError(w, http.StatusBadRequest, requestID, "invalid multipart image upload")
+		writeUploadError(w, http.StatusBadRequest, r.Context(), fmt.Errorf("%w: invalid multipart image upload", apperr.ErrInvalidArgument), err)
 		return
 	}
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		writeUploadError(w, http.StatusBadRequest, requestID, "file is required")
+		writeUploadError(w, http.StatusBadRequest, r.Context(), fmt.Errorf("%w: file is required", apperr.ErrInvalidArgument), err)
 		return
 	}
 	defer file.Close()
@@ -111,21 +119,21 @@ func (h *uploadHandler) handleImageUpload(w http.ResponseWriter, r *http.Request
 
 	dataBytes, err := io.ReadAll(io.LimitReader(file, maxImageUploadBytes+1))
 	if err != nil {
-		writeUploadError(w, http.StatusBadRequest, requestID, "failed to read upload file")
+		writeUploadError(w, http.StatusBadRequest, r.Context(), fmt.Errorf("%w: failed to read upload file", apperr.ErrInvalidArgument), err)
 		return
 	}
 	if len(dataBytes) == 0 {
-		writeUploadError(w, http.StatusBadRequest, requestID, "file is empty")
+		writeUploadError(w, http.StatusBadRequest, r.Context(), fmt.Errorf("%w: file is empty", apperr.ErrInvalidArgument), nil)
 		return
 	}
 	if len(dataBytes) > maxImageUploadBytes {
-		writeUploadError(w, http.StatusBadRequest, requestID, "image file must be <= 5MB")
+		writeUploadError(w, http.StatusBadRequest, r.Context(), fmt.Errorf("%w: image file must be <= 5MB", apperr.ErrInvalidArgument), nil)
 		return
 	}
 
 	mimeType, ext, err := validateImageBytes(dataBytes)
 	if err != nil {
-		writeUploadError(w, http.StatusBadRequest, requestID, err.Error())
+		writeUploadError(w, http.StatusBadRequest, r.Context(), fmt.Errorf("%w: %s", apperr.ErrInvalidArgument, err.Error()), err)
 		return
 	}
 	assetID := idgen.New("asset")
@@ -146,7 +154,7 @@ func (h *uploadHandler) handleImageUpload(w http.ResponseWriter, r *http.Request
 		ContentType: mimeType,
 	})
 	if err != nil {
-		writeUploadError(w, http.StatusBadGateway, requestID, "upload image to object storage failed: "+err.Error())
+		writeUploadError(w, http.StatusBadGateway, r.Context(), errors.New("upload image to object storage failed"), err)
 		return
 	}
 	logUploadInfo("upload_image.storage_put", requestID, "provider", stored.Provider, "bucket", stored.Bucket, "object_key", stored.ObjectKey, "duration_ms", time.Since(startedAt).Milliseconds())
@@ -168,14 +176,17 @@ func (h *uploadHandler) handleImageUpload(w http.ResponseWriter, r *http.Request
 	}
 	if err := h.store.SaveAssetFile(r.Context(), asset); err != nil {
 		_ = h.storage.DeleteObject(context.Background(), stored.ObjectKey)
-		writeUploadError(w, http.StatusInternalServerError, requestID, "save asset file failed: "+err.Error())
+		writeUploadError(w, http.StatusInternalServerError, r.Context(), errors.New("save asset file failed"), err)
 		return
 	}
 	responseAsset := &uploadedAsset{ID: asset.ID, ImageURL: asset.PublicURL, Bucket: asset.Bucket, ObjectKey: asset.ObjectKey, MimeType: asset.MimeType, SizeBytes: asset.SizeBytes, Status: asset.Status, ExpiresAtUnixMs: asset.ExpiresAtUnixMs}
+	result := appsvc.OKResult(r.Context())
 	writeJSON(w, http.StatusOK, uploadImageResponse{
+		Result:           result,
 		Code:             0,
 		Message:          "success",
 		RequestID:        requestID,
+		TraceID:          result.GetTraceId(),
 		ServerTimeUnixMs: time.Now().UnixMilli(),
 		Data:             &uploadImageData{Asset: responseAsset},
 		Asset:            responseAsset,
@@ -185,62 +196,84 @@ func (h *uploadHandler) handleImageUpload(w http.ResponseWriter, r *http.Request
 
 func (h *uploadHandler) handleImageDelete(w http.ResponseWriter, r *http.Request) {
 	requestID := uploadRequestID(r)
-	w.Header().Set("X-Request-Id", requestID)
+	traceID := uploadTraceID(r, requestID)
+	if requestctx.RequestID(r.Context()) == "" {
+		r = r.WithContext(requestctx.WithRequestContext(r.Context(), requestctx.RequestContext{RequestID: requestID, TraceID: traceID, ServerTimeMs: time.Now().UnixMilli()}))
+	}
+	w.Header().Set(requestctx.HeaderRequestID, requestID)
+	w.Header().Set(requestctx.HeaderTraceID, traceID)
+	w.Header().Set(requestctx.HeaderServerTime, fmt.Sprintf("%d", time.Now().UnixMilli()))
 	if r.Method != http.MethodDelete {
-		writeUploadError(w, http.StatusMethodNotAllowed, requestID, "method not allowed")
+		writeUploadError(w, http.StatusMethodNotAllowed, r.Context(), fmt.Errorf("%w: method not allowed", apperr.ErrInvalidArgument), nil)
 		return
 	}
-	claims, err := h.authenticate(r)
+	ctx, claims, err := h.authenticate(r.Context(), r)
 	if err != nil {
-		writeUploadError(w, http.StatusUnauthorized, requestID, err.Error())
+		writeUploadError(w, uploadAuthStatus(err), ctx, err, nil)
+		return
+	}
+	r = r.WithContext(ctx)
+	if h.store == nil {
+		writeUploadError(w, http.StatusServiceUnavailable, r.Context(), errors.New("asset store is not configured"), nil)
 		return
 	}
 	assetID := strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/uploads/images/"), "/")
 	if assetID == "" {
-		writeUploadError(w, http.StatusBadRequest, requestID, "asset id is required")
+		writeUploadError(w, http.StatusBadRequest, r.Context(), fmt.Errorf("%w: asset id is required", apperr.ErrInvalidArgument), nil)
 		return
 	}
 	asset, err := h.store.FindTemporaryAssetForDelete(r.Context(), assetID, claims.UserID)
 	if err != nil {
-		writeUploadError(w, http.StatusNotFound, requestID, "temporary asset not found or already attached")
+		writeUploadError(w, http.StatusNotFound, r.Context(), fmt.Errorf("%w: temporary asset not found or already attached", apperr.ErrNotFound), err)
 		return
 	}
 	if h.storage != nil {
 		if err := h.storage.DeleteObject(r.Context(), asset.ObjectKey); err != nil {
-			writeUploadError(w, http.StatusBadGateway, requestID, "delete image from object storage failed: "+err.Error())
+			writeUploadError(w, http.StatusBadGateway, r.Context(), errors.New("delete image from object storage failed"), err)
 			return
 		}
 	}
 	if err := h.store.MarkAssetDeleted(r.Context(), asset.ID, claims.UserID); err != nil {
-		writeUploadError(w, http.StatusInternalServerError, requestID, "mark asset deleted failed: "+err.Error())
+		writeUploadError(w, http.StatusInternalServerError, r.Context(), errors.New("mark asset deleted failed"), err)
 		return
 	}
-	writeJSON(w, http.StatusOK, uploadImageResponse{Code: 0, Message: "success", RequestID: requestID, ServerTimeUnixMs: time.Now().UnixMilli()})
+	result := appsvc.OKResult(r.Context())
+	writeJSON(w, http.StatusOK, uploadImageResponse{Result: result, Code: 0, Message: "success", RequestID: requestID, TraceID: result.GetTraceId(), ServerTimeUnixMs: time.Now().UnixMilli()})
 	logUploadInfo("upload_image.deleted", requestID, "asset_id", asset.ID, "object_key", asset.ObjectKey)
 }
 
-func (h *uploadHandler) authenticate(r *http.Request) (*auth.Claims, error) {
+func (h *uploadHandler) authenticate(ctx context.Context, r *http.Request) (context.Context, *auth.Claims, error) {
 	if h.auth == nil {
-		return nil, errors.New("auth manager is not configured")
+		return ctx, nil, errors.New("auth manager is not configured")
 	}
 	value := r.Header.Get("Authorization")
 	if value == "" {
 		value = r.Header.Get("authorization")
 	}
-	const prefix = "Bearer "
-	if !strings.HasPrefix(value, prefix) {
-		return nil, errors.New("unauthenticated")
+	ctx = h.auth.WithAuthContextFromBearer(ctx, value)
+	claims, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_ADMIN)
+	if err != nil {
+		return ctx, nil, err
 	}
-	return h.auth.ParseAccessToken(strings.TrimSpace(strings.TrimPrefix(value, prefix)))
+	return ctx, claims, nil
 }
 
-func writeUploadError(w http.ResponseWriter, status int, requestID, message string) {
-	code := uploadErrorCode(status)
-	logUploadError("upload_image.failure", requestID, "status", status, "code", code, "message", message)
+func writeUploadError(w http.ResponseWriter, status int, ctx context.Context, publicErr error, cause error) {
+	result := appsvc.ErrorResult(ctx, publicErr)
+	requestID := requestctx.RequestID(ctx)
+	if requestID == "" {
+		requestID = result.GetTraceId()
+	}
+	if cause == nil {
+		cause = publicErr
+	}
+	logUploadError("upload_image.failure", requestID, "status", status, "code", result.GetCode(), "message", result.GetMessage(), "cause", cause)
 	writeJSON(w, status, uploadImageResponse{
-		Code:             code,
-		Message:          message,
+		Result:           result,
+		Code:             result.GetCode(),
+		Message:          result.GetMessage(),
 		RequestID:        requestID,
+		TraceID:          result.GetTraceId(),
 		ServerTimeUnixMs: time.Now().UnixMilli(),
 	})
 }
@@ -256,7 +289,10 @@ func logUploadError(event, requestID string, attrs ...any) {
 }
 
 func uploadRequestID(r *http.Request) string {
-	for _, key := range []string{"X-Request-Id", "X-Request-ID", "X-Trace-Id"} {
+	if requestID := requestctx.RequestID(r.Context()); requestID != "" {
+		return requestID
+	}
+	for _, key := range []string{requestctx.HeaderRequestID, "X-Request-ID", requestctx.HeaderTraceID} {
 		if value := strings.TrimSpace(r.Header.Get(key)); value != "" {
 			return value
 		}
@@ -264,25 +300,24 @@ func uploadRequestID(r *http.Request) string {
 	return idgen.New("req")
 }
 
-func uploadErrorCode(status int) int {
-	switch status {
-	case http.StatusBadRequest:
-		return 400001
-	case http.StatusUnauthorized:
-		return 401001
-	case http.StatusForbidden:
-		return 403001
-	case http.StatusMethodNotAllowed:
-		return 405001
-	case http.StatusNotFound:
-		return 404001
-	case http.StatusBadGateway:
-		return 502001
-	case http.StatusServiceUnavailable:
-		return 503001
-	default:
-		return status*1000 + 1
+func uploadTraceID(r *http.Request, requestID string) string {
+	if traceID := requestctx.TraceID(r.Context()); traceID != "" {
+		return traceID
 	}
+	if traceID := strings.TrimSpace(r.Header.Get(requestctx.HeaderTraceID)); traceID != "" {
+		return traceID
+	}
+	return requestID
+}
+
+func uploadAuthStatus(err error) int {
+	if apperr.IsPermissionDenied(err) {
+		return http.StatusForbidden
+	}
+	if apperr.IsUnauthenticated(err) || apperr.IsTokenExpired(err) || apperr.IsSessionExpired(err) || apperr.IsInvalidToken(err) {
+		return http.StatusUnauthorized
+	}
+	return http.StatusServiceUnavailable
 }
 
 func validateImageBytes(data []byte) (string, string, error) {

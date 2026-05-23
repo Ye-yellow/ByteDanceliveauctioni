@@ -53,6 +53,36 @@ func (s *Store) FindUserByUsername(ctx context.Context, username string) (*v1.Us
 	return modelToUser(&model), model.PasswordHash, nil
 }
 
+func (s *Store) ListUsers(ctx context.Context, query user.ListUsersQuery) (user.ListUsersResult, error) {
+	query.Page, query.PageSize = normalizeUserPagination(query.Page, query.PageSize)
+	db := s.db.WithContext(ctx).Model(&AuctionUserModel{})
+	if query.Role != v1.UserRole_USER_ROLE_UNSPECIFIED {
+		db = db.Where("role = ?", int32(query.Role))
+	}
+	if keyword := strings.TrimSpace(query.Keyword); keyword != "" {
+		like := "%" + strings.ToLower(keyword) + "%"
+		db = db.Where("LOWER(id) LIKE ? OR LOWER(username) LIKE ? OR LOWER(nickname) LIKE ?", like, like, like)
+	}
+	var total int64
+	if err := db.Count(&total).Error; err != nil {
+		return user.ListUsersResult{}, err
+	}
+	var models []AuctionUserModel
+	if err := db.
+		Order("created_at_unix_ms DESC").
+		Order("id ASC").
+		Offset((query.Page - 1) * query.PageSize).
+		Limit(query.PageSize).
+		Find(&models).Error; err != nil {
+		return user.ListUsersResult{}, err
+	}
+	users := make([]*v1.User, 0, len(models))
+	for i := range models {
+		users = append(users, modelToUser(&models[i]))
+	}
+	return user.ListUsersResult{Users: users, Total: total, Page: query.Page, PageSize: query.PageSize}, nil
+}
+
 func (s *Store) UpdateUserRole(ctx context.Context, userID string, role v1.UserRole, updatedAtUnixMs int64) (*v1.User, error) {
 	if userID == "" {
 		return nil, errors.New("user id is required")
@@ -150,4 +180,17 @@ func modelToSession(model *AuctionUserSessionModel) user.Session {
 
 func isDuplicateKey(err error) bool {
 	return strings.Contains(strings.ToLower(err.Error()), "duplicate")
+}
+
+func normalizeUserPagination(page, pageSize int) (int, int) {
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+	return page, pageSize
 }

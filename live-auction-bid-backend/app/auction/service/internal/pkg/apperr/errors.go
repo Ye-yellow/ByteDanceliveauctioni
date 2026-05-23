@@ -14,7 +14,10 @@ var (
 	ErrUsernameTaken      = errors.New("username already exists")
 	ErrInvalidCredentials = errors.New("invalid username or password")
 	ErrInvalidToken       = errors.New("invalid token")
+	ErrTokenExpired       = errors.New("token expired")
+	ErrSessionExpired     = errors.New("session expired")
 	ErrUserNotFound       = errors.New("user not found")
+	ErrNotFound           = errors.New("not found")
 )
 
 func IsLotVersionConflict(err error) bool {
@@ -45,6 +48,18 @@ func IsInvalidToken(err error) bool {
 	return errors.Is(err, ErrInvalidToken)
 }
 
+func IsTokenExpired(err error) bool {
+	return errors.Is(err, ErrTokenExpired)
+}
+
+func IsSessionExpired(err error) bool {
+	return errors.Is(err, ErrSessionExpired)
+}
+
 func IsUserNotFound(err error) bool {
 	return errors.Is(err, ErrUserNotFound)
+}
+
+func IsNotFound(err error) bool {
+	return errors.Is(err, ErrNotFound) || errors.Is(err, ErrUserNotFound)
 }

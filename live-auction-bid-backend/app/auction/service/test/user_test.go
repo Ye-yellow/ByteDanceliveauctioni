@@ -3,6 +3,8 @@ package test
 import (
 	"context"
 	"errors"
+	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -55,13 +57,13 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 	if refreshed.GetRefreshToken() == "" || refreshed.GetRefreshToken() == loginTokens.GetRefreshToken() {
 		t.Fatalf("expected refresh token rotation, got %+v", refreshed)
 	}
-	if _, err := uc.RefreshToken(ctx, loginTokens.GetRefreshToken()); !apperr.IsInvalidToken(err) {
+	if _, err := uc.RefreshToken(ctx, loginTokens.GetRefreshToken()); !apperr.IsSessionExpired(err) {
 		t.Fatalf("expected old refresh token to fail, got %v", err)
 	}
 	if err := uc.Logout(ctx, refreshed.GetRefreshToken()); err != nil {
 		t.Fatalf("logout failed: %v", err)
 	}
-	if _, err := uc.RefreshToken(ctx, refreshed.GetRefreshToken()); !apperr.IsInvalidToken(err) {
+	if _, err := uc.RefreshToken(ctx, refreshed.GetRefreshToken()); !apperr.IsSessionExpired(err) {
 		t.Fatalf("expected logged out refresh token to fail, got %v", err)
 	}
 
@@ -85,6 +87,10 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 	if anchor.GetRole() != v1.UserRole_USER_ROLE_ANCHOR {
 		t.Fatalf("expected anchor role, got %+v", anchor)
 	}
+	anchorCtx := auth.WithClaims(ctx, &auth.Claims{UserID: anchor.Id, Username: anchor.Username, Nickname: anchor.Nickname, Role: v1.UserRole_USER_ROLE_ANCHOR})
+	if _, err := uc.AdminCreateUser(anchorCtx, &v1.AdminCreateUserRequest{Username: "anchor_child", Password: "password123", Nickname: "主播子账号"}); !apperr.IsPermissionDenied(err) {
+		t.Fatalf("expected permission denied for anchor admin create, got %v", err)
+	}
 	operator, err := uc.AdminUpdateUserRole(adminCtx, anchor.GetId(), v1.UserRole_USER_ROLE_OPERATOR)
 	if err != nil {
 		t.Fatalf("admin update role failed: %v", err)
@@ -92,9 +98,26 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 	if operator.GetRole() != v1.UserRole_USER_ROLE_OPERATOR {
 		t.Fatalf("expected operator role, got %+v", operator)
 	}
+	operatorCtx := auth.WithClaims(ctx, &auth.Claims{UserID: operator.Id, Username: operator.Username, Nickname: operator.Nickname, Role: v1.UserRole_USER_ROLE_OPERATOR})
+	if _, err := uc.AdminUpdateUserRole(operatorCtx, registered.GetId(), v1.UserRole_USER_ROLE_ANCHOR); !apperr.IsPermissionDenied(err) {
+		t.Fatalf("expected permission denied for operator role update, got %v", err)
+	}
 	buyerCtx := auth.WithClaims(ctx, &auth.Claims{UserID: registered.Id, Username: registered.Username, Nickname: registered.Nickname, Role: registered.Role})
 	if _, err := uc.AdminCreateUser(buyerCtx, &v1.AdminCreateUserRequest{Username: "xuser", Password: "password123", Nickname: "x"}); !apperr.IsPermissionDenied(err) {
 		t.Fatalf("expected permission denied for buyer admin create, got %v", err)
+	}
+	userList, err := uc.ListUsers(adminCtx, userbiz.ListUsersQuery{Role: v1.UserRole_USER_ROLE_OPERATOR, Keyword: "anchor", Page: 1, PageSize: 10})
+	if err != nil {
+		t.Fatalf("admin list users failed: %v", err)
+	}
+	if userList.Total != 1 || len(userList.Users) != 1 || userList.Users[0].GetRole() != v1.UserRole_USER_ROLE_OPERATOR {
+		t.Fatalf("expected filtered operator user list, got %+v", userList)
+	}
+	if _, err := uc.ListUsers(operatorCtx, userbiz.ListUsersQuery{}); !apperr.IsPermissionDenied(err) {
+		t.Fatalf("expected operator list users denied, got %v", err)
+	}
+	if _, err := uc.ListUsers(buyerCtx, userbiz.ListUsersQuery{}); !apperr.IsPermissionDenied(err) {
+		t.Fatalf("expected buyer list users denied, got %v", err)
 	}
 }
 
@@ -124,7 +147,7 @@ func TestAuthManagerAccessTokenAndPasswordHash(t *testing.T) {
 		t.Fatalf("expected wrong secret to reject token, got %v", err)
 	}
 	now = now.Add(2 * time.Minute)
-	if _, err := manager.ParseAccessToken(pair.AccessToken); !apperr.IsInvalidToken(err) {
+	if _, err := manager.ParseAccessToken(pair.AccessToken); !apperr.IsTokenExpired(err) {
 		t.Fatalf("expected expired token to fail, got %v", err)
 	}
 	hash, err := auth.HashPassword("password123")
@@ -178,6 +201,40 @@ func (r *testUserRepo) FindUserByUsername(ctx context.Context, username string) 
 		return nil, "", apperr.ErrUserNotFound
 	}
 	return r.FindUserByID(ctx, userID)
+}
+
+func (r *testUserRepo) ListUsers(ctx context.Context, query userbiz.ListUsersQuery) (userbiz.ListUsersResult, error) {
+	if query.Page <= 0 {
+		query.Page = 1
+	}
+	if query.PageSize <= 0 {
+		query.PageSize = 20
+	}
+	if query.PageSize > 100 {
+		query.PageSize = 100
+	}
+	users := make([]*v1.User, 0, len(r.usersByID))
+	keyword := strings.ToLower(strings.TrimSpace(query.Keyword))
+	for _, user := range r.usersByID {
+		if query.Role != v1.UserRole_USER_ROLE_UNSPECIFIED && user.Role != query.Role {
+			continue
+		}
+		if keyword != "" && !strings.Contains(strings.ToLower(user.Id+" "+user.Username+" "+user.Nickname), keyword) {
+			continue
+		}
+		users = append(users, proto.Clone(user).(*v1.User))
+	}
+	sort.Slice(users, func(i, j int) bool { return users[i].Username < users[j].Username })
+	total := int64(len(users))
+	start := (query.Page - 1) * query.PageSize
+	if start >= len(users) {
+		return userbiz.ListUsersResult{Users: []*v1.User{}, Total: total, Page: query.Page, PageSize: query.PageSize}, nil
+	}
+	end := start + query.PageSize
+	if end > len(users) {
+		end = len(users)
+	}
+	return userbiz.ListUsersResult{Users: users[start:end], Total: total, Page: query.Page, PageSize: query.PageSize}, nil
 }
 
 func (r *testUserRepo) UpdateUserRole(ctx context.Context, userID string, role v1.UserRole, updatedAtUnixMs int64) (*v1.User, error) {

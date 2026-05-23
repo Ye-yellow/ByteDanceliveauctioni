@@ -32,10 +32,14 @@ P0 硬点：0 元起拍、固定加价、封顶价自动成交、10-30 秒自动
 
 ```bash
 cd deploy
+cp .env.example .env
+# 编辑 deploy/.env，填写 TOS endpoint、region、bucket、AK 和 SK。
 docker compose up --build
 ```
 
 服务默认监听：`http://127.0.0.1:18080`。
+
+后端默认使用 TOS 作为图片存储。Docker Compose 启动前必须复制 `deploy/.env.example` 为 `deploy/.env` 并填写 TOS 配置；如果 `AUCTION_STORAGE_PROVIDER=tos` 且 endpoint、region、bucket、access key、secret key 任一缺失，Compose 或后端会 fail fast，不会等到 upload 接口才返回 `storage not configured`。
 
 Docker Compose 默认创建本地 admin：
 
@@ -51,27 +55,48 @@ curl http://127.0.0.1:18080/healthz
 curl http://127.0.0.1:18080/readyz
 ```
 
+### 旧数据库 volume 与 migration
+
+全新数据库由 GORM `AutoMigrate` 按当前 model 创建表和索引；如果本地不需要保留旧数据，建议先清理旧 volume 后再启动：
+
+```bash
+cd deploy
+docker compose down -v
+docker compose up --build
+```
+
+如果继续使用 P2/P3-0 之前的旧 Docker volume，需要手动在 MySQL 中执行以下 migration，完成订单/支付表、出价幂等索引和 `auction_bids.idempotency_key NOT NULL` 调整：
+
+```bash
+deploy/mysql/migrations/20260523_audit_fix.sql
+deploy/mysql/migrations/20260523_p3_0_bid_idempotency_required.sql
+```
+
+旧库的索引调整不会只靠重新启动自动补齐；必须执行 migration 或清库重建。
+
 ### 火山引擎 TOS 图片上传配置
 
 前端添加拍品页统一调用 `POST /api/uploads/images`，后端通过 `StorageProvider` 接火山引擎 TOS。AK/SK 只放运行环境变量，不进入前端或仓库。
 
-本地 Docker Compose 可复制模板后填写密钥：
+本地 Docker Compose 必须复制模板后填写 TOS 配置：
 
 ```bash
 cd deploy
 cp .env.example .env
-# 编辑 deploy/.env，填入 AUCTION_TOS_ACCESS_KEY / AUCTION_TOS_SECRET_KEY
+# 编辑 deploy/.env，填入 AUCTION_TOS_ENDPOINT / AUCTION_TOS_REGION / AUCTION_TOS_BUCKET / AUCTION_TOS_ACCESS_KEY / AUCTION_TOS_SECRET_KEY
 ```
 
-当前公共读 Bucket 配置：
+配置示例只展示字段名，真实值只放本地 `deploy/.env`：
 
 ```env
 AUCTION_STORAGE_PROVIDER=tos
-AUCTION_TOS_ENDPOINT=https://tos-cn-beijing.volces.com
-AUCTION_TOS_REGION=cn-beijing
-AUCTION_TOS_BUCKET=liveauction
-AUCTION_TOS_PUBLIC_BASE_URL=https://liveauction.tos-cn-beijing.volces.com
+AUCTION_TOS_ENDPOINT=<tos-endpoint>
+AUCTION_TOS_REGION=<tos-region>
+AUCTION_TOS_BUCKET=<tos-bucket>
+AUCTION_TOS_PUBLIC_BASE_URL=<public-base-url>
 AUCTION_TOS_USE_SSL=true
+AUCTION_TOS_ACCESS_KEY=<tos-access-key>
+AUCTION_TOS_SECRET_KEY=<tos-secret-key>
 ```
 
 上传接口会：校验权限与图片类型 → 生成 `{bizType}/{yyyy}/{mm}/{assetId}.{ext}` 对象键 → 上传 TOS → 写入 `asset_files` → 返回 `asset.imageUrl` 给前端预览和 `createLot.imageUrl` 使用。

@@ -333,7 +333,7 @@ func TestCommitAcceptedBidRejectsStaleLotWithoutAppendingBid(t *testing.T) {
 	if err := auction.AcceptBid(stale, bid, 2000); err != nil {
 		t.Fatalf("accept bid failed: %v", err)
 	}
-	if err := store.CommitAcceptedBid(ctx, bid, stale, fresh.Version-1, "idem-conflict", nil); err == nil || !strings.Contains(err.Error(), "lot version conflict") {
+	if err := store.CommitAcceptedBid(ctx, bid, stale, fresh.Version-1, "idem-conflict", nil, nil); err == nil || !strings.Contains(err.Error(), "lot version conflict") {
 		t.Fatalf("expected lot version conflict, got %v", err)
 	}
 	bids, err := store.ListByLot(ctx, stale.Id)
@@ -346,18 +346,28 @@ func TestCommitAcceptedBidRejectsStaleLotWithoutAppendingBid(t *testing.T) {
 }
 
 type testStore struct {
-	mu        sync.RWMutex
-	lots      map[string]*v1.Lot
-	bidsByLot map[string][]v1.Bid
-	idemByLot map[string]map[string]v1.Bid
-	events    []v1.AuctionEvent
+	mu                         sync.RWMutex
+	lots                       map[string]*v1.Lot
+	bidsByLot                  map[string][]v1.Bid
+	idemByScope                map[string]v1.Bid
+	ordersByID                 map[string]auction.Order
+	orderIDByLot               map[string]string
+	paymentsByOrder            map[string]map[string]auction.Payment
+	events                     []v1.AuctionEvent
+	failNextBidCommit          error
+	beforeBidCommitFailure     func(s *testStore, bid v1.Bid, lot *v1.Lot, idempotencyKey string, order *auction.Order, events []v1.AuctionEvent)
+	failNextPaymentCommit      error
+	beforePaymentCommitFailure func(s *testStore, payment auction.Payment, order auction.Order, events []v1.AuctionEvent)
 }
 
 func newTestStore() *testStore {
 	return &testStore{
-		lots:      make(map[string]*v1.Lot),
-		bidsByLot: make(map[string][]v1.Bid),
-		idemByLot: make(map[string]map[string]v1.Bid),
+		lots:            make(map[string]*v1.Lot),
+		bidsByLot:       make(map[string][]v1.Bid),
+		idemByScope:     make(map[string]v1.Bid),
+		ordersByID:      make(map[string]auction.Order),
+		orderIDByLot:    make(map[string]string),
+		paymentsByOrder: make(map[string]map[string]auction.Payment),
 	}
 }
 
@@ -409,7 +419,7 @@ func (s *testStore) List(ctx context.Context, roomID string, status v1.LotStatus
 		if roomID != "" && lot.RoomId != roomID {
 			continue
 		}
-		if status != 0 && lot.Status != status {
+		if status != 0 && lot.Status != status && !(status == v1.LotStatus_LOT_STATUS_LIVE && lot.Status == v1.LotStatus_LOT_STATUS_EXTENDED) {
 			continue
 		}
 		lots = append(lots, proto.Clone(lot).(*v1.Lot))
@@ -418,9 +428,71 @@ func (s *testStore) List(ctx context.Context, roomID string, status v1.LotStatus
 	return lots, nil
 }
 
-func (s *testStore) CommitAcceptedBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, expectedLotVersion int64, idempotencyKey string, events []v1.AuctionEvent) error {
+func (s *testStore) ListLots(ctx context.Context, query auction.LotQuery) (auction.LotList, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	query.Page, query.PageSize = auction.NormalizePagination(query.Page, query.PageSize)
+	lots := make([]*v1.Lot, 0, len(s.lots))
+	keyword := strings.ToLower(strings.TrimSpace(query.Keyword))
+	for _, lot := range s.lots {
+		if query.RoomID != "" && lot.RoomId != query.RoomID {
+			continue
+		}
+		if query.Status != v1.LotStatus_LOT_STATUS_UNSPECIFIED && lot.Status != query.Status {
+			continue
+		}
+		if keyword != "" && !strings.Contains(strings.ToLower(lot.Id+" "+lot.Title+" "+lot.Description), keyword) {
+			continue
+		}
+		lots = append(lots, proto.Clone(lot).(*v1.Lot))
+	}
+	sort.Slice(lots, func(i, j int) bool { return lots[i].Id < lots[j].Id })
+	total := int64(len(lots))
+	start := auction.PageOffset(query.Page, query.PageSize)
+	if start >= len(lots) {
+		return auction.LotList{Lots: []*v1.Lot{}, Total: total, Page: query.Page, PageSize: query.PageSize}, nil
+	}
+	end := start + query.PageSize
+	if end > len(lots) {
+		end = len(lots)
+	}
+	return auction.LotList{Lots: lots[start:end], Total: total, Page: query.Page, PageSize: query.PageSize}, nil
+}
+
+func (s *testStore) ListExpiredOpen(ctx context.Context, nowMs int64, limit int) ([]*v1.Lot, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	lots := make([]*v1.Lot, 0, len(s.lots))
+	for _, lot := range s.lots {
+		if !auction.IsAuctionOpenStatus(lot.Status) || lot.EndsAtUnixMs == 0 || lot.EndsAtUnixMs > nowMs {
+			continue
+		}
+		lots = append(lots, proto.Clone(lot).(*v1.Lot))
+	}
+	sort.Slice(lots, func(i, j int) bool {
+		if lots[i].EndsAtUnixMs == lots[j].EndsAtUnixMs {
+			return lots[i].Id < lots[j].Id
+		}
+		return lots[i].EndsAtUnixMs < lots[j].EndsAtUnixMs
+	})
+	if limit > 0 && len(lots) > limit {
+		lots = lots[:limit]
+	}
+	return lots, nil
+}
+
+func (s *testStore) CommitAcceptedBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, expectedLotVersion int64, idempotencyKey string, order *auction.Order, events []v1.AuctionEvent) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.failNextBidCommit != nil {
+		if s.beforeBidCommitFailure != nil {
+			s.beforeBidCommitFailure(s, bid, lot, idempotencyKey, order, events)
+		}
+		err := s.failNextBidCommit
+		s.failNextBidCommit = nil
+		s.beforeBidCommitFailure = nil
+		return err
+	}
 	current, ok := s.lots[lot.Id]
 	if !ok {
 		return errors.New("lot not found")
@@ -433,12 +505,148 @@ func (s *testStore) CommitAcceptedBid(ctx context.Context, bid v1.Bid, lot *v1.L
 	}
 	s.lots[lot.Id] = proto.Clone(lot).(*v1.Lot)
 	s.bidsByLot[bid.LotId] = append(s.bidsByLot[bid.LotId], bid)
-	if idempotencyKey != "" {
-		if s.idemByLot[bid.LotId] == nil {
-			s.idemByLot[bid.LotId] = make(map[string]v1.Bid)
+	if order != nil {
+		if _, exists := s.orderIDByLot[order.LotID]; exists {
+			return errors.New("order already exists")
 		}
-		s.idemByLot[bid.LotId][idempotencyKey] = bid
+		s.ordersByID[order.ID] = *order
+		s.orderIDByLot[order.LotID] = order.ID
 	}
+	if idempotencyKey != "" {
+		s.idemByScope[testBidIdempotencyScope(bid.LotId, bid.UserId, idempotencyKey)] = bid
+	}
+	s.events = append(s.events, events...)
+	return nil
+}
+
+func (s *testStore) CreateOrderForSettledLot(ctx context.Context, order auction.Order, lot *v1.Lot, expectedLotVersion int64, events []v1.AuctionEvent) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	current, ok := s.lots[lot.Id]
+	if !ok {
+		return errors.New("lot not found")
+	}
+	if expectedLotVersion <= 0 {
+		return errors.New("lot expected version is required")
+	}
+	if current.Version != expectedLotVersion {
+		return apperr.ErrLotVersionConflict
+	}
+	if _, exists := s.orderIDByLot[order.LotID]; exists {
+		return errors.New("order already exists")
+	}
+	s.lots[lot.Id] = proto.Clone(lot).(*v1.Lot)
+	s.ordersByID[order.ID] = order
+	s.orderIDByLot[order.LotID] = order.ID
+	s.events = append(s.events, events...)
+	return nil
+}
+
+func (s *testStore) FindOrderByID(ctx context.Context, orderID string) (*auction.Order, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	order, ok := s.ordersByID[orderID]
+	if !ok {
+		return nil, apperr.ErrNotFound
+	}
+	return &order, nil
+}
+
+func (s *testStore) FindOrderByLot(ctx context.Context, lotID string) (*auction.Order, bool, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	orderID, ok := s.orderIDByLot[lotID]
+	if !ok {
+		return nil, false, nil
+	}
+	order := s.ordersByID[orderID]
+	return &order, true, nil
+}
+
+func (s *testStore) ListOrdersByBuyer(ctx context.Context, buyerUserID string) ([]auction.Order, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	orders := make([]auction.Order, 0, len(s.ordersByID))
+	for _, order := range s.ordersByID {
+		if order.BuyerUserID == buyerUserID {
+			orders = append(orders, order)
+		}
+	}
+	sort.Slice(orders, func(i, j int) bool { return orders[i].CreatedAtUnixMs > orders[j].CreatedAtUnixMs })
+	return orders, nil
+}
+
+func (s *testStore) ListOrders(ctx context.Context, query auction.OrderQuery) (auction.OrderList, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	query.Page, query.PageSize = auction.NormalizePagination(query.Page, query.PageSize)
+	orders := make([]auction.OrderSummary, 0, len(s.ordersByID))
+	buyer := strings.ToLower(strings.TrimSpace(query.Buyer))
+	for _, order := range s.ordersByID {
+		if query.BuyerUserID != "" && order.BuyerUserID != query.BuyerUserID {
+			continue
+		}
+		if query.Status != "" && order.Status != query.Status {
+			continue
+		}
+		if query.LotID != "" && order.LotID != query.LotID {
+			continue
+		}
+		if buyer != "" && !strings.Contains(strings.ToLower(order.BuyerUserID+" "+order.BuyerNickname), buyer) {
+			continue
+		}
+		orders = append(orders, order.Summary())
+	}
+	sort.Slice(orders, func(i, j int) bool { return orders[i].CreatedAtUnixMs > orders[j].CreatedAtUnixMs })
+	total := int64(len(orders))
+	start := auction.PageOffset(query.Page, query.PageSize)
+	if start >= len(orders) {
+		return auction.OrderList{Orders: []auction.OrderSummary{}, Total: total, Page: query.Page, PageSize: query.PageSize}, nil
+	}
+	end := start + query.PageSize
+	if end > len(orders) {
+		end = len(orders)
+	}
+	return auction.OrderList{Orders: orders[start:end], Total: total, Page: query.Page, PageSize: query.PageSize}, nil
+}
+
+func (s *testStore) FindPaymentByIdempotencyKey(ctx context.Context, orderID, key string) (*auction.Payment, bool, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.paymentsByOrder[orderID] == nil {
+		return nil, false, nil
+	}
+	payment, ok := s.paymentsByOrder[orderID][key]
+	return &payment, ok, nil
+}
+
+func (s *testStore) CommitPaymentSuccess(ctx context.Context, payment auction.Payment, order auction.Order, expectedOrderVersion int64, events []v1.AuctionEvent) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.failNextPaymentCommit != nil {
+		if s.beforePaymentCommitFailure != nil {
+			s.beforePaymentCommitFailure(s, payment, order, events)
+		}
+		err := s.failNextPaymentCommit
+		s.failNextPaymentCommit = nil
+		s.beforePaymentCommitFailure = nil
+		return err
+	}
+	current, ok := s.ordersByID[order.ID]
+	if !ok {
+		return apperr.ErrNotFound
+	}
+	if current.Version != expectedOrderVersion {
+		return apperr.ErrLotVersionConflict
+	}
+	if s.paymentsByOrder[order.ID] == nil {
+		s.paymentsByOrder[order.ID] = make(map[string]auction.Payment)
+	}
+	if _, exists := s.paymentsByOrder[order.ID][payment.IdempotencyKey]; exists {
+		return errors.New("payment already exists")
+	}
+	s.paymentsByOrder[order.ID][payment.IdempotencyKey] = payment
+	s.ordersByID[order.ID] = order
 	s.events = append(s.events, events...)
 	return nil
 }
@@ -466,26 +674,72 @@ func (s *testStore) ListByLot(ctx context.Context, lotID string) ([]v1.Bid, erro
 	return append([]v1.Bid(nil), s.bidsByLot[lotID]...), nil
 }
 
-func (s *testStore) FindByIdempotencyKey(ctx context.Context, lotID, key string) (v1.Bid, bool, error) {
+func (s *testStore) ListBidRecordsByBuyer(ctx context.Context, buyerUserID string, query auction.BidRecordQuery) (auction.BidRecordList, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	if s.idemByLot[lotID] == nil {
-		return v1.Bid{}, false, nil
+	query.Page, query.PageSize = auction.NormalizePagination(query.Page, query.PageSize)
+	records := make([]auction.BidRecord, 0)
+	for lotID, bids := range s.bidsByLot {
+		if query.LotID != "" && lotID != query.LotID {
+			continue
+		}
+		lot := s.lots[lotID]
+		for _, bid := range bids {
+			if bid.UserId != buyerUserID {
+				continue
+			}
+			record := auction.BidRecord{
+				ID:              bid.Id,
+				LotID:           bid.LotId,
+				UserID:          bid.UserId,
+				Nickname:        bid.Nickname,
+				Amount:          bid.GetAmount().GetAmount(),
+				Currency:        bid.GetAmount().GetCurrency(),
+				CreatedAtUnixMs: bid.CreatedAtUnixMs,
+			}
+			if lot != nil {
+				record.RoomID = lot.RoomId
+				record.LotTitle = lot.Title
+				record.LotImageURL = lot.ImageUrl
+				record.LotStatus = lot.Status
+				record.AuctionState = auction.AuctionStateOf(lot)
+				record.Won = lot.WinnerUserId == buyerUserID
+			}
+			records = append(records, record)
+		}
 	}
-	bid, ok := s.idemByLot[lotID][key]
+	sort.Slice(records, func(i, j int) bool { return records[i].CreatedAtUnixMs > records[j].CreatedAtUnixMs })
+	total := int64(len(records))
+	start := auction.PageOffset(query.Page, query.PageSize)
+	if start >= len(records) {
+		return auction.BidRecordList{Bids: []auction.BidRecord{}, Total: total, Page: query.Page, PageSize: query.PageSize}, nil
+	}
+	end := start + query.PageSize
+	if end > len(records) {
+		end = len(records)
+	}
+	return auction.BidRecordList{Bids: records[start:end], Total: total, Page: query.Page, PageSize: query.PageSize}, nil
+}
+
+func (s *testStore) FindByIdempotencyKey(ctx context.Context, lotID, userID, key string) (v1.Bid, bool, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	bid, ok := s.idemByScope[testBidIdempotencyScope(lotID, userID, key)]
 	return bid, ok, nil
 }
 
-func (s *testStore) CacheIdempotencyKey(ctx context.Context, lotID, key string, bid v1.Bid) {
+func (s *testStore) CacheIdempotencyKey(ctx context.Context, lotID, userID, key string, bid v1.Bid) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.idemByLot[lotID] == nil {
-		s.idemByLot[lotID] = make(map[string]v1.Bid)
-	}
-	if _, exists := s.idemByLot[lotID][key]; exists {
+	scope := testBidIdempotencyScope(lotID, userID, key)
+	if _, exists := s.idemByScope[scope]; exists {
 		return
 	}
-	s.idemByLot[lotID][key] = bid
+	s.idemByScope[scope] = bid
+}
+
+func testBidIdempotencyScope(lotID, userID, key string) string {
+	return lotID + "\x00" + userID + "\x00" + key
 }
 
 func TestAuctionUsecaseCoreClosurePublishesEventsAndSnapshot(t *testing.T) {
@@ -518,24 +772,37 @@ func TestAuctionUsecaseCoreClosurePublishesEventsAndSnapshot(t *testing.T) {
 	if _, err := uc.StartLot(ctx, lot.Id); err != nil {
 		t.Fatalf("start lot failed: %v", err)
 	}
-	if _, bid, ranking, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
-		LotId: lot.Id, Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, IdempotencyKey: "idem-1",
-	}, "u1", "用户1"); err != nil || bid == nil || len(ranking) != 1 {
-		t.Fatalf("first bid failed: bid=%+v ranking=%+v err=%v", bid, ranking, err)
+	if _, _, _, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
+		LotId: lot.Id, Amount: &v1.Money{Amount: 11000, Currency: "CNY"},
+	}, "u1", "用户1"); err == nil || !apperr.IsInvalidArgument(err) || !strings.Contains(err.Error(), "bid idempotency key is required") {
+		t.Fatalf("missing bid idempotency key should be rejected as invalid argument, got %v", err)
 	}
-	if _, bid, ranking, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
+	_, firstBid, ranking, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
 		LotId: lot.Id, Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, IdempotencyKey: "idem-1",
-	}, "u1", "用户1"); err != nil || bid == nil || len(ranking) != 1 {
-		t.Fatalf("idempotent bid replay failed: bid=%+v ranking=%+v err=%v", bid, ranking, err)
+	}, "u1", "用户1")
+	if err != nil || firstBid == nil || len(ranking) != 1 {
+		t.Fatalf("first bid failed: bid=%+v ranking=%+v err=%v", firstBid, ranking, err)
+	}
+	_, replayBid, ranking, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
+		LotId: lot.Id, Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, IdempotencyKey: "idem-1",
+	}, "u1", "用户1")
+	if err != nil || replayBid == nil || replayBid.Id != firstBid.Id || len(ranking) != 1 {
+		t.Fatalf("idempotent bid replay failed: first=%+v replay=%+v ranking=%+v err=%v", firstBid, replayBid, ranking, err)
+	}
+	_, otherUserBid, ranking, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
+		LotId: lot.Id, Amount: &v1.Money{Amount: 12000, Currency: "CNY"}, IdempotencyKey: "idem-1",
+	}, "u2", "用户2")
+	if err != nil || otherUserBid == nil || otherUserBid.Id == firstBid.Id || otherUserBid.UserId != "u2" || len(ranking) != 2 {
+		t.Fatalf("same idempotency key from another user must not replay first user bid: first=%+v other=%+v ranking=%+v err=%v", firstBid, otherUserBid, ranking, err)
 	}
 	if _, _, _, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
-		LotId: lot.Id, Amount: &v1.Money{Amount: 12000, Currency: "CNY"},
-	}, "u2", "用户2"); err != nil {
+		LotId: lot.Id, Amount: &v1.Money{Amount: 13000, Currency: "CNY"}, IdempotencyKey: "idem-2",
+	}, "u1", "用户1"); err != nil {
 		t.Fatalf("second bid failed: %v", err)
 	}
 	if _, _, _, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
-		LotId: lot.Id, Amount: &v1.Money{Amount: 13000, Currency: "CNY"},
-	}, "u1", "用户1"); err != nil {
+		LotId: lot.Id, Amount: &v1.Money{Amount: 14000, Currency: "CNY"}, IdempotencyKey: "idem-3",
+	}, "u2", "用户2"); err != nil {
 		t.Fatalf("third bid failed: %v", err)
 	}
 	if _, card, err := uc.RevealTrustCard(ctx, lot.Id, lot.TrustCards[0].Id, "op"); err != nil || card == nil || !card.Revealed {
@@ -548,14 +815,14 @@ func TestAuctionUsecaseCoreClosurePublishesEventsAndSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("settle failed: %v", err)
 	}
-	if settled.Status != v1.LotStatus_LOT_STATUS_SETTLED || settled.WinnerUserId != "u1" || settled.GetFinalPrice().GetAmount() != 13000 || settled.GetDuelState().GetActive() {
+	if settled.Status != v1.LotStatus_LOT_STATUS_SETTLED || settled.WinnerUserId != "u2" || settled.GetFinalPrice().GetAmount() != 14000 || settled.GetDuelState().GetActive() {
 		t.Fatalf("settled lot state mismatch: %+v", settled)
 	}
 	snapshot, err := uc.Snapshot(ctx, "room_core")
 	if err != nil {
 		t.Fatalf("snapshot failed: %v", err)
 	}
-	if snapshot.CurrentLot == nil || len(snapshot.Ranking) != 2 || len(snapshot.RecentBids) != 3 {
+	if snapshot.CurrentLot == nil || len(snapshot.Ranking) != 2 || len(snapshot.RecentBids) != 4 {
 		t.Fatalf("snapshot mismatch: %+v", snapshot)
 	}
 
@@ -563,6 +830,7 @@ func TestAuctionUsecaseCoreClosurePublishesEventsAndSnapshot(t *testing.T) {
 		v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CREATED,
 		v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_STARTED,
 		v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_ACCEPTED,
+		v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_OUTBID,
 		v1.AuctionEventType_AUCTION_EVENT_TYPE_RANKING_UPDATED,
 		v1.AuctionEventType_AUCTION_EVENT_TYPE_TRUST_REVEALED,
 		v1.AuctionEventType_AUCTION_EVENT_TYPE_DUEL_STARTED,
@@ -572,11 +840,71 @@ func TestAuctionUsecaseCoreClosurePublishesEventsAndSnapshot(t *testing.T) {
 		v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CREATED,
 		v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_STARTED,
 		v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_ACCEPTED,
+		v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_OUTBID,
 		v1.AuctionEventType_AUCTION_EVENT_TYPE_RANKING_UPDATED,
 		v1.AuctionEventType_AUCTION_EVENT_TYPE_TRUST_REVEALED,
 		v1.AuctionEventType_AUCTION_EVENT_TYPE_DUEL_STARTED,
 		v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_SETTLED,
 	)
+}
+
+func TestPlaceBidReplaysIdempotentBidAfterConcurrentCommitConflict(t *testing.T) {
+	store := newTestStore()
+	uc := auction.NewAuctionUsecase(store, store, store, nil)
+	ctx := context.Background()
+
+	lot, err := uc.CreateLot(ctx, &v1.CreateLotRequest{
+		RoomId:   "room_bid_race",
+		Title:    "并发幂等出价拍品",
+		ImageUrl: "https://example.com/lot.jpg",
+		Rule: &v1.BidRule{
+			StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
+			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+			DurationSeconds:        300,
+			AntiSnipeWindowSeconds: 15,
+			AntiSnipeExtendSeconds: 15,
+			MaxExtendCount:         3,
+		},
+	}, "test-owner")
+	if err != nil {
+		t.Fatalf("create lot failed: %v", err)
+	}
+	if _, err := uc.StartLot(ctx, lot.Id); err != nil {
+		t.Fatalf("start lot failed: %v", err)
+	}
+
+	store.failNextBidCommit = apperr.ErrLotVersionConflict
+	store.beforeBidCommitFailure = func(s *testStore, bid v1.Bid, lot *v1.Lot, idempotencyKey string, order *auction.Order, events []v1.AuctionEvent) {
+		s.lots[lot.Id] = proto.Clone(lot).(*v1.Lot)
+		s.bidsByLot[bid.LotId] = append(s.bidsByLot[bid.LotId], bid)
+		s.idemByScope[testBidIdempotencyScope(bid.LotId, bid.UserId, idempotencyKey)] = bid
+		if order != nil {
+			s.ordersByID[order.ID] = *order
+			s.orderIDByLot[order.LotID] = order.ID
+		}
+		s.events = append(s.events, events...)
+	}
+
+	updated, bid, ranking, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
+		LotId: lot.Id, Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, IdempotencyKey: "bid-race-1",
+	}, "buyer1", "买家一号")
+	if err != nil || bid == nil || updated == nil || len(ranking) != 1 {
+		t.Fatalf("idempotent race replay should succeed: lot=%+v bid=%+v ranking=%+v err=%v", updated, bid, ranking, err)
+	}
+	bids, err := store.ListByLot(ctx, lot.Id)
+	if err != nil {
+		t.Fatalf("list bids failed: %v", err)
+	}
+	if len(bids) != 1 || bids[0].Id != bid.Id {
+		t.Fatalf("concurrent replay must not append duplicate bids: stored=%+v returned=%+v", bids, bid)
+	}
+
+	_, replayed, replayRanking, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
+		LotId: lot.Id, Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, IdempotencyKey: "bid-race-1",
+	}, "buyer1", "买家一号")
+	if err != nil || replayed == nil || replayed.Id != bid.Id || len(replayRanking) != 1 {
+		t.Fatalf("second replay should return same bid: first=%+v replay=%+v ranking=%+v err=%v", bid, replayed, replayRanking, err)
+	}
 }
 
 func TestAuctionUsecaseCancelLotPersistsAndPublishesEvent(t *testing.T) {
@@ -652,15 +980,288 @@ func TestPlaceBidAntiSnipeExtensionPersistsLotUpdatedEvent(t *testing.T) {
 		t.Fatalf("start lot failed: %v", err)
 	}
 	originalEndsAt := started.EndsAtUnixMs
-	updated, bid, ranking, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{LotId: lot.Id, Amount: &v1.Money{Amount: 11000, Currency: "CNY"}}, "u1", "用户1")
+	updated, bid, ranking, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{LotId: lot.Id, Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, IdempotencyKey: "bid-extend-1"}, "u1", "用户1")
 	if err != nil || bid == nil || len(ranking) != 1 {
 		t.Fatalf("extension bid failed: updated=%+v bid=%+v ranking=%+v err=%v", updated, bid, ranking, err)
 	}
 	if updated.EndsAtUnixMs <= originalEndsAt || updated.GetDuelState().GetExtendCount() != 1 || updated.GetDuelState().GetLotId() != updated.Id || updated.GetDuelState().GetEndsAtUnixMs() != updated.EndsAtUnixMs {
 		t.Fatalf("accepted bid should extend live lot and sync duel state: before=%d after=%+v", originalEndsAt, updated)
 	}
-	pub.assertContains(t, v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_UPDATED)
-	assertEventTypesContain(t, store.eventTypes(), v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_UPDATED)
+	pub.assertContains(t, v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_UPDATED, v1.AuctionEventType_AUCTION_EVENT_TYPE_AUCTION_EXTENDED)
+	assertEventTypesContain(t, store.eventTypes(), v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_UPDATED, v1.AuctionEventType_AUCTION_EVENT_TYPE_AUCTION_EXTENDED)
+}
+
+func TestCapPriceCreatesOrderAndMockPaymentIsIdempotent(t *testing.T) {
+	store := newTestStore()
+	pub := &testPublisher{}
+	uc := auction.NewAuctionUsecase(store, store, store, pub)
+	ctx := context.Background()
+
+	lot, err := uc.CreateLot(ctx, &v1.CreateLotRequest{
+		RoomId:   "room_payment",
+		Title:    "封顶成交拍品",
+		ImageUrl: "https://example.com/lot.jpg",
+		Rule: &v1.BidRule{
+			StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
+			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+			CapPrice:               &v1.Money{Amount: 11000, Currency: "CNY"},
+			DurationSeconds:        300,
+			AntiSnipeWindowSeconds: 15,
+			AntiSnipeExtendSeconds: 15,
+			MaxExtendCount:         3,
+		},
+	}, "test-owner")
+	if err != nil {
+		t.Fatalf("create lot failed: %v", err)
+	}
+	if _, err := uc.StartLot(ctx, lot.Id); err != nil {
+		t.Fatalf("start lot failed: %v", err)
+	}
+	settled, bid, _, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
+		LotId: lot.Id, Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, IdempotencyKey: "bid-cap-1",
+	}, "buyer1", "买家一号")
+	if err != nil || bid == nil {
+		t.Fatalf("cap bid failed: lot=%+v bid=%+v err=%v", settled, bid, err)
+	}
+	if settled.Status != v1.LotStatus_LOT_STATUS_SETTLED || settled.WinnerUserId != "buyer1" || settled.GetFinalPrice().GetAmount() != 11000 {
+		t.Fatalf("cap bid should settle lot, got %+v", settled)
+	}
+	order, found, err := store.FindOrderByLot(ctx, lot.Id)
+	if err != nil || !found {
+		t.Fatalf("settled lot should create order: found=%v err=%v", found, err)
+	}
+	if order.Status != auction.OrderStatusPendingPayment || order.PaymentStatus != auction.PaymentStatusInit || order.Amount != 11000 || order.BuyerUserID != "buyer1" {
+		t.Fatalf("created order mismatch: %+v", order)
+	}
+	if _, err := uc.MockPayOrder(ctx, "buyer1", order.ID, auction.MockPayRequest{IdempotencyKey: "pay-bad", Amount: 10000, Currency: "CNY"}); err == nil || !strings.Contains(err.Error(), "amount") {
+		t.Fatalf("payment with wrong amount should fail, got %v", err)
+	}
+	paid, err := uc.MockPayOrder(ctx, "buyer1", order.ID, auction.MockPayRequest{IdempotencyKey: "pay-1", Amount: 11000, Currency: "CNY"})
+	if err != nil || !paid.Paid || paid.Order.Status != auction.OrderStatusPaid || paid.Payment.Status != auction.PaymentStatusSuccess {
+		t.Fatalf("payment should succeed: result=%+v err=%v", paid, err)
+	}
+	replayed, err := uc.MockPayOrder(ctx, "buyer1", order.ID, auction.MockPayRequest{IdempotencyKey: "pay-1", Amount: 11000, Currency: "CNY"})
+	if err != nil || !replayed.Paid || replayed.Payment.ID != paid.Payment.ID {
+		t.Fatalf("payment replay should return same payment: first=%+v replay=%+v err=%v", paid, replayed, err)
+	}
+	pub.mu.Lock()
+	published := append([]v1.AuctionEvent(nil), pub.events...)
+	pub.mu.Unlock()
+	seenOrderCreated := false
+	seenPaymentSuccess := false
+	for _, event := range published {
+		if event.Type == v1.AuctionEventType_AUCTION_EVENT_TYPE_ORDER_CREATED {
+			seenOrderCreated = true
+			if event.Reason != "order_created" || strings.Contains(event.Reason, "order_id=") || strings.Contains(event.Reason, order.ID) {
+				t.Fatalf("ORDER_CREATED broadcast reason must not leak order id: reason=%q order=%s", event.Reason, order.ID)
+			}
+		}
+		if event.Type == v1.AuctionEventType_AUCTION_EVENT_TYPE_PAYMENT_SUCCESS {
+			seenPaymentSuccess = true
+			if event.Reason != "payment_success" || strings.Contains(event.Reason, "payment_id=") || strings.Contains(event.Reason, paid.Payment.ID) || strings.Contains(event.Reason, order.ID) {
+				t.Fatalf("PAYMENT_SUCCESS broadcast reason must not leak order/payment id: reason=%q order=%s payment=%s", event.Reason, order.ID, paid.Payment.ID)
+			}
+		}
+	}
+	if !seenOrderCreated || !seenPaymentSuccess {
+		t.Fatalf("expected ORDER_CREATED and PAYMENT_SUCCESS broadcasts, got %+v", published)
+	}
+	orders, err := uc.ListOrdersByBuyer(ctx, "buyer1")
+	if err != nil || len(orders) != 1 || orders[0].Status != auction.OrderStatusPaid {
+		t.Fatalf("buyer orders mismatch: orders=%+v err=%v", orders, err)
+	}
+	result, err := uc.GetLotResult(ctx, lot.Id, auction.LotResultViewer{UserID: "buyer1", Role: v1.UserRole_USER_ROLE_BUYER})
+	if err != nil || result.Order == nil || result.Order.ID != order.ID || result.AuctionState != auction.AuctionStateSold {
+		t.Fatalf("lot result mismatch: result=%+v err=%v", result, err)
+	}
+	pub.assertContains(t,
+		v1.AuctionEventType_AUCTION_EVENT_TYPE_ORDER_CREATED,
+		v1.AuctionEventType_AUCTION_EVENT_TYPE_AUCTION_CLOSED,
+		v1.AuctionEventType_AUCTION_EVENT_TYPE_PAYMENT_SUCCESS,
+	)
+	assertEventTypesContain(t, store.eventTypes(),
+		v1.AuctionEventType_AUCTION_EVENT_TYPE_ORDER_CREATED,
+		v1.AuctionEventType_AUCTION_EVENT_TYPE_AUCTION_CLOSED,
+		v1.AuctionEventType_AUCTION_EVENT_TYPE_PAYMENT_SUCCESS,
+	)
+}
+
+func TestMockPayOrderReplaysPaymentAfterConcurrentCommitConflict(t *testing.T) {
+	store := newTestStore()
+	uc := auction.NewAuctionUsecase(store, store, store, nil)
+	ctx := context.Background()
+
+	lot, err := uc.CreateLot(ctx, &v1.CreateLotRequest{
+		RoomId:   "room_payment_race",
+		Title:    "并发幂等支付拍品",
+		ImageUrl: "https://example.com/lot.jpg",
+		Rule: &v1.BidRule{
+			StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
+			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+			CapPrice:               &v1.Money{Amount: 11000, Currency: "CNY"},
+			DurationSeconds:        300,
+			AntiSnipeWindowSeconds: 15,
+			AntiSnipeExtendSeconds: 15,
+			MaxExtendCount:         3,
+		},
+	}, "test-owner")
+	if err != nil {
+		t.Fatalf("create lot failed: %v", err)
+	}
+	if _, err := uc.StartLot(ctx, lot.Id); err != nil {
+		t.Fatalf("start lot failed: %v", err)
+	}
+	if _, bid, _, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
+		LotId: lot.Id, Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, IdempotencyKey: "bid-payment-race",
+	}, "buyer1", "买家一号"); err != nil || bid == nil {
+		t.Fatalf("cap bid failed: bid=%+v err=%v", bid, err)
+	}
+	order, found, err := store.FindOrderByLot(ctx, lot.Id)
+	if err != nil || !found {
+		t.Fatalf("settled lot should create order: found=%v err=%v", found, err)
+	}
+
+	store.failNextPaymentCommit = apperr.ErrLotVersionConflict
+	store.beforePaymentCommitFailure = func(s *testStore, payment auction.Payment, order auction.Order, events []v1.AuctionEvent) {
+		if s.paymentsByOrder[order.ID] == nil {
+			s.paymentsByOrder[order.ID] = make(map[string]auction.Payment)
+		}
+		s.paymentsByOrder[order.ID][payment.IdempotencyKey] = payment
+		s.ordersByID[order.ID] = order
+		s.events = append(s.events, events...)
+	}
+
+	paid, err := uc.MockPayOrder(ctx, "buyer1", order.ID, auction.MockPayRequest{IdempotencyKey: "pay-race-1", Amount: 11000, Currency: "CNY"})
+	if err != nil || paid == nil || !paid.Paid || paid.Order.Status != auction.OrderStatusPaid || paid.Payment.Status != auction.PaymentStatusSuccess {
+		t.Fatalf("idempotent payment race replay should succeed: result=%+v err=%v", paid, err)
+	}
+	replayed, err := uc.MockPayOrder(ctx, "buyer1", order.ID, auction.MockPayRequest{IdempotencyKey: "pay-race-1", Amount: 11000, Currency: "CNY"})
+	if err != nil || replayed == nil || replayed.Payment.ID != paid.Payment.ID || !replayed.Paid {
+		t.Fatalf("second payment replay should return same payment: first=%+v replay=%+v err=%v", paid, replayed, err)
+	}
+}
+
+func TestCloseExpiredLotsSettlesLeadingBidCreatesOrderAndIsIdempotent(t *testing.T) {
+	store := newTestStore()
+	pub := &testPublisher{}
+	uc := auction.NewAuctionUsecase(store, store, store, pub)
+	ctx := context.Background()
+
+	lot, err := uc.CreateLot(ctx, &v1.CreateLotRequest{
+		RoomId:   "room_auto_close",
+		Title:    "倒计时成交拍品",
+		ImageUrl: "https://example.com/lot.jpg",
+		Rule: &v1.BidRule{
+			StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
+			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+			DurationSeconds:        300,
+			AntiSnipeWindowSeconds: 15,
+			AntiSnipeExtendSeconds: 15,
+			MaxExtendCount:         3,
+		},
+	}, "test-owner")
+	if err != nil {
+		t.Fatalf("create lot failed: %v", err)
+	}
+	if _, err := uc.StartLot(ctx, lot.Id); err != nil {
+		t.Fatalf("start lot failed: %v", err)
+	}
+	if _, bid, _, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{LotId: lot.Id, Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, IdempotencyKey: "bid-auto-close-1"}, "buyer1", "买家一号"); err != nil || bid == nil {
+		t.Fatalf("bid before expiry failed: bid=%+v err=%v", bid, err)
+	}
+	forceLotEndsAt(t, store, ctx, lot.Id, 1000)
+
+	summary, err := uc.CloseExpiredLots(ctx, 2000, 10)
+	if err != nil {
+		t.Fatalf("close expired lots failed: %v", err)
+	}
+	if summary.Closed != 1 || summary.Settled != 1 || summary.Failed != 0 {
+		t.Fatalf("expired leading lot should settle once, summary=%+v", summary)
+	}
+	closedLot, err := store.FindByID(ctx, lot.Id)
+	if err != nil {
+		t.Fatalf("find closed lot failed: %v", err)
+	}
+	if closedLot.Status != v1.LotStatus_LOT_STATUS_SETTLED || closedLot.WinnerUserId != "buyer1" || closedLot.GetFinalPrice().GetAmount() != 11000 {
+		t.Fatalf("expired leading lot should be sold: %+v", closedLot)
+	}
+	order, found, err := store.FindOrderByLot(ctx, lot.Id)
+	if err != nil || !found {
+		t.Fatalf("expired leading lot should create order: found=%v err=%v", found, err)
+	}
+	if order.BuyerUserID != "buyer1" || order.Amount != 11000 || order.Status != auction.OrderStatusPendingPayment {
+		t.Fatalf("auto-created order mismatch: %+v", order)
+	}
+	replayed, err := uc.CloseExpiredLots(ctx, 3000, 10)
+	if err != nil {
+		t.Fatalf("second close scan failed: %v", err)
+	}
+	if replayed.Closed != 0 || len(store.orderIDByLot) != 1 {
+		t.Fatalf("repeat scan must not create duplicate orders: summary=%+v orders=%+v", replayed, store.orderIDByLot)
+	}
+	pub.assertContains(t, v1.AuctionEventType_AUCTION_EVENT_TYPE_AUCTION_CLOSED, v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_SETTLED, v1.AuctionEventType_AUCTION_EVENT_TYPE_ORDER_CREATED)
+	assertEventTypesContain(t, store.eventTypes(), v1.AuctionEventType_AUCTION_EVENT_TYPE_AUCTION_CLOSED, v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_SETTLED, v1.AuctionEventType_AUCTION_EVENT_TYPE_ORDER_CREATED)
+}
+
+func TestCloseExpiredLotsWithoutBidMarksFailedWithoutOrder(t *testing.T) {
+	store := newTestStore()
+	pub := &testPublisher{}
+	uc := auction.NewAuctionUsecase(store, store, store, pub)
+	ctx := context.Background()
+
+	lot, err := uc.CreateLot(ctx, &v1.CreateLotRequest{
+		RoomId:   "room_auto_fail",
+		Title:    "倒计时流拍拍品",
+		ImageUrl: "https://example.com/lot.jpg",
+		Rule: &v1.BidRule{
+			StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
+			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+			DurationSeconds:        300,
+			AntiSnipeWindowSeconds: 15,
+			AntiSnipeExtendSeconds: 15,
+			MaxExtendCount:         3,
+		},
+	}, "test-owner")
+	if err != nil {
+		t.Fatalf("create lot failed: %v", err)
+	}
+	if _, err := uc.StartLot(ctx, lot.Id); err != nil {
+		t.Fatalf("start lot failed: %v", err)
+	}
+	forceLotEndsAt(t, store, ctx, lot.Id, 1000)
+
+	summary, err := uc.CloseExpiredLots(ctx, 2000, 10)
+	if err != nil {
+		t.Fatalf("close expired lots failed: %v", err)
+	}
+	if summary.Closed != 1 || summary.Settled != 0 || summary.Failed != 1 {
+		t.Fatalf("expired no-bid lot should fail once, summary=%+v", summary)
+	}
+	closedLot, err := store.FindByID(ctx, lot.Id)
+	if err != nil {
+		t.Fatalf("find closed lot failed: %v", err)
+	}
+	if closedLot.Status != v1.LotStatus_LOT_STATUS_FAILED || closedLot.CancelReason == "" {
+		t.Fatalf("expired no-bid lot should be failed with reason: %+v", closedLot)
+	}
+	if _, found, err := store.FindOrderByLot(ctx, lot.Id); err != nil || found {
+		t.Fatalf("expired no-bid lot must not create order: found=%v err=%v", found, err)
+	}
+	pub.assertContains(t, v1.AuctionEventType_AUCTION_EVENT_TYPE_AUCTION_CLOSED)
+	assertEventTypesContain(t, store.eventTypes(), v1.AuctionEventType_AUCTION_EVENT_TYPE_AUCTION_CLOSED)
+}
+
+func forceLotEndsAt(t *testing.T, store *testStore, ctx context.Context, lotID string, endsAtUnixMs int64) {
+	t.Helper()
+	lot, err := store.FindByID(ctx, lotID)
+	if err != nil {
+		t.Fatalf("find lot for expiry failed: %v", err)
+	}
+	expectedVersion := lot.Version
+	lot.EndsAtUnixMs = endsAtUnixMs
+	if err := store.Save(ctx, lot, expectedVersion, nil); err != nil {
+		t.Fatalf("force lot expiry failed: %v", err)
+	}
 }
 
 type testPublisher struct {

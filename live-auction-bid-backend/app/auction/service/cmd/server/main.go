@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
@@ -59,8 +60,11 @@ func main() {
 	}
 
 	hub := realtime.NewHub(nil)
+	hub.BindAuthManager(authManager)
 	eventPublisher := realtime.NewPublisher(hub)
 	auctionUsecase := auction.NewAuctionUsecase(store, store, store, eventPublisher)
+	auctionCloseWorker := auction.NewAuctionCloseWorker(auctionUsecase, getenvDuration("AUCTION_CLOSE_WORKER_INTERVAL", 2*time.Second), 100)
+	auctionCloseWorker.Start(ctx)
 	hub.BindSnapshotProvider(auctionUsecase)
 	auctionService := appsvc.NewAuctionService(auctionUsecase)
 	userService := appsvc.NewUserService(userUsecase)
@@ -81,7 +85,7 @@ func main() {
 		}
 	}()
 
-	readiness := server.Readiness{Store: store, Outbox: outboxWorker, Consul: consulRegistration}
+	readiness := server.Readiness{Store: store, Outbox: outboxWorker, AuctionClose: auctionCloseWorker, Consul: consulRegistration}
 	httpServer := server.NewHTTPServer(addr, auctionService, userService, hub, readiness, authManager, authManager.Middleware(), imageStorage, store)
 
 	log.Printf("auction backend listening on %s via kratos http", addr)
@@ -124,20 +128,20 @@ func bootstrapAdmin(ctx context.Context, users *userbiz.Usecase) error {
 }
 
 func newImageStorageFromEnv() (storage.StorageProvider, error) {
-	provider := getenv("AUCTION_STORAGE_PROVIDER", "")
+	provider := strings.TrimSpace(os.Getenv("AUCTION_STORAGE_PROVIDER"))
 	if provider == "" {
-		return nil, nil
+		provider = "tos"
 	}
 	if provider != "tos" {
 		return nil, errors.New("unsupported auction storage provider: " + provider)
 	}
 	return storage.NewTOSStorage(storage.TOSConfig{
-		Endpoint:      getenv("AUCTION_TOS_ENDPOINT", "tos-cn-beijing.volces.com"),
-		Region:        getenv("AUCTION_TOS_REGION", "cn-beijing"),
-		Bucket:        getenv("AUCTION_TOS_BUCKET", "live-auction-assets"),
-		AccessKey:     os.Getenv("AUCTION_TOS_ACCESS_KEY"),
-		SecretKey:     os.Getenv("AUCTION_TOS_SECRET_KEY"),
-		PublicBaseURL: os.Getenv("AUCTION_TOS_PUBLIC_BASE_URL"),
+		Endpoint:      strings.TrimSpace(os.Getenv("AUCTION_TOS_ENDPOINT")),
+		Region:        strings.TrimSpace(os.Getenv("AUCTION_TOS_REGION")),
+		Bucket:        strings.TrimSpace(os.Getenv("AUCTION_TOS_BUCKET")),
+		AccessKey:     strings.TrimSpace(os.Getenv("AUCTION_TOS_ACCESS_KEY")),
+		SecretKey:     strings.TrimSpace(os.Getenv("AUCTION_TOS_SECRET_KEY")),
+		PublicBaseURL: strings.TrimSpace(os.Getenv("AUCTION_TOS_PUBLIC_BASE_URL")),
 		UseSSL:        getenvBool("AUCTION_TOS_USE_SSL", true),
 	})
 }

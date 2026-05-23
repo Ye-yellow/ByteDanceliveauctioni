@@ -3,6 +3,7 @@ package server
 import (
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
+	"live-auction-bid/backend/app/auction/service/internal/pkg/requestctx"
 	"live-auction-bid/backend/app/auction/service/internal/realtime"
 	appsvc "live-auction-bid/backend/app/auction/service/internal/service"
 	"live-auction-bid/backend/app/auction/service/internal/storage"
@@ -20,9 +21,11 @@ func NewHTTPServer(addr string, auction *appsvc.AuctionService, users *appsvc.Us
 	srv := httptransport.NewServer(
 		httptransport.Address(addr),
 		httptransport.Middleware(middlewares...),
+		httptransport.Filter(requestctx.HTTPMiddleware),
 	)
 
 	registerAuctionHTTP(srv, auction)
+	registerDomainHTTP(srv, auction, users)
 	registerUserHTTP(srv, users)
 	registerRealtimeHTTP(srv, hub)
 	registerUploadHTTP(srv, authManager, assetStore, imageStorage)

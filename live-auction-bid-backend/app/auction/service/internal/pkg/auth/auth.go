@@ -18,6 +18,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
+	"live-auction-bid/backend/app/auction/service/internal/pkg/requestctx"
 )
 
 const (
@@ -26,6 +27,27 @@ const (
 )
 
 type contextKey struct{}
+type authContextKey struct{}
+
+type TokenStatus string
+
+const (
+	TokenStatusNone    TokenStatus = "none"
+	TokenStatusValid   TokenStatus = "valid"
+	TokenStatusExpired TokenStatus = "expired"
+	TokenStatusInvalid TokenStatus = "invalid"
+)
+
+// AuthContext captures authentication state for both public and protected routes.
+// Middleware always writes it, so downstream code can distinguish anonymous, expired,
+// invalid, and valid sessions without parsing HTTP headers.
+type AuthContext struct {
+	Claims      *Claims
+	TokenStatus TokenStatus
+	RawToken    string
+	UserID      string
+	UserRole    string
+}
 
 type Config struct {
 	Secret     string
@@ -151,7 +173,7 @@ func (m *Manager) ParseAccessToken(token string) (*Claims, error) {
 		return nil, apperr.ErrInvalidToken
 	}
 	if claims.ExpiresAt <= m.now().Unix() {
-		return nil, apperr.ErrInvalidToken
+		return nil, apperr.ErrTokenExpired
 	}
 	role, ok := RoleFromName(claims.RoleName)
 	if !ok {
@@ -164,15 +186,44 @@ func (m *Manager) ParseAccessToken(token string) (*Claims, error) {
 func (m *Manager) Middleware() middleware.Middleware {
 	return func(next middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, req any) (any, error) {
-			token := bearerToken(ctx)
-			if token != "" {
-				if claims, err := m.ParseAccessToken(token); err == nil {
-					ctx = WithClaims(ctx, claims)
-				}
+			authCtx := m.AuthContextFromBearer(bearerAuthorization(ctx))
+			if authCtx.TokenStatus == TokenStatusValid {
+				ctx = WithClaims(ctx, authCtx.Claims)
 			}
+			ctx = WithAuthContext(ctx, authCtx)
 			return next(ctx, req)
 		}
 	}
+}
+
+func (m *Manager) WithAuthContextFromBearer(ctx context.Context, authorization string) context.Context {
+	authCtx := m.AuthContextFromBearer(authorization)
+	if authCtx.TokenStatus == TokenStatusValid {
+		ctx = WithClaims(ctx, authCtx.Claims)
+	}
+	return WithAuthContext(ctx, authCtx)
+}
+
+func (m *Manager) AuthContextFromBearer(authorization string) AuthContext {
+	authCtx := AuthContext{TokenStatus: TokenStatusNone}
+	token := BearerToken(authorization)
+	if token == "" {
+		return authCtx
+	}
+	authCtx.RawToken = token
+	claims, err := m.ParseAccessToken(token)
+	switch {
+	case err == nil:
+		authCtx.Claims = claims
+		authCtx.TokenStatus = TokenStatusValid
+		authCtx.UserID = claims.UserID
+		authCtx.UserRole = RoleName(claims.Role)
+	case apperr.IsTokenExpired(err):
+		authCtx.TokenStatus = TokenStatusExpired
+	default:
+		authCtx.TokenStatus = TokenStatusInvalid
+	}
+	return authCtx
 }
 
 func (m *Manager) signAccessToken(user *v1.User, issuedAt, expiresAt time.Time) (string, error) {
@@ -231,15 +282,51 @@ func HashRefreshToken(token string) string {
 }
 
 func WithClaims(ctx context.Context, claims *Claims) context.Context {
-	return context.WithValue(ctx, contextKey{}, claims)
+	ctx = context.WithValue(ctx, contextKey{}, claims)
+	if claims != nil {
+		ctx = WithAuthContext(ctx, AuthContext{Claims: claims, TokenStatus: TokenStatusValid, UserID: claims.UserID, UserRole: RoleName(claims.Role)})
+	}
+	return ctx
+}
+
+func WithAuthContext(ctx context.Context, authCtx AuthContext) context.Context {
+	if authCtx.TokenStatus == TokenStatusValid && authCtx.Claims != nil {
+		authCtx.UserID = authCtx.Claims.UserID
+		authCtx.UserRole = RoleName(authCtx.Claims.Role)
+		ctx = requestctx.WithUser(ctx, authCtx.UserID, authCtx.UserRole)
+	}
+	return context.WithValue(ctx, authContextKey{}, authCtx)
+}
+
+func AuthContextFromContext(ctx context.Context) (AuthContext, bool) {
+	authCtx, ok := ctx.Value(authContextKey{}).(AuthContext)
+	return authCtx, ok
 }
 
 func ClaimsFromContext(ctx context.Context) (*Claims, bool) {
+	if authCtx, ok := AuthContextFromContext(ctx); ok && authCtx.Claims != nil && authCtx.TokenStatus == TokenStatusValid {
+		return authCtx.Claims, true
+	}
 	claims, ok := ctx.Value(contextKey{}).(*Claims)
 	return claims, ok && claims != nil
 }
 
 func RequireUser(ctx context.Context) (*Claims, error) {
+	if authCtx, ok := AuthContextFromContext(ctx); ok {
+		switch authCtx.TokenStatus {
+		case TokenStatusValid:
+			if authCtx.Claims != nil {
+				return authCtx.Claims, nil
+			}
+			return nil, apperr.ErrInvalidToken
+		case TokenStatusExpired:
+			return nil, apperr.ErrTokenExpired
+		case TokenStatusInvalid:
+			return nil, apperr.ErrInvalidToken
+		case TokenStatusNone:
+			return nil, apperr.ErrUnauthenticated
+		}
+	}
 	claims, ok := ClaimsFromContext(ctx)
 	if !ok {
 		return nil, apperr.ErrUnauthenticated
@@ -290,7 +377,7 @@ func RoleFromName(name string) (v1.UserRole, bool) {
 	}
 }
 
-func bearerToken(ctx context.Context) string {
+func bearerAuthorization(ctx context.Context) string {
 	tr, ok := transport.FromServerContext(ctx)
 	if !ok || tr.RequestHeader() == nil {
 		return ""
@@ -299,6 +386,10 @@ func bearerToken(ctx context.Context) string {
 	if value == "" {
 		value = tr.RequestHeader().Get("authorization")
 	}
+	return value
+}
+
+func BearerToken(value string) string {
 	const prefix = "Bearer "
 	if !strings.HasPrefix(value, prefix) {
 		return ""

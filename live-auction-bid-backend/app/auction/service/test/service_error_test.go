@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"testing"
 
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
@@ -8,7 +9,7 @@ import (
 )
 
 func TestServiceErrorIsWrappedIntoReplyResult(t *testing.T) {
-	result := service.ErrorResult(apperr.ErrLotVersionConflict)
+	result := service.ErrorResult(context.Background(), apperr.ErrLotVersionConflict)
 	if result.GetCode() != service.ResultCodeLotVersionConflict || result.GetMessage() != service.MessageLotVersionConflict {
 		t.Fatalf("expected wrapped lot version conflict result, got code=%d message=%q", result.GetCode(), result.GetMessage())
 	}

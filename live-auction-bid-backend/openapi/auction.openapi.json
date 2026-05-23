@@ -1,0 +1,502 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Live Auction HTTP DTO API",
+    "version": "2026-05-23",
+    "description": "OpenAPI contract for P2 HTTP DTO routes that intentionally remain outside auction.proto."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/admin/orders": {
+      "get": {
+        "operationId": "listAdminOrders",
+        "summary": "List orders for admin roles",
+        "parameters": [
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/PageSize" },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": { "$ref": "#/components/schemas/OrderStatus" }
+          },
+          {
+            "name": "lotId",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "buyer",
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope with paged orders.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListOrdersResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/lots": {
+      "get": {
+        "operationId": "listAdminLots",
+        "summary": "List lots for admin roles",
+        "parameters": [
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/PageSize" },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": { "$ref": "#/components/schemas/LotStatus" }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "roomId",
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope with paged lots.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListLotsResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "operationId": "listAdminUsers",
+        "summary": "List users for admin role",
+        "parameters": [
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/PageSize" },
+          {
+            "name": "role",
+            "in": "query",
+            "schema": { "$ref": "#/components/schemas/UserRole" }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope with paged users.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListUsersResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/orders": {
+      "get": {
+        "operationId": "listMyOrders",
+        "summary": "List orders for current buyer",
+        "parameters": [
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/PageSize" },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": { "$ref": "#/components/schemas/OrderStatus" }
+          },
+          {
+            "name": "lotId",
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope with current buyer orders.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListOrdersResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/bids": {
+      "get": {
+        "operationId": "listMyBids",
+        "summary": "List bid records for current buyer",
+        "parameters": [
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/PageSize" },
+          {
+            "name": "lotId",
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope with current buyer bids.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListBidRecordsResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lots/{lot_id}/result": {
+      "get": {
+        "operationId": "getLotResult",
+        "summary": "Get public lot result with optional private order visibility",
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lot_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope with lot settlement state.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LotResultResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/{order_id}/mock-pay": {
+      "post": {
+        "operationId": "mockPayOrder",
+        "summary": "Mock-pay a buyer order",
+        "parameters": [
+          {
+            "name": "order_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MockPayRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope with payment result.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MockPayResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "parameters": {
+      "Page": {
+        "name": "page",
+        "in": "query",
+        "schema": { "type": "integer", "format": "int32", "minimum": 1 }
+      },
+      "PageSize": {
+        "name": "pageSize",
+        "in": "query",
+        "schema": { "type": "integer", "format": "int32", "minimum": 1, "maximum": 100 }
+      }
+    },
+    "schemas": {
+      "ReplyResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "type": "integer", "format": "int32" },
+          "message": { "type": "string" },
+          "traceId": { "type": "string" },
+          "trace_id": { "type": "string" }
+        }
+      },
+      "Money": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["amount", "currency"],
+        "properties": {
+          "amount": { "type": "integer", "format": "int64" },
+          "currency": { "type": "string" }
+        }
+      },
+      "LotStatus": {
+        "type": "string",
+        "enum": [
+          "LOT_STATUS_UNSPECIFIED",
+          "LOT_STATUS_DRAFT",
+          "LOT_STATUS_READY",
+          "LOT_STATUS_QUEUED",
+          "LOT_STATUS_SCHEDULED",
+          "LOT_STATUS_LIVE",
+          "LOT_STATUS_EXTENDED",
+          "LOT_STATUS_SETTLED",
+          "LOT_STATUS_SOLD",
+          "LOT_STATUS_CANCELLED",
+          "LOT_STATUS_FAILED"
+        ]
+      },
+      "UserRole": {
+        "type": "string",
+        "enum": [
+          "USER_ROLE_UNSPECIFIED",
+          "USER_ROLE_BUYER",
+          "USER_ROLE_ANCHOR",
+          "USER_ROLE_OPERATOR",
+          "USER_ROLE_ADMIN"
+        ]
+      },
+      "AuctionState": {
+        "type": "string",
+        "enum": ["DRAFT", "SCHEDULED", "LIVE", "EXTENDED", "SOLD", "CANCELLED", "FAILED"]
+      },
+      "OrderStatus": {
+        "type": "string",
+        "enum": ["CREATED", "PENDING_PAYMENT", "PAID", "CANCELLED", "EXPIRED", "REFUNDED"]
+      },
+      "PaymentStatus": {
+        "type": "string",
+        "enum": ["INIT", "PROCESSING", "SUCCESS", "FAILED", "CLOSED"]
+      },
+      "User": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["id", "username", "nickname", "role"],
+        "properties": {
+          "id": { "type": "string" },
+          "username": { "type": "string" },
+          "nickname": { "type": "string" },
+          "role": { "$ref": "#/components/schemas/UserRole" },
+          "createdAtUnixMs": { "type": "integer", "format": "int64" },
+          "updatedAtUnixMs": { "type": "integer", "format": "int64" }
+        }
+      },
+      "Lot": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["id", "roomId", "title", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "roomId": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "imageUrl": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/LotStatus" },
+          "currentPrice": { "$ref": "#/components/schemas/Money" },
+          "finalPrice": { "$ref": "#/components/schemas/Money" },
+          "leadingUserId": { "type": "string" },
+          "winnerUserId": { "type": "string" },
+          "startedAtUnixMs": { "type": "integer", "format": "int64" },
+          "endsAtUnixMs": { "type": "integer", "format": "int64" },
+          "settledAtUnixMs": { "type": "integer", "format": "int64" },
+          "version": { "type": "integer", "format": "int64" }
+        }
+      },
+      "OrderSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "lotId", "roomId", "lotTitle", "lotImageUrl", "buyerUserId", "status", "paymentStatus", "amount", "currency", "createdAtUnixMs", "updatedAtUnixMs", "expiresAtUnixMs"],
+        "properties": {
+          "id": { "type": "string" },
+          "lotId": { "type": "string" },
+          "roomId": { "type": "string" },
+          "lotTitle": { "type": "string" },
+          "lotImageUrl": { "type": "string" },
+          "buyerUserId": { "type": "string" },
+          "buyerNickname": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/OrderStatus" },
+          "paymentStatus": { "$ref": "#/components/schemas/PaymentStatus" },
+          "paymentId": { "type": "string" },
+          "amount": { "type": "integer", "format": "int64" },
+          "currency": { "type": "string" },
+          "createdAtUnixMs": { "type": "integer", "format": "int64" },
+          "updatedAtUnixMs": { "type": "integer", "format": "int64" },
+          "expiresAtUnixMs": { "type": "integer", "format": "int64" },
+          "paidAtUnixMs": { "type": "integer", "format": "int64" },
+          "version": { "type": "integer", "format": "int64" }
+        }
+      },
+      "PaymentSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "orderId", "status", "amount", "currency", "createdAtUnixMs"],
+        "properties": {
+          "id": { "type": "string" },
+          "orderId": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/PaymentStatus" },
+          "amount": { "type": "integer", "format": "int64" },
+          "currency": { "type": "string" },
+          "createdAtUnixMs": { "type": "integer", "format": "int64" },
+          "succeededAtUnixMs": { "type": "integer", "format": "int64" }
+        }
+      },
+      "BidRecord": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "lotId", "roomId", "lotTitle", "lotImageUrl", "userId", "nickname", "amount", "currency", "createdAtUnixMs", "lotStatus", "auctionState", "won"],
+        "properties": {
+          "id": { "type": "string" },
+          "lotId": { "type": "string" },
+          "roomId": { "type": "string" },
+          "lotTitle": { "type": "string" },
+          "lotImageUrl": { "type": "string" },
+          "userId": { "type": "string" },
+          "nickname": { "type": "string" },
+          "amount": { "type": "integer", "format": "int64" },
+          "currency": { "type": "string" },
+          "createdAtUnixMs": { "type": "integer", "format": "int64" },
+          "lotStatus": { "$ref": "#/components/schemas/LotStatus" },
+          "auctionState": { "$ref": "#/components/schemas/AuctionState" },
+          "won": { "type": "boolean" }
+        }
+      },
+      "ListOrdersResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["result", "orders", "total", "page", "pageSize"],
+        "properties": {
+          "result": { "$ref": "#/components/schemas/ReplyResult" },
+          "orders": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/OrderSummary" }
+          },
+          "total": { "type": "integer", "format": "int64" },
+          "page": { "type": "integer", "format": "int32" },
+          "pageSize": { "type": "integer", "format": "int32" }
+        }
+      },
+      "ListLotsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["result", "lots", "total", "page", "pageSize"],
+        "properties": {
+          "result": { "$ref": "#/components/schemas/ReplyResult" },
+          "lots": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Lot" }
+          },
+          "total": { "type": "integer", "format": "int64" },
+          "page": { "type": "integer", "format": "int32" },
+          "pageSize": { "type": "integer", "format": "int32" }
+        }
+      },
+      "ListUsersResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["result", "users", "total", "page", "pageSize"],
+        "properties": {
+          "result": { "$ref": "#/components/schemas/ReplyResult" },
+          "users": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/User" }
+          },
+          "total": { "type": "integer", "format": "int64" },
+          "page": { "type": "integer", "format": "int32" },
+          "pageSize": { "type": "integer", "format": "int32" }
+        }
+      },
+      "ListBidRecordsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["result", "bids", "total", "page", "pageSize"],
+        "properties": {
+          "result": { "$ref": "#/components/schemas/ReplyResult" },
+          "bids": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/BidRecord" }
+          },
+          "total": { "type": "integer", "format": "int64" },
+          "page": { "type": "integer", "format": "int32" },
+          "pageSize": { "type": "integer", "format": "int32" }
+        }
+      },
+      "LotResultResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["result"],
+        "properties": {
+          "result": { "$ref": "#/components/schemas/ReplyResult" },
+          "lot": { "$ref": "#/components/schemas/Lot" },
+          "auctionState": { "$ref": "#/components/schemas/AuctionState" },
+          "order": { "$ref": "#/components/schemas/OrderSummary" }
+        }
+      },
+      "MockPayRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["idempotencyKey", "amount", "currency"],
+        "properties": {
+          "idempotencyKey": { "type": "string", "minLength": 1 },
+          "amount": { "type": "integer", "format": "int64" },
+          "currency": { "type": "string", "minLength": 1 }
+        }
+      },
+      "MockPayResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["result", "paid"],
+        "properties": {
+          "result": { "$ref": "#/components/schemas/ReplyResult" },
+          "order": { "$ref": "#/components/schemas/OrderSummary" },
+          "payment": { "$ref": "#/components/schemas/PaymentSummary" },
+          "paid": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

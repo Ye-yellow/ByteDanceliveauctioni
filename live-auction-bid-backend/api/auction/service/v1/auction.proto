@@ -217,6 +217,8 @@ message Money {
 
 // LotStatus 表示拍品生命周期状态。
 enum LotStatus {
+  option allow_alias = true;
+
   // 未指定。仅作为 proto3 默认值，不应作为业务状态使用。
   LOT_STATUS_UNSPECIFIED = 0;
 
@@ -229,14 +231,26 @@ enum LotStatus {
   // 已加入本场队列，等待队列页/中控台开拍。
   LOT_STATUS_QUEUED = 6;
 
+  // 已排期开拍。兼容 P1/P2 HTTP DTO 语义，等价于 LOT_STATUS_QUEUED。
+  LOT_STATUS_SCHEDULED = 6;
+
   // 竞拍中。观众可以出价，系统会广播价格和排名变化。
   LOT_STATUS_LIVE = 2;
+
+  // 竞拍延时中。用于反狙击延时或 Duel 延时展示。
+  LOT_STATUS_EXTENDED = 7;
 
   // 已落锤成交。当前价、赢家、成交时间被锁定。
   LOT_STATUS_SETTLED = 3;
 
+  // 已售出。兼容 P1/P2 HTTP DTO 语义，等价于 LOT_STATUS_SETTLED。
+  LOT_STATUS_SOLD = 3;
+
   // 已取消。用于异常下架或主播主动取消。
   LOT_STATUS_CANCELLED = 4;
+
+  // 拍卖失败。用于无人出价、结算失败或系统关闭失败路径。
+  LOT_STATUS_FAILED = 8;
 }
 
 // LotQueueStatus 表示拍品在本场直播队列中的位置语义。
@@ -350,6 +364,20 @@ enum AuctionEventType {
   // 拍品已加入本场队列。
   AUCTION_EVENT_TYPE_LOT_QUEUED = 13;
 
+  // 当前出价超过上一领先者。
+  AUCTION_EVENT_TYPE_BID_OUTBID = 14;
+
+  // 拍卖倒计时被延长。
+  AUCTION_EVENT_TYPE_AUCTION_EXTENDED = 15;
+
+  // 拍卖已关闭。可与成交、失败或取消事件组合出现。
+  AUCTION_EVENT_TYPE_AUCTION_CLOSED = 16;
+
+  // 成交订单已创建。公开房间事件不得携带私密订单号。
+  AUCTION_EVENT_TYPE_ORDER_CREATED = 17;
+
+  // 支付已成功。公开房间事件不得携带私密支付号。
+  AUCTION_EVENT_TYPE_PAYMENT_SUCCESS = 18;
 }
 
 // ============================================================================

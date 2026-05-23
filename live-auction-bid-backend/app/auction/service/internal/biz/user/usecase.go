@@ -65,7 +65,7 @@ func (uc *Usecase) RefreshToken(ctx context.Context, refreshToken string) (*v1.A
 	}
 	nowMs := uc.now().UnixMilli()
 	if !found || session.RevokedAtUnixMs != 0 || session.RefreshExpiresAtUnixMs <= nowMs {
-		return nil, apperr.ErrInvalidToken
+		return nil, apperr.ErrSessionExpired
 	}
 	user, _, err := uc.repo.FindUserByID(ctx, session.UserID)
 	if err != nil {
@@ -141,6 +141,26 @@ func (uc *Usecase) AdminUpdateUserRole(ctx context.Context, userID string, role 
 		return nil, err
 	}
 	return cloneUser(user), nil
+}
+
+func (uc *Usecase) ListUsers(ctx context.Context, query ListUsersQuery) (ListUsersResult, error) {
+	if _, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ADMIN); err != nil {
+		return ListUsersResult{}, err
+	}
+	query.Page, query.PageSize = normalizePagination(query.Page, query.PageSize)
+	if query.Role != v1.UserRole_USER_ROLE_UNSPECIFIED && !isValidRole(query.Role) {
+		return ListUsersResult{}, fmt.Errorf("%w: invalid user role", apperr.ErrInvalidArgument)
+	}
+	result, err := uc.repo.ListUsers(ctx, query)
+	if err != nil {
+		return ListUsersResult{}, err
+	}
+	users := make([]*v1.User, 0, len(result.Users))
+	for _, user := range result.Users {
+		users = append(users, cloneUser(user))
+	}
+	result.Users = users
+	return result, nil
 }
 
 func (uc *Usecase) BootstrapAdmin(ctx context.Context, username, password, nickname string) error {
@@ -259,6 +279,19 @@ func isValidRole(role v1.UserRole) bool {
 	default:
 		return false
 	}
+}
+
+func normalizePagination(page, pageSize int) (int, int) {
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+	return page, pageSize
 }
 
 func cloneUser(user *v1.User) *v1.User {

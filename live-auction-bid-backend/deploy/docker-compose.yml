@@ -18,15 +18,15 @@ services:
       AUCTION_BOOTSTRAP_ADMIN_USERNAME: "admin"
       AUCTION_BOOTSTRAP_ADMIN_PASSWORD: "admin_dev_password"
       AUCTION_BOOTSTRAP_ADMIN_NICKNAME: "管理员"
-      # 图片对象存储：前端统一调用 POST /api/uploads/images，厂商细节只在后端配置。
-      # 本地不配置 AK/SK 时保持为空，upload 接口会返回存储未配置错误；不要把密钥提交进仓库。
+      # 图片对象存储：默认使用 TOS。启动前必须复制 deploy/.env.example 为 deploy/.env 并填写配置；
+      # 缺少 endpoint/region/bucket/AK/SK 时 Compose 或后端会 fail fast，不等到 upload 接口才报错。
       AUCTION_STORAGE_PROVIDER: "${AUCTION_STORAGE_PROVIDER:-tos}"
-      AUCTION_TOS_ENDPOINT: "${AUCTION_TOS_ENDPOINT:-https://tos-cn-beijing.volces.com}"
-      AUCTION_TOS_REGION: "${AUCTION_TOS_REGION:-cn-beijing}"
-      AUCTION_TOS_BUCKET: "${AUCTION_TOS_BUCKET:-liveauction}"
-      AUCTION_TOS_ACCESS_KEY: "${AUCTION_TOS_ACCESS_KEY:-}"
-      AUCTION_TOS_SECRET_KEY: "${AUCTION_TOS_SECRET_KEY:-}"
-      AUCTION_TOS_PUBLIC_BASE_URL: "${AUCTION_TOS_PUBLIC_BASE_URL:-https://liveauction.tos-cn-beijing.volces.com}"
+      AUCTION_TOS_ENDPOINT: "${AUCTION_TOS_ENDPOINT:?AUCTION_TOS_ENDPOINT is required}"
+      AUCTION_TOS_REGION: "${AUCTION_TOS_REGION:?AUCTION_TOS_REGION is required}"
+      AUCTION_TOS_BUCKET: "${AUCTION_TOS_BUCKET:?AUCTION_TOS_BUCKET is required}"
+      AUCTION_TOS_ACCESS_KEY: "${AUCTION_TOS_ACCESS_KEY:?AUCTION_TOS_ACCESS_KEY is required}"
+      AUCTION_TOS_SECRET_KEY: "${AUCTION_TOS_SECRET_KEY:?AUCTION_TOS_SECRET_KEY is required}"
+      AUCTION_TOS_PUBLIC_BASE_URL: "${AUCTION_TOS_PUBLIC_BASE_URL:-}"
       AUCTION_TOS_USE_SSL: "${AUCTION_TOS_USE_SSL:-true}"
       AUCTION_TEMP_ASSET_CLEANUP_INTERVAL: "${AUCTION_TEMP_ASSET_CLEANUP_INTERVAL:-1h}"
     ports:

@@ -15,10 +15,25 @@ type Session struct {
 	CreatedAtUnixMs        int64
 }
 
+type ListUsersQuery struct {
+	Page     int         `json:"page"`
+	PageSize int         `json:"pageSize"`
+	Role     v1.UserRole `json:"role,omitempty"`
+	Keyword  string      `json:"keyword,omitempty"`
+}
+
+type ListUsersResult struct {
+	Users    []*v1.User `json:"users"`
+	Total    int64      `json:"total"`
+	Page     int        `json:"page"`
+	PageSize int        `json:"pageSize"`
+}
+
 type Repository interface {
 	CreateUser(ctx context.Context, user *v1.User, passwordHash string) error
 	FindUserByID(ctx context.Context, userID string) (*v1.User, string, error)
 	FindUserByUsername(ctx context.Context, username string) (*v1.User, string, error)
+	ListUsers(ctx context.Context, query ListUsersQuery) (ListUsersResult, error)
 	UpdateUserRole(ctx context.Context, userID string, role v1.UserRole, updatedAtUnixMs int64) (*v1.User, error)
 	CreateSession(ctx context.Context, session Session) error
 	FindSessionByRefreshHash(ctx context.Context, refreshTokenHash string) (Session, bool, error)

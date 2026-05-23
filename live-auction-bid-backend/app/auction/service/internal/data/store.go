@@ -101,6 +101,8 @@ func (s *Store) migrate(ctx context.Context) error {
 	return s.db.WithContext(ctx).AutoMigrate(
 		&AuctionLotModel{},
 		&AuctionBidModel{},
+		&AuctionOrderModel{},
+		&AuctionPaymentModel{},
 		&AuctionEventModel{},
 		&AssetFileModel{},
 		&AuctionUserModel{},
