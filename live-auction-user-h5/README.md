@@ -1,0 +1,63 @@
+# live-auction-user-h5
+
+这是“实时竞拍大师”直播竞拍系统的**用户端移动 H5**，不是 PC 主播团队工作台。
+
+PC 后台由主播团队使用，负责添加拍品、排品、开拍、控场和成交处理；本项目面向观众/买家，用于进入直播间、观看模拟直播、查看竞拍拍品、参与出价、实时查看排名、接收被超越/竞拍延时/竞拍结束提醒，并查看成交结果和模拟支付。
+
+## 启动
+
+```bash
+npm install
+npm run dev
+```
+
+访问：
+
+```text
+http://localhost:5173/m/room/{roomId}
+```
+
+例如：
+
+```text
+http://localhost:5173/m/room/room-jewel-01
+```
+
+## 环境变量
+
+```env
+VITE_API_BASE_URL=http://localhost:18080
+VITE_WS_BASE=ws://localhost:18080
+VITE_AUTH_MODE=demo
+VITE_DEMO_LIVE_URL=https://your-demo-live-stream.m3u8
+VITE_DEMO_BUYER_USERNAME=
+VITE_DEMO_BUYER_PASSWORD=
+VITE_DEMO_BUYER_NICKNAME=H5 买家
+```
+
+- `VITE_AUTH_MODE=demo`：本地开发默认模式，H5 会自动 login/register demo buyer，方便联调出价。
+- `VITE_AUTH_MODE=real`：生产模式，H5 不会静默创建 demo 用户；买家必须在直播页登录或注册后才能出价。
+- 生产构建必须显式设置 `VITE_AUTH_MODE=real`，避免线上自动创建 demo 买家账号。
+
+## 后端接口要求
+
+- `GET /api/rooms/{roomId}/snapshot`
+- `POST /api/lots/{lotId}/bid`
+- `GET /api/lots/{lotId}/result`
+- `POST /api/orders/{orderId}/mock-pay`
+- `WebSocket /ws/rooms/{roomId}`
+
+## 直播模拟
+
+直播区域使用 `xgplayer` / `xgplayer-hls-live` 播放 `VITE_DEMO_LIVE_URL`。
+
+- 如果是 `.m3u8`，优先用 xgplayer HLS live 插件。
+- 如果插件失败，降级到 `hls.js + video`，但封装仍在 `LivePlayer` 内。
+- 如果没有真实 HLS 流，使用 `public/demo-live.mp4` 循环模拟。
+- 不使用商品图假装直播；商品图只作为 poster / fallback。
+
+## MVP 路由
+
+- `/m/room/:roomId` 用户直播间主页面
+- `/m/result/:lotId` 可选结果页占位
+- `/m/history` 可选历史记录页占位
