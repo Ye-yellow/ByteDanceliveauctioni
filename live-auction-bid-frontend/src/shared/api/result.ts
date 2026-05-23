@@ -1,4 +1,4 @@
-import type { AuctionEvent, EventType, ReplyResult } from './types';
+import type { ReplyResult } from './types';
 import {
   RESULT_CODE_INTERNAL_ERROR,
   RESULT_CODE_INVALID_CREDENTIALS,
@@ -10,36 +10,6 @@ import {
   RESULT_CODE_TOKEN_EXPIRED,
   RESULT_CODE_TOKEN_INVALID,
 } from './types';
-
-const eventTypeByNumber: Record<number, EventType> = {
-  0: 'AUCTION_EVENT_TYPE_UNSPECIFIED',
-  1: 'AUCTION_EVENT_TYPE_ROOM_SNAPSHOT',
-  2: 'AUCTION_EVENT_TYPE_LOT_CREATED',
-  3: 'AUCTION_EVENT_TYPE_LOT_STARTED',
-  4: 'AUCTION_EVENT_TYPE_LOT_UPDATED',
-  5: 'AUCTION_EVENT_TYPE_BID_ACCEPTED',
-  6: 'AUCTION_EVENT_TYPE_BID_REJECTED',
-  7: 'AUCTION_EVENT_TYPE_RANKING_UPDATED',
-  8: 'AUCTION_EVENT_TYPE_TRUST_REVEALED',
-  9: 'AUCTION_EVENT_TYPE_DUEL_STARTED',
-  10: 'AUCTION_EVENT_TYPE_DUEL_ENDED',
-  11: 'AUCTION_EVENT_TYPE_LOT_SETTLED',
-  12: 'AUCTION_EVENT_TYPE_LOT_CANCELLED',
-  13: 'AUCTION_EVENT_TYPE_LOT_QUEUED',
-  14: 'AUCTION_EVENT_TYPE_BID_OUTBID',
-  15: 'AUCTION_EVENT_TYPE_AUCTION_EXTENDED',
-  16: 'AUCTION_EVENT_TYPE_AUCTION_CLOSED',
-  17: 'AUCTION_EVENT_TYPE_ORDER_CREATED',
-  18: 'AUCTION_EVENT_TYPE_PAYMENT_SUCCESS',
-};
-
-const eventTypeAliases: Record<string, EventType> = {
-  BID_ACCEPTED: 'AUCTION_EVENT_TYPE_BID_ACCEPTED',
-  AUCTION_EXTENDED: 'AUCTION_EVENT_TYPE_AUCTION_EXTENDED',
-  AUCTION_CLOSED: 'AUCTION_EVENT_TYPE_AUCTION_CLOSED',
-  ORDER_CREATED: 'AUCTION_EVENT_TYPE_ORDER_CREATED',
-  PAYMENT_SUCCESS: 'AUCTION_EVENT_TYPE_PAYMENT_SUCCESS',
-};
 
 export class ApiResultError extends Error {
   readonly result: ReplyResult;
@@ -85,32 +55,4 @@ export function publicResultMessage(result?: Partial<ReplyResult>, fallback = '�
   return errorMessages[code] || result.message || `${fallback}（code=${code}）`;
 }
 
-function normalizeEventType(type: unknown): EventType {
-  if (typeof type === 'number') return eventTypeByNumber[type] ?? 'AUCTION_EVENT_TYPE_UNSPECIFIED';
-  if (typeof type === 'string') return eventTypeAliases[type] ?? (type as EventType);
-  return 'AUCTION_EVENT_TYPE_UNSPECIFIED';
-}
-
-export function normalizeAuctionEvent(input: unknown): AuctionEvent {
-  const raw = input as AuctionEvent & {
-    type?: EventType | number | string;
-    room_id?: string;
-    lot_id?: string;
-    occurred_at_unix_ms?: number | string;
-    trust_card?: AuctionEvent['trustCard'];
-    duel_state?: AuctionEvent['duelState'];
-    order_id?: string;
-    payment_id?: string;
-  };
-  return {
-    ...raw,
-    type: normalizeEventType(raw.type),
-    roomId: raw.roomId ?? raw.room_id ?? '',
-    lotId: raw.lotId ?? raw.lot_id ?? '',
-    occurredAtUnixMs: raw.occurredAtUnixMs ?? raw.occurred_at_unix_ms ?? 0,
-    trustCard: raw.trustCard ?? raw.trust_card,
-    duelState: raw.duelState ?? raw.duel_state,
-    orderId: raw.orderId ?? raw.order_id,
-    paymentId: raw.paymentId ?? raw.payment_id,
-  } as AuctionEvent;
-}
+export { normalizeAuctionEvent } from './normalizers';

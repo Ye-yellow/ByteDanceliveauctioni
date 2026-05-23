@@ -1,4 +1,5 @@
 import { apiRequest } from '../../../shared/api/httpClient';
+import { normalizeUser } from '../../../shared/api/normalizers';
 import { toQueryString } from '../../../shared/api/query';
 import { assertOkResult } from '../../../shared/api/result';
 import type { ReplyResult, User, UserRole } from '../../../shared/api/types';
@@ -18,12 +19,12 @@ export type AdminUsersPage = {
 };
 
 type AdminUserReply = {
-  user?: User;
+  user?: unknown;
   result?: ReplyResult;
 };
 
 type AdminUsersReply = {
-  users?: User[];
+  users?: unknown[];
   total?: number | string;
   page?: number | string;
   pageSize?: number | string;
@@ -32,7 +33,17 @@ type AdminUsersReply = {
 
 function requireUser(reply: AdminUserReply) {
   if (!reply.user) throw new Error('admin user response missing user');
-  return reply.user;
+  return normalizeUser(reply.user);
+}
+
+function requireArray<T>(value: T[] | undefined, field: string): T[] {
+  if (!Array.isArray(value)) throw new Error(`response missing ${field}`);
+  return value;
+}
+
+function requiredValue<T>(value: T | undefined | null, field: string): T {
+  if (value === undefined || value === null || value === '') throw new Error(`response missing ${field}`);
+  return value;
 }
 
 export async function adminCreateUser(payload: { username: string; password: string; nickname: string; role: UserRole }) {
@@ -58,10 +69,10 @@ export async function listAdminUsers(query: AdminUsersQuery = {}): Promise<Admin
     operation: 'admin-list-users',
   }));
   return {
-    users: reply.users ?? [],
-    total: Number(reply.total ?? 0),
-    page: Number(reply.page ?? page),
-    pageSize: Number(reply.pageSize ?? pageSize),
+    users: requireArray(reply.users, 'users').map(normalizeUser),
+    total: Number(requiredValue(reply.total, 'total')),
+    page: Number(requiredValue(reply.page, 'page')),
+    pageSize: Number(requiredValue(reply.pageSize, 'pageSize')),
   };
 }
 

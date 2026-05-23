@@ -1,6 +1,7 @@
 import { type ComponentType, type ReactNode } from 'react';
-import { Bell, Gavel, LayoutDashboard, ListChecks, Package, PlayCircle, Radio, ReceiptText, Settings, ShieldAlert, Users, Wifi } from 'lucide-react';
+import { Bell, FileClock, Gavel, LayoutDashboard, ListChecks, Package, PlayCircle, Radio, ReceiptText, Settings, ShieldAlert, Users, Wifi } from 'lucide-react';
 import { AdminDashboardPage } from '../../features/auction-manage/AdminDashboardPage';
+import { AuctionHistoryPage } from '../../features/auction-manage/AuctionHistoryPage';
 import { AuctionManagementPage } from '../../features/auction-manage/AuctionManagementPage';
 import { ProductLibraryPage } from '../../features/auction-manage/ProductLibraryPage';
 import { AuctionCreatePage } from '../../features/auction-create/AuctionCreatePage';
@@ -19,10 +20,11 @@ const navGroups: StudioNavGroupConfig[] = [
   ] },
   { label: '直播筹备', items: [
     { label: '添加拍品', href: '/admin/auctions/create', icon: <PlayCircle size={17} />, match: (pathname) => pathname.includes('/auctions/create') },
-    { label: '本场拍品队列', href: '/admin/auctions', icon: <Gavel size={17} />, match: (pathname) => pathname.includes('/auctions') && !pathname.includes('/auctions/create') && !pathname.includes('/control') },
+    { label: '本场拍品队列', href: '/admin/auctions', icon: <Gavel size={17} />, match: (pathname) => pathname.includes('/auctions') && !pathname.includes('/auctions/create') && !pathname.includes('/auctions/history') && !pathname.includes('/control') },
     { label: '拍品库', href: '/admin/products', icon: <Package size={17} />, match: (pathname) => pathname.includes('/products') },
   ] },
   { label: '直播后', items: [
+    { label: '拍品历史', href: '/admin/auctions/history', icon: <FileClock size={17} />, match: (pathname) => pathname.includes('/auctions/history') },
     { label: '成交处理', href: '/admin/orders', icon: <ReceiptText size={17} />, match: (pathname) => pathname.includes('/orders') },
     { label: '出价明细', href: '/admin/bids', icon: <ListChecks size={17} />, match: (pathname) => pathname.includes('/bids') },
   ] },
@@ -39,6 +41,7 @@ const navGroups: StudioNavGroupConfig[] = [
 function pathTitle(pathname: string) {
   if (pathname === '/admin/realtime' || pathname === '/host/realtime') return '实时同步状态';
   if (pathname.includes('/auctions/create')) return '添加拍品';
+  if (pathname.includes('/auctions/history')) return '拍品历史';
   if (pathname.includes('/control')) return '直播间中控台';
   if (pathname.includes('/auctions')) return '本场拍品队列';
   if (pathname.includes('/orders')) return '成交处理';
@@ -59,6 +62,7 @@ type ConsoleRoute = { match: (pathname: string) => boolean; Page: ComponentType 
 const consoleRoutes: ConsoleRoute[] = [
   { match: (pathname) => pathname === '/admin/realtime' || pathname === '/host/realtime', Page: RealtimeDiagnosticsPage },
   { match: (pathname) => pathname.includes('/auctions/create'), Page: AuctionCreatePage },
+  { match: (pathname) => pathname.includes('/auctions/history'), Page: AuctionHistoryPage },
   { match: (pathname) => pathname.includes('/control'), Page: LiveControlPage },
   { match: (pathname) => pathname.includes('/auctions'), Page: AuctionManagementPage },
   { match: (pathname) => pathname.includes('/orders'), Page: () => <OrderManagementPage roomId={ADMIN_ROOM.id} /> },

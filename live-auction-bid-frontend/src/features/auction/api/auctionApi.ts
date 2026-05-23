@@ -1,13 +1,15 @@
 import { apiRequest } from '../../../shared/api/httpClient';
 import { toQueryString } from '../../../shared/api/query';
-import { assertOkResult } from '../../../shared/api/result';
+import { assertOkResult, normalizeAuctionEvent } from '../../../shared/api/result';
+import { normalizeLot, normalizeRoomPresence, normalizeRoomSnapshot, normalizeTrustRevealCard, normalizeUploadedAsset } from '../../../shared/api/normalizers';
 import { clientLog, createRequestId } from '../../../shared/lib/clientLogger';
-import type { CancelLotReply, CreateLotReply, CreateLotRequest, GetRoomSnapshotReply, ListLotsReply, Lot, LotStatus, PatchLotDraftRequest, PatchLotDraftReply, QueueLotReply, ReplyResult, RevealTrustCardReply, RoomSnapshot, SettleLotReply, StartDuelReply, StartLotReply, TrustRevealCard, UploadedAsset, UploadImageReply } from '../../../shared/api/types';
+import type { AuctionEvent, CancelLotReply, CreateLotReply, CreateLotRequest, GetRoomPresenceReply, GetRoomSnapshotReply, ListLotsReply, ListRoomEventsReply, Lot, LotStatus, PatchLotDraftRequest, PatchLotDraftReply, QueueLotReply, ReplyResult, RevealTrustCardReply, RoomPresence, RoomSnapshot, SettleLotReply, StartDuelReply, StartLotReply, TrustRevealCard, UploadedAsset, UploadImageReply } from '../../../shared/api/types';
 
 export type AdminLotsQuery = {
   page?: number;
   pageSize?: number;
   status?: LotStatus | '';
+  view?: 'current' | 'history' | 'library' | '';
   keyword?: string;
   roomId?: string;
 };
@@ -21,10 +23,15 @@ export type AdminLotsPage = {
 
 type AdminLotsReply = {
   result?: ReplyResult;
-  lots?: Lot[];
+  lots?: unknown[];
   total?: number | string;
   page?: number | string;
   pageSize?: number | string;
+};
+
+export type RoomEventsPage = {
+  events: AuctionEvent[];
+  nextPageToken: string;
 };
 
 function formatApiError(input: { status?: number; code?: number; message?: string; requestId?: string; result?: { code?: number; message?: string; traceId?: string; trace_id?: string }; error?: string }) {
@@ -35,9 +42,19 @@ function formatApiError(input: { status?: number; code?: number; message?: strin
   return meta ? `${message}（${meta}）` : message;
 }
 
-function requireLot(reply: { lot?: Lot }) {
+function requireLot(reply: { lot?: unknown }) {
   if (!reply.lot) throw new Error('response missing lot');
-  return reply.lot;
+  return normalizeLot(reply.lot);
+}
+
+function requireArray<T>(value: T[] | undefined, field: string): T[] {
+  if (!Array.isArray(value)) throw new Error(`response missing ${field}`);
+  return value;
+}
+
+function requiredValue<T>(value: T | undefined | null, field: string): T {
+  if (value === undefined || value === null || value === '') throw new Error(`response missing ${field}`);
+  return value;
 }
 
 export async function listLots(roomId = 'demo'): Promise<Lot[]> {
@@ -46,7 +63,7 @@ export async function listLots(roomId = 'demo'): Promise<Lot[]> {
     method: 'GET',
     operation: 'list-lots',
   }));
-  return reply.lots ?? [];
+  return requireArray(reply.lots as unknown[] | undefined, 'lots').map(normalizeLot);
 }
 
 export async function listAdminLots(query: AdminLotsQuery = {}): Promise<AdminLotsPage> {
@@ -57,6 +74,7 @@ export async function listAdminLots(query: AdminLotsQuery = {}): Promise<AdminLo
       page,
       pageSize,
       status: query.status,
+      view: query.view,
       keyword: query.keyword?.trim(),
       roomId: query.roomId,
     })}`,
@@ -64,10 +82,10 @@ export async function listAdminLots(query: AdminLotsQuery = {}): Promise<AdminLo
     operation: 'admin-list-lots',
   }));
   return {
-    lots: reply.lots ?? [],
-    total: Number(reply.total ?? 0),
-    page: Number(reply.page ?? page),
-    pageSize: Number(reply.pageSize ?? pageSize),
+    lots: requireArray(reply.lots, 'lots').map(normalizeLot),
+    total: Number(requiredValue(reply.total, 'total')),
+    page: Number(requiredValue(reply.page, 'page')),
+    pageSize: Number(requiredValue(reply.pageSize, 'pageSize')),
   };
 }
 
@@ -78,7 +96,34 @@ export async function getRoomSnapshot(roomId = 'demo'): Promise<RoomSnapshot> {
     operation: 'room-snapshot',
   }));
   if (!reply.snapshot) throw new Error('response missing snapshot');
-  return reply.snapshot;
+  return normalizeRoomSnapshot(reply.snapshot);
+}
+
+export async function getRoomPresence(roomId = 'demo'): Promise<RoomPresence> {
+  const reply = assertOkResult(await apiRequest<GetRoomPresenceReply>({
+    path: `/api/rooms/${encodeURIComponent(roomId)}/presence`,
+    method: 'GET',
+    operation: 'room-presence',
+  }));
+  if (!reply.presence) throw new Error('response missing presence');
+  const presence = normalizeRoomPresence(reply.presence);
+  return presence;
+}
+
+export async function listRoomEvents(roomId = 'demo', input: { pageSize?: number; pageToken?: string } = {}): Promise<RoomEventsPage> {
+  const reply = assertOkResult(await apiRequest<ListRoomEventsReply>({
+    path: `/api/rooms/${encodeURIComponent(roomId)}/events${toQueryString({
+      page_size: input.pageSize ?? 12,
+      page_token: input.pageToken,
+    })}`,
+    method: 'GET',
+    operation: 'room-events',
+  }));
+  const raw = reply as ListRoomEventsReply & { next_page_token?: string };
+  return {
+    events: requireArray(reply.events, 'events').map((event) => normalizeAuctionEvent(event)),
+    nextPageToken: String(reply.nextPageToken ?? raw.next_page_token ?? ''),
+  };
 }
 
 export async function uploadImage(file: File, input?: { roomId?: string; bizType?: string }): Promise<UploadedAsset> {
@@ -108,8 +153,7 @@ export async function uploadImage(file: File, input?: { roomId?: string; bizType
     });
     const code = reply.code ?? reply.result?.code ?? 0;
     if (code !== 0) throw new Error(formatApiError(reply));
-    const asset = reply.data?.asset ?? reply.asset;
-    if (!asset?.imageUrl) throw new Error('response missing uploaded image url');
+    const asset = normalizeUploadedAsset(reply.data?.asset ?? reply.asset);
     clientLog('info', 'upload_image.success', {
       requestId: reply.requestId ?? requestId,
       durationMs: Math.round(performance.now() - startedAt),
@@ -174,7 +218,9 @@ export async function patchDraftLot(lotId: string, payload: Partial<CreateLotReq
 export async function queueLot(lotId: string) {
   const reply = assertOkResult(await apiRequest<QueueLotReply>({ path: `/api/lots/${lotId}/queue`, method: 'POST', body: { lotId }, operation: 'queue-lot' }));
   if (!reply.lot) throw new Error('response missing lot');
-  return reply as { lot: Lot; queuePosition?: number };
+  const raw = reply as QueueLotReply & { queue_position?: number };
+  const lot = normalizeLot(reply.lot);
+  return { lot, queuePosition: raw.queuePosition ?? raw.queue_position ?? lot.queuePosition } as { lot: Lot; queuePosition?: number };
 }
 
 export async function startLot(lotId: string) {
@@ -188,8 +234,9 @@ export async function revealTrustCard(lotId: string, cardId: string) {
     body: {},
     operation: 'reveal-trust-card',
   }));
-  if (!reply.lot || !reply.trustCard) throw new Error('response missing lot or trust card');
-  return reply as { lot: Lot; trustCard: TrustRevealCard };
+  const raw = reply as RevealTrustCardReply & { trust_card?: unknown };
+  if (!reply.lot || (!reply.trustCard && !raw.trust_card)) throw new Error('response missing lot or trust card');
+  return { lot: normalizeLot(reply.lot), trustCard: normalizeTrustRevealCard(reply.trustCard ?? raw.trust_card) } as { lot: Lot; trustCard: TrustRevealCard };
 }
 
 export async function startDuel(lotId: string) {

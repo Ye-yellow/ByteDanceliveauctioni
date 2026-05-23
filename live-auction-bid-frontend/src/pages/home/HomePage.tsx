@@ -37,6 +37,12 @@ type TextParticle = {
   color: string;
 };
 
+type CountUpParts = {
+  prefix: string;
+  target: number;
+  suffix: string;
+};
+
 const leftRightBlankZones = [
   { left: [1, 7], top: [12, 76] },
   { left: [88, 96], top: [12, 76] },
@@ -49,6 +55,102 @@ const productSafeZones = [
 
 function randomBetween([min, max]: number[]) {
   return min + Math.random() * (max - min);
+}
+
+const statNumberFormatter = new Intl.NumberFormat('en-US');
+
+function parseCountUpValue(value: string): CountUpParts | null {
+  const match = value.match(/^([^0-9]*)([\d,]+)(.*)$/);
+  if (!match) return null;
+  const target = Number(match[2].replace(/,/g, ''));
+  if (!Number.isFinite(target)) return null;
+  return {
+    prefix: match[1],
+    target,
+    suffix: match[3],
+  };
+}
+
+function formatCountUpValue(parts: CountUpParts, amount: number) {
+  return `${parts.prefix}${statNumberFormatter.format(Math.round(amount))}${parts.suffix}`;
+}
+
+function easeOutCubic(progress: number) {
+  return 1 - Math.pow(1 - progress, 3);
+}
+
+function CountUpStatValue({
+  value,
+  duration = 2200,
+  delay = 0,
+}: {
+  value: string;
+  duration?: number;
+  delay?: number;
+}) {
+  const ref = useRef<HTMLElement | null>(null);
+  const initialParts = parseCountUpValue(value);
+  const [displayValue, setDisplayValue] = useState(() => (initialParts ? formatCountUpValue(initialParts, 0) : value));
+
+  useEffect(() => {
+    const parts = parseCountUpValue(value);
+    if (!parts) {
+      setDisplayValue(value);
+      return undefined;
+    }
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+      setDisplayValue(value);
+      return undefined;
+    }
+
+    let animationFrame = 0;
+    let delayTimer = 0;
+    let observer: IntersectionObserver | null = null;
+    let started = false;
+    setDisplayValue(formatCountUpValue(parts, 0));
+
+    const animate = (startTime: number) => {
+      const tick = (now: number) => {
+        const progress = Math.min((now - startTime) / duration, 1);
+        setDisplayValue(formatCountUpValue(parts, parts.target * easeOutCubic(progress)));
+        if (progress < 1) {
+          animationFrame = window.requestAnimationFrame(tick);
+          return;
+        }
+        setDisplayValue(value);
+      };
+      animationFrame = window.requestAnimationFrame(tick);
+    };
+
+    const start = () => {
+      if (started) return;
+      started = true;
+      delayTimer = window.setTimeout(() => animate(performance.now()), delay);
+    };
+
+    const node = ref.current;
+    if (node && 'IntersectionObserver' in window) {
+      observer = new IntersectionObserver((entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          observer?.disconnect();
+          start();
+        }
+      }, { threshold: 0.45 });
+      observer.observe(node);
+    } else {
+      start();
+    }
+
+    return () => {
+      observer?.disconnect();
+      window.clearTimeout(delayTimer);
+      window.cancelAnimationFrame(animationFrame);
+    };
+  }, [delay, duration, value]);
+
+  return <strong ref={ref} aria-label={value}>{displayValue}</strong>;
 }
 
 type PlacedPoint = { left: number; top: number };
@@ -1047,10 +1149,10 @@ export function HomePage() {
           </div>
 
           <div className="softStatsBar statsPill" aria-label="平台数据">
-            {statItems.map((item) => (
+            {statItems.map((item, index) => (
               <div key={item.label}>
                 <i>{item.icon}</i>
-                <strong>{item.value}</strong>
+                <CountUpStatValue value={item.value} duration={2200 + index * 220} delay={260 + index * 120} />
                 <span>{item.label}</span>
               </div>
             ))}

@@ -1,6 +1,7 @@
 import { API_BASE } from '../config/env';
 import { createRequestId } from '../lib/clientLogger';
 import { authSession } from '../auth/authSession';
+import { normalizeAuthTokens } from './normalizers';
 import type { AuthTokens, RefreshTokenReply, ReplyResult } from './types';
 import { RESULT_CODE_LOGIN_REQUIRED, RESULT_CODE_OK, RESULT_CODE_SESSION_EXPIRED, RESULT_CODE_TOKEN_EXPIRED, RESULT_CODE_TOKEN_INVALID } from './types';
 
@@ -192,5 +193,5 @@ authSession.configureRefresh(async (refreshToken: string): Promise<AuthTokens> =
     operation: 'refresh-token',
   });
   if (!reply.tokens) throw new Error('refresh response missing tokens');
-  return reply.tokens;
+  return normalizeAuthTokens(reply.tokens);
 });

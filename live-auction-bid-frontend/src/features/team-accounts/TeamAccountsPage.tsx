@@ -5,11 +5,12 @@ import { adminCreateUser, adminUpdateUserRole, listAdminUsers, type AdminUsersQu
 import { USER_ROLE, type User, type UserRole } from '../../shared/api/types';
 import { resultMessage } from '../../shared/api/result';
 import { formatDateTimeText } from '../../shared/lib/format';
-import { USER_ROLE_FILTERS, USER_ROLE_OPTIONS, userRoleMeta } from '../../entities/user/model/userRole';
+import { TEAM_ACCOUNT_ROLE_OPTIONS, USER_ROLE_FILTERS, userRoleMeta } from '../../entities/user/model/userRole';
 import { StudioBadge, StudioButton, StudioCard, StudioEmptyState, StudioField, StudioMetricCard, StudioPageHeader, StudioTable, StudioTableSkeleton, StudioToastViewport, useStudioToast } from '../../pages/host-console/components/studio-ui';
 
 const DEFAULT_PAGE_SIZE = 20;
 const BACKOFFICE_ROLES: UserRole[] = [USER_ROLE.ADMIN, USER_ROLE.ANCHOR, USER_ROLE.OPERATOR];
+const MANAGED_TEAM_ROLES: UserRole[] = [USER_ROLE.ANCHOR, USER_ROLE.OPERATOR];
 
 export function TeamAccountsPage() {
   const currentUser = currentAuth().user;
@@ -33,6 +34,8 @@ export function TeamAccountsPage() {
     setError('');
     try {
       const page = await listAdminUsers(nextQuery);
+      const buyer = page.users.find((user) => user.role === USER_ROLE.BUYER);
+      if (buyer) throw new Error(`后台团队账号接口返回了买家账号 ${buyer.username}，违反 Admin 工作台账号边界`);
       setUsers(page.users);
       setTotal(page.total);
       setQuery((current) => ({ ...current, page: page.page, pageSize: page.pageSize }));
@@ -51,6 +54,10 @@ export function TeamAccountsPage() {
 
   const submitCreate = async () => {
     if (!isAdmin || !createForm.username.trim() || !createForm.password || !createForm.nickname.trim()) return;
+    if (!MANAGED_TEAM_ROLES.includes(createForm.role)) {
+      setError('Admin 工作台只能创建主播团队子账号，不能创建主播主账号或买家账号');
+      return;
+    }
     setCreating(true);
     setError('');
     try {
@@ -69,6 +76,10 @@ export function TeamAccountsPage() {
 
   const submitUpdate = async () => {
     if (!isAdmin || !updateForm.userId.trim()) return;
+    if (!MANAGED_TEAM_ROLES.includes(updateForm.role)) {
+      setError('Admin 工作台只能把团队成员设置为主播 / 场控或运营子账号');
+      return;
+    }
     setUpdating(true);
     setError('');
     try {
@@ -89,21 +100,21 @@ export function TeamAccountsPage() {
   useEffect(() => { void syncUsers(query); }, [query.page, query.role]);
 
   const metrics = useMemo(() => ({
-    admins: users.filter((user) => user.role === USER_ROLE.ADMIN).length,
+    ownerAccounts: users.filter((user) => user.role === USER_ROLE.ADMIN).length,
+    subaccounts: users.filter((user) => MANAGED_TEAM_ROLES.includes(user.role)).length,
     backoffice: users.filter((user) => BACKOFFICE_ROLES.includes(user.role)).length,
-    buyers: users.filter((user) => user.role === USER_ROLE.BUYER).length,
   }), [users]);
 
   return <section className="teamAccountPage">
     <StudioToastViewport toasts={toasts} />
-    <section className="laSettingsHero laMerchantsHero"><StudioPageHeader eyebrow="Admin users" title="团队协作" description="账号列表、角色筛选和搜索来自 /api/admin/users；创建和改角色仅 USER_ROLE_ADMIN 可提交。" actions={<StudioButton type="button" variant="secondary" icon={<RefreshCw size={15} />} loading={loading} disabled={!isAdmin} onClick={() => void syncUsers()}>{loading ? '同步中' : '同步账号'}</StudioButton>} /></section>
+    <section className="laSettingsHero laMerchantsHero"><StudioPageHeader eyebrow="Team accounts" title="团队成员" description="主播主账号由平台发放；当前页只管理该商家空间下的主播 / 场控和运营子账号。" actions={<StudioButton type="button" variant="secondary" icon={<RefreshCw size={15} />} loading={loading} disabled={!isAdmin} onClick={() => void syncUsers()}>{loading ? '同步中' : '同步账号'}</StudioButton>} /></section>
     {error ? <div className="auctionMgmtNotice danger"><AlertTriangle size={16} />{error}</div> : null}
     {!isAdmin ? <NonAdminAccountNotice currentUser={currentUser} /> : <>
       <section className="laStatsGrid">
-        <StudioMetricCard icon={<ShieldCheck />} label="账号总数" value={total} trend="ADMIN 查询接口" tone="info" />
-        <StudioMetricCard icon={<UserCog />} label="后台角色" value={metrics.backoffice} trend="ADMIN / ANCHOR / OPERATOR" tone="success" />
-        <StudioMetricCard icon={<ShieldAlert />} label="管理员" value={metrics.admins} trend="可管理账号" tone="purple" />
-        <StudioMetricCard icon={<Users />} label="买家账号" value={metrics.buyers} trend="BUYER 禁止进入后台" tone="warning" />
+        <StudioMetricCard icon={<ShieldCheck />} label="账号总数" value={total} trend="当前商家空间" tone="info" />
+        <StudioMetricCard icon={<UserCog />} label="团队子账号" value={metrics.subaccounts} trend="主播 / 场控 / 运营" tone="success" />
+        <StudioMetricCard icon={<ShieldAlert />} label="主播主账号" value={metrics.ownerAccounts} trend="平台发放，不在此创建" tone="purple" />
+        <StudioMetricCard icon={<Users />} label="后台角色" value={metrics.backoffice} trend="不包含 H5 买家账号" tone="info" />
       </section>
       <StudioCard padding="md">
         <div className="auctionFilterBar queueFilters" aria-label="账号筛选">
@@ -113,22 +124,22 @@ export function TeamAccountsPage() {
         </div>
       </StudioCard>
       <section className="laGrid laGrid-1-1">
-        <StudioCard title="创建团队账号" subtitle="/api/admin/users" padding="md">
+        <StudioCard title="创建团队子账号" subtitle="/api/admin/users" padding="md">
           <div className="laFormGrid">
             <StudioField label="用户名"><input value={createForm.username} onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })} placeholder="team_operator_01" autoComplete="off" /></StudioField>
             <StudioField label="昵称"><input value={createForm.nickname} onChange={(e) => setCreateForm({ ...createForm, nickname: e.target.value })} placeholder="运营账号昵称" /></StudioField>
             <StudioField label="初始密码"><input value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} placeholder="输入后端允许的密码" type="password" autoComplete="new-password" /></StudioField>
-            <StudioField label="角色"><select value={createForm.role} onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as UserRole })}>{USER_ROLE_OPTIONS.map((item) => <option key={item.role} value={item.role}>{item.label}</option>)}</select></StudioField>
+            <StudioField label="角色"><select value={createForm.role} onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as UserRole })}>{TEAM_ACCOUNT_ROLE_OPTIONS.map((item) => <option key={item.role} value={item.role}>{item.label}</option>)}</select></StudioField>
           </div>
-          <div className="laRulePreview">{USER_ROLE_OPTIONS.map((item) => <span key={item.role}>{item.label} · {item.hint}</span>)}</div>
+          <div className="laRulePreview">{TEAM_ACCOUNT_ROLE_OPTIONS.map((item) => <span key={item.role}>{item.label} · {item.hint}</span>)}</div>
           <div className="drawerActions"><StudioButton type="button" variant="primary" loading={creating} disabled={!createForm.username.trim() || !createForm.password || !createForm.nickname.trim()} onClick={() => void submitCreate()}>创建账号</StudioButton></div>
         </StudioCard>
         <StudioCard title="调整用户角色" subtitle="/api/admin/users/{userId}/role" padding="md">
           <div className="laFormGrid">
             <StudioField label="用户 ID"><input value={updateForm.userId} onChange={(e) => setUpdateForm({ ...updateForm, userId: e.target.value })} placeholder="输入后端 user.id" /></StudioField>
-            <StudioField label="新角色"><select value={updateForm.role} onChange={(e) => setUpdateForm({ ...updateForm, role: e.target.value as UserRole })}>{USER_ROLE_OPTIONS.map((item) => <option key={item.role} value={item.role}>{item.label}</option>)}</select></StudioField>
+            <StudioField label="新角色"><select value={updateForm.role} onChange={(e) => setUpdateForm({ ...updateForm, role: e.target.value as UserRole })}>{TEAM_ACCOUNT_ROLE_OPTIONS.map((item) => <option key={item.role} value={item.role}>{item.label}</option>)}</select></StudioField>
           </div>
-          <StudioEmptyState compact icon={<CheckCircle2 size={22} />} title="角色变更后立即刷新列表" description="后端仍负责最终权限校验，页面只在 ADMIN 下展示可提交表单。" />
+          <StudioEmptyState compact icon={<CheckCircle2 size={22} />} title="角色变更后立即刷新列表" description="后端仍负责最终权限校验；页面不提供主播主账号或买家账号创建入口。" />
           <div className="drawerActions"><StudioButton type="button" variant="primary" loading={updating} disabled={!updateForm.userId.trim()} onClick={() => void submitUpdate()}>更新角色</StudioButton></div>
         </StudioCard>
       </section>
@@ -144,7 +155,7 @@ export function TeamAccountsPage() {
           { label: '角色', render: (user) => <StudioBadge tone={userRoleMeta(user.role).tone}>{userRoleMeta(user.role).label}</StudioBadge> },
           { label: '创建时间', render: (user) => formatDateTimeText(user.createdAtUnixMs) },
           { label: '更新时间', render: (user) => formatDateTimeText(user.updatedAtUnixMs) },
-          { label: '操作', render: (user) => <div className="laRowActions"><button type="button" onClick={() => setUpdateForm({ userId: user.id, role: user.role })}>填入改角色</button></div> },
+          { label: '操作', render: (user) => <div className="laRowActions">{MANAGED_TEAM_ROLES.includes(user.role) ? <button type="button" onClick={() => setUpdateForm({ userId: user.id, role: user.role })}>填入改角色</button> : <span className="mutedText">平台发放账号</span>}</div> },
         ]}
       />}
     </>}
@@ -155,10 +166,10 @@ function NonAdminAccountNotice({ currentUser }: { currentUser?: User | null }) {
   return <>
     <section className="laStatsGrid">
       <StudioMetricCard icon={<ShieldCheck />} label="当前后台账号" value={currentUser?.username || '未同步'} trend={currentUser ? userRoleMeta(currentUser.role).label : 'AuthSession'} tone="info" />
-      <StudioMetricCard icon={<ShieldAlert />} label="账号管理权限" value="仅管理员" trend="ANCHOR / OPERATOR 不能创建或改角色" tone="danger" />
+      <StudioMetricCard icon={<ShieldAlert />} label="账号管理权限" value="仅主账号" trend="团队子账号不能创建或改角色" tone="danger" />
     </section>
-    <StudioCard title="仅管理员可管理账号" subtitle="Admin only" padding="md">
-      <StudioEmptyState compact icon={<ShieldAlert size={28} />} title="仅管理员可管理账号" description="当前账号只能查看后台业务功能，不能看到或提交创建用户、修改角色表单。" />
+    <StudioCard title="仅主播主账号可管理团队成员" subtitle="Owner account only" padding="md">
+      <StudioEmptyState compact icon={<ShieldAlert size={28} />} title="仅主播主账号可管理团队成员" description="当前账号只能查看后台业务功能，不能看到或提交创建团队子账号、修改角色表单。" />
     </StudioCard>
   </>;
 }

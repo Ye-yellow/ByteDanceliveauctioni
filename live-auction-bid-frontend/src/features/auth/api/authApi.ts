@@ -1,4 +1,5 @@
 import { apiRequest } from '../../../shared/api/httpClient';
+import { normalizeAuthTokens, normalizeUser } from '../../../shared/api/normalizers';
 import { assertOkResult } from '../../../shared/api/result';
 import { authSession } from '../../../shared/auth/authSession';
 import { ADMIN_ACCESS_ROLES } from '../../../shared/api/types';
@@ -23,12 +24,14 @@ export async function login(username: string, password: string) {
     operation: 'login',
   }));
   if (!reply.user || !reply.tokens) throw new Error('login response missing user or tokens');
-  if (!ADMIN_ACCESS_ROLES.includes(reply.user.role)) {
+  const user = normalizeUser(reply.user);
+  const tokens = normalizeAuthTokens(reply.tokens);
+  if (!ADMIN_ACCESS_ROLES.includes(user.role)) {
     authSession.clear();
     throw new Error(ADMIN_ACCESS_DENIED_MESSAGE);
   }
-  authSession.setAuthenticated(reply.user, reply.tokens);
-  return reply.user;
+  authSession.setAuthenticated(user, tokens);
+  return user;
 }
 
 export async function me(): Promise<User | null> {
@@ -39,12 +42,13 @@ export async function me(): Promise<User | null> {
     auth: 'required',
     operation: 'me',
   }));
-  if (reply.user && !ADMIN_ACCESS_ROLES.includes(reply.user.role)) {
+  const user = reply.user ? normalizeUser(reply.user) : null;
+  if (user && !ADMIN_ACCESS_ROLES.includes(user.role)) {
     authSession.clear();
     throw new Error(ADMIN_ACCESS_DENIED_MESSAGE);
   }
-  if (reply.user) authSession.setAuthenticated(reply.user, authSession.currentTokens()!);
-  return reply.user ?? null;
+  if (user) authSession.setAuthenticated(user, authSession.currentTokens()!);
+  return user;
 }
 
 export async function logout() {

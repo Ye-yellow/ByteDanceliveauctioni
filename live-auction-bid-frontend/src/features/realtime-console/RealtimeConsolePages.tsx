@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, Clock3, ListChecks, MonitorDot, Package, Radio, RefreshCw, ShieldAlert, Trophy, Wifi } from 'lucide-react';
-import { cancelLot, getRoomSnapshot, listAdminLots, revealTrustCard, settleLot, startDuel } from '../auction/api/auctionApi';
+import { getRoomSnapshot, listAdminLots, revealTrustCard, settleLot, startDuel } from '../auction/api/auctionApi';
 import { isLiveLot, isQueueReadyLot, lotStatusLabel, lotStatusTone } from '../../entities/auction/model/auctionStatus';
 import type { AuctionEvent, Bid, Lot, RoomSnapshot } from '../../shared/api/types';
 import { resultMessage } from '../../shared/api/result';
@@ -20,7 +20,6 @@ export function LiveControlPage({ roomId = ADMIN_ROOM.id }: { roomId?: string })
   const [lot, setLot] = useState<Lot | null>(null);
   const [error, setError] = useState('');
   const [logs, setLogs] = useState<ControlLog[]>([]);
-  const [cancelReason, setCancelReason] = useState('');
   const [working, setWorking] = useState('');
 
   const appendLog = (entry: Omit<ControlLog, 'id' | 'time'>) => setLogs((current) => [{ ...entry, id: `${Date.now()}-${Math.random()}`, time: nowText() }, ...current].slice(0, 30));
@@ -28,7 +27,7 @@ export function LiveControlPage({ roomId = ADMIN_ROOM.id }: { roomId?: string })
   const syncRoom = async (): Promise<RoomSnapshot | void> => {
     setError('');
     try {
-      const [nextSnapshot, page] = await Promise.all([getRoomSnapshot(roomId), listAdminLots({ page: 1, pageSize: 20, roomId })]);
+      const [nextSnapshot, page] = await Promise.all([getRoomSnapshot(roomId), listAdminLots({ page: 1, pageSize: 20, roomId, view: 'current' })]);
       setSnapshot(nextSnapshot);
       setLots(page.lots);
       setLot(nextSnapshot.currentLot || page.lots.find(isLiveLot) || null);
@@ -86,12 +85,12 @@ export function LiveControlPage({ roomId = ADMIN_ROOM.id }: { roomId?: string })
     }
   };
 
-  return <section className="liveControlPage">
+  return <section className={`liveControlPage ${lot ? 'isLive' : 'isPrepared'}`}>
     <StudioCard padding="lg" className="controlTopBar">
-      <StudioPageHeader eyebrow="Realtime control" title="直播间中控台" description={`当前直播间 ${roomId}，所有控场数据来自 room snapshot 和后台 HTTP 接口。`} actions={<><a className="studioButton studioButton-secondary studioButton-md" href="/admin/auctions">返回队列</a><StudioButton type="button" variant="primary" icon={<RefreshCw size={15} />} loading={working === '同步'} onClick={() => void action('同步', syncRoom)}>立即同步</StudioButton></>} />
+      <StudioPageHeader eyebrow="Realtime control" title="直播间中控台" description={`当前直播间 ${roomId}，所有控场数据来自 room snapshot 和后台 HTTP 接口。`} actions={<><a className="studioButton studioButton-secondary studioButton-md controlUtilityButton" href="/admin/auctions">返回队列</a><StudioButton type="button" variant="secondary" className="controlUtilityButton" icon={<RefreshCw size={15} />} loading={working === '同步'} onClick={() => void action('同步', syncRoom)}>立即同步</StudioButton></>} />
     </StudioCard>
     {error ? <div className="auctionMgmtNotice danger"><AlertTriangle size={16} />{error}</div> : null}
-    <section className="auctionMgmtStats">
+    <section className="auctionMgmtStats liveControlStatusGrid">
       <StudioMetricCard icon={<Wifi />} label="WebSocket" value={wsState} trend={`重连 ${socket.reconnectCount} 次`} tone={socket.status === 'connected' ? 'success' : 'warning'} />
       <StudioMetricCard icon={<Radio />} label="当前竞拍" value={lot?.id || '无 LIVE'} trend={lot?.title || '等待开拍'} tone={lot ? 'success' : 'warning'} />
       <StudioMetricCard icon={<Trophy />} label="排行榜" value={snapshot?.ranking?.length || 0} trend="来自 snapshot" tone="info" />
@@ -99,7 +98,7 @@ export function LiveControlPage({ roomId = ADMIN_ROOM.id }: { roomId?: string })
     </section>
     {!lot ? <PreparedStage nextLot={nextLot} onSync={() => void syncRoom()} /> : <div className="controlRoomGrid">
       <aside className="controlLeftRail hostBriefingRail"><RoomLivePreview lot={lot} snapshot={snapshot} wsState={wsState} /><TrustCardPanel lot={lot} working={working} onReveal={(cardId) => void action('展示讲解卡', () => revealTrustCard(lot.id, cardId))} /></aside>
-      <main className="controlCenterRail"><PriceCommandBoard lot={lot} snapshot={snapshot} /><ControlActionDeck lot={lot} working={working} cancelReason={cancelReason} setCancelReason={setCancelReason} onDuel={() => void action('进入决胜', () => startDuel(lot.id))} onSettle={() => void action('落锤成交', () => settleLot(lot.id))} onCancel={() => void action('异常取消', () => cancelLot(lot.id, cancelReason.trim()))} /></main>
+      <main className="controlCenterRail"><PriceCommandBoard lot={lot} snapshot={snapshot} /><ControlActionDeck lot={lot} working={working} onDuel={() => void action('进入决胜', () => startDuel(lot.id))} onSettle={() => void action('落锤成交', () => settleLot(lot.id))} /></main>
       <aside className="controlRightRail"><RealtimeBidFeedPanel bids={snapshot?.recentBids || []} /><LiveRankingBoard ranking={snapshot?.ranking || []} leadingUserId={lot.leadingUserId} /></aside>
     </div>}
     <div className="controlBottomGrid"><NextLotQueue lot={nextLot} /><ControlEventLog logs={logs} /></div>
@@ -224,9 +223,9 @@ function PriceCommandBoard({ lot, snapshot }: { lot: Lot; snapshot: RoomSnapshot
   return <section className="priceCommandBoard auctionCommandCenter"><div className="priceCommandEyebrow"><span>Command Area</span><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge></div><div className="currentPriceFocus"><p>当前最高价</p><strong className="livePriceBig">{formatMoneyText(lot.currentPrice)}</strong><small>领先用户：{lot.leadingNickname || snapshot?.ranking?.[0]?.nickname || '暂无'}</small></div><span className="serverCountdown"><Clock3 size={22} />{formatAuctionLeftMs(getLotLeftMs(lot, snapshot?.serverTimeUnixMs), 'control')}</span><div className="priceCommandMetrics"><span>下一口价<b>{formatMoneyText(nextPrice)}</b></span><span>参与人数<b>{snapshot?.ranking?.length || 0}</b></span><span>出价次数<b>{snapshot?.recentBids?.length || 0}</b></span><span>规则版本<b>v{lot.version || 1}</b></span></div></section>;
 }
 
-function ControlActionDeck({ lot, working, cancelReason, setCancelReason, onDuel, onSettle, onCancel }: { lot: Lot; working: string; cancelReason: string; setCancelReason: (value: string) => void; onDuel: () => void; onSettle: () => void; onCancel: () => void }) {
+function ControlActionDeck({ lot, working, onDuel, onSettle }: { lot: Lot; working: string; onDuel: () => void; onSettle: () => void }) {
   const disabled = Boolean(working);
-  return <section className="controlActionDeck"><header><h3>控场操作</h3><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge></header><div className="controlActionsGrid"><button type="button" disabled={disabled} onClick={onDuel}>进入决胜</button><button type="button" disabled>推送提醒待接口</button><button type="button" disabled>延时待接口</button></div><div className="dangerActionStrip"><button type="button" className="settleButton" disabled={disabled} onClick={onSettle}>落锤成交</button><input value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} placeholder="异常取消原因" /><button type="button" disabled={disabled || !cancelReason.trim()} onClick={onCancel}>异常取消</button></div></section>;
+  return <section className="controlActionDeck"><header><h3>控场操作</h3><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge></header><div className="controlActionsGrid"><button type="button" className="controlActionButton controlActionButton-duel" disabled={disabled} onClick={onDuel}>进入决胜</button><button type="button" className="controlActionButton controlActionButton-muted" disabled>推送提醒待接口</button><button type="button" className="controlActionButton controlActionButton-muted" disabled>延时待接口</button></div><div className="dangerActionStrip"><button type="button" className="settleButton" disabled={disabled} onClick={onSettle}>落锤成交</button><span className="controlActionHint">已开拍拍品不可取消，只能落锤成交或等待竞拍结束。</span></div></section>;
 }
 
 function RealtimeBidFeedPanel({ bids }: { bids: Bid[] }) {
