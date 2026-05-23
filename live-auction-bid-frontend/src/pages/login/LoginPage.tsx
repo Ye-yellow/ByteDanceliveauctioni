@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { currentAuth, login, logout } from '../../features/auth/api/authApi';
 import { resultMessage } from '../../shared/api/result';
+import { ADMIN_ACCESS_ROLES } from '../../shared/api/types';
+import { clearExpiredMessage, readExpiredMessage } from '../../shared/auth/authStorage';
 
 function nextPath(fallback = '/host') {
   const params = new URLSearchParams(location.search);
@@ -83,14 +85,14 @@ export function LoginPage({ embedded = false }: { embedded?: boolean; title?: st
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const current = currentAuth().user;
+  const currentUser = currentAuth().user;
+  const current = currentUser && ADMIN_ACCESS_ROLES.includes(currentUser.role) ? currentUser : null;
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (!params.get('expired')) return;
-    const fallback = '登录已过期，请重新登录';
-    const message = sessionStorage.getItem('liveauction.auth.expiredMessage') || fallback;
-    sessionStorage.removeItem('liveauction.auth.expiredMessage');
+    const message = readExpiredMessage('登录已过期，请重新登录');
+    clearExpiredMessage();
     setError(message);
   }, []);
 

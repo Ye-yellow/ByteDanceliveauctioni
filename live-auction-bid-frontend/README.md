@@ -30,14 +30,14 @@ npm run dev
 默认连接真实后端：
 
 ```bash
-VITE_API_BASE=http://localhost:8080
-VITE_WS_BASE=ws://localhost:8080
+VITE_API_BASE=http://localhost:18080
+VITE_WS_BASE=ws://localhost:18080
 ```
 
 如果后端地址不同：
 
 ```bash
-VITE_API_BASE=http://your-backend:8080 VITE_WS_BASE=ws://your-backend:8080 npm run dev
+VITE_API_BASE=http://your-backend:18080 VITE_WS_BASE=ws://your-backend:18080 npm run dev
 ```
 
 ## 后端仓库

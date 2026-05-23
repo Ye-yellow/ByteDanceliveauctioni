@@ -1,3 +1,5 @@
+import { readLocalJson, writeLocalJson } from '../auth/authStorage';
+
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 type LogEntry = {
@@ -13,20 +15,11 @@ const LOG_KEY = 'liveauction.client.logs.v1';
 const MAX_LOGS = 120;
 
 function readLogs(): LogEntry[] {
-  try {
-    const raw = localStorage.getItem(LOG_KEY);
-    return raw ? JSON.parse(raw) as LogEntry[] : [];
-  } catch {
-    return [];
-  }
+  return readLocalJson<LogEntry[]>(LOG_KEY, []);
 }
 
 function writeLogs(logs: LogEntry[]) {
-  try {
-    localStorage.setItem(LOG_KEY, JSON.stringify(logs.slice(-MAX_LOGS)));
-  } catch {
-    // localStorage quota/private mode should never break product flows.
-  }
+  writeLocalJson(LOG_KEY, logs.slice(-MAX_LOGS));
 }
 
 function redact(value: unknown): unknown {

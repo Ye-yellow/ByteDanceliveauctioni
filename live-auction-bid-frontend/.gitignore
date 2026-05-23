@@ -5,3 +5,13 @@ dist/
 .DS_Store
 *.log
 *.tsbuildinfo
+*.Zone.Identifier
+*:Zone.Identifier
+*.tar.gz
+*.zip
+coverage/
+.codex/
+.agents/
+.AGENT/
+.AGNET/
+新建文件夹/

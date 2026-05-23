@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { ArrowRight, BarChart3, Gavel, Heart, Scale, ShieldCheck, ShoppingBag, Store, Users } from 'lucide-react';
+import { readLocalJson } from '../../shared/auth/authStorage';
 
 type SoftParticle = {
   x: number;
@@ -968,17 +969,12 @@ function getFrozenLayoutKey(element: Element, index: number) {
 }
 
 function readFrozenHomeLayout(): FrozenLayoutMap {
-  try {
-    const raw = window.localStorage.getItem(frozenLayoutStorageKey);
-    const saved = raw ? JSON.parse(raw) as FrozenLayoutMap : defaultFrozenHomeLayout;
-    return {
-      ...saved,
-      liveAuctionFloat: defaultFrozenHomeLayout.liveAuctionFloat,
-      bidBubbleStack: defaultFrozenHomeLayout.bidBubbleStack,
-    };
-  } catch {
-    return defaultFrozenHomeLayout;
-  }
+  const saved = readLocalJson<FrozenLayoutMap>(frozenLayoutStorageKey, defaultFrozenHomeLayout);
+  return {
+    ...saved,
+    liveAuctionFloat: defaultFrozenHomeLayout.liveAuctionFloat,
+    bidBubbleStack: defaultFrozenHomeLayout.bidBubbleStack,
+  };
 }
 
 function applyFrozenHomePosition(element: HTMLElement, item: FrozenLayoutItem) {

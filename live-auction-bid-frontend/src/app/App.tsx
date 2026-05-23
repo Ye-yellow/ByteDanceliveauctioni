@@ -1,5 +1,6 @@
 import { Suspense, lazy, type ReactNode } from 'react';
-import { currentAuth } from '../features/auth/api/authApi';
+import { AuthSessionProvider, ProtectedRoute } from '../shared/auth/AuthSessionProvider';
+import { ADMIN_ACCESS_ROLES } from '../shared/api/types';
 
 const HomePage = lazy(() => import('../pages/home/HomePage').then((module) => ({ default: module.HomePage })));
 const LoginPage = lazy(() => import('../pages/login/LoginPage').then((module) => ({ default: module.LoginPage })));
@@ -12,12 +13,10 @@ function isAdminPath(pathname: string) {
 export function App() {
   const { pathname } = location;
 
-  if (pathname.startsWith('/login')) return <RouteSuspense><LoginPage /></RouteSuspense>;
-  if (isAdminPath(pathname)) {
-    return <RouteSuspense>{currentAuth().user ? <HostConsolePage /> : <LoginPage title="登录后进入管理后台" />}</RouteSuspense>;
-  }
+  if (pathname.startsWith('/login')) return <AuthSessionProvider><RouteSuspense><LoginPage /></RouteSuspense></AuthSessionProvider>;
+  if (isAdminPath(pathname)) return <AuthSessionProvider><RouteSuspense><ProtectedRoute requiredRoles={ADMIN_ACCESS_ROLES}><HostConsolePage /></ProtectedRoute></RouteSuspense></AuthSessionProvider>;
 
-  return <RouteSuspense><HomePage /></RouteSuspense>;
+  return <AuthSessionProvider><RouteSuspense><HomePage /></RouteSuspense></AuthSessionProvider>;
 }
 
 function RouteSuspense({ children }: { children: ReactNode }) {
