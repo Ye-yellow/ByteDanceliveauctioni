@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, RefreshCw, Search, ShieldAlert, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, RefreshCw, Search, ShieldAlert, ShieldCheck, UserCog, Users } from 'lucide-react';
 import { currentAuth } from '../auth/api/authApi';
 import { adminCreateUser, adminUpdateUserRole, listAdminUsers, type AdminUsersQuery } from '../admin-user/api/adminUserApi';
 import { USER_ROLE, type User, type UserRole } from '../../shared/api/types';
@@ -27,6 +27,10 @@ export function TeamAccountsPage() {
   const { toasts, showToast } = useStudioToast();
 
   const totalPages = Math.max(1, Math.ceil(total / (query.pageSize || DEFAULT_PAGE_SIZE)));
+  const currentPage = query.page || 1;
+
+  const goPrevPage = () => setQuery((c) => ({ ...c, page: Math.max(1, (c.page || 1) - 1) }));
+  const goNextPage = () => setQuery((c) => ({ ...c, page: (c.page || 1) + 1 }));
 
   const syncUsers = async (nextQuery = query) => {
     if (!isAdmin) return;
@@ -146,8 +150,12 @@ export function TeamAccountsPage() {
       {loading ? <StudioTableSkeleton rows={6} columns={6} /> : <StudioTable
         rows={users}
         rowKey={(user) => user.id}
-        header={`共 ${total} 个账号 · 第 ${query.page || 1} / ${totalPages} 页`}
-        filters={<div className="postLiveFilters"><span>分页</span><button type="button" disabled={(query.page || 1) <= 1 || loading} onClick={() => setQuery((current) => ({ ...current, page: Math.max(1, (current.page || 1) - 1) }))}>上一页</button><button type="button" disabled={(query.page || 1) >= totalPages || loading} onClick={() => setQuery((current) => ({ ...current, page: (current.page || 1) + 1 }))}>下一页</button></div>}
+        header={`共 ${total} 个账号 · 每页 ${DEFAULT_PAGE_SIZE} 条`}
+        filters={<div className="orderPager">
+            <button type="button" disabled={currentPage <= 1 || loading} onClick={goPrevPage}><ChevronLeft size={15} /><span>上一页</span></button>
+            <span className="orderPagerIndex">第 {currentPage} / {totalPages} 页</span>
+            <button type="button" disabled={currentPage >= totalPages || loading} onClick={goNextPage}><span>下一页</span><ChevronRight size={15} /></button>
+          </div>}
         empty={<StudioEmptyState compact icon={<Users size={28} />} title="暂无账号" description="当前筛选条件下没有用户。" />}
         columns={[
           { label: '用户', render: (user) => <div><b>{user.username}</b><br /><span>{user.nickname || '未设置昵称'}</span></div> },

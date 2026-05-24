@@ -2162,6 +2162,16 @@ button:disabled {
   box-shadow: 0 18px 42px rgba(15, 23, 42, .14) !important;
 }
 
+/* In header: strip box chrome so buttons sit naturally inside the step card header. */
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepCard > header .auctionStepActions {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  width: auto !important;
+  border-radius: 0 !important;
+}
+
 .laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions > div {
   display: flex !important;
   flex-wrap: nowrap !important;
@@ -2182,7 +2192,15 @@ button:disabled {
   border-radius: 14px !important;
   font-size: 15px !important;
   font-weight: 800 !important;
-  letter-spacing: -.01em !important;
+  letter-spacing: 0 !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions .studioButton span,
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions .studioButton svg {
+  color: currentColor !important;
+  opacity: 1 !important;
+  -webkit-text-fill-color: currentColor !important;
 }
 
 .laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions .studioButton-primary {
@@ -2199,16 +2217,33 @@ button:disabled {
 }
 
 .laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions .studioButton-secondary {
-  color: #334155 !important;
-  background: #fff !important;
-  border-color: #e2e8f0 !important;
+  color: #1e3a8a !important;
+  background: #f0f7ff !important;
+  border-color: #bfdbfe !important;
 }
 
 .laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions .studioButton:disabled {
-  color: #94a3b8 !important;
-  background: #f8fafc !important;
-  border-color: #eef2f7 !important;
+  color: #0f3f9f !important;
+  background: #eaf3ff !important;
+  border-color: #c7ddff !important;
   opacity: 1 !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+  -webkit-text-fill-color: #0f3f9f !important;
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions .studioButton-primary:disabled {
+  color: #0f3f9f !important;
+  background: linear-gradient(180deg, #edf6ff, #dcecff) !important;
+  border-color: #abc9ff !important;
+  -webkit-text-fill-color: #0f3f9f !important;
+}
+
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions .studioButton:disabled span,
+.laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions .studioButton:disabled svg {
+  color: #0f3f9f !important;
+  opacity: 1 !important;
+  -webkit-text-fill-color: #0f3f9f !important;
 }
 
 @media (max-width: 960px) {

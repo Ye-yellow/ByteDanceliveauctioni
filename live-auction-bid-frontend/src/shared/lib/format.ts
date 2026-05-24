@@ -2,9 +2,12 @@ import type { Money } from '../api/types';
 
 export function formatMoneyText(value?: Money | null, fallback = '未设置') {
   if (!value || value.amount === undefined || value.amount === null || value.amount === '') return fallback;
-  const amount = Number(value.amount || 0);
+  const amount = Number(value.amount || 0) / 100;
   const prefix = value.currency === 'CNY' || !value.currency ? '¥' : `${value.currency} `;
-  return `${prefix}${amount.toLocaleString('zh-CN')}`;
+  return `${prefix}${amount.toLocaleString('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 export function formatAmountText(amount?: number | string | null, currency = 'CNY', fallback = '未设置') {

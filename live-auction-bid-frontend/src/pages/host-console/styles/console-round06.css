@@ -738,6 +738,16 @@
   box-shadow: 0 18px 42px rgba(15, 23, 42, .14);
 }
 
+/* Inline mode: when .auctionStepActions sits inside a step card header, strip the boxy chrome. */
+.laAdminShell .auctionStepCard > header .auctionStepActions {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  bottom: auto !important;
+  border-radius: 0 !important;
+}
+
 .laAdminShell .auctionStepActions > div {
   align-items: center;
   gap: 12px;
@@ -750,7 +760,15 @@
   border-radius: 14px;
   font-size: 15px;
   font-weight: 800;
-  letter-spacing: -.01em;
+  letter-spacing: 0;
+  -webkit-text-fill-color: currentColor;
+}
+
+.laAdminShell .auctionStepActions .studioButton span,
+.laAdminShell .auctionStepActions .studioButton svg {
+  color: currentColor !important;
+  opacity: 1;
+  -webkit-text-fill-color: currentColor;
 }
 
 .laAdminShell .auctionStepActions .studioButton-primary {
@@ -767,16 +785,33 @@
 }
 
 .laAdminShell .auctionStepActions .studioButton-secondary {
-  color: #334155;
-  background: #fff;
-  border-color: #e2e8f0;
+  color: #1e3a8a;
+  background: #f0f7ff;
+  border-color: #bfdbfe;
 }
 
 .laAdminShell .auctionStepActions .studioButton:disabled {
-  color: #94a3b8;
-  background: #f8fafc;
-  border-color: #eef2f7;
+  color: #0f3f9f;
+  background: #eaf3ff;
+  border-color: #c7ddff;
   opacity: 1;
+  box-shadow: none;
+  cursor: not-allowed;
+  -webkit-text-fill-color: #0f3f9f;
+}
+
+.laAdminShell .auctionStepActions .studioButton-primary:disabled {
+  color: #0f3f9f;
+  background: linear-gradient(180deg, #edf6ff, #dcecff);
+  border-color: #abc9ff;
+  -webkit-text-fill-color: #0f3f9f;
+}
+
+.laAdminShell .auctionStepActions .studioButton:disabled span,
+.laAdminShell .auctionStepActions .studioButton:disabled svg {
+  color: #0f3f9f !important;
+  opacity: 1;
+  -webkit-text-fill-color: #0f3f9f;
 }
 
 .laAdminShell .auctionStepActionHint {
@@ -2087,4 +2122,534 @@
   min-height: 42px !important;
   border-radius: 14px !important;
   background: linear-gradient(135deg, #ff3f6c, #ff7ca8 55%, #8d7cf6) !important;
+}
+
+/* Post-live order review: polished成交处理 workbench. */
+.laAdminShell .orderReviewPage {
+  container-type: inline-size;
+}
+
+.laAdminShell .orderReviewHero {
+  min-height: 116px;
+  padding: 24px 28px !important;
+  background:
+    linear-gradient(135deg, rgba(239, 246, 255, .92), rgba(255, 255, 255, .98) 46%, rgba(240, 253, 244, .68)),
+    var(--studio-surface) !important;
+  border-color: rgba(203, 213, 225, .86) !important;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, .08) !important;
+}
+
+.laAdminShell .orderReviewHero .studioSectionHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 22px;
+  align-items: center;
+}
+
+.laAdminShell .orderReviewHero .studioSectionHeader h2 {
+  font-size: clamp(25px, 1.3vw, 34px);
+  line-height: 1.08;
+}
+
+.laAdminShell .orderReviewHero .studioSectionHeader span {
+  max-width: 820px;
+}
+
+/* Metric grid for post-live pages. */
+.postLiveMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  container-type: inline-size;
+}
+
+.laAdminShell .postLiveMetricGrid .studioMetricCard {
+  min-height: 112px;
+  padding: 20px !important;
+  border-radius: 22px !important;
+  border-color: rgba(203, 213, 225, .86);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(248, 250, 252, .94)),
+    var(--studio-surface) !important;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, .06) !important;
+}
+
+.laAdminShell .postLiveMetricGrid .studioMetricCard > span {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 16px !important;
+}
+
+.laAdminShell .postLiveMetricGrid .studioMetricCard strong {
+  font-size: 31px !important;
+  line-height: 36px !important;
+  letter-spacing: 0 !important;
+}
+
+/* Filter card for order review. */
+.laAdminShell .orderReviewFilters {
+  border-color: rgba(203, 213, 225, .86);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, .05);
+}
+
+.orderFilterBar {
+  display: flex;
+  align-items: end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.orderFilterBar .studioField {
+  min-width: 140px;
+  flex: 0 1 auto;
+}
+
+.orderFilterSearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 200px;
+  flex: 1 1 220px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+  color: var(--studio-text-3);
+  padding: 0 12px;
+  cursor: text;
+}
+
+.orderFilterSearch input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--studio-text);
+  padding: 10px 0;
+  outline: none;
+  font-size: 13px;
+}
+
+.orderFilterSearch input::placeholder {
+  color: var(--studio-text-3);
+}
+
+.orderFilterSearch:focus-within {
+  border-color: var(--studio-primary);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, .12);
+}
+
+.orderFilterSep {
+  display: block;
+  width: 1px;
+  height: 34px;
+  flex: 0 0 auto;
+  background: var(--studio-border);
+  align-self: center;
+}
+
+.orderFilterBar .studioButton {
+  align-self: end;
+  min-height: 40px;
+}
+
+/* Order review table polish. */
+.orderReviewTable .orderProductCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 240px;
+}
+
+.orderReviewTable .orderProductCell img {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--studio-surface-soft);
+  border: 1px solid var(--studio-border);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, .06);
+  flex: 0 0 auto;
+}
+
+.orderReviewTable .orderProductCell b {
+  display: block;
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 650;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orderReviewTable .orderProductCell span,
+.orderReviewTable .orderProductCell small {
+  display: block;
+  color: var(--studio-text-3);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.orderAmountCell {
+  color: var(--studio-primary);
+  font-size: 16px;
+  font-weight: 750;
+  letter-spacing: -.02em;
+  white-space: nowrap;
+}
+
+.orderRowActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Post-live page layout: full-width canvas like dashboard. */
+.laAdminShell .studioContent:has(.orderReviewPage) {
+  padding-inline: clamp(24px, 2vw, 42px) !important;
+  padding-bottom: 34px !important;
+}
+
+.laAdminShell .studioPage:has(.orderReviewPage) {
+  width: 100% !important;
+  max-width: none !important;
+  margin-inline: 0 !important;
+}
+
+/* Order detail drawer. */
+.orderDetailOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 23, 42, .42);
+  backdrop-filter: blur(6px);
+  animation: orderOverlayIn .22s ease;
+}
+
+@keyframes orderOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.orderDetailDrawer {
+  width: min(640px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-2xl);
+  box-shadow: 0 28px 64px rgba(15, 23, 42, .18);
+  animation: orderDrawerIn .28s cubic-bezier(.16, 1, .3, 1);
+}
+
+@keyframes orderDrawerIn {
+  from { opacity: 0; transform: translateY(24px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.orderDetailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 28px 18px;
+  border-bottom: 1px solid var(--studio-border);
+  background:
+    linear-gradient(135deg, rgba(239, 246, 255, .72), rgba(255, 255, 255, .96) 54%),
+    var(--studio-surface);
+  border-radius: var(--studio-radius-2xl) var(--studio-radius-2xl) 0 0;
+}
+
+.orderDetailHeader p {
+  margin: 0 0 6px;
+  color: var(--studio-text-3);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: .08em;
+}
+
+.orderDetailHeader h2 {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 24px;
+  line-height: 1.12;
+  letter-spacing: -.035em;
+}
+
+.orderDetailHeader span {
+  display: block;
+  margin-top: 5px;
+  color: var(--studio-text-3);
+  font-size: 13px;
+}
+
+.orderDetailLoading {
+  padding: 32px 28px;
+}
+
+.orderDetailBody {
+  padding: 24px 28px 28px;
+  display: grid;
+  gap: 22px;
+}
+
+.drawerOrderHero {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  padding: 20px;
+  border-radius: var(--studio-radius-xl);
+  background:
+    linear-gradient(145deg, rgba(248, 250, 252, .94), rgba(255, 255, 255, .99)),
+    var(--studio-surface-soft);
+  border: 1px solid var(--studio-border);
+}
+
+.drawerOrderHero img {
+  width: 96px;
+  height: 96px;
+  border-radius: 18px;
+  object-fit: cover;
+  background: var(--studio-surface-soft);
+  border: 1px solid var(--studio-border);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, .08);
+  flex: 0 0 auto;
+}
+
+.drawerOrderHero h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  line-height: 1.25;
+  font-weight: 700;
+  color: var(--studio-text);
+}
+
+.drawerOrderHero strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--studio-primary);
+  font-size: 26px;
+  font-weight: 750;
+  letter-spacing: -.03em;
+}
+
+.drawerOrderHero span {
+  color: var(--studio-text-3);
+  font-size: 13px;
+}
+
+.drawerInfoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.drawerInfoGrid > span {
+  display: grid;
+  gap: 5px;
+  padding: 14px 16px;
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-soft);
+  border: 1px solid var(--studio-border);
+  color: var(--studio-text-3);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.drawerInfoGrid > span b {
+  display: block;
+  color: var(--studio-text);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.orderDetailFooter {
+  padding-top: 4px;
+}
+
+/* Pagination in filter bar. */
+.postLiveFilters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.postLivePageInfo {
+  color: var(--studio-text-2);
+  font-size: 13px;
+  font-weight: 650;
+  padding: 0 6px;
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* Order pager — refined pagination with directional chevrons and subtle elevation. */
+.orderPager {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.orderPager button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 16px;
+  border: 1px solid #dbe7f7;
+  border-radius: 13px;
+  background: linear-gradient(180deg, #ffffff, #f8fbff);
+  color: #334155;
+  font-size: 13.5px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, .05);
+  transition: all 180ms cubic-bezier(.4, 0, .2, 1);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.orderPager button:hover:not(:disabled) {
+  background: linear-gradient(180deg, #f0f7ff, #e2eefc);
+  border-color: #b8d2f0;
+  box-shadow: 0 8px 22px rgba(37, 99, 235, .10);
+  transform: translateY(-1px);
+}
+
+.orderPager button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .05);
+  transition-duration: 60ms;
+}
+
+.orderPager button:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.orderPagerIndex {
+  color: var(--studio-text-2, #64748b);
+  font-size: 14px;
+  font-weight: 650;
+  padding: 0 14px;
+  white-space: nowrap;
+  user-select: none;
+  letter-spacing: 0.015em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Responsive breakpoints for order review page. */
+@media (max-width: 1500px) {
+  .laAdminShell .orderReviewHero .studioSectionHeader {
+    grid-template-columns: 1fr;
+  }
+
+  .postLiveMetricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1180px) {
+  .postLiveMetricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .orderFilterSep {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .laAdminShell .orderReviewHero {
+    padding: 18px !important;
+  }
+
+  .orderFilterBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .orderFilterSearch {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .orderFilterBar .studioField {
+    min-width: 0;
+  }
+
+  .orderFilterSep {
+    display: none;
+  }
+
+  .drawerOrderHero {
+    flex-direction: column;
+  }
+
+  .drawerOrderHero img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+
+  .drawerInfoGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .orderDetailDrawer {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    border-radius: var(--studio-radius-xl);
+  }
+
+  .orderDetailHeader {
+    border-radius: var(--studio-radius-xl) var(--studio-radius-xl) 0 0;
+  }
+
+  .orderReviewTable .orderProductCell {
+    min-width: 0;
+  }
+
+  .orderReviewTable .orderProductCell img {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+}
+
+@media (max-width: 760px) {
+  .laAdminShell .studioContent:has(.orderReviewPage) {
+    padding-inline: 14px !important;
+  }
+
+  .postLiveMetricGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .orderReviewTable .orderProductCell b {
+    max-width: 120px;
+  }
+}
+
+@media (max-width: 380px) {
+  .orderDetailHeader {
+    padding: 18px 16px 14px;
+  }
+
+  .orderDetailBody {
+    padding: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orderDetailOverlay,
+  .orderDetailDrawer {
+    animation: none;
+  }
 }

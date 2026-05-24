@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, FileClock, Package, RefreshCw, Search, ShieldAlert, Trophy, XCircle } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, FileClock, Package, RefreshCw, Search, ShieldAlert, Trophy, XCircle } from 'lucide-react';
 import { listAdminLots, type AdminLotsQuery } from '../auction/api/auctionApi';
 import { HISTORY_LOT_STATUS_FILTERS, isSettlementLot, lotStatusLabel, lotStatusTone } from '../../entities/auction/model/auctionStatus';
 import type { Lot } from '../../shared/api/types';
@@ -18,6 +18,10 @@ export function AuctionHistoryPage({ roomId = ADMIN_ROOM.id }: { roomId?: string
   const [error, setError] = useState('');
   const { toasts, showToast } = useStudioToast();
   const totalPages = Math.max(1, Math.ceil(total / (query.pageSize || DEFAULT_PAGE_SIZE)));
+  const currentPage = query.page || 1;
+
+  const goPrevPage = () => setQuery((c) => ({ ...c, page: Math.max(1, (c.page || 1) - 1) }));
+  const goNextPage = () => setQuery((c) => ({ ...c, page: (c.page || 1) + 1 }));
 
   const syncLots = async (nextQuery = query) => {
     setLoading(true);
@@ -77,8 +81,14 @@ export function AuctionHistoryPage({ roomId = ADMIN_ROOM.id }: { roomId?: string
       className="auctionHistoryTable"
       rows={lots}
       rowKey={(lot) => lot.id}
-      header={`共 ${total} 条 · 第 ${query.page || 1} / ${totalPages} 页`}
-      filters={<div className="postLiveFilters"><span>每页 {DEFAULT_PAGE_SIZE} 条</span><button type="button" disabled={(query.page || 1) <= 1 || loading} onClick={() => setQuery((current) => ({ ...current, page: Math.max(1, (current.page || 1) - 1) }))}>上一页</button><button type="button" disabled={(query.page || 1) >= totalPages || loading} onClick={() => setQuery((current) => ({ ...current, page: (current.page || 1) + 1 }))}>下一页</button></div>}
+      header={`共 ${total} 条 · 每页 ${DEFAULT_PAGE_SIZE} 条`}
+      filters={
+        <div className="orderPager">
+          <button type="button" disabled={currentPage <= 1 || loading} onClick={goPrevPage}><ChevronLeft size={15} /><span>上一页</span></button>
+          <span className="orderPagerIndex">第 {currentPage} / {totalPages} 页</span>
+          <button type="button" disabled={currentPage >= totalPages || loading} onClick={goNextPage}><span>下一页</span><ChevronRight size={15} /></button>
+        </div>
+      }
       empty={<StudioEmptyState icon={<Package size={34} />} title="暂无历史记录" description="当前筛选条件下没有已成交、已取消或异常拍品。" action={<a className="studioButton studioButton-secondary studioButton-md" href="/admin/auctions">返回本场队列</a>} compact />}
       columns={[
         { label: '拍品', render: (lot) => <div className="historyLotCell"><img src={lot.imageUrl || '/vite.svg'} alt={lot.title} /><div><b>{lot.title}</b><span>{lot.id}</span><small>{roomId}</small></div></div> },

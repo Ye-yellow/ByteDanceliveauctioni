@@ -107,17 +107,16 @@ export function AuctionCreatePage() {
   ], [form.gallery, form.imageUrl]);
   const previewImage = previewImages[previewImageIndex] || previewImages[0];
   const activeStepIndex = STEP_DEFS.findIndex((step) => step.key === activeStep);
-  const currentStepBlockingIssues = activeStep === 'review' ? blockingIssues : blockingIssues.filter((issue) => issue.step === activeStep);
-  const currentStepHasError = currentStepBlockingIssues.length > 0;
+  const currentStepBlocking = activeStep === 'review' ? blockingIssues : blockingIssues.filter((issue) => issue.step === activeStep);
+  const currentStepHasError = currentStepBlocking.length > 0;
   const canGoBack = activeStepIndex > 0;
-  const actionBlockerText = isUploading
-    ? '图片上传中，请等待上传完成'
-    : currentStepBlockingIssues.length
-      ? `请先完成：${currentStepBlockingIssues.slice(0, 2).map((issue) => issue.text).join('、')}${currentStepBlockingIssues.length > 2 ? '等必填项' : ''}`
-      : '';
 
   const canEnterStep = (stepKey: StepKey) => {
     const targetIndex = STEP_DEFS.findIndex((step) => step.key === stepKey);
+    // Backward: always allowed — return to any previous step freely.
+    if (targetIndex <= activeStepIndex) return true;
+    // Forward: only allow the immediate next step (no skipping).
+    if (targetIndex !== activeStepIndex + 1) return false;
     return !blockingIssues.some((issue) => stepIndex(issue.step) < targetIndex);
   };
 
@@ -261,7 +260,7 @@ export function AuctionCreatePage() {
     <div className="auctionCreateLayout">
       <main className="auctionCreateMain">
         {activeStep === 'product' ? <section className="auctionStepCard productInfoWorkbench">
-          <header><div><p>Product assets</p><h3>拍品资料与素材</h3></div><span>素材先上传到 TOS，提交时只保存稳定 URL，不保存 blob/data。</span></header>
+          <header><div><p>Product assets</p><h3>拍品资料与素材</h3></div><div className="auctionStepActions"><StudioButton type="button" variant="secondary" onClick={clearForm} disabled={submitting || isUploading}>清空</StudioButton><StudioButton type="button" variant="primary" icon={<ChevronRight size={15} />} disabled={currentStepHasError || isUploading || submitting} onClick={goNext}>{isUploading ? '等待图片上传完成' : '下一步'}</StudioButton></div></header>
           <div className="productCockpitGrid">
             <section className="productPanel mediaPanel">
               <h4>拍品图片</h4>
@@ -290,7 +289,7 @@ export function AuctionCreatePage() {
                 <AuctionField label="拍品名称" error={issueText(issues, '名称')} className="fieldTitle"><input value={form.title} onChange={(e) => update({ title: e.target.value })} placeholder="请输入竞拍拍品名称" /></AuctionField>
                 <AuctionField label="分类" className="fieldCategory"><input value={form.category} onChange={(e) => update({ category: e.target.value })} placeholder="珠宝 / 艺术品 / 潮玩收藏" /></AuctionField>
                 <AuctionField label="标签" help="用逗号分隔。" className="fieldTags"><input value={form.tags} onChange={(e) => update({ tags: e.target.value })} placeholder="保真, 稀缺, 福利场" /></AuctionField>
-                <AuctionField label="参考估价" className="fieldEstimate"><input type="number" value={form.estimatePrice} min={0} placeholder="可选" onChange={(e) => update({ estimatePrice: e.target.value === '' ? '' : Number(e.target.value) })} /></AuctionField>
+                <AuctionField label="参考估价（元）" className="fieldEstimate"><input type="number" value={form.estimatePrice} min={0} placeholder="可选" onChange={(e) => update({ estimatePrice: e.target.value === '' ? '' : Number(e.target.value) })} /></AuctionField>
                 <AuctionField label="库存" error={issueText(issues, '库存')} className="fieldStock"><input type="number" value={form.stock} min={1} onChange={(e) => update({ stock: Number(e.target.value) })} /></AuctionField>
                 <AuctionField label="拍品介绍" error={issueText(issues, '介绍')} className="fieldDescription"><textarea value={form.description} onChange={(e) => update({ description: e.target.value })} rows={5} placeholder="描述材质、成色、亮点和竞拍价值" /></AuctionField>
                 <AuctionField label="售后说明" className="fieldService"><textarea value={form.afterSaleNotes} onChange={(e) => update({ afterSaleNotes: e.target.value })} rows={3} placeholder="成交后确认、发货、保价、客服承诺等" /></AuctionField>
@@ -299,11 +298,11 @@ export function AuctionCreatePage() {
           </div>
         </section> : null}
         {activeStep === 'rules' ? <section className="auctionStepCard ruleWorkbench">
-          <header><div><p>Auction rules</p><h3>竞拍规则</h3></div><span>规则会在入队前由后端再次校验，前端只做提前拦截。</span></header>
+          <header><div><p>Auction rules</p><h3>竞拍规则</h3></div><div className="auctionStepActions"><StudioButton type="button" variant="secondary" onClick={clearForm} disabled={submitting || isUploading}>清空</StudioButton><StudioButton type="button" variant="secondary" icon={<ChevronLeft size={15} />} onClick={goBack} disabled={!canGoBack || submitting}>上一步</StudioButton><StudioButton type="button" variant="primary" icon={<ChevronRight size={15} />} disabled={currentStepHasError || isUploading || submitting} onClick={goNext}>{isUploading ? '等待图片上传完成' : '下一步'}</StudioButton></div></header>
           <div className="ruleFieldGrid">
-            <StudioField label="起拍价"><input type="number" value={form.startPrice} min={0} onChange={(e) => update({ startPrice: Number(e.target.value) })} /></StudioField>
-            <StudioField label="加价幅度" error={issueText(issues, '加价')}><input type="number" value={form.minIncrement} min={1} onChange={(e) => update({ minIncrement: Number(e.target.value) })} /></StudioField>
-            <StudioField label="封顶价" error={issueText(issues, '封顶')}><input type="number" value={form.capPrice} placeholder="可选" onChange={(e) => update({ capPrice: e.target.value === '' ? '' : Number(e.target.value) })} /></StudioField>
+            <StudioField label="起拍价（元）"><input type="number" value={form.startPrice} min={0} onChange={(e) => update({ startPrice: Number(e.target.value) })} /></StudioField>
+            <StudioField label="加价幅度（元）" error={issueText(issues, '加价')}><input type="number" value={form.minIncrement} min={1} onChange={(e) => update({ minIncrement: Number(e.target.value) })} /></StudioField>
+            <StudioField label="封顶价（元）" error={issueText(issues, '封顶')}><input type="number" value={form.capPrice} placeholder="可选" onChange={(e) => update({ capPrice: e.target.value === '' ? '' : Number(e.target.value) })} /></StudioField>
             <StudioField label="竞拍时长（秒）" error={issueText(issues, '时长')}><input type="number" value={form.durationSeconds} min={60} onChange={(e) => update({ durationSeconds: Number(e.target.value) })} /></StudioField>
             <StudioField label="延时窗口（秒）" error={issueText(issues, '延时窗口')}><input type="number" value={form.antiSnipeWindowSeconds} min={1} onChange={(e) => update({ antiSnipeWindowSeconds: Number(e.target.value) })} /></StudioField>
             <StudioField label="每次延长（秒）" error={issueText(issues, '每次延长')}><input type="number" value={form.antiSnipeExtendSeconds} min={10} max={30} onChange={(e) => update({ antiSnipeExtendSeconds: Number(e.target.value) })} /></StudioField>
@@ -311,7 +310,7 @@ export function AuctionCreatePage() {
           </div>
         </section> : null}
         {activeStep === 'briefing' ? <section className="auctionStepCard liveBriefingWorkbench">
-          <header><div><p>Briefing cards</p><h3>主播讲解</h3></div><span>直播中控台会按这些卡片给观众展示证书、瑕疵、细节和售后信息。</span></header>
+          <header><div><p>Briefing cards</p><h3>主播讲解</h3></div><div className="auctionStepActions"><StudioButton type="button" variant="secondary" onClick={clearForm} disabled={submitting || isUploading}>清空</StudioButton><StudioButton type="button" variant="secondary" icon={<ChevronLeft size={15} />} onClick={goBack} disabled={!canGoBack || submitting}>上一步</StudioButton><StudioButton type="button" variant="primary" icon={<ChevronRight size={15} />} disabled={currentStepHasError || isUploading || submitting} onClick={goNext}>{isUploading ? '等待图片上传完成' : '下一步'}</StudioButton></div></header>
           <section className="productPanel trustPanel">
             <div className="trustCardGrid">
               {TRUST_CARD_DEFS.map((card) => {
@@ -330,7 +329,7 @@ export function AuctionCreatePage() {
           </section>
         </section> : null}
         {activeStep === 'review' ? <section className="auctionStepCard publishReviewWorkbench">
-          <header><div><p>Final review</p><h3>确认发布</h3></div><span>确认素材、规则和讲解卡后，将拍品加入当前直播间队列。</span></header>
+          <header><div><p>Final review</p><h3>确认发布</h3></div><div className="auctionStepActions"><StudioButton type="button" variant="secondary" onClick={clearForm} disabled={submitting || isUploading}>清空</StudioButton><StudioButton type="button" variant="secondary" icon={<ChevronLeft size={15} />} onClick={goBack} disabled={!canGoBack || submitting}>上一步</StudioButton><StudioButton type="button" variant="primary" loading={submitting} disabled={hasError || isUploading} onClick={() => void submit()}>{submitting ? '正在加入本场队列...' : isUploading ? '等待图片上传完成' : '加入本场队列'}</StudioButton></div></header>
           <div className="publishReviewGrid">
             <div className="publishSummaryBlock">
               <h4>入队摘要</h4>
@@ -345,18 +344,7 @@ export function AuctionCreatePage() {
             </div>
           </div>
         </section> : null}
-        <div className="auctionStepActions">
-          <StudioButton type="button" variant="secondary" onClick={clearForm} disabled={submitting || isUploading}>清空</StudioButton>
-          <p className={`auctionStepActionHint ${actionBlockerText ? 'blocked' : ''}`} aria-live="polite">
-            {actionBlockerText ? <><AlertTriangle size={15} /><span>{actionBlockerText}</span></> : <><CheckCircle2 size={15} /><span>当前步骤必填项已完成</span></>}
-          </p>
-          <div>
-            <StudioButton type="button" variant="secondary" icon={<ChevronLeft size={15} />} onClick={goBack} disabled={!canGoBack || submitting}>上一步</StudioButton>
-            {activeStep === 'review'
-              ? <StudioButton type="button" variant="primary" loading={submitting} disabled={hasError || isUploading} onClick={() => void submit()}>{submitting ? '正在加入本场队列...' : isUploading ? '等待图片上传完成' : '加入本场队列'}</StudioButton>
-              : <StudioButton type="button" variant="primary" icon={<ChevronRight size={15} />} disabled={currentStepHasError || isUploading || submitting} onClick={goNext}>{isUploading ? '等待图片上传完成' : '下一步'}</StudioButton>}
-          </div>
-        </div>
+
       </main>
       <aside className="stickyPreviewPanel">
         <div className="mobilePreviewWrap">
@@ -399,7 +387,7 @@ function imageFromAsset(asset: UploadedAsset, fileName: string): UploadedImage {
 }
 
 function auctionMoney(amount: number | ''): Money {
-  return { amount: Number(amount || 0), currency: 'CNY' };
+  return { amount: Math.max(0, Math.round(Number(amount || 0) * 100)), currency: 'CNY' };
 }
 
 function optionalMoney(amount: number | ''): Money | undefined {

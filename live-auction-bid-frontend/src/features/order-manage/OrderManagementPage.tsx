@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CircleDollarSign, Clock3, Package, ReceiptText, RefreshCw, Search, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, CircleDollarSign, Clock3, Package, ReceiptText, RefreshCw, Search, ShieldAlert, X } from 'lucide-react';
 import { getLotResult, listAdminOrders, type AdminOrdersQuery } from '../order/api/orderApi';
 import type { LotResultReply, OrderSummary } from '../../entities/order/model/orderTypes';
 import { ORDER_STATUS_FILTERS, isAbnormalOrder, orderStatusLabel, orderStatusTone, paymentStatusLabel, paymentStatusTone } from '../../entities/order/model/orderStatus';
@@ -26,6 +26,10 @@ export function OrderManagementPage({ roomId }: Props) {
   const { toasts, showToast } = useStudioToast();
 
   const totalPages = Math.max(1, Math.ceil(total / (query.pageSize || DEFAULT_PAGE_SIZE)));
+  const currentPage = query.page || 1;
+
+  const goPrevPage = () => setQuery((c) => ({ ...c, page: Math.max(1, (c.page || 1) - 1) }));
+  const goNextPage = () => setQuery((c) => ({ ...c, page: (c.page || 1) + 1 }));
 
   const syncOrders = async (nextQuery = query) => {
     setLoading(true);
@@ -90,26 +94,27 @@ export function OrderManagementPage({ roomId }: Props) {
 
   return <section className="postLivePage orderReviewPage">
     <StudioToastViewport toasts={toasts} />
-    <StudioCard padding="lg" className="postLiveHeader">
+    <StudioCard padding="lg" className="orderReviewHero">
       <StudioPageHeader
-        eyebrow="Admin orders"
+        eyebrow="Admin · Orders"
         title="成交处理"
-        description="订单列表来自 /api/admin/orders；成交详情通过带后台权限的 /api/lots/{lotId}/result 获取。"
+        description="管理本场竞拍产生的全部成交订单，跟踪支付状态与履约进度。订单数据来自后台 /api/admin/orders 接口，成交详情通过 /api/lots/{lotId}/result 获取。"
         actions={<StudioButton type="button" variant="secondary" icon={<RefreshCw size={15} />} loading={loading} onClick={() => void syncOrders()}>{loading ? '同步中' : '刷新订单'}</StudioButton>}
       />
     </StudioCard>
     {error ? <div className="auctionMgmtNotice danger"><AlertTriangle size={16} />{error}</div> : null}
     <section className="postLiveMetricGrid">
-      <StudioMetricCard icon={<ReceiptText />} label="订单总数" value={total} trend="P2 admin order list" tone="info" />
-      <StudioMetricCard icon={<Clock3 />} label="待支付" value={metrics.pending} trend="PENDING_PAYMENT" tone="warning" />
-      <StudioMetricCard icon={<CircleDollarSign />} label="已支付" value={metrics.paid} trend="PAID / SUCCESS" tone="success" />
-      <StudioMetricCard icon={<ShieldAlert />} label="异常订单" value={metrics.abnormal} trend="取消 / 过期 / 支付失败" tone="danger" />
+      <StudioMetricCard icon={<ReceiptText />} label="订单总数" value={total.toLocaleString('zh-CN')} trend="本场全部成交订单" tone="info" />
+      <StudioMetricCard icon={<Clock3 />} label="待支付" value={metrics.pending.toLocaleString('zh-CN')} trend="等待买家完成支付" tone="warning" />
+      <StudioMetricCard icon={<CircleDollarSign />} label="已支付" value={metrics.paid.toLocaleString('zh-CN')} trend="支付成功，进入履约" tone="success" />
+      <StudioMetricCard icon={<ShieldAlert />} label="异常订单" value={metrics.abnormal.toLocaleString('zh-CN')} trend="取消 / 过期 / 退款 / 支付失败" tone="danger" />
     </section>
-    <StudioCard padding="md" className="postLiveHeader">
-      <div className="auctionFilterBar queueFilters" aria-label="订单筛选">
-        <label><Search size={15} /><input value={query.buyer || ''} onChange={(e) => updateQuery({ buyer: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') void syncOrders({ ...query, page: 1 }); }} placeholder="搜索买家 ID / 昵称" /></label>
+    <StudioCard padding="md" className="orderReviewFilters">
+      <div className="orderFilterBar" aria-label="订单筛选">
+        <label className="orderFilterSearch"><Search size={15} /><input value={query.buyer || ''} onChange={(e) => updateQuery({ buyer: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') void syncOrders({ ...query, page: 1 }); }} placeholder="搜索买家 ID / 昵称" /></label>
+        <span className="orderFilterSep" aria-hidden="true" />
         <StudioField label="订单状态"><select value={query.status || ''} onChange={(e) => updateQuery({ status: e.target.value as AdminOrdersQuery['status'] })}>{ORDER_STATUS_FILTERS.map((item) => <option key={item.label} value={item.value}>{item.label}</option>)}</select></StudioField>
-        <StudioField label="竞拍 ID"><input value={query.lotId || ''} onChange={(e) => updateQuery({ lotId: e.target.value })} placeholder="lotId" /></StudioField>
+        <StudioField label="竞拍 ID"><input value={query.lotId || ''} onChange={(e) => updateQuery({ lotId: e.target.value })} placeholder="输入 lotId" /></StudioField>
         <StudioButton type="button" variant="primary" icon={<Search size={15} />} onClick={() => void syncOrders({ ...query, page: 1 })}>查询</StudioButton>
       </div>
     </StudioCard>
@@ -117,17 +122,23 @@ export function OrderManagementPage({ roomId }: Props) {
       className="orderReviewTable"
       rows={orders}
       rowKey={(order) => order.id}
-      header={`共 ${total} 条 · 第 ${query.page || 1} / ${totalPages} 页`}
-      filters={<div className="postLiveFilters"><span>分页</span><button type="button" disabled={(query.page || 1) <= 1 || loading} onClick={() => setQuery((current) => ({ ...current, page: Math.max(1, (current.page || 1) - 1) }))}>上一页</button><button type="button" disabled={(query.page || 1) >= totalPages || loading} onClick={() => setQuery((current) => ({ ...current, page: (current.page || 1) + 1 }))}>下一页</button></div>}
-      empty={<StudioEmptyState icon={<Package size={34} />} title="暂无订单" description="当前筛选条件下后端没有返回成交订单。" action={<StudioButton type="button" variant="secondary" icon={<RefreshCw size={15} />} onClick={() => void syncOrders()}>重新同步</StudioButton>} compact />}
+      header={`共 ${total} 条订单`}
+      filters={
+        <div className="orderPager">
+          <button type="button" disabled={currentPage <= 1 || loading} onClick={goPrevPage}><ChevronLeft size={15} /><span>上一页</span></button>
+          <span className="orderPagerIndex">第 {currentPage} / {totalPages} 页</span>
+          <button type="button" disabled={currentPage >= totalPages || loading} onClick={goNextPage}><span>下一页</span><ChevronRight size={15} /></button>
+        </div>
+      }
+      empty={<StudioEmptyState icon={<Package size={34} />} title="暂无订单" description="当前筛选条件下后端没有返回成交订单。尝试调整筛选条件或确认本场是否有已成交拍品。" action={<StudioButton type="button" variant="secondary" icon={<RefreshCw size={15} />} onClick={() => void syncOrders()}>重新同步</StudioButton>} compact />}
       columns={[
-        { label: '拍品 / 订单', render: (order) => <div className="orderProductCell"><img src={order.lotImageUrl || '/vite.svg'} alt={order.lotTitle} /><div><b>{order.lotTitle || order.lotId}</b><span>{order.id}</span><small>{order.lotId}</small></div></div> },
-        { label: '成交价', render: (order) => <strong className="moneyText">{formatAmountText(order.amount, order.currency)}</strong> },
+        { label: '拍品 / 订单', render: (order) => <div className="orderProductCell"><img src={order.lotImageUrl || '/vite.svg'} alt={order.lotTitle} loading="lazy" /><div><b>{order.lotTitle || order.lotId}</b><span>{order.id}</span><small>{order.lotId}</small></div></div> },
+        { label: '成交价', render: (order) => <strong className="orderAmountCell">{formatAmountText(order.amount, order.currency)}</strong> },
         { label: '买家', render: (order) => <b>{order.buyerNickname || order.buyerUserId}</b> },
         { label: '创建时间', render: (order) => formatDateTimeText(order.createdAtUnixMs) },
         { label: '订单', render: (order) => <StudioBadge tone={orderStatusTone(order.status)}>{orderStatusLabel(order.status)}</StudioBadge> },
         { label: '支付', render: (order) => <StudioBadge tone={paymentStatusTone(order.paymentStatus)}>{paymentStatusLabel(order.paymentStatus)}</StudioBadge> },
-        { label: '操作', render: (order) => <div className="laRowActions"><button type="button" disabled={detailLoading} onClick={() => void openDetail(order)}>成交详情</button><a href={`/admin/auctions/${order.lotId}/control`}>查看竞拍</a></div> },
+        { label: '操作', render: (order) => <div className="orderRowActions"><StudioButton type="button" variant="ghost" size="sm" disabled={detailLoading} onClick={() => void openDetail(order)}>成交详情</StudioButton><a className="studioButton studioButton-ghost studioButton-sm" href={`/admin/auctions/${encodeURIComponent(order.lotId)}/control`}>查看竞拍</a></div> },
       ]}
     />}
     {detail ? <OrderDetailDrawer detail={detail} loading={detailLoading} onClose={() => setDetail(null)} /> : null}
@@ -136,9 +147,23 @@ export function OrderManagementPage({ roomId }: Props) {
 
 function OrderDetailDrawer({ detail, loading, onClose }: { detail: LotResultReply; loading: boolean; onClose: () => void }) {
   const order = detail.order;
-  return <aside className="orderDetailDrawer">
-    <StudioCard title="成交详情" subtitle={order?.id || detail.lot?.id || 'lot result'} actions={<StudioButton size="sm" variant="ghost" onClick={onClose}>关闭</StudioButton>}>
-      {loading ? <StudioTableSkeleton rows={2} columns={2} /> : <>
+  const subtitle = order?.id || detail.lot?.id || 'lot result';
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  return <div className="orderDetailOverlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <aside className="orderDetailDrawer" role="dialog" aria-modal="true" aria-labelledby="order-detail-title" onMouseDown={(event) => event.stopPropagation()}>
+      <header className="orderDetailHeader">
+        <div><p>Order detail</p><h2 id="order-detail-title">成交详情</h2><span>{subtitle}</span></div>
+        <StudioButton type="button" size="sm" variant="ghost" icon={<X size={15} />} onClick={onClose}>关闭</StudioButton>
+      </header>
+      {loading ? <div className="orderDetailLoading"><StudioTableSkeleton rows={2} columns={2} /></div> : <div className="orderDetailBody">
         <div className="drawerOrderHero"><img src={order?.lotImageUrl || detail.lot?.imageUrl || '/vite.svg'} alt={order?.lotTitle || detail.lot?.title || '成交拍品'} /><div><h3>{order?.lotTitle || detail.lot?.title || '成交拍品'}</h3><strong>{order ? formatAmountText(order.amount, order.currency) : '订单不可见'}</strong><span>{order?.buyerNickname || order?.buyerUserId || detail.lot?.winnerNickname || '买家未同步'} · {formatDateTimeText(order?.createdAtUnixMs || detail.lot?.settledAtUnixMs)}</span></div></div>
         <div className="drawerInfoGrid">
           <span>订单状态<b>{orderStatusLabel(order?.status)}</b></span>
@@ -148,8 +173,10 @@ function OrderDetailDrawer({ detail, loading, onClose }: { detail: LotResultRepl
           <span>支付单号<b>{order?.paymentId || '未生成 / 不可见'}</b></span>
           <span>支付截止<b>{formatDateTimeText(order?.expiresAtUnixMs)}</b></span>
         </div>
-        {order ? <StudioEmptyState compact tone="success" icon={<ReceiptText size={22} />} title="订单详情来自后端权限接口" description="后台不使用公开 WebSocket reason 中的订单或支付标识。" /> : <StudioErrorState compact icon={<AlertTriangle size={22} />} title="后端未返回订单详情" description="当前账号可能无权查看，或该成交尚未生成订单。" />}
-      </>}
-    </StudioCard>
-  </aside>;
+        <div className="orderDetailFooter">
+          {order ? <StudioEmptyState compact tone="success" icon={<ReceiptText size={22} />} title="订单详情来自后端权限接口" description="后台不使用公开 WebSocket reason 中的订单或支付标识。" /> : <StudioErrorState compact icon={<AlertTriangle size={22} />} title="后端未返回订单详情" description="当前账号可能无权查看，或该成交尚未生成订单。" />}
+        </div>
+      </div>}
+    </aside>
+  </div>;
 }

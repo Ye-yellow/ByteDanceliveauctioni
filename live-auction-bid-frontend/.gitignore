@@ -12,3 +12,4 @@ dist/
 coverage/
 .codex/
 .agents/
+tmp/
