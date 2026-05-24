@@ -63,3 +63,10 @@ VITE_DEMO_BUYER_NICKNAME=H5 买家
 - `/m/room/:roomId` 用户直播间主页面
 - `/m/result/:lotId` 可选结果页占位
 - `/m/history` 可选历史记录页占位
+
+## H5 页面布局约定
+
+- 新增页面最外层统一使用 `<main className="mobileShell">`。
+- `.mobileShell` 已经固定为当前视口内的手机容器，并在容器内部滚动；不要在普通页面再写 `min-height: 100vh`、`height: 100vh` 或额外顶层 margin，否则 Windows/桌面浏览器会出现页面外层被自动延长。
+- 首页、直播间、我的页这类全屏沉浸页可以在 `mobileShell` 后追加专用 class，例如 `homeShell`、`douyinShell`、`profileShell`，但滚动也必须留在专用 shell 内部。
+- 页面内容需要滚动时，让内容区或 `mobileShell` 滚动，不让 `body/html/#root` 滚动。

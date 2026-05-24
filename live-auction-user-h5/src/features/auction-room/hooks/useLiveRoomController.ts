@@ -1,25 +1,72 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { isBiddableLotStatus, isPrivateRefreshEventType, isSettlementEventType, lotIdFromPublicEvent } from '../../../entities/auction/model/status';
 import { ownOrderForLot } from '../../../entities/order/model/privacy';
-import { placeBid } from '../../auction/api/auctionApi';
+import { listRoomLots, placeBid } from '../../auction/api/auctionApi';
 import { createIdempotencyKey } from '../../../shared/lib/idempotency';
-import { moneyNumber } from '../../../shared/lib/money';
 import { normalizeMoney } from '../../../shared/api/adapters';
 import { AUCTION_EVENT_TYPE, type AuctionSocketEvent, type Lot, type OrderSummary, type PaymentSummary } from '../../../shared/api/types';
+import { normalizeBuyerUsername, validateBuyerCredentials } from '../../../shared/auth/credentialRules';
 import { useAuthSession } from '../../../shared/auth/useAuthSession';
+import { DEFAULT_DEMO_ROOM_PROFILE, getDemoRoomProfile } from '../../../shared/config/demoRooms';
 import { noticeForAuctionEvent } from '../model/notices';
 import { useAuctionRoom } from './useAuctionRoom';
 import { useAuctionSocket } from './useAuctionSocket';
 
 const DEFAULT_ACTIVITY_QUERY = { page: 1, pageSize: 20 };
+const DEPOSIT_CONFIRM_STORAGE_PREFIX = 'live-auction-h5.deposit-confirmed.v1';
+
+export type AuctionPanelTab = 'current' | 'queue' | 'mine';
+type DepositPrompt = {
+  lot: Lot;
+  bidAmount: number;
+  userId: string;
+};
 
 function bidFailureMessage(reason: unknown): string {
   const message = reason instanceof Error ? reason.message : typeof reason === 'string' ? reason : '请稍后重试';
   return message.startsWith('出价失败') ? message : `出价失败：${message}`;
 }
 
+function nicknameFromUsername(username: string): string {
+  const normalized = username.trim();
+  return normalized ? `买家${normalized.slice(0, 8)}` : `买家${Date.now().toString().slice(-4)}`;
+}
+
+function eventMayChangeLotList(event: AuctionSocketEvent): boolean {
+  return event.type === AUCTION_EVENT_TYPE.LOT_CREATED ||
+    event.type === AUCTION_EVENT_TYPE.LOT_QUEUED ||
+    event.type === AUCTION_EVENT_TYPE.LOT_STARTED ||
+    event.type === AUCTION_EVENT_TYPE.LOT_UPDATED ||
+    event.type === AUCTION_EVENT_TYPE.AUCTION_EXTENDED ||
+    event.type === AUCTION_EVENT_TYPE.AUCTION_CLOSED ||
+    event.type === AUCTION_EVENT_TYPE.LOT_SETTLED ||
+    event.type === AUCTION_EVENT_TYPE.LOT_CANCELLED ||
+    event.type === AUCTION_EVENT_TYPE.ORDER_CREATED ||
+    event.type === AUCTION_EVENT_TYPE.PAYMENT_SUCCESS;
+}
+
+function depositConfirmKey(roomId: string, lotId: string, userId: string): string {
+  return `${DEPOSIT_CONFIRM_STORAGE_PREFIX}:${roomId}:${lotId}:${userId}`;
+}
+
+function hasConfirmedDeposit(roomId: string, lotId: string, userId: string): boolean {
+  try {
+    return localStorage.getItem(depositConfirmKey(roomId, lotId, userId)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function markDepositConfirmed(roomId: string, lotId: string, userId: string) {
+  try {
+    localStorage.setItem(depositConfirmKey(roomId, lotId, userId), '1');
+  } catch {
+    // Local confirmation is best-effort in the H5 demo flow.
+  }
+}
+
 export function useLiveRoomController(roomId: string) {
-  const { user, status, reason, authMode, ensureReadyForBid, loginBuyer, registerBuyer } = useAuthSession();
+  const { user, status, reason, authMode, ensureReadyForBid, loginBuyer, registerBuyer, resetBuyerPassword } = useAuthSession();
   const {
     room,
     loading,
@@ -37,7 +84,7 @@ export function useLiveRoomController(roomId: string) {
   const [notices, setNotices] = useState<string[]>([]);
   const [bidError, setBidError] = useState('');
   const [bidding, setBidding] = useState(false);
-  const [authFormMode, setAuthFormMode] = useState<'login' | 'register'>('login');
+  const [authFormMode, setAuthFormMode] = useState<'login' | 'register' | 'reset'>('login');
   const [authUsername, setAuthUsername] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authNickname, setAuthNickname] = useState('');
@@ -46,10 +93,17 @@ export function useLiveRoomController(roomId: string) {
   const [resultLot, setResultLot] = useState<Lot | null>(null);
   const [resultOrder, setResultOrder] = useState<OrderSummary | null>(null);
   const [payOrder, setPayOrder] = useState<OrderSummary | null>(null);
+  const [depositPrompt, setDepositPrompt] = useState<DepositPrompt | null>(null);
+  const [auctionPanelOpen, setAuctionPanelOpen] = useState(false);
+  const [auctionPanelTab, setAuctionPanelTab] = useState<AuctionPanelTab>('current');
+  const [roomLots, setRoomLots] = useState<Lot[]>([]);
+  const [roomLotsLoading, setRoomLotsLoading] = useState(false);
+  const [roomLotsError, setRoomLotsError] = useState('');
 
   const meId = user?.id ?? '';
   const currentLot = room.currentLot;
-  const roomName = room.snapshot?.roomName || `直播间 ${roomId}`;
+  const roomProfile = getDemoRoomProfile(roomId);
+  const roomName = roomProfile?.roomName || room.snapshot?.roomName || DEFAULT_DEMO_ROOM_PROFILE.roomName;
   const isBidPending = Boolean(room.localOptimistic.pendingBid) || bidding;
   const accountRoleMessage = status !== 'authenticated' && reason === '该账号不是买家账号' ? reason : '';
   const showBuyerAuth = authMode === 'real' && !user;
@@ -61,9 +115,25 @@ export function useLiveRoomController(roomId: string) {
 
   const visibleResultOrder = ownOrderForLot(resultOrder || room.activeOrder, meId, resultLot?.id);
 
+  const refreshRoomLots = useCallback(async () => {
+    setRoomLotsLoading(true);
+    setRoomLotsError('');
+    try {
+      const lots = await listRoomLots(roomId);
+      setRoomLots(lots);
+      return lots;
+    } catch (e) {
+      const message = e instanceof Error ? e.message : '拍品队列加载失败';
+      setRoomLotsError(message);
+      throw e;
+    } finally {
+      setRoomLotsLoading(false);
+    }
+  }, [roomId]);
+
   const pushNotice = useCallback((notice: string) => {
     if (!notice) return;
-    setNotices((current) => [notice, ...current].slice(0, 6));
+    setNotices((current) => current.includes(notice) ? current : [notice, ...current].slice(0, 6));
     window.setTimeout(() => setNotices((current) => current.filter((item) => item !== notice)), 3600);
   }, []);
 
@@ -89,6 +159,7 @@ export function useLiveRoomController(roomId: string) {
 
   const recoverRealtimeState = useCallback(async () => {
     await reload().catch(() => undefined);
+    await refreshRoomLots().catch(() => undefined);
     const lotId = resultLot?.id || currentLot?.id || '';
     if (lotId) {
       await syncPrivateResult(lotId, {
@@ -99,7 +170,7 @@ export function useLiveRoomController(roomId: string) {
     } else {
       await refreshOrders(DEFAULT_ACTIVITY_QUERY).catch(() => undefined);
     }
-  }, [currentLot?.id, refreshOrders, reload, resultLot, syncPrivateResult]);
+  }, [currentLot?.id, refreshOrders, refreshRoomLots, reload, resultLot, syncPrivateResult]);
 
   const handleSocketEvent = useCallback((event: AuctionSocketEvent) => {
     if (event.roomId && event.roomId !== roomId) return;
@@ -110,6 +181,7 @@ export function useLiveRoomController(roomId: string) {
 
     const notice = noticeForAuctionEvent(event, meId, previousLeaderId);
     if (notice) pushNotice(notice);
+    if (eventMayChangeLotList(event)) void refreshRoomLots().catch(() => undefined);
 
     if (isSettlementEventType(event.type)) {
       const lotId = lotIdFromPublicEvent(event, resultLot?.id || currentLot?.id || '');
@@ -118,26 +190,43 @@ export function useLiveRoomController(roomId: string) {
         refreshOrderList: isPrivateRefreshEventType(event.type),
       });
     }
-  }, [applyEvent, currentLot?.id, meId, pushNotice, resultLot?.id, room.currentLot?.leadingUserId, roomId, syncPrivateResult]);
+  }, [applyEvent, currentLot?.id, meId, pushNotice, refreshRoomLots, resultLot?.id, room.currentLot?.leadingUserId, roomId, syncPrivateResult]);
 
   const wsState = useAuctionSocket(roomId, handleSocketEvent, recoverRealtimeState);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void refreshRoomLots().catch(() => undefined);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [refreshRoomLots]);
+
   const submitBuyerAuth = useCallback(async () => {
     if (authBusy) return;
-    if (!authUsername.trim() || !authPassword) {
-      setAuthError('请输入账号和密码');
-      return;
-    }
-    if (authFormMode === 'register' && !authNickname.trim()) {
-      setAuthError('请输入昵称');
+    const validationError = validateBuyerCredentials({
+      username: authUsername,
+      password: authPassword,
+      nickname: authNickname,
+      requireNickname: authFormMode === 'register',
+    });
+    if (validationError) {
+      setAuthError(validationError);
       return;
     }
 
     setAuthBusy(true);
     setAuthError('');
     try {
-      if (authFormMode === 'login') await loginBuyer(authUsername, authPassword);
-      else await registerBuyer(authUsername, authPassword, authNickname);
+      const username = normalizeBuyerUsername(authUsername);
+      if (authFormMode === 'reset') {
+        await resetBuyerPassword(username, authPassword);
+        setAuthFormMode('login');
+        setAuthPassword('');
+        pushNotice('密码已重置，请用新密码登录');
+        return;
+      }
+      if (authFormMode === 'login') await loginBuyer(username, authPassword);
+      else await registerBuyer(username, authPassword, authNickname.trim() || nicknameFromUsername(username));
       setBidError('');
       pushNotice(authFormMode === 'login' ? '登录成功，可以出价' : '注册成功，可以出价');
     } catch (e) {
@@ -145,7 +234,14 @@ export function useLiveRoomController(roomId: string) {
     } finally {
       setAuthBusy(false);
     }
-  }, [authBusy, authFormMode, authNickname, authPassword, authUsername, loginBuyer, pushNotice, registerBuyer]);
+  }, [authBusy, authFormMode, authNickname, authPassword, authUsername, loginBuyer, pushNotice, registerBuyer, resetBuyerPassword]);
+
+  const openAuctionPanel = useCallback((tab: AuctionPanelTab = 'current') => {
+    setAuctionPanelTab(tab);
+    setAuctionPanelOpen(true);
+    void refreshRoomLots().catch(() => undefined);
+    if (tab === 'mine') void refreshOrders(DEFAULT_ACTIVITY_QUERY).catch(() => undefined);
+  }, [refreshOrders, refreshRoomLots]);
 
   const submitBid = useCallback(async (amount: number) => {
     if (isBidPending) return;
@@ -157,13 +253,26 @@ export function useLiveRoomController(roomId: string) {
       setBidError('当前拍品还未开拍或已结束');
       return;
     }
-
-    const min = (moneyNumber(currentLot.currentPrice) || moneyNumber(currentLot.rule.startPrice)) +
-      moneyNumber(currentLot.rule.minIncrement);
-    if (amount < min) {
-      const message = '出价失败：加价幅度不正确';
+    if (meId && currentLot.leadingUserId === meId) {
+      const message = '你已领先，等待其他买家出价后再加价';
       setBidError(message);
       pushNotice(message);
+      return;
+    }
+
+    let session: Awaited<ReturnType<typeof ensureReadyForBid>>;
+
+    try {
+      session = await ensureReadyForBid();
+    } catch (e) {
+      const message = bidFailureMessage(e);
+      setBidError(message);
+      pushNotice(message);
+      return;
+    }
+
+    if (!hasConfirmedDeposit(roomId, currentLot.id, session.user.id)) {
+      setDepositPrompt({ lot: currentLot, bidAmount: amount, userId: session.user.id });
       return;
     }
 
@@ -172,7 +281,6 @@ export function useLiveRoomController(roomId: string) {
     let idempotencyKey = '';
 
     try {
-      const session = await ensureReadyForBid();
       idempotencyKey = createIdempotencyKey('bid', currentLot.id, session.user.id, amount);
       markBidStarted(currentLot.id, normalizeMoney(amount), idempotencyKey);
 
@@ -206,7 +314,15 @@ export function useLiveRoomController(roomId: string) {
       markBidSettled(idempotencyKey);
       setBidding(false);
     }
-  }, [applyEvent, currentLot, ensureReadyForBid, isBidPending, markBidSettled, markBidStarted, pushNotice, roomId]);
+  }, [applyEvent, currentLot, ensureReadyForBid, isBidPending, markBidSettled, markBidStarted, meId, pushNotice, roomId]);
+
+  const confirmDepositPayment = useCallback(() => {
+    if (!depositPrompt) return;
+    markDepositConfirmed(roomId, depositPrompt.lot.id, depositPrompt.userId);
+    const nextBidAmount = depositPrompt.bidAmount;
+    setDepositPrompt(null);
+    void submitBid(nextBidAmount);
+  }, [depositPrompt, roomId, submitBid]);
 
   const handlePaymentPaid = useCallback(async (order?: OrderSummary, payment?: PaymentSummary) => {
     markPaymentSettled(order, payment);
@@ -232,7 +348,8 @@ export function useLiveRoomController(roomId: string) {
     setResultLot(null);
     setResultOrder(null);
     void reload().catch(() => undefined);
-  }, [reload]);
+    void refreshRoomLots().catch(() => undefined);
+  }, [refreshRoomLots, reload]);
 
   return {
     roomId,
@@ -262,13 +379,28 @@ export function useLiveRoomController(roomId: string) {
       setNickname: setAuthNickname,
       submit: submitBuyerAuth,
     },
+    auctionPanel: {
+      open: auctionPanelOpen,
+      tab: auctionPanelTab,
+      lots: roomLots,
+      loading: roomLotsLoading,
+      error: roomLotsError,
+    },
     resultLot,
     visibleResultOrder,
     payOrder,
+    depositPrompt,
     actions: {
       submitBid,
+      confirmDepositPayment,
+      closeDepositPrompt: () => setDepositPrompt(null),
       closeResult,
       nextLot,
+      openAuctionPanel,
+      closeAuctionPanel: () => setAuctionPanelOpen(false),
+      setAuctionPanelTab,
+      refreshRoomLots,
+      refreshOrders: () => refreshOrders(DEFAULT_ACTIVITY_QUERY),
       setPayOrder,
       markPaymentStarted,
       handlePaymentPaid,

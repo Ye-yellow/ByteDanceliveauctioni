@@ -7,21 +7,29 @@ type BidPanelProps = {
   lot: Lot | null;
   loading: boolean;
   error: string;
+  disabledReason?: string;
   onBid: (amount: number) => void;
 };
 
-export function BidPanel({ lot, loading, error, onBid }: BidPanelProps) {
+export function BidPanel({ lot, loading, error, disabledReason = '', onBid }: BidPanelProps) {
   const minAmount = useMemo(() => {
     if (!lot) return 0;
     const current = moneyNumber(lot.currentPrice) || moneyNumber(lot.rule.startPrice);
     return current + moneyNumber(lot.rule.minIncrement);
   }, [lot]);
 
-  const [draftAmount, setDraftAmount] = useState<number | null>(null);
-  const amount = Math.max(draftAmount ?? minAmount, minAmount);
+  const lotId = lot?.id || '';
+  const [draft, setDraft] = useState({ lotId: '', majorValue: '' });
+  const draftMajorValue = draft.lotId === lotId ? draft.majorValue : String(moneyMajorNumber(minAmount));
+  const parsedMajorValue = Number(draftMajorValue);
+  const amount = Number.isFinite(parsedMajorValue) ? amountFromMajor(parsedMajorValue) : 0;
   const step = moneyNumber(lot?.rule.minIncrement) || 100;
   const open = isBiddableLotStatus(lot?.status);
-  const disabled = !lot || !open || loading;
+  const disabled = !lot || !open || loading || Boolean(disabledReason);
+
+  const updateAmount = (nextAmount: number) => {
+    setDraft({ lotId, majorValue: String(moneyMajorNumber(nextAmount)) });
+  };
 
   return (
     <section className="bidPanel" aria-busy={loading}>
@@ -30,7 +38,7 @@ export function BidPanel({ lot, loading, error, onBid }: BidPanelProps) {
           type="button"
           disabled={disabled}
           aria-label="减少出价"
-          onClick={() => setDraftAmount((value) => Math.max(minAmount, (value ?? amount) - step))}
+          onClick={() => updateAmount(Math.max(0, (amount || minAmount) - step))}
         >
           −
         </button>
@@ -38,27 +46,30 @@ export function BidPanel({ lot, loading, error, onBid }: BidPanelProps) {
           <span>我的出价</span>
           <input
             type="number"
-            min={moneyMajorNumber(minAmount)}
+            disabled={disabled}
             step="0.01"
-            value={moneyMajorNumber(amount)}
-            onChange={(event) => setDraftAmount(amountFromMajor(Number(event.target.value)))}
+            value={draftMajorValue}
+            onChange={(event) => {
+              setDraft({ lotId, majorValue: event.target.value });
+            }}
           />
         </label>
         <button
           type="button"
           disabled={disabled}
           aria-label="增加出价"
-          onClick={() => setDraftAmount((value) => (value ?? amount) + step)}
+          onClick={() => updateAmount((amount || minAmount) + step)}
         >
           ＋
         </button>
       </div>
 
       <button className="bidButton" type="button" disabled={disabled} onClick={() => onBid(amount)}>
-        {loading ? '出价确认中...' : `立即出价 ${formatMoney(amount)}`}
+        {loading ? '出价确认中...' : disabledReason ? '等待他人出价' : `立即出价 ${formatMoney(amount)}`}
       </button>
 
       {error ? <p className="bidError" role="alert">{error}</p> : null}
+      {disabledReason ? <p className="bidHint">{disabledReason}</p> : null}
       {!lot ? (
         <p className="bidHint">当前暂无竞拍，等待主播开拍</p>
       ) : !open ? (

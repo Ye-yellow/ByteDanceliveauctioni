@@ -7,6 +7,7 @@ export type AuthSessionContextValue = AuthSessionSnapshot & {
   ensureReadyForBid: typeof authSession.ensureReadyForBid;
   loginBuyer: typeof authSession.loginBuyer;
   registerBuyer: typeof authSession.registerBuyer;
+  resetBuyerPassword: typeof authSession.resetBuyerPassword;
   refreshIfNeeded: typeof authSession.refreshIfNeeded;
   logout: typeof authSession.logout;
 };

@@ -1,5 +1,6 @@
 import {
   AUCTION_EVENT_TYPE,
+  LOT_QUEUE_STATUS,
   LOT_STATUS,
   USER_ROLE,
   type AuctionEventType,
@@ -9,6 +10,7 @@ import {
   type BidRecord,
   type BidRule,
   type Lot,
+  type LotQueueStatus,
   type LotResult,
   type LotStatus,
   type Money,
@@ -127,6 +129,24 @@ export function normalizeLotStatus(value: unknown): LotStatus {
   return numeric[numberValue(value)] ?? LOT_STATUS.UNSPECIFIED;
 }
 
+function normalizeLotQueueStatus(value: unknown): LotQueueStatus {
+  if (typeof value === 'string') {
+    if (value.startsWith('LOT_QUEUE_STATUS_')) return value as LotQueueStatus;
+    if (value === 'NONE') return LOT_QUEUE_STATUS.NONE;
+    if (value === 'QUEUED') return LOT_QUEUE_STATUS.QUEUED;
+    if (value === 'NEXT') return LOT_QUEUE_STATUS.NEXT;
+  }
+
+  const numeric: Record<number, LotQueueStatus> = {
+    0: LOT_QUEUE_STATUS.UNSPECIFIED,
+    1: LOT_QUEUE_STATUS.NONE,
+    2: LOT_QUEUE_STATUS.QUEUED,
+    3: LOT_QUEUE_STATUS.NEXT,
+  };
+
+  return numeric[numberValue(value)] ?? LOT_QUEUE_STATUS.UNSPECIFIED;
+}
+
 function normalizeBidRule(input: unknown): BidRule {
   const raw = asRecord(input);
   return {
@@ -162,6 +182,8 @@ export function normalizeLot(input: unknown): Lot {
     settledAtUnixMs: pick(raw, 'settledAtUnixMs', 'settled_at_unix_ms'),
     rule: normalizeBidRule(raw.rule),
     version: raw.version as Lot['version'],
+    queueStatus: normalizeLotQueueStatus(pick(raw, 'queueStatus', 'queue_status')),
+    queuePosition: numberValue(pick(raw, 'queuePosition', 'queue_position')),
     cancelReason: stringValue(pick(raw, 'cancelReason', 'cancel_reason')),
     cancelledAtUnixMs: pick(raw, 'cancelledAtUnixMs', 'cancelled_at_unix_ms'),
   };

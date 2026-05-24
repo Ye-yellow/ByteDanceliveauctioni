@@ -13,11 +13,11 @@ export function RankingBoard({ ranking, meId }: { ranking: RankingItem[]; meId: 
         {me?.rank === 1 ? <b>你已领先</b> : me ? <b className="warn">你被超越</b> : null}
       </header>
       {ranking.length ? (
-        ranking.slice(0, 5).map((item) => (
-          <div key={item.userId} className={`rankRow ${item.userId === meId ? 'me' : ''}`}>
+        ranking.slice(0, 5).map((item, index) => (
+          <div key={item.userId || `${item.nickname}-${item.rank}-${index}`} className={`rankRow ${item.userId === meId ? 'me' : ''}`}>
             <span>#{item.rank}</span>
             <div>
-              <b>{item.nickname || item.userId}</b>
+              <b>{item.nickname || (item.userId === meId ? '我' : '买家***')}</b>
               <small>
                 {item.rank === 1 ? '当前第一' : `差距 ${formatMoney(Math.max(0, topAmount - moneyNumber(item.amount)))}`}
               </small>

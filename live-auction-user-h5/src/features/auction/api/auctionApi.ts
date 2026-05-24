@@ -1,8 +1,9 @@
-import { normalizeBidRecord, normalizeLotResult, normalizeMoney, normalizeOrder, normalizePayment, normalizePlaceBidResponse, normalizeRoomSnapshot } from '../../../shared/api/adapters';
+import { normalizeBidRecord, normalizeLot, normalizeLotResult, normalizeMoney, normalizeOrder, normalizePayment, normalizePlaceBidResponse, normalizeRoomSnapshot } from '../../../shared/api/adapters';
 import { apiRequest } from '../../../shared/api/httpClient';
 import type {
   BidRecord,
   BidRecordList,
+  Lot,
   LotResult,
   Money,
   MyBidsQuery,
@@ -18,6 +19,7 @@ import { authSession } from '../../../shared/auth/authSession';
 
 type SnapshotReply = { snapshot?: unknown };
 type LotResultReply = LotResult | { lot?: unknown; order?: unknown; orderId?: string; order_id?: string };
+type ListLotsReply = { lots?: unknown[]; total?: number; nextPageToken?: string; next_page_token?: string };
 type ListOrdersReply = { orders?: unknown[]; total?: number; page?: number; pageSize?: number; page_size?: number };
 type ListBidsReply = { bids?: unknown[]; total?: number; page?: number; pageSize?: number; page_size?: number };
 type MockPayReply = { paid: boolean; message?: string; order?: unknown; payment?: unknown };
@@ -39,6 +41,16 @@ export async function getRoomSnapshot(roomId: string): Promise<RoomSnapshot> {
   });
 
   return normalizeRoomSnapshot(reply.snapshot ?? reply, roomId);
+}
+
+export async function listRoomLots(roomId: string): Promise<Lot[]> {
+  const reply = await apiRequest<ListLotsReply>({
+    path: withQuery('/api/lots', { room_id: roomId }),
+    auth: 'optional',
+    operation: 'listRoomLots',
+  });
+
+  return Array.isArray(reply.lots) ? reply.lots.map(normalizeLot).filter((lot) => Boolean(lot.id)) : [];
 }
 
 export async function placeBid(lotId: string, payload: PlaceBidRequest): Promise<PlaceBidResponse> {

@@ -17,7 +17,9 @@ export function MockPayModal({
 }) {
   const [method, setMethod] = useState('模拟余额');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState<{ orderId: string; text: string } | null>(null);
+  const [paidOrderId, setPaidOrderId] = useState<string | null>(order.paymentStatus === 'SUCCESS' ? order.id : null);
+  const settled = paidOrderId === order.id || order.paymentStatus === 'SUCCESS';
   const idempotencyKey = useMemo(
     () => createIdempotencyKey('pay', order.id, order.amount.amount),
     [order.amount.amount, order.id],
@@ -26,14 +28,15 @@ export function MockPayModal({
   const pay = async () => {
     if (loading) return;
     setLoading(true);
-    setMessage('');
+    setMessage(null);
     onStartPayment(order.id, idempotencyKey);
     try {
       const result = await mockPay(order.id, { idempotencyKey, amount: order.amount });
       await onPaid(result.order, result.payment);
-      setMessage(result.paid ? '支付成功，订单已刷新' : result.message || '支付状态已同步');
+      if (result.paid || result.order?.paymentStatus === 'SUCCESS' || result.payment?.status === 'SUCCESS') setPaidOrderId(order.id);
+      setMessage({ orderId: order.id, text: result.paid ? '支付成功，订单已刷新' : result.message || '支付状态已同步' });
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : '模拟支付失败，请重试');
+      setMessage({ orderId: order.id, text: e instanceof Error ? e.message : '模拟支付失败，请重试' });
       await onPaid(undefined, undefined);
     } finally {
       setLoading(false);
@@ -60,10 +63,10 @@ export function MockPayModal({
             </button>
           ))}
         </div>
-        <button className="bidButton" type="button" disabled={loading || order.paymentStatus === 'SUCCESS'} onClick={pay}>
-          {loading ? '支付中...' : order.paymentStatus === 'SUCCESS' ? '已支付' : '确认模拟支付'}
+        <button className="bidButton" type="button" disabled={loading || settled} onClick={pay}>
+          {loading ? '支付中...' : settled ? '已支付' : '确认模拟支付'}
         </button>
-        {message ? <p className="payResult" role="status">{message}</p> : null}
+        {message?.orderId === order.id ? <p className="payResult" role="status">{message.text}</p> : null}
       </section>
     </div>
   );

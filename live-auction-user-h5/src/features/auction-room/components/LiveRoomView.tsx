@@ -1,79 +1,145 @@
-import { LOT_STATUS } from '../../../shared/api/types';
 import { LivePlayer } from '../../live/components/LivePlayer';
-import { BidPanel } from '../../bid-panel/components/BidPanel';
+import { DepositPayModal } from '../../payment-flow/components/DepositPayModal';
 import { MockPayModal } from '../../payment-flow/components/MockPayModal';
 import { ResultModal } from '../../result-modal/components/ResultModal';
+import { isBiddableLotStatus } from '../../../entities/auction/model/status';
+import { DEFAULT_DEMO_ROOM_PROFILE, getDemoRoomProfile } from '../../../shared/config/demoRooms';
+import { formatMoney, moneyNumber } from '../../../shared/lib/money';
 import type { LiveRoomController } from '../hooks/useLiveRoomController';
+import { AuctionDrawer } from './AuctionDrawer';
 import { AuctionNoticeLayer } from './AuctionNoticeLayer';
-import { BuyerAuthPanel } from './BuyerAuthPanel';
-import { CurrentLotCard } from './CurrentLotCard';
-import { RankingBoard } from './RankingBoard';
-import { RecentBidFeed } from './RecentBidFeed';
-import { RoomStatusBar } from './RoomStatusBar';
+
+function LiveRoomChrome({ controller }: { controller: LiveRoomController }) {
+  const { roomId, roomName, room } = controller;
+  const roomProfile = getDemoRoomProfile(roomId);
+  const anchorName = roomProfile?.anchorName || room.snapshot?.anchorName || DEFAULT_DEMO_ROOM_PROFILE.anchorName;
+  const likes = Math.max(room.snapshot?.onlineCount || 0, 93000);
+  const closeRoom = () => {
+    window.location.assign('/');
+  };
+
+  return (
+    <section className="liveRoomChrome" aria-label="直播间信息">
+      <div className="liveAnchorLine">
+        <div className="anchorAvatar">{anchorName.slice(0, 1)}</div>
+        <div className="anchorCopy">
+          <strong>{anchorName}</strong>
+          <span>{likes.toLocaleString('zh-CN')} 本场点赞</span>
+        </div>
+        <button type="button" className="closeLive" aria-label="关闭直播间" onClick={closeRoom}>×</button>
+      </div>
+
+      <div className="roomTitleBlock">
+        <span>00后</span>
+        <b>{roomName || '今日游戏 - 植物大战僵尸'}</b>
+      </div>
+    </section>
+  );
+}
+
+function minimumBidAmount(controller: LiveRoomController): number {
+  const lot = controller.currentLot;
+  if (!lot) return 0;
+  const current = moneyNumber(lot.currentPrice) || moneyNumber(lot.rule.startPrice);
+  return current + moneyNumber(lot.rule.minIncrement);
+}
+
+function quickBidDisabledReason(controller: LiveRoomController): string {
+  const { currentLot, meId, isBidPending } = controller;
+  if (!currentLot) return '当前暂无竞拍';
+  if (!isBiddableLotStatus(currentLot.status)) return '当前不可出价';
+  if (isBidPending) return '出价确认中';
+  if (meId && currentLot.leadingUserId === meId) return '你已领先';
+  return '';
+}
+
+function LiveActionRail({ controller, onOpenAuction }: { controller: LiveRoomController; onOpenAuction: () => void }) {
+  const minBidAmount = minimumBidAmount(controller);
+  const disabledReason = quickBidDisabledReason(controller);
+  const disabled = Boolean(disabledReason);
+  const handleQuickBid = () => {
+    if (controller.showBuyerAuth) {
+      onOpenAuction();
+      return;
+    }
+    if (!disabled && minBidAmount > 0) controller.actions.submitBid(minBidAmount);
+  };
+
+  return (
+    <aside className="liveActionRail" aria-label="直播互动">
+      <button type="button" aria-label="打开竞拍" onClick={onOpenAuction}><span>拍</span><b>竞拍</b></button>
+      <button
+        type="button"
+        className="quickBidButton"
+        aria-label={minBidAmount > 0 ? `快速加价 ${formatMoney(minBidAmount)}` : '快速加价'}
+        title={disabledReason || (minBidAmount > 0 ? `快速加价 ${formatMoney(minBidAmount)}` : '快速加价')}
+        disabled={!controller.showBuyerAuth && disabled}
+        onClick={handleQuickBid}
+      >
+        <span>＋</span>
+        <b>{controller.isBidPending ? '出价中' : '加价'}</b>
+      </button>
+    </aside>
+  );
+}
+
+function LiveComposer() {
+  return (
+    <footer className="liveComposer" aria-label="直播互动输入">
+      <button type="button" className="commentInput">说点什么...</button>
+      <button type="button" aria-label="表情">☺</button>
+    </footer>
+  );
+}
 
 export function LiveRoomView({ controller }: { controller: LiveRoomController }) {
   const {
     roomId,
     room,
-    loading,
     error,
     roomName,
     currentLot,
-    ranking,
     meId,
     wsState,
     notices,
-    bidError,
-    isBidPending,
-    accountRoleMessage,
-    showBuyerAuth,
-    buyerAuth,
+    auctionPanel,
     resultLot,
     visibleResultOrder,
     payOrder,
+    depositPrompt,
     actions,
   } = controller;
+  const roomProfile = getDemoRoomProfile(roomId);
+  const anchorName = roomProfile?.anchorName || room.snapshot?.anchorName || DEFAULT_DEMO_ROOM_PROFILE.anchorName;
 
   return (
-    <main className="mobileShell">
+    <main className={`mobileShell douyinShell ${auctionPanel.open ? 'drawerVisible' : ''}`}>
       <LivePlayer
         poster={currentLot?.imageUrl}
-        anchorName={room.snapshot?.anchorName}
+        anchorName={anchorName}
         onlineCount={room.snapshot?.onlineCount}
         wsState={wsState}
         roomName={roomName}
       />
 
-      <RoomStatusBar roomId={roomId} source={room.eventState.source} />
+      <LiveRoomChrome controller={controller} />
+      <LiveActionRail
+        controller={controller}
+        onOpenAuction={() => actions.openAuctionPanel('current')}
+      />
+      {wsState !== '已连接' ? <div className="liveConnectionWarn">实时连接中断，正在恢复</div> : null}
+      {error ? <div className="liveConnectionWarn error">{error}</div> : null}
+      <AuctionDrawer controller={controller} />
+      <AuctionNoticeLayer notices={notices} />
+      <LiveComposer />
 
-      {wsState !== '已连接' ? <div className="connectionWarn">实时连接中断，正在重连并恢复快照</div> : null}
-      {accountRoleMessage ? <section className="emptyState error">{accountRoleMessage}</section> : null}
-      {showBuyerAuth ? <BuyerAuthPanel auth={buyerAuth} /> : null}
-
-      {loading ? <section className="emptyState">正在进入直播间...</section> : null}
-      {error ? <section className="emptyState error">{error}</section> : null}
-      {!loading && !currentLot ? <section className="emptyState">当前暂无竞拍，等待主播开拍</section> : null}
-      {currentLot ? (
-        <CurrentLotCard
-          lot={currentLot}
-          serverTimeUnixMs={room.serverTimeUnixMs}
-          serverTimeReceivedAtUnixMs={room.serverTimeReceivedAtUnixMs}
+      {depositPrompt ? (
+        <DepositPayModal
+          lot={depositPrompt.lot}
+          onConfirm={actions.confirmDepositPayment}
+          onClose={actions.closeDepositPrompt}
         />
       ) : null}
-
-      <BidPanel lot={currentLot} loading={isBidPending} error={bidError} onBid={actions.submitBid} />
-
-      {room.localOptimistic.pendingBid ? (
-        <p className="pendingHint">
-          出价已提交，等待后端确认，幂等键 {room.localOptimistic.pendingBid.idempotencyKey.slice(0, 18)}...
-        </p>
-      ) : null}
-
-      <RankingBoard ranking={ranking} meId={meId} />
-      <RecentBidFeed bids={room.recentBids} />
-      <AuctionNoticeLayer notices={notices} />
-
-      {currentLot?.status === LOT_STATUS.CANCELLED ? <div className="cancelBanner">本场竞拍已异常取消</div> : null}
 
       {resultLot ? (
         <ResultModal

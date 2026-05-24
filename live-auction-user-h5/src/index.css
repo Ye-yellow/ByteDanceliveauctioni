@@ -29,3 +29,16 @@ button:disabled {
 #root {
   min-height: 100vh;
 }
+
+@media (min-width: 700px) {
+  body {
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  #root {
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+  }
+}

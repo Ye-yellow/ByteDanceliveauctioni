@@ -8,13 +8,7 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => authSession.subscribe(setSnapshot), []);
 
   useEffect(() => {
-    if (authSession.getAuthMode() === 'demo') {
-      void authSession.ensureBuyerSession().catch((error) => {
-        authSession.expire(error instanceof Error ? error.message : '无法建立 H5 买家登录态');
-      });
-    } else {
-      void authSession.refreshIfNeeded();
-    }
+    void authSession.refreshIfNeeded();
 
     const interval = window.setInterval(() => {
       void authSession.refreshIfNeeded();
@@ -41,6 +35,7 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
     ensureReadyForBid: () => authSession.ensureReadyForBid(),
     loginBuyer: (username: string, password: string) => authSession.loginBuyer(username, password),
     registerBuyer: (username: string, password: string, nickname: string) => authSession.registerBuyer(username, password, nickname),
+    resetBuyerPassword: (username: string, password: string) => authSession.resetBuyerPassword(username, password),
     refreshIfNeeded: () => authSession.refreshIfNeeded(),
     logout: () => authSession.logout(),
   }), [snapshot]);

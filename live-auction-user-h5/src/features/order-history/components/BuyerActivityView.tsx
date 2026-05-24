@@ -1,10 +1,12 @@
+import { useRef, useState, type TouchEvent } from 'react';
 import type { BidRecord, OrderSummary } from '../../../shared/api/types';
 import { formatMoney } from '../../../shared/lib/money';
 import { formatEventTime } from '../../../shared/lib/time';
 import type { BuyerActivityTab } from '../hooks/useBuyerActivity';
 
 type BuyerActivityViewProps = {
-  roomId: string;
+  backHref: string;
+  preferHistoryBack?: boolean;
   tab: BuyerActivityTab;
   orders: OrderSummary[];
   bids: BidRecord[];
@@ -16,7 +18,8 @@ type BuyerActivityViewProps = {
 };
 
 export function BuyerActivityView({
-  roomId,
+  backHref,
+  preferHistoryBack,
   tab,
   orders,
   bids,
@@ -26,14 +29,61 @@ export function BuyerActivityView({
   onTabChange,
   onRefresh,
 }: BuyerActivityViewProps) {
+  const touchStartY = useRef<number | null>(null);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [pulling, setPulling] = useState(false);
+  const canReleaseToRefresh = pullDistance >= 56;
+
+  const handleBack = () => {
+    if (preferHistoryBack) {
+      try {
+        const referrer = document.referrer ? new URL(document.referrer) : null;
+        if (referrer?.origin === window.location.origin && referrer.pathname.startsWith('/m/room/')) {
+          window.history.back();
+          return;
+        }
+      } catch {
+        // Fall through to explicit navigation.
+      }
+    }
+    window.location.assign(backHref);
+  };
+
+  const handleTouchStart = (event: TouchEvent<HTMLElement>) => {
+    const shell = event.currentTarget.closest('.mobileShell') as HTMLElement | null;
+    if (loading || (shell && shell.scrollTop > 0)) {
+      touchStartY.current = null;
+      return;
+    }
+    touchStartY.current = event.touches[0]?.clientY ?? null;
+  };
+
+  const handleTouchMove = (event: TouchEvent<HTMLElement>) => {
+    if (touchStartY.current === null) return;
+    const deltaY = (event.touches[0]?.clientY ?? touchStartY.current) - touchStartY.current;
+    if (deltaY <= 0) {
+      setPulling(false);
+      setPullDistance(0);
+      return;
+    }
+    if (deltaY > 12) event.preventDefault();
+    setPulling(true);
+    setPullDistance(Math.min(80, deltaY * 0.45));
+  };
+
+  const handleTouchEnd = () => {
+    if (pullDistance >= 56) void onRefresh();
+    touchStartY.current = null;
+    setPulling(false);
+    setPullDistance(0);
+  };
+
   return (
     <main className="mobileShell orderPage">
       <header className="orderPageHeader">
-        <a href={`/m/room/${encodeURIComponent(roomId)}`}>返回直播间</a>
+        <button type="button" onClick={handleBack}>返回</button>
         <h1>我的记录</h1>
-        <button type="button" onClick={onRefresh} disabled={loading}>
-          {loading ? '刷新中' : '刷新'}
-        </button>
+        <span className="orderHeaderSpacer" aria-hidden="true" />
       </header>
 
       <div className="activityTabs">
@@ -48,7 +98,18 @@ export function BuyerActivityView({
       <p className="activityMeta">共 {total} 条，当前展示最新 20 条</p>
       {error ? <section className="emptyState error">{error}</section> : null}
 
-      {tab === 'orders' ? <OrderList orders={orders} loading={loading} error={error} /> : <BidRecordList bids={bids} loading={loading} error={error} />}
+      <section
+        className={`activityPullArea${pulling ? ' pulling' : ''}`}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+      >
+        <div className="pullRefreshHint" style={{ height: pulling ? Math.max(32, pullDistance) : 0 }}>
+          {loading ? '刷新中' : canReleaseToRefresh ? '松开刷新' : '下拉刷新'}
+        </div>
+        {tab === 'orders' ? <OrderList orders={orders} loading={loading} error={error} /> : <BidRecordList bids={bids} loading={loading} error={error} />}
+      </section>
     </main>
   );
 }

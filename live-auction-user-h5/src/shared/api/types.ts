@@ -51,6 +51,15 @@ export const LOT_STATUS = {
 
 export type LotStatus = (typeof LOT_STATUS)[keyof typeof LOT_STATUS];
 
+export const LOT_QUEUE_STATUS = {
+  UNSPECIFIED: 'LOT_QUEUE_STATUS_UNSPECIFIED',
+  NONE: 'LOT_QUEUE_STATUS_NONE',
+  QUEUED: 'LOT_QUEUE_STATUS_QUEUED',
+  NEXT: 'LOT_QUEUE_STATUS_NEXT',
+} as const;
+
+export type LotQueueStatus = (typeof LOT_QUEUE_STATUS)[keyof typeof LOT_QUEUE_STATUS];
+
 export const AUCTION_EVENT_TYPE = {
   UNSPECIFIED: 'AUCTION_EVENT_TYPE_UNSPECIFIED',
   ROOM_SNAPSHOT: 'AUCTION_EVENT_TYPE_ROOM_SNAPSHOT',
@@ -133,6 +142,8 @@ export type Lot = {
   settledAtUnixMs?: number | string;
   rule: BidRule;
   version?: number | string;
+  queueStatus?: LotQueueStatus;
+  queuePosition?: number;
   cancelReason?: string;
   cancelledAtUnixMs?: number | string;
 };

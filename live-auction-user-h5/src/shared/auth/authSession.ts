@@ -25,6 +25,10 @@ type AuthReply = {
   tokens?: unknown;
 };
 
+type ResetPasswordReply = {
+  user?: unknown;
+};
+
 export type AuthMode = 'demo' | 'real';
 
 export type AuthSessionSnapshot = {
@@ -75,7 +79,11 @@ function randomSuffix(): string {
 }
 
 function readAuthMode(): AuthMode {
-  return import.meta.env.VITE_AUTH_MODE === 'real' ? 'real' : 'demo';
+  return import.meta.env.VITE_AUTH_MODE === 'demo' ? 'demo' : 'real';
+}
+
+function allowDemoAutoLogin(): boolean {
+  return import.meta.env.VITE_DEMO_AUTO_LOGIN === 'true';
 }
 
 class H5AuthSession {
@@ -139,7 +147,7 @@ class H5AuthSession {
       if (tokens && this.snapshot.user) return { user: this.snapshot.user, tokens };
     }
 
-    if (this.authMode === 'real') {
+    if (this.authMode !== 'demo' || !allowDemoAutoLogin()) {
       this.clear(LOGIN_REQUIRED_MESSAGE);
       throw new AuthExpiredError(LOGIN_REQUIRED_MESSAGE);
     }
@@ -204,6 +212,9 @@ class H5AuthSession {
 
   async logout(): Promise<void> {
     const refreshToken = this.snapshot.tokens?.refreshToken;
+    localStorage.removeItem(DEMO_BUYER_STORAGE_KEY);
+    this.clear('用户已退出');
+
     if (refreshToken) {
       try {
         await apiRequest({
@@ -218,8 +229,6 @@ class H5AuthSession {
         // Local session cleanup must not depend on network availability.
       }
     }
-
-    this.clear('用户已退出');
   }
 
   async loginBuyer(username: string, password: string): Promise<StoredSession> {
@@ -246,6 +255,20 @@ class H5AuthSession {
     })));
     this.persist(session);
     return session;
+  }
+
+  async resetBuyerPassword(username: string, password: string): Promise<User> {
+    const reply = await apiRequest<ResetPasswordReply>({
+      path: '/api/users/reset-password',
+      method: 'POST',
+      body: { username: username.trim(), password },
+      auth: 'none',
+      skipAuthRefresh: true,
+      operation: 'buyerResetPassword',
+    });
+    const user = normalizeUser(reply.user);
+    if (!user.id) throw new AppApiError('重置密码响应缺少用户', { kind: 'result' });
+    return user;
   }
 
   expire(reason = '登录已过期，请重新登录') {
