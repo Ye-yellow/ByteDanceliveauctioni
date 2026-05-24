@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion8
 const (
 	UserService_Register_FullMethodName            = "/auction.service.v1.UserService/Register"
 	UserService_Login_FullMethodName               = "/auction.service.v1.UserService/Login"
+	UserService_ResetPassword_FullMethodName       = "/auction.service.v1.UserService/ResetPassword"
 	UserService_RefreshToken_FullMethodName        = "/auction.service.v1.UserService/RefreshToken"
 	UserService_Logout_FullMethodName              = "/auction.service.v1.UserService/Logout"
 	UserService_GetMe_FullMethodName               = "/auction.service.v1.UserService/GetMe"
@@ -38,15 +39,17 @@ type UserServiceClient interface {
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterReply, error)
 	// 用户名密码登录。
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginReply, error)
+	// 原型阶段：仅凭账号重置买家密码。上线前需替换为验证码或管理员鉴权。
+	ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*ResetPasswordReply, error)
 	// 刷新 access token，并轮换 refresh token。
 	RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*RefreshTokenReply, error)
 	// 登出当前 refresh session。
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutReply, error)
 	// 查看当前登录用户。
 	GetMe(ctx context.Context, in *GetMeRequest, opts ...grpc.CallOption) (*GetMeReply, error)
-	// 管理员创建任意角色账号。
+	// 主播主账号创建团队子账号；不创建买家或新的主账号。
 	AdminCreateUser(ctx context.Context, in *AdminCreateUserRequest, opts ...grpc.CallOption) (*AdminCreateUserReply, error)
-	// 管理员修改用户角色。
+	// 主播主账号修改团队子账号角色；不允许改为买家或新的主账号。
 	AdminUpdateUserRole(ctx context.Context, in *AdminUpdateUserRoleRequest, opts ...grpc.CallOption) (*AdminUpdateUserRoleReply, error)
 }
 
@@ -72,6 +75,16 @@ func (c *userServiceClient) Login(ctx context.Context, in *LoginRequest, opts ..
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(LoginReply)
 	err := c.cc.Invoke(ctx, UserService_Login_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*ResetPasswordReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResetPasswordReply)
+	err := c.cc.Invoke(ctx, UserService_ResetPassword_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -138,15 +151,17 @@ type UserServiceServer interface {
 	Register(context.Context, *RegisterRequest) (*RegisterReply, error)
 	// 用户名密码登录。
 	Login(context.Context, *LoginRequest) (*LoginReply, error)
+	// 原型阶段：仅凭账号重置买家密码。上线前需替换为验证码或管理员鉴权。
+	ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordReply, error)
 	// 刷新 access token，并轮换 refresh token。
 	RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenReply, error)
 	// 登出当前 refresh session。
 	Logout(context.Context, *LogoutRequest) (*LogoutReply, error)
 	// 查看当前登录用户。
 	GetMe(context.Context, *GetMeRequest) (*GetMeReply, error)
-	// 管理员创建任意角色账号。
+	// 主播主账号创建团队子账号；不创建买家或新的主账号。
 	AdminCreateUser(context.Context, *AdminCreateUserRequest) (*AdminCreateUserReply, error)
-	// 管理员修改用户角色。
+	// 主播主账号修改团队子账号角色；不允许改为买家或新的主账号。
 	AdminUpdateUserRole(context.Context, *AdminUpdateUserRoleRequest) (*AdminUpdateUserRoleReply, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
@@ -160,6 +175,9 @@ func (UnimplementedUserServiceServer) Register(context.Context, *RegisterRequest
 }
 func (UnimplementedUserServiceServer) Login(context.Context, *LoginRequest) (*LoginReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
+}
+func (UnimplementedUserServiceServer) ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ResetPassword not implemented")
 }
 func (UnimplementedUserServiceServer) RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RefreshToken not implemented")
@@ -221,6 +239,24 @@ func _UserService_Login_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServiceServer).Login(ctx, req.(*LoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_ResetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResetPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).ResetPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_ResetPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).ResetPassword(ctx, req.(*ResetPasswordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -329,6 +365,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Login",
 			Handler:    _UserService_Login_Handler,
+		},
+		{
+			MethodName: "ResetPassword",
+			Handler:    _UserService_ResetPassword_Handler,
 		},
 		{
 			MethodName: "RefreshToken",

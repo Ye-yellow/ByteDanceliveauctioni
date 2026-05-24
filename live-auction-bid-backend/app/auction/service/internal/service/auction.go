@@ -31,6 +31,15 @@ func NewAuctionService(auction *auction.AuctionUsecase, presence ...RoomPresence
 	return s
 }
 
+func lotResultViewerFromContext(ctx context.Context) auction.LotResultViewer {
+	viewer := auction.LotResultViewer{}
+	if claims, ok := auth.ClaimsFromContext(ctx); ok {
+		viewer.UserID = claims.UserID
+		viewer.Role = claims.Role
+	}
+	return viewer
+}
+
 func (s *AuctionService) CreateLot(ctx context.Context, req *v1.CreateLotRequest) (*v1.CreateLotReply, error) {
 	claims, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_ADMIN)
 	if err != nil {
@@ -84,7 +93,7 @@ func (s *AuctionService) GetLot(ctx context.Context, req *v1.GetLotRequest) (*v1
 	if err != nil {
 		return &v1.GetLotReply{Result: ErrorResult(ctx, err)}, nil
 	}
-	return &v1.GetLotReply{Result: okResult(ctx), Lot: lot}, nil
+	return &v1.GetLotReply{Result: okResult(ctx), Lot: auction.LotForViewer(lot, lotResultViewerFromContext(ctx))}, nil
 }
 
 func (s *AuctionService) ListLots(ctx context.Context, req *v1.ListLotsRequest) (*v1.ListLotsReply, error) {
@@ -92,7 +101,7 @@ func (s *AuctionService) ListLots(ctx context.Context, req *v1.ListLotsRequest) 
 	if err != nil {
 		return &v1.ListLotsReply{Result: ErrorResult(ctx, err)}, nil
 	}
-	return &v1.ListLotsReply{Result: okResult(ctx), Lots: lots}, nil
+	return &v1.ListLotsReply{Result: okResult(ctx), Lots: auction.LotsForViewer(lots, lotResultViewerFromContext(ctx))}, nil
 }
 
 func (s *AuctionService) ListAdminLots(ctx context.Context, query auction.LotQuery) (auction.LotList, error) {
@@ -122,14 +131,16 @@ func (s *AuctionService) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest) 
 	lot, bid, ranking, err := s.auction.PlaceBid(ctx, req, claims.UserID, claims.Nickname)
 	if err != nil {
 		result := ErrorResult(ctx, err)
-		return &v1.PlaceBidReply{Result: result, Accepted: false, Lot: lot, Ranking: ranking, RejectReason: result.GetMessage()}, nil
+		viewer := lotResultViewerFromContext(ctx)
+		return &v1.PlaceBidReply{Result: result, Accepted: false, Lot: auction.LotForViewer(lot, viewer), Ranking: auction.RankingForViewer(ranking, viewer), RejectReason: result.GetMessage()}, nil
 	}
+	viewer := lotResultViewerFromContext(ctx)
 	return &v1.PlaceBidReply{
 		Result:   okResult(ctx),
 		Accepted: true,
-		Lot:      lot,
-		Bid:      bid,
-		Ranking:  ranking,
+		Lot:      auction.LotForViewer(lot, viewer),
+		Bid:      auction.BidForViewer(bid, viewer),
+		Ranking:  auction.RankingForViewer(ranking, viewer),
 	}, nil
 }
 
@@ -182,7 +193,7 @@ func (s *AuctionService) GetRoomSnapshot(ctx context.Context, req *v1.GetRoomSna
 	if err != nil {
 		return &v1.GetRoomSnapshotReply{Result: ErrorResult(ctx, err)}, nil
 	}
-	return &v1.GetRoomSnapshotReply{Result: okResult(ctx), Snapshot: snapshot}, nil
+	return &v1.GetRoomSnapshotReply{Result: okResult(ctx), Snapshot: auction.SnapshotForViewer(snapshot, lotResultViewerFromContext(ctx))}, nil
 }
 
 func (s *AuctionService) GetRoomPresence(ctx context.Context, req *v1.GetRoomPresenceRequest) (*v1.GetRoomPresenceReply, error) {
@@ -215,12 +226,7 @@ func (s *AuctionService) ListRoomEvents(ctx context.Context, req *v1.ListRoomEve
 }
 
 func (s *AuctionService) GetLotResult(ctx context.Context, lotID string) (*auction.LotResult, error) {
-	viewer := auction.LotResultViewer{}
-	if claims, ok := auth.ClaimsFromContext(ctx); ok {
-		viewer.UserID = claims.UserID
-		viewer.Role = claims.Role
-	}
-	return s.auction.GetLotResult(ctx, lotID, viewer)
+	return s.auction.GetLotResult(ctx, lotID, lotResultViewerFromContext(ctx))
 }
 
 func (s *AuctionService) ListMyOrders(ctx context.Context, queries ...auction.OrderQuery) ([]auction.OrderSummary, error) {

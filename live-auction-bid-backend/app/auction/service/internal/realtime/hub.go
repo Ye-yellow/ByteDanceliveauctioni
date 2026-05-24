@@ -8,13 +8,13 @@ import (
 	"sync"
 	"time"
 
+	auctionbiz "live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/clock"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/requestctx"
 
 	"github.com/gorilla/websocket"
-	"google.golang.org/protobuf/proto"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 )
 
@@ -310,64 +310,22 @@ func (c *connection) writePump() {
 }
 
 func (c *connection) eventForDelivery(event v1.AuctionEvent) v1.AuctionEvent {
-	if c.canReceivePrivateEvents() {
+	viewer := c.lotResultViewer()
+	if viewer.CanViewPrivateAuctionData() {
 		return event
 	}
-	cloned := proto.Clone(&event).(*v1.AuctionEvent)
-	sanitizePublicEvent(cloned)
-	return *cloned
+	return auctionbiz.EventForViewer(event, viewer)
 }
 
-func sanitizePublicEvent(event *v1.AuctionEvent) {
-	if event == nil {
-		return
+func (c *connection) lotResultViewer() auctionbiz.LotResultViewer {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.authCtx.TokenStatus != auth.TokenStatusValid || c.authCtx.Claims == nil {
+		return auctionbiz.LotResultViewer{}
 	}
-	sanitizeLot(event.Lot)
-	sanitizeBid(event.Bid)
-	sanitizeRanking(event.Ranking)
-	if event.DuelState != nil {
-		event.DuelState.UserAId = ""
-		event.DuelState.UserBId = ""
-	}
-	if event.Snapshot != nil {
-		sanitizeLot(event.Snapshot.CurrentLot)
-		sanitizeRanking(event.Snapshot.Ranking)
-		for _, bid := range event.Snapshot.RecentBids {
-			sanitizeBid(bid)
-		}
-	}
-	switch event.Type {
-	case v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_OUTBID:
-		event.Reason = "previous_leader_outbid"
-	case v1.AuctionEventType_AUCTION_EVENT_TYPE_ORDER_CREATED,
-		v1.AuctionEventType_AUCTION_EVENT_TYPE_PAYMENT_SUCCESS:
-		event.Reason = ""
-	}
-}
-
-func sanitizeLot(lot *v1.Lot) {
-	if lot == nil {
-		return
-	}
-	lot.LeadingUserId = ""
-	lot.WinnerUserId = ""
-	if lot.DuelState != nil {
-		lot.DuelState.UserAId = ""
-		lot.DuelState.UserBId = ""
-	}
-}
-
-func sanitizeBid(bid *v1.Bid) {
-	if bid != nil {
-		bid.UserId = ""
-	}
-}
-
-func sanitizeRanking(ranking []*v1.RankingItem) {
-	for _, item := range ranking {
-		if item != nil {
-			item.UserId = ""
-		}
+	return auctionbiz.LotResultViewer{
+		UserID: c.authCtx.Claims.UserID,
+		Role:   c.authCtx.Claims.Role,
 	}
 }
 

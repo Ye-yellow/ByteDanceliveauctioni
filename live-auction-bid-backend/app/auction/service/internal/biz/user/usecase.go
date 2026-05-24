@@ -29,6 +29,9 @@ func (uc *Usecase) Register(ctx context.Context, req *v1.RegisterRequest) (*v1.U
 	if err != nil {
 		return nil, nil, err
 	}
+	if len(username) < 6 {
+		return nil, nil, fmt.Errorf("%w: username must be 6-64 characters", apperr.ErrInvalidArgument)
+	}
 	return uc.createUserWithTokens(ctx, username, password, nickname, v1.UserRole_USER_ROLE_BUYER)
 }
 
@@ -52,6 +55,36 @@ func (uc *Usecase) Login(ctx context.Context, username, password string) (*v1.Us
 		return nil, nil, err
 	}
 	return cloneUser(user), tokens, nil
+}
+
+func (uc *Usecase) ResetPassword(ctx context.Context, username, password string) (*v1.User, error) {
+	username = normalizeUsername(username)
+	if len(username) < 6 || len(username) > 64 {
+		return nil, fmt.Errorf("%w: username must be 6-64 characters", apperr.ErrInvalidArgument)
+	}
+	if len(password) < 8 || len(password) > 128 {
+		return nil, fmt.Errorf("%w: password must be 8-128 characters", apperr.ErrInvalidArgument)
+	}
+	user, _, err := uc.repo.FindUserByUsername(ctx, username)
+	if err != nil {
+		return nil, err
+	}
+	if user.GetRole() != v1.UserRole_USER_ROLE_BUYER {
+		return nil, fmt.Errorf("%w: only buyer passwords can be reset here", apperr.ErrInvalidArgument)
+	}
+	hash, err := auth.HashPassword(password)
+	if err != nil {
+		return nil, err
+	}
+	nowMs := uc.now().UnixMilli()
+	updated, err := uc.repo.UpdatePasswordByUsername(ctx, username, hash, nowMs)
+	if err != nil {
+		return nil, err
+	}
+	if err := uc.repo.RevokeSessionsByUserID(ctx, updated.GetId(), nowMs); err != nil {
+		return nil, err
+	}
+	return cloneUser(updated), nil
 }
 
 func (uc *Usecase) RefreshToken(ctx context.Context, refreshToken string) (*v1.AuthTokens, error) {

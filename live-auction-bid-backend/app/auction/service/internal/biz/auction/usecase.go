@@ -621,7 +621,7 @@ func (uc *AuctionUsecase) GetLotResult(ctx context.Context, lotID string, viewer
 	if err != nil {
 		return nil, err
 	}
-	result := &LotResult{Lot: lot, AuctionState: AuctionStateOf(lot)}
+	result := &LotResult{Lot: LotForViewer(lot, viewer), AuctionState: AuctionStateOf(lot)}
 	if uc.orders != nil {
 		order, found, err := uc.orders.FindOrderByLot(ctx, lotID)
 		if err != nil {

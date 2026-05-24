@@ -38,6 +38,9 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 	if _, _, err := uc.Register(ctx, &v1.RegisterRequest{Username: "buyer_one", Password: "password123", Nickname: "重复"}); !apperr.IsUsernameTaken(err) {
 		t.Fatalf("expected duplicate username error, got %v", err)
 	}
+	if _, _, err := uc.Register(ctx, &v1.RegisterRequest{Username: "buy12", Password: "password123", Nickname: "短账号"}); !apperr.IsInvalidArgument(err) {
+		t.Fatalf("expected short buyer username to be rejected, got %v", err)
+	}
 
 	loggedIn, loginTokens, err := uc.Login(ctx, "buyer_one", "password123")
 	if err != nil {
@@ -48,6 +51,26 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 	}
 	if _, _, err := uc.Login(ctx, "buyer_one", "wrong-password"); !apperr.IsInvalidCredentials(err) {
 		t.Fatalf("expected invalid credentials, got %v", err)
+	}
+	resetUser, err := uc.ResetPassword(ctx, "buyer_one", "newpassword123")
+	if err != nil {
+		t.Fatalf("reset buyer password failed: %v", err)
+	}
+	if resetUser.GetId() != registered.GetId() {
+		t.Fatalf("reset user mismatch: %+v", resetUser)
+	}
+	if _, _, err := uc.Login(ctx, "buyer_one", "password123"); !apperr.IsInvalidCredentials(err) {
+		t.Fatalf("expected old password to fail after reset, got %v", err)
+	}
+	if _, err := uc.RefreshToken(ctx, loginTokens.GetRefreshToken()); !apperr.IsSessionExpired(err) {
+		t.Fatalf("expected reset to revoke existing refresh token, got %v", err)
+	}
+	loggedIn, loginTokens, err = uc.Login(ctx, "buyer_one", "newpassword123")
+	if err != nil {
+		t.Fatalf("login with reset password failed: %v", err)
+	}
+	if loggedIn.GetId() != registered.GetId() {
+		t.Fatalf("login after reset user mismatch: %+v", loggedIn)
 	}
 
 	refreshed, err := uc.RefreshToken(ctx, loginTokens.GetRefreshToken())
@@ -69,6 +92,9 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 
 	if err := uc.BootstrapAdmin(ctx, "admin", "adminpass123", "管理员"); err != nil {
 		t.Fatalf("bootstrap admin failed: %v", err)
+	}
+	if _, err := uc.ResetPassword(ctx, "admin", "newadminpass123"); !apperr.IsInvalidArgument(err) {
+		t.Fatalf("expected admin password reset to be rejected, got %v", err)
 	}
 	admin, _, err := uc.Login(ctx, "admin", "adminpass123")
 	if err != nil {
@@ -273,6 +299,18 @@ func (r *testUserRepo) UpdateUserRole(ctx context.Context, userID string, role v
 	return proto.Clone(next).(*v1.User), nil
 }
 
+func (r *testUserRepo) UpdatePasswordByUsername(ctx context.Context, username string, passwordHash string, updatedAtUnixMs int64) (*v1.User, error) {
+	userID, found := r.userIDByName[username]
+	if !found {
+		return nil, apperr.ErrUserNotFound
+	}
+	user := proto.Clone(r.usersByID[userID]).(*v1.User)
+	user.UpdatedAtUnixMs = updatedAtUnixMs
+	r.usersByID[userID] = user
+	r.passwordByID[userID] = passwordHash
+	return proto.Clone(user).(*v1.User), nil
+}
+
 func (r *testUserRepo) CreateSession(ctx context.Context, session userbiz.Session) error {
 	if session.ID == "" || session.RefreshTokenHash == "" {
 		return errors.New("invalid session")
@@ -298,6 +336,16 @@ func (r *testUserRepo) RevokeSession(ctx context.Context, sessionID string, revo
 	}
 	session.RevokedAtUnixMs = revokedAtUnixMs
 	r.sessionsByID[sessionID] = session
+	return nil
+}
+
+func (r *testUserRepo) RevokeSessionsByUserID(ctx context.Context, userID string, revokedAtUnixMs int64) error {
+	for id, session := range r.sessionsByID {
+		if session.UserID == userID && session.RevokedAtUnixMs == 0 {
+			session.RevokedAtUnixMs = revokedAtUnixMs
+			r.sessionsByID[id] = session
+		}
+	}
 	return nil
 }
 

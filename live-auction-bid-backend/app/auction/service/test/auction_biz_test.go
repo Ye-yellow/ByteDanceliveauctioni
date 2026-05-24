@@ -52,10 +52,22 @@ func TestLotStateMachine(t *testing.T) {
 	if lot.GetCurrentPrice().GetAmount() != 11000 || lot.LeadingUserId != "u1" {
 		t.Fatalf("出价后领先状态错误：%+v", lot)
 	}
+	if err := auction.AcceptBid(lot, v1.Bid{UserId: "u1", Nickname: "用户1", Amount: &v1.Money{Amount: 12000, Currency: "CNY"}}, 2100); err == nil || !strings.Contains(err.Error(), "leading bidder must wait") {
+		t.Fatalf("领先者不应该能连续给自己加价，实际错误：%v", err)
+	}
+	if lot.GetCurrentPrice().GetAmount() != 11000 || lot.LeadingUserId != "u1" {
+		t.Fatalf("被拒绝的连续出价不应该改变领先状态：%+v", lot)
+	}
+	if err := auction.AcceptBid(lot, v1.Bid{UserId: "u2", Nickname: "用户2", Amount: &v1.Money{Amount: 12000, Currency: "CNY"}}, 2200); err != nil {
+		t.Fatalf("其他买家应该可以超过当前领先者：%v", err)
+	}
+	if err := auction.AcceptBid(lot, v1.Bid{UserId: "u1", Nickname: "用户1", Amount: &v1.Money{Amount: 13000, Currency: "CNY"}}, 2300); err != nil {
+		t.Fatalf("被别人超过后应该可以继续加价：%v", err)
+	}
 	if err := auction.SettleLot(lot, 3000); err != nil {
 		t.Fatalf("落锤失败：%v", err)
 	}
-	if lot.Status != v1.LotStatus_LOT_STATUS_SETTLED || lot.WinnerUserId != "u1" || lot.GetFinalPrice().GetAmount() != 11000 {
+	if lot.Status != v1.LotStatus_LOT_STATUS_SETTLED || lot.WinnerUserId != "u1" || lot.GetFinalPrice().GetAmount() != 13000 {
 		t.Fatalf("成交状态错误：%+v", lot)
 	}
 }
@@ -140,6 +152,53 @@ func TestCancelLotStateMachineAllowsPreStartAndRejectsLive(t *testing.T) {
 	}
 	if err := auction.AcceptBid(queuedLot, v1.Bid{UserId: "u1", Nickname: "用户1", Amount: &v1.Money{Amount: 1000, Currency: "CNY"}}, 4000); err == nil || !strings.Contains(err.Error(), "lot is not live") {
 		t.Fatalf("cancelled lot should reject bids, got %v", err)
+	}
+}
+
+func TestEventForViewerRedactsPublicSettlementAndBuyerIdentity(t *testing.T) {
+	event := v1.AuctionEvent{
+		Type:   v1.AuctionEventType_AUCTION_EVENT_TYPE_ORDER_CREATED,
+		Reason: "order_id=order-secret",
+		Lot: &v1.Lot{
+			Id:              "lot_privacy",
+			Status:          v1.LotStatus_LOT_STATUS_SETTLED,
+			CurrentPrice:    &v1.Money{Amount: 12000, Currency: "CNY"},
+			LeadingUserId:   "buyer1",
+			LeadingNickname: "买家一号",
+			WinnerUserId:    "buyer1",
+			WinnerNickname:  "买家一号",
+			FinalPrice:      &v1.Money{Amount: 12000, Currency: "CNY"},
+		},
+		Bid: &v1.Bid{
+			UserId:   "buyer1",
+			Nickname: "买家一号",
+			Amount:   &v1.Money{Amount: 12000, Currency: "CNY"},
+		},
+		Ranking: []*v1.RankingItem{{
+			Rank:     1,
+			UserId:   "buyer1",
+			Nickname: "买家一号",
+			Amount:   &v1.Money{Amount: 12000, Currency: "CNY"},
+		}},
+	}
+
+	publicEvent := auction.EventForViewer(event, auction.LotResultViewer{})
+	if publicEvent.Reason != "" {
+		t.Fatalf("public order event reason should not leak order data: %q", publicEvent.Reason)
+	}
+	if publicEvent.GetLot().GetFinalPrice().GetAmount() != 12000 || publicEvent.GetLot().GetWinnerUserId() != "" || publicEvent.GetLot().GetWinnerNickname() != "买家***" || publicEvent.GetLot().GetLeadingNickname() != "" {
+		t.Fatalf("public settlement lot should keep final price and masked winner nickname but hide buyer id: %+v", publicEvent.GetLot())
+	}
+	if publicEvent.GetBid().GetUserId() != "" || publicEvent.GetBid().GetNickname() != "买家***" {
+		t.Fatalf("public bid should mask buyer identity: %+v", publicEvent.GetBid())
+	}
+	if publicEvent.GetRanking()[0].GetUserId() != "" || publicEvent.GetRanking()[0].GetNickname() != "买家***" {
+		t.Fatalf("public ranking should mask buyer identity: %+v", publicEvent.GetRanking())
+	}
+
+	winnerEvent := auction.EventForViewer(event, auction.LotResultViewer{UserID: "buyer1", Role: v1.UserRole_USER_ROLE_BUYER})
+	if winnerEvent.GetLot().GetWinnerUserId() != "buyer1" || winnerEvent.GetBid().GetUserId() != "buyer1" || winnerEvent.GetRanking()[0].GetUserId() != "buyer1" {
+		t.Fatalf("winning buyer should see own identity: lot=%+v bid=%+v ranking=%+v", winnerEvent.GetLot(), winnerEvent.GetBid(), winnerEvent.GetRanking())
 	}
 }
 

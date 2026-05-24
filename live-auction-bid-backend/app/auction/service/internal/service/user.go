@@ -32,6 +32,14 @@ func (s *UserService) Login(ctx context.Context, req *v1.LoginRequest) (*v1.Logi
 	return &v1.LoginReply{Result: okResult(ctx), User: user, Tokens: tokens}, nil
 }
 
+func (s *UserService) ResetPassword(ctx context.Context, req *v1.ResetPasswordRequest) (*v1.ResetPasswordReply, error) {
+	user, err := s.users.ResetPassword(ctx, req.GetUsername(), req.GetPassword())
+	if err != nil {
+		return &v1.ResetPasswordReply{Result: ErrorResult(ctx, err)}, nil
+	}
+	return &v1.ResetPasswordReply{Result: okResult(ctx), User: user}, nil
+}
+
 func (s *UserService) RefreshToken(ctx context.Context, req *v1.RefreshTokenRequest) (*v1.RefreshTokenReply, error) {
 	tokens, err := s.users.RefreshToken(ctx, req.GetRefreshToken())
 	if err != nil {

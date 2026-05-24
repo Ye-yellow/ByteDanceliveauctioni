@@ -107,6 +107,24 @@ func (s *Store) UpdateUserRole(ctx context.Context, userID string, role v1.UserR
 	return user, err
 }
 
+func (s *Store) UpdatePasswordByUsername(ctx context.Context, username string, passwordHash string, updatedAtUnixMs int64) (*v1.User, error) {
+	if username == "" || passwordHash == "" {
+		return nil, errors.New("username and password hash are required")
+	}
+	result := s.db.WithContext(ctx).
+		Model(&AuctionUserModel{}).
+		Where("username = ?", username).
+		Updates(map[string]any{"password_hash": passwordHash, "updated_at_unix_ms": updatedAtUnixMs})
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, apperr.ErrUserNotFound
+	}
+	user, _, err := s.FindUserByUsername(ctx, username)
+	return user, err
+}
+
 func (s *Store) CreateSession(ctx context.Context, session user.Session) error {
 	if session.ID == "" || session.UserID == "" || session.RefreshTokenHash == "" {
 		return errors.New("session id, user id and refresh token hash are required")
@@ -135,6 +153,17 @@ func (s *Store) RevokeSession(ctx context.Context, sessionID string, revokedAtUn
 	return s.db.WithContext(ctx).
 		Model(&AuctionUserSessionModel{}).
 		Where("id = ? AND revoked_at_unix_ms = 0", sessionID).
+		Update("revoked_at_unix_ms", revokedAtUnixMs).
+		Error
+}
+
+func (s *Store) RevokeSessionsByUserID(ctx context.Context, userID string, revokedAtUnixMs int64) error {
+	if userID == "" {
+		return errors.New("user id is required")
+	}
+	return s.db.WithContext(ctx).
+		Model(&AuctionUserSessionModel{}).
+		Where("user_id = ? AND revoked_at_unix_ms = 0", userID).
 		Update("revoked_at_unix_ms", revokedAtUnixMs).
 		Error
 }

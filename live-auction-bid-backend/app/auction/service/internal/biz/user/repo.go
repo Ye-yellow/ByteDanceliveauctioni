@@ -34,8 +34,10 @@ type Repository interface {
 	FindUserByID(ctx context.Context, userID string) (*v1.User, string, error)
 	FindUserByUsername(ctx context.Context, username string) (*v1.User, string, error)
 	ListUsers(ctx context.Context, query ListUsersQuery) (ListUsersResult, error)
+	UpdatePasswordByUsername(ctx context.Context, username string, passwordHash string, updatedAtUnixMs int64) (*v1.User, error)
 	UpdateUserRole(ctx context.Context, userID string, role v1.UserRole, updatedAtUnixMs int64) (*v1.User, error)
 	CreateSession(ctx context.Context, session Session) error
 	FindSessionByRefreshHash(ctx context.Context, refreshTokenHash string) (Session, bool, error)
 	RevokeSession(ctx context.Context, sessionID string, revokedAtUnixMs int64) error
+	RevokeSessionsByUserID(ctx context.Context, userID string, revokedAtUnixMs int64) error
 }

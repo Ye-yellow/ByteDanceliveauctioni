@@ -366,6 +366,9 @@ func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 	if bid.GetAmount().GetCurrency() != lot.GetCurrentPrice().GetCurrency() {
 		return fmt.Errorf("%w: bid currency must match lot currency", apperr.ErrInvalidArgument)
 	}
+	if lot.GetLeadingUserId() != "" && lot.GetLeadingUserId() == bid.GetUserId() {
+		return fmt.Errorf("%w: leading bidder must wait for another bidder before bidding again", apperr.ErrInvalidArgument)
+	}
 	if bid.GetAmount().GetAmount() < lot.GetCurrentPrice().GetAmount()+lot.GetRule().GetMinIncrement().GetAmount() {
 		return fmt.Errorf("%w: bid amount is lower than current price plus min increment", apperr.ErrInvalidArgument)
 	}

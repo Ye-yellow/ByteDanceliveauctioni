@@ -25,6 +25,14 @@ service UserService {
     };
   }
 
+  // 原型阶段：仅凭账号重置买家密码。上线前需替换为验证码或管理员鉴权。
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordReply) {
+    option (google.api.http) = {
+      post: "/api/users/reset-password"
+      body: "*"
+    };
+  }
+
   // 刷新 access token，并轮换 refresh token。
   rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenReply) {
     option (google.api.http) = {
@@ -109,6 +117,16 @@ message LoginRequest {
 message LoginReply {
   User user = 1;
   AuthTokens tokens = 2;
+  ReplyResult result = 99;
+}
+
+message ResetPasswordRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message ResetPasswordReply {
+  User user = 1;
   ReplyResult result = 99;
 }
 

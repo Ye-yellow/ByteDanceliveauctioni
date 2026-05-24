@@ -1,12 +1,13 @@
 .PHONY: api run test tidy docker-up docker-down docker-logs
 
 GO ?= go
-PROTOC ?= protoc
+PROTOC ?= /home/ye/OpenClaw/state/tools/protoc/bin/protoc
 PROTOC_INC ?= third_party
+PROTOC_PLUGIN_PATH ?= /home/ye/go/bin
 COMPOSE ?= docker compose
 
 api:
-	$(PROTOC) \
+	PATH="$(PROTOC_PLUGIN_PATH):$$PATH" $(PROTOC) \
 		--proto_path=. \
 		--proto_path=$(PROTOC_INC) \
 		--go_out=paths=source_relative:. \
