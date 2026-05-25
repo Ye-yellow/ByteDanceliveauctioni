@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import { BuyerActivityView } from '../features/order-history/components/BuyerActivityView';
 import { useBuyerActivity } from '../features/order-history/hooks/useBuyerActivity';
+import { MockPayModal } from '../features/payment-flow/components/MockPayModal';
+import type { OrderSummary } from '../shared/api/types';
 import { useAuthSession } from '../shared/auth/useAuthSession';
 
 export function HistoryPage() {
   const { user, authMode, ensureBuyerSession } = useAuthSession();
+  const [payOrder, setPayOrder] = useState<OrderSummary | null>(null);
   const params = new URLSearchParams(location.search);
   const roomId = params.get('roomId') || 'room-jewel-01';
   const from = params.get('from');
@@ -13,6 +17,13 @@ export function HistoryPage() {
   const backHref = from === 'profile' ? profileHref : roomHref;
   const activity = useBuyerActivity(ensureBuyerSession);
   const total = activity.tab === 'orders' ? activity.ordersMeta.total : activity.bidsMeta.total;
+  const handlePaid = async (order?: OrderSummary) => {
+    if (order) {
+      activity.updateOrder(order);
+      setPayOrder(order);
+    }
+    await activity.refresh();
+  };
   const handleBack = () => {
     if (from === 'room') {
       try {
@@ -53,6 +64,15 @@ export function HistoryPage() {
       error={activity.error}
       onTabChange={activity.switchTab}
       onRefresh={() => void activity.refresh()}
+      onPayOrder={setPayOrder}
+      paymentModal={payOrder ? (
+        <MockPayModal
+          order={payOrder}
+          onStartPayment={() => undefined}
+          onPaid={handlePaid}
+          onClose={() => setPayOrder(null)}
+        />
+      ) : null}
     />
   );
 }

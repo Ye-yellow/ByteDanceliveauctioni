@@ -39,6 +39,11 @@ export function useBuyerActivity(ensureBuyerSession: () => Promise<unknown>) {
     if (nextTab === tab) void loadTab(nextTab);
   }, [loadTab, tab]);
 
+  const updateOrder = useCallback((order?: OrderSummary) => {
+    if (!order) return;
+    setOrders((current) => [order, ...current.filter((item) => item.id !== order.id)]);
+  }, []);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       void loadTab(tab);
@@ -55,6 +60,7 @@ export function useBuyerActivity(ensureBuyerSession: () => Promise<unknown>) {
     loading,
     error,
     switchTab,
+    updateOrder,
     refresh: () => loadTab(tab),
   };
 }

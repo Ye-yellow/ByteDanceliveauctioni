@@ -1,4 +1,5 @@
-import { useRef, useState, type TouchEvent } from 'react';
+import { useRef, useState, type ReactNode, type TouchEvent } from 'react';
+import { canPayOrder, orderStatusLabel, orderStatusTone } from '../../../entities/order/model/privacy';
 import type { BidRecord, OrderSummary } from '../../../shared/api/types';
 import { formatMoney } from '../../../shared/lib/money';
 import { formatEventTime } from '../../../shared/lib/time';
@@ -15,6 +16,8 @@ type BuyerActivityViewProps = {
   error: string;
   onTabChange: (tab: BuyerActivityTab) => void;
   onRefresh: () => void;
+  onPayOrder: (order: OrderSummary) => void;
+  paymentModal?: ReactNode;
 };
 
 export function BuyerActivityView({
@@ -28,11 +31,15 @@ export function BuyerActivityView({
   error,
   onTabChange,
   onRefresh,
+  onPayOrder,
+  paymentModal,
 }: BuyerActivityViewProps) {
   const touchStartY = useRef<number | null>(null);
   const [pullDistance, setPullDistance] = useState(0);
   const [pulling, setPulling] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const canReleaseToRefresh = pullDistance >= 56;
+  const selectedOrder = selectedOrderId ? orders.find((order) => order.id === selectedOrderId) : null;
 
   const handleBack = () => {
     if (preferHistoryBack) {
@@ -108,19 +115,59 @@ export function BuyerActivityView({
         <div className="pullRefreshHint" style={{ height: pulling ? Math.max(32, pullDistance) : 0 }}>
           {loading ? '刷新中' : canReleaseToRefresh ? '松开刷新' : '下拉刷新'}
         </div>
-        {tab === 'orders' ? <OrderList orders={orders} loading={loading} error={error} /> : <BidRecordList bids={bids} loading={loading} error={error} />}
+        {tab === 'orders' ? (
+          <OrderList
+            orders={orders}
+            loading={loading}
+            error={error}
+            onSelectOrder={(order) => setSelectedOrderId(order.id)}
+            onPayOrder={onPayOrder}
+          />
+        ) : (
+          <BidRecordList bids={bids} loading={loading} error={error} />
+        )}
       </section>
+
+      {selectedOrder ? (
+        <OrderDetailModal
+          order={selectedOrder}
+          onClose={() => setSelectedOrderId(null)}
+          onPay={() => onPayOrder(selectedOrder)}
+        />
+      ) : null}
+      {paymentModal}
     </main>
   );
 }
 
-function OrderList({ orders, loading, error }: { orders: OrderSummary[]; loading: boolean; error: string }) {
+function OrderList({
+  orders,
+  loading,
+  error,
+  onSelectOrder,
+  onPayOrder,
+}: {
+  orders: OrderSummary[];
+  loading: boolean;
+  error: string;
+  onSelectOrder: (order: OrderSummary) => void;
+  onPayOrder: (order: OrderSummary) => void;
+}) {
   if (!loading && !error && orders.length === 0) return <section className="emptyState">暂无成交订单</section>;
 
   return (
     <section className="orderList">
       {orders.map((order) => (
-        <article className="orderCard" key={order.id}>
+        <article
+          className="orderCard"
+          key={order.id}
+          role="button"
+          tabIndex={0}
+          onClick={() => onSelectOrder(order)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') onSelectOrder(order);
+          }}
+        >
           {order.lotImageUrl ? (
             <img src={order.lotImageUrl} alt={order.lotTitle || order.id} />
           ) : (
@@ -133,11 +180,86 @@ function OrderList({ orders, loading, error }: { orders: OrderSummary[]; loading
           </div>
           <aside>
             <b>{formatMoney(order.amount)}</b>
-            <span>{order.paymentStatus || order.status}</span>
+            <span className={orderStatusTone(order)}>{orderStatusLabel(order)}</span>
+            {canPayOrder(order) ? (
+              <button
+                type="button"
+                className="orderMiniPayButton"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onPayOrder(order);
+                }}
+              >
+                去支付
+              </button>
+            ) : null}
           </aside>
         </article>
       ))}
     </section>
+  );
+}
+
+function formatDetailTime(value?: number | string): string {
+  const time = Number(value || 0);
+  if (!Number.isFinite(time) || time <= 0) return '未同步';
+  return new Date(time).toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
+function OrderDetailModal({
+  order,
+  onClose,
+  onPay,
+}: {
+  order: OrderSummary;
+  onClose: () => void;
+  onPay: () => void;
+}) {
+  const payable = canPayOrder(order);
+
+  return (
+    <div className="modalMask orderDetailMask">
+      <section className="orderDetailPanel" aria-modal="true" role="dialog" aria-label="订单详情">
+        <button className="modalClose" type="button" onClick={onClose} aria-label="关闭订单详情">
+          ×
+        </button>
+        <div className="orderDetailHero">
+          {order.lotImageUrl ? <img src={order.lotImageUrl} alt={order.lotTitle || order.id} /> : <div className="orderDetailFallback">订单</div>}
+        </div>
+        <header className="orderDetailTitle">
+          <span className={`orderStatePill ${orderStatusTone(order)}`}>{orderStatusLabel(order)}</span>
+          <h2>{order.lotTitle || order.lotId || '成交拍品'}</h2>
+          <p>订单号 {order.id}</p>
+        </header>
+        <section className="orderDetailAmount" aria-label="订单金额">
+          <span>订单金额</span>
+          <strong>{formatMoney(order.amount)}</strong>
+        </section>
+        <section className="orderDetailRows" aria-label="订单信息">
+          <span>订单状态</span>
+          <b>{order.status || '待同步'}</b>
+          <span>支付状态</span>
+          <b>{order.paymentStatus || '待同步'}</b>
+          <span>拍品编号</span>
+          <b>{order.lotId || '未同步'}</b>
+          <span>创建时间</span>
+          <b>{formatDetailTime(order.createdAtUnixMs)}</b>
+          <span>支付时间</span>
+          <b>{formatDetailTime(order.paidAtUnixMs)}</b>
+          <span>支付截止</span>
+          <b>{formatDetailTime(order.expiresAtUnixMs)}</b>
+        </section>
+        <button className="orderDetailPayButton" type="button" disabled={!payable} onClick={payable ? onPay : undefined}>
+          {payable ? '确认地址并支付' : orderStatusLabel(order)}
+        </button>
+      </section>
+    </div>
   );
 }
 
