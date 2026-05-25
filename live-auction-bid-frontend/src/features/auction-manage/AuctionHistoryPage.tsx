@@ -97,7 +97,7 @@ export function AuctionHistoryPage({ roomId = ADMIN_ROOM.id }: { roomId?: string
         { label: '成交 / 当前价', render: (lot) => <strong className="moneyText">{formatMoneyText(isSettlementLot(lot) ? lot.finalPrice : lot.currentPrice)}</strong> },
         { label: '规则', render: (lot) => <div className="historyRuleCell"><span>起拍 {formatMoneyText(lot.rule.startPrice)}</span><span>加价 {formatMoneyText(lot.rule.minIncrement)}</span><span>时长 {formatDurationText(lot.rule.durationSeconds)}</span></div> },
         { label: '原因 / 买家', render: (lot) => historyReasonText(lot) },
-        { label: '操作', render: (lot) => <div className="laRowActions"><a href={`/admin/auctions/${lot.id}/control`}>查看竞拍</a>{isSettlementLot(lot) ? <a href="/admin/orders">成交处理</a> : null}</div> },
+        { label: '操作', render: (lot) => <div className="laRowActions">{isSettlementLot(lot) ? <a href="/admin/orders">成交处理</a> : null}</div> },
       ]}
     />}
   </section>;

@@ -138,7 +138,7 @@ export function OrderManagementPage({ roomId }: Props) {
         { label: '创建时间', render: (order) => formatDateTimeText(order.createdAtUnixMs) },
         { label: '订单', render: (order) => <StudioBadge tone={orderStatusTone(order.status)}>{orderStatusLabel(order.status)}</StudioBadge> },
         { label: '支付', render: (order) => <StudioBadge tone={paymentStatusTone(order.paymentStatus)}>{paymentStatusLabel(order.paymentStatus)}</StudioBadge> },
-        { label: '操作', render: (order) => <div className="orderRowActions"><StudioButton type="button" variant="ghost" size="sm" disabled={detailLoading} onClick={() => void openDetail(order)}>成交详情</StudioButton><a className="studioButton studioButton-ghost studioButton-sm" href={`/admin/auctions/${encodeURIComponent(order.lotId)}/control`}>查看竞拍</a></div> },
+        { label: '操作', render: (order) => <div className="orderRowActions"><StudioButton type="button" variant="ghost" size="sm" disabled={detailLoading} onClick={() => void openDetail(order)}>成交详情</StudioButton></div> },
       ]}
     />}
     {detail ? <OrderDetailDrawer detail={detail} loading={detailLoading} onClose={() => setDetail(null)} /> : null}
