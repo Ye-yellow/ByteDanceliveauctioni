@@ -100,6 +100,7 @@
 }
 
 /* Mobile backend shell: compact top navigation instead of a clipped desktop sidebar. */
+/* Console responsive shell guard slice. */
 @media (max-width: 900px) {
   .laAdminShell.studioShell {
     display: block !important;
@@ -109,14 +110,14 @@
   .studioSidebar {
     position: sticky !important;
     top: 0;
-    z-index: 40;
+    z-index: var(--studio-z-header);
     width: 100% !important;
     height: auto !important;
     min-height: 0 !important;
     padding: 10px 12px 8px !important;
     border-right: 0 !important;
-    border-bottom: 1px solid rgba(210, 222, 241, .76);
-    background: rgba(255,255,255,.82) !important;
+    border-bottom: 1px solid var(--studio-shell-mobile-border);
+    background: var(--studio-shell-mobile-sidebar-bg) !important;
     backdrop-filter: blur(18px) saturate(1.08);
   }
 
@@ -202,7 +203,7 @@
     justify-content: space-between !important;
     gap: 10px !important;
     padding: 10px 14px !important;
-    background: rgba(255,255,255,.64) !important;
+    background: var(--studio-shell-mobile-topbar-bg) !important;
   }
 
   .studioTopbarTitle h1 {
@@ -393,22 +394,24 @@
     transform: none !important;
   }
 }
+/* Console responsive shell guard boundary. */
 
 /* Round 07: convergence pass — design-system guardrails, multi-resolution shell, and safer responsive tables. */
+/* Console shell base guard slice. */
 .studioSkipLink {
   position: fixed;
   left: 18px;
   top: 12px;
-  z-index: 999;
+  z-index: var(--studio-z-tooltip);
   transform: translateY(-140%);
   border-radius: 999px;
   background: var(--studio-text);
-  color: #fff;
+  color: var(--studio-color-on-accent);
   padding: 10px 14px;
   font-weight: 900;
   text-decoration: none;
   box-shadow: var(--studio-shadow-md);
-  transition: transform .16s ease;
+  transition: transform var(--studio-duration-fast) ease;
 }
 
 .studioSkipLink:focus-visible {
@@ -417,11 +420,9 @@
 }
 
 .studioShell {
-  background:
-    radial-gradient(circle at 0 0, rgba(142, 200, 232, .2), transparent 28vw),
-    radial-gradient(circle at 100% 8%, rgba(244, 166, 193, .16), transparent 30vw),
-    var(--studio-bg);
+  background: var(--studio-shell-bg);
 }
+/* Console shell base guard boundary. */
 
 .studioPage {
   width: min(100%, var(--studio-page-max));
@@ -575,7 +576,7 @@
   .studioTable tr {
     border: 1px solid var(--studio-border);
     border-radius: 18px;
-    background: #fff;
+    background: var(--studio-color-surface);
     box-shadow: var(--studio-shadow-sm);
     overflow: hidden;
   }
@@ -586,7 +587,7 @@
     gap: 10px;
     align-items: start;
     padding: 10px 12px !important;
-    border-bottom: 1px solid #eef2f7;
+    border-bottom: 1px solid var(--studio-color-table-row-border);
     white-space: normal;
   }
 
@@ -728,14 +729,15 @@
 }
 
 /* Add-lot action bar: keep a single, readable operation area near the form flow. */
+/* Console add-lot action bar guard slice. */
 .laAdminShell .auctionStepActions {
   bottom: 18px;
   align-items: center;
   padding: 14px 16px;
   border-radius: 22px;
-  background: rgba(255, 255, 255, .98);
-  border-color: rgba(203, 213, 225, .9);
-  box-shadow: 0 18px 42px rgba(15, 23, 42, .14);
+  background: var(--create-action-bar-bg);
+  border-color: var(--create-action-bar-border);
+  box-shadow: var(--create-action-bar-shadow);
 }
 
 /* Inline mode: when .auctionStepActions sits inside a step card header, strip the boxy chrome. */
@@ -772,48 +774,50 @@
 }
 
 .laAdminShell .auctionStepActions .studioButton-primary {
-  color: #fff;
-  background: #2563eb;
-  border-color: #2563eb;
-  box-shadow: 0 12px 22px rgba(37, 99, 235, .24);
+  color: var(--studio-color-on-accent);
+  background: var(--create-step-primary-bg);
+  border-color: var(--create-step-primary-bg);
+  box-shadow: var(--create-step-primary-shadow);
 }
 
 .laAdminShell .auctionStepActions .studioButton-soft {
-  color: #1d4ed8;
-  background: #eff6ff;
-  border-color: #dbeafe;
+  color: var(--create-step-soft-text);
+  background: var(--create-step-soft-bg);
+  border-color: var(--create-step-soft-border);
 }
 
 .laAdminShell .auctionStepActions .studioButton-secondary {
-  color: #1e3a8a;
-  background: #f0f7ff;
-  border-color: #bfdbfe;
+  color: var(--create-step-secondary-text);
+  background: var(--create-step-secondary-bg);
+  border-color: var(--create-step-secondary-border);
 }
 
 .laAdminShell .auctionStepActions .studioButton:disabled {
-  color: #0f3f9f;
-  background: #eaf3ff;
-  border-color: #c7ddff;
+  color: var(--create-step-disabled-text);
+  background: var(--create-step-disabled-bg);
+  border-color: var(--create-step-disabled-border);
   opacity: 1;
   box-shadow: none;
   cursor: not-allowed;
-  -webkit-text-fill-color: #0f3f9f;
+  -webkit-text-fill-color: var(--create-step-disabled-text);
 }
 
 .laAdminShell .auctionStepActions .studioButton-primary:disabled {
-  color: #0f3f9f;
-  background: linear-gradient(180deg, #edf6ff, #dcecff);
-  border-color: #abc9ff;
-  -webkit-text-fill-color: #0f3f9f;
+  color: var(--create-step-disabled-text);
+  background: var(--create-step-primary-disabled-bg);
+  border-color: var(--create-step-primary-disabled-border);
+  -webkit-text-fill-color: var(--create-step-disabled-text);
 }
 
 .laAdminShell .auctionStepActions .studioButton:disabled span,
 .laAdminShell .auctionStepActions .studioButton:disabled svg {
-  color: #0f3f9f !important;
+  color: var(--create-step-disabled-text) !important;
   opacity: 1;
-  -webkit-text-fill-color: #0f3f9f;
+  -webkit-text-fill-color: var(--create-step-disabled-text);
 }
+/* Console add-lot action bar guard boundary. */
 
+/* Console add-lot action hint guard slice. */
 .laAdminShell .auctionStepActionHint {
   display: inline-flex;
   align-items: center;
@@ -821,15 +825,16 @@
   min-width: 0;
   flex: 1 1 auto;
   margin: 0 10px;
-  color: #15803d;
+  color: var(--studio-color-success-text);
   font-size: 13px;
   line-height: 18px;
   font-weight: 800;
 }
 
 .laAdminShell .auctionStepActionHint.blocked {
-  color: #b45309;
+  color: var(--studio-color-warning-text);
 }
+/* Console add-lot action hint guard boundary. */
 
 .laAdminShell .auctionStepActionHint span {
   min-width: 0;
@@ -845,6 +850,7 @@
 }
 
 /* Today dashboard canvas: full-width operations board with deliberate card rhythm. */
+/* Console dashboard guard slice. */
 .laAdminShell .studioContent:has(.dashboardWelcomeCard) {
   padding-inline: clamp(24px, 2vw, 42px) !important;
   padding-bottom: 34px !important;
@@ -867,11 +873,9 @@
 .laAdminShell .dashboardWelcomeCard {
   min-height: 116px !important;
   padding: 24px 28px !important;
-  background:
-    linear-gradient(135deg, rgba(239, 246, 255, .92), rgba(255, 255, 255, .98) 46%, rgba(255, 247, 237, .68)),
-    var(--studio-surface) !important;
-  border-color: rgba(203, 213, 225, .86) !important;
-  box-shadow: 0 18px 44px rgba(15, 23, 42, .08) !important;
+  background: var(--dashboard-welcome-bg) !important;
+  border-color: var(--dashboard-card-border) !important;
+  box-shadow: var(--dashboard-welcome-shadow) !important;
 }
 
 .laAdminShell .dashboardWelcomeCard .studioSectionHeader {
@@ -893,7 +897,7 @@
 .laAdminShell .todayRoomStrip {
   grid-template-columns: minmax(240px, 1.28fr) minmax(220px, 1fr) minmax(220px, .92fr) minmax(150px, .56fr) minmax(210px, .88fr) minmax(150px, .58fr) !important;
   border-radius: 22px !important;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, .06) !important;
+  box-shadow: var(--dashboard-strip-shadow) !important;
 }
 
 .laAdminShell .todayRoomStrip > div {
@@ -914,13 +918,11 @@
   min-height: clamp(500px, 30vh, 620px) !important;
   padding: 24px !important;
   border-radius: 24px !important;
-  box-shadow: 0 18px 42px rgba(15, 23, 42, .08) !important;
+  box-shadow: var(--dashboard-card-shadow) !important;
 }
 
 .laAdminShell .todayAuctionCard {
-  background:
-    linear-gradient(180deg, rgba(239, 246, 255, .86), rgba(255, 255, 255, .98) 48%),
-    var(--studio-surface) !important;
+  background: var(--dashboard-auction-card-bg) !important;
 }
 
 .laAdminShell .todayAuctionCard .studioCardHeader,
@@ -936,9 +938,7 @@
   height: clamp(182px, 10.5vw, 238px) !important;
   margin: 0 0 22px !important;
   border-radius: 22px !important;
-  background:
-    radial-gradient(circle at 22% 22%, rgba(37, 99, 235, .18), transparent 32%),
-    linear-gradient(135deg, #eff6ff, #fff7ed 64%, #f8fafc) !important;
+  background: var(--dashboard-auction-media-bg) !important;
 }
 
 .laAdminShell .todayAuctionMedia > span {
@@ -974,7 +974,7 @@
   min-height: 82px;
   padding: 16px !important;
   border-radius: 18px !important;
-  background: rgba(248, 250, 252, .92) !important;
+  background: var(--dashboard-soft-tile-bg) !important;
 }
 
 .laAdminShell .todayNextProduct {
@@ -1013,7 +1013,7 @@
   min-height: 112px;
   padding: 20px !important;
   border-radius: 22px !important;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, .06) !important;
+  box-shadow: var(--dashboard-strip-shadow) !important;
 }
 
 .laAdminShell .todayMetricGrid .studioMetricCard > span {
@@ -1105,6 +1105,7 @@
     grid-template-columns: 1fr !important;
   }
 }
+/* Console dashboard guard boundary. */
 
 /* Live control final authority: make the realtime console read as a full-width cockpit. */
 .laAdminShell .studioContent:has(.liveControlPage) {
@@ -1120,8 +1121,6 @@
 }
 
 .laAdminShell .liveControlPage {
-  --control-gap: clamp(16px, 1.1vw, 24px);
-  --control-panel-radius: 24px;
   display: grid !important;
   gap: var(--control-gap) !important;
   width: 100%;
@@ -1129,6 +1128,7 @@
   align-content: start;
 }
 
+/* Live-control panel shell guard slice. */
 .laAdminShell .liveControlPage .controlTopBar,
 .laAdminShell .liveControlPage .roomLivePreview,
 .laAdminShell .liveControlPage .controlCard,
@@ -1137,20 +1137,16 @@
 .laAdminShell .liveControlPage .controlSideCard,
 .laAdminShell .liveControlPage .controlBottomCard {
   border-radius: var(--control-panel-radius) !important;
-  border-color: rgba(203, 213, 225, .9) !important;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(248, 250, 252, .94)),
-    var(--studio-surface) !important;
-  box-shadow: 0 18px 42px rgba(15, 23, 42, .08), inset 0 1px 0 rgba(255, 255, 255, .82) !important;
+  border-color: var(--control-panel-border) !important;
+  background: var(--control-panel-bg) !important;
+  box-shadow: var(--control-panel-shadow) !important;
 }
 
 .laAdminShell .liveControlPage .controlTopBar {
   display: block !important;
   grid-template-columns: none !important;
   padding: clamp(22px, 1.45vw, 30px) clamp(24px, 1.7vw, 34px) !important;
-  background:
-    radial-gradient(circle at 88% 16%, rgba(249, 115, 22, .13), transparent 30%),
-    linear-gradient(135deg, rgba(239, 246, 255, .96), rgba(255, 255, 255, .99) 48%, rgba(255, 247, 237, .72)) !important;
+  background: var(--control-topbar-bg) !important;
 }
 
 .laAdminShell .liveControlPage .controlTopBar .studioSectionHeader {
@@ -1184,6 +1180,7 @@
   flex-wrap: wrap;
 }
 
+/* Live-control status grid guard slice. */
 .laAdminShell .liveControlStatusGrid {
   display: grid !important;
   grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
@@ -1194,8 +1191,8 @@
   min-height: 118px;
   padding: 20px !important;
   border-radius: 22px !important;
-  background: #fff !important;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, .06) !important;
+  background: var(--control-status-card-bg) !important;
+  box-shadow: var(--control-status-card-shadow) !important;
 }
 
 .laAdminShell .liveControlStatusGrid .studioMetricCard > span {
@@ -1258,6 +1255,7 @@
   padding: clamp(18px, 1.1vw, 24px) !important;
 }
 
+/* Live-control preview panel guard slice. */
 .laAdminShell .liveControlPage .roomLivePreview {
   grid-template-rows: minmax(250px, 1fr) auto;
 }
@@ -1265,7 +1263,7 @@
 .laAdminShell .liveControlPage .liveFrame {
   height: clamp(250px, 13.2vw, 390px) !important;
   border-radius: 22px !important;
-  background: linear-gradient(135deg, #e0f2fe, #fff7ed 62%, #f8fafc) !important;
+  background: var(--control-preview-frame-bg) !important;
 }
 
 .laAdminShell .liveControlPage .liveFrame img {
@@ -1291,18 +1289,17 @@
   display: grid;
   place-items: center;
   border-radius: 16px !important;
-  background: rgba(248, 250, 252, .95) !important;
+  background: var(--control-preview-metric-bg) !important;
 }
 
+/* Live-control command board guard slice. */
 .laAdminShell .liveControlPage .priceCommandBoard {
   display: grid;
   align-content: center;
   min-height: clamp(460px, 27vh, 620px) !important;
   padding: clamp(28px, 2vw, 46px) !important;
   border-radius: 30px !important;
-  background:
-    radial-gradient(circle at 50% 0, rgba(37, 99, 235, .16), transparent 33%),
-    linear-gradient(145deg, #fff, #f8fbff 58%, #fff7ed) !important;
+  background: var(--control-command-board-bg) !important;
 }
 
 .laAdminShell .liveControlPage .priceCommandEyebrow {
@@ -1355,6 +1352,7 @@
   white-space: nowrap;
 }
 
+/* Live-control action input guard slice. */
 .laAdminShell .liveControlPage .controlActionDeck {
   padding: clamp(20px, 1.25vw, 26px) !important;
 }
@@ -1388,18 +1386,19 @@
 .laAdminShell .liveControlPage .dangerActionStrip input {
   min-width: 0;
   width: 100%;
-  border: 1px solid #fecdd3;
-  background: #fff;
+  border: 1px solid var(--control-danger-input-border);
+  background: var(--control-danger-input-bg);
   color: var(--studio-text);
   padding: 0 14px;
   outline: 0;
 }
 
 .laAdminShell .liveControlPage .dangerActionStrip input:focus {
-  border-color: #f43f5e;
-  box-shadow: 0 0 0 4px rgba(244, 63, 94, .12);
+  border-color: var(--control-danger-input-focus-border);
+  box-shadow: var(--control-danger-input-focus-ring);
 }
 
+/* Live-control side feed guard boundary. */
 .laAdminShell .liveControlPage .trustCardList,
 .laAdminShell .liveControlPage .controlBidFeed,
 .laAdminShell .liveControlPage .controlRanking,
@@ -1424,8 +1423,8 @@
 .laAdminShell .liveControlPage .controlEventLog div,
 .laAdminShell .liveControlPage .nextQueueItem {
   border-radius: 16px !important;
-  background: #fff !important;
-  border-color: rgba(226, 232, 240, .95) !important;
+  background: var(--control-feed-item-bg) !important;
+  border-color: var(--control-feed-item-border) !important;
 }
 
 .laAdminShell .liveControlPage .controlRanking div {
@@ -1443,6 +1442,7 @@
   white-space: nowrap;
 }
 
+/* Live-control bottom grid guard boundary. */
 .laAdminShell .liveControlPage .controlBottomGrid {
   display: grid !important;
   grid-template-columns: minmax(380px, .74fr) minmax(0, 1.26fr) !important;
@@ -1477,16 +1477,16 @@
   white-space: nowrap;
 }
 
+/* Live-control prepared stage guard slice. */
 .laAdminShell .liveControlPage.isPrepared .preparedControlStage .studioCard {
   min-height: clamp(360px, 32vh, 560px);
   display: grid;
   align-content: center;
   border-radius: 28px;
-  background:
-    radial-gradient(circle at 50% 0, rgba(245, 158, 11, .16), transparent 34%),
-    linear-gradient(145deg, #fff, #f8fbff 62%, #fff8ed);
+  background: var(--control-prepared-stage-bg);
 }
 
+/* Live-control wide-screen guard boundary. */
 @media (min-width: 2200px) {
   .laAdminShell .studioPage:has(.liveControlPage) .controlRoomGrid {
     grid-template-columns: minmax(520px, .82fr) minmax(1040px, 1.48fr) minmax(520px, .86fr) !important;
@@ -1599,13 +1599,13 @@
   }
 }
 
-/* Live control button semantics: utilities stay quiet, irreversible controls get high-contrast colors. */
+/* Live-control utility button guard slice. */
 .laAdminShell .liveControlPage .controlTopBar .controlUtilityButton {
   min-height: 42px !important;
-  border-color: #cbd5e1 !important;
-  background: #fff !important;
-  color: #334155 !important;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, .06) !important;
+  border-color: var(--control-utility-button-border) !important;
+  background: var(--control-utility-button-bg) !important;
+  color: var(--control-utility-button-text) !important;
+  box-shadow: var(--control-utility-button-shadow) !important;
 }
 
 .laAdminShell .liveControlPage .controlTopBar .controlUtilityButton svg,
@@ -1614,62 +1614,67 @@
 }
 
 .laAdminShell .liveControlPage .controlTopBar .controlUtilityButton:hover {
-  border-color: #94a3b8 !important;
-  background: #f8fafc !important;
-  color: #0f172a !important;
+  border-color: var(--control-utility-button-hover-border) !important;
+  background: var(--control-utility-button-hover-bg) !important;
+  color: var(--control-utility-button-hover-text) !important;
   transform: translateY(-1px);
 }
 
+/* Live-control action button guard boundary. */
 .laAdminShell .liveControlPage .controlActionDeck button {
   font-weight: 850 !important;
   letter-spacing: 0 !important;
   text-shadow: none !important;
 }
 
+/* Live-control duel button guard slice. */
 .laAdminShell .liveControlPage .controlActionsGrid .controlActionButton-duel {
-  border-color: #f59e0b !important;
-  background: #fffbeb !important;
-  color: #78350f !important;
-  box-shadow: 0 12px 24px rgba(180, 83, 9, .12) !important;
+  border-color: var(--control-duel-button-border) !important;
+  background: var(--control-duel-button-bg) !important;
+  color: var(--control-duel-button-text) !important;
+  box-shadow: var(--control-duel-button-shadow) !important;
 }
 
 .laAdminShell .liveControlPage .controlActionsGrid .controlActionButton-duel:hover:not(:disabled) {
-  background: #fef3c7 !important;
-  border-color: #d97706 !important;
-  color: #451a03 !important;
+  background: var(--control-duel-button-hover-bg) !important;
+  border-color: var(--control-duel-button-hover-border) !important;
+  color: var(--control-duel-button-hover-text) !important;
 }
 
+/* Live-control muted action guard boundary. */
 .laAdminShell .liveControlPage .controlActionsGrid .controlActionButton-muted,
 .laAdminShell .liveControlPage .controlActionsGrid .controlActionButton-muted:disabled {
-  border-color: #e2e8f0 !important;
-  background: #f8fafc !important;
-  color: #64748b !important;
+  border-color: var(--control-muted-action-border) !important;
+  background: var(--control-muted-action-bg) !important;
+  color: var(--control-muted-action-text) !important;
   box-shadow: none !important;
   opacity: 1 !important;
 }
 
+/* Live-control danger action guard boundary. */
 .laAdminShell .liveControlPage .dangerActionStrip .settleButton {
-  border-color: #047857 !important;
-  background: #047857 !important;
-  color: #fff !important;
-  box-shadow: 0 14px 28px rgba(4, 120, 87, .2) !important;
+  border-color: var(--control-settle-button-border) !important;
+  background: var(--control-settle-button-bg) !important;
+  color: var(--control-settle-button-text) !important;
+  box-shadow: var(--control-settle-button-shadow) !important;
 }
 
 .laAdminShell .liveControlPage .dangerActionStrip .settleButton:hover:not(:disabled) {
-  border-color: #065f46 !important;
-  background: #065f46 !important;
+  border-color: var(--control-settle-button-hover-border) !important;
+  background: var(--control-settle-button-hover-bg) !important;
 }
 
+/* Live-control cancel action legacy boundary. */
 .laAdminShell .liveControlPage .dangerActionStrip .cancelButton {
-  border-color: #be123c !important;
-  background: #be123c !important;
-  color: #fff !important;
-  box-shadow: 0 14px 28px rgba(190, 18, 60, .18) !important;
+  border-color: var(--control-cancel-button-bg) !important;
+  background: var(--control-cancel-button-bg) !important;
+  color: var(--studio-color-on-accent) !important;
+  box-shadow: var(--control-cancel-button-shadow) !important;
 }
 
 .laAdminShell .liveControlPage .dangerActionStrip .cancelButton:hover:not(:disabled) {
-  border-color: #9f1239 !important;
-  background: #9f1239 !important;
+  border-color: var(--control-cancel-button-hover-bg) !important;
+  background: var(--control-cancel-button-hover-bg) !important;
 }
 
 .laAdminShell .liveControlPage .dangerActionStrip .settleButton:disabled,
@@ -1679,32 +1684,35 @@
 }
 
 .laAdminShell .liveControlPage .dangerActionStrip .settleButton:disabled {
-  border-color: #bbf7d0 !important;
-  background: #f0fdf4 !important;
-  color: #166534 !important;
+  border-color: var(--control-settle-button-disabled-border) !important;
+  background: var(--control-settle-button-disabled-bg) !important;
+  color: var(--control-settle-button-disabled-text) !important;
   opacity: .78 !important;
 }
 
 .laAdminShell .liveControlPage .dangerActionStrip .cancelButton:disabled {
-  border-color: #fecdd3 !important;
-  background: #fff1f2 !important;
-  color: #9f1239 !important;
+  border-color: var(--control-cancel-button-disabled-border) !important;
+  background: var(--control-cancel-button-disabled-bg) !important;
+  color: var(--control-cancel-button-disabled-text) !important;
   opacity: .78 !important;
 }
 
+/* Live-control danger input override guard slice. */
 .laAdminShell .liveControlPage .dangerActionStrip input {
-  border-color: #cbd5e1 !important;
-  background: #fff !important;
-  color: #172033 !important;
+  border-color: var(--control-danger-input-active-border) !important;
+  background: var(--control-danger-input-bg) !important;
+  color: var(--control-danger-input-active-text) !important;
   font-weight: 750;
 }
 
 .laAdminShell .liveControlPage .dangerActionStrip input::placeholder {
-  color: #64748b;
+  color: var(--control-danger-input-placeholder);
   opacity: 1;
 }
 
+/* Live-control action override guard boundary. */
 /* Add-lot restored asset workflow. */
+/* Console add-lot media workflow guard slice. */
 .laAdminShell .auctionCreatePage .auctionCreateStepper {
   margin: 0;
 }
@@ -1740,8 +1748,8 @@
   overflow: hidden;
   min-height: 76px;
   border-radius: 14px;
-  border: 1px solid var(--studio-border, #e2e8f0);
-  background: #f8fafc;
+  border: 1px solid var(--studio-border);
+  background: var(--create-gallery-thumb-bg);
 }
 
 .laAdminShell .auctionCreatePage .galleryThumbList img {
@@ -1756,8 +1764,8 @@
   left: 6px;
   top: 6px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, .72);
-  color: #fff;
+  background: var(--create-gallery-thumb-badge-bg);
+  color: var(--studio-color-on-accent);
   padding: 3px 6px;
   font-size: 11px;
   font-weight: 850;
@@ -1765,16 +1773,16 @@
 
 .laAdminShell .auctionCreatePage .galleryThumbList button {
   position: relative;
-  z-index: 1;
+  z-index: var(--studio-z-raised);
   width: 28px;
   height: 28px;
   margin: 5px 0 6px 5px;
   display: inline-grid;
   place-items: center;
-  border: 1px solid #dbe4f0;
+  border: 1px solid var(--create-gallery-thumb-button-border);
   border-radius: 10px;
-  background: #fff;
-  color: #334155;
+  background: var(--studio-color-surface);
+  color: var(--control-utility-button-text);
   cursor: pointer;
 }
 
@@ -1796,9 +1804,9 @@
   gap: 8px;
   min-height: 54px;
   border-radius: 14px;
-  border: 1px dashed #cbd5e1;
-  background: #f8fbff;
-  color: #526b9a;
+  border: 1px dashed var(--control-utility-button-border);
+  background: var(--create-trust-image-bg);
+  color: var(--create-trust-image-text);
   font-size: 12px;
   font-weight: 850;
 }
@@ -1806,8 +1814,8 @@
 .laAdminShell .auctionCreatePage .trustImageSlot.hasImage {
   min-height: 92px;
   border-style: solid;
-  color: #fff;
-  background: #0f172a;
+  color: var(--studio-color-on-accent);
+  background: var(--create-trust-image-filled-bg);
 }
 
 .laAdminShell .auctionCreatePage .trustImageSlot img {
@@ -1823,14 +1831,14 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 34%, rgba(15, 23, 42, .72));
+  background: var(--create-trust-image-overlay-bg);
   pointer-events: none;
 }
 
 .laAdminShell .auctionCreatePage .trustImageSlot svg,
 .laAdminShell .auctionCreatePage .trustImageSlot span {
   position: relative;
-  z-index: 1;
+  z-index: var(--studio-z-raised);
 }
 
 .laAdminShell .auctionCreatePage .trustImageSlot input {
@@ -1848,10 +1856,10 @@
 
 .laAdminShell .auctionCreatePage .trustImageRemove {
   justify-self: start;
-  border: 1px solid #fecdd3;
+  border: 1px solid var(--create-trust-remove-border);
   border-radius: 999px;
-  background: #fff1f2;
-  color: #be123c;
+  background: var(--create-trust-remove-bg);
+  color: var(--create-trust-remove-text);
   font-size: 12px;
   font-weight: 850;
   padding: 7px 10px;
@@ -1869,8 +1877,10 @@
     grid-template-columns: 1fr !important;
   }
 }
+/* Console add-lot media workflow guard boundary. */
 
 /* Add-lot H5 preview should use the same media rhythm as the final viewer card, not a tiny phone thumbnail. */
+/* Console add-lot H5 preview guard slice. */
 .laAdminShell .auctionCreatePage .mobilePreviewWrap {
   display: grid;
   justify-items: stretch;
@@ -1903,8 +1913,8 @@
   gap: 0;
   border: 0 !important;
   border-radius: 26px !important;
-  background: #f5f6fb !important;
-  box-shadow: 0 22px 46px rgba(15, 23, 42, .12) !important;
+  background: var(--create-h5-preview-bg) !important;
+  box-shadow: var(--create-h5-preview-shadow) !important;
 }
 
 .laAdminShell .auctionCreatePage .phoneLivePlayer {
@@ -1914,7 +1924,7 @@
   aspect-ratio: 43 / 28;
   margin: calc(clamp(14px, 1vw, 20px) * -1) calc(clamp(14px, 1vw, 20px) * -1) 0;
   border-radius: 0 0 28px 28px;
-  background: #050712;
+  background: var(--create-h5-player-bg);
 }
 
 .laAdminShell .auctionCreatePage .phoneLivePlayer > img {
@@ -1930,23 +1940,23 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, .5), transparent 48%, rgba(0, 0, 0, .5));
+  background: var(--create-h5-player-overlay-bg);
 }
 
 .laAdminShell .auctionCreatePage .phoneLivePlayer > div {
   position: relative;
-  z-index: 1;
+  z-index: var(--studio-z-raised);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 8px;
   align-items: start;
   padding: 14px;
-  color: #fff;
+  color: var(--studio-color-on-accent);
 }
 
 .laAdminShell .auctionCreatePage .phoneLivePlayer span {
   border-radius: 999px;
-  background: linear-gradient(135deg, #ff3f6c, #ff7ca8);
+  background: var(--create-h5-player-live-bg);
   padding: 5px 9px;
   font-size: 12px;
   font-weight: 900;
@@ -1958,12 +1968,12 @@
   line-height: 22px;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-shadow: 0 1px 10px rgba(0, 0, 0, .45);
+  text-shadow: var(--create-h5-player-title-shadow);
 }
 
 .laAdminShell .auctionCreatePage .phoneLivePlayer small {
   border-radius: 999px;
-  background: rgba(255, 255, 255, .16);
+  background: var(--create-h5-player-meta-bg);
   padding: 5px 9px;
   font-size: 12px;
   line-height: 18px;
@@ -1974,21 +1984,21 @@
   gap: 10px;
   padding: 12px;
   border-radius: 22px;
-  background: #fff;
-  box-shadow: 0 12px 26px rgba(32, 39, 70, .08);
+  background: var(--create-phone-lot-card-bg);
+  box-shadow: var(--create-phone-lot-card-shadow);
 }
 
 .laAdminShell .auctionCreatePage .h5AuctionPreview .phoneImage {
   margin: 0 !important;
   aspect-ratio: 16 / 9;
   border-radius: 18px !important;
-  background: #f0f1f6 !important;
+  background: var(--create-phone-image-bg) !important;
 }
 
 .laAdminShell .auctionCreatePage .phoneImageNav {
   position: absolute;
   top: 50%;
-  z-index: 2;
+  z-index: calc(var(--studio-z-raised) + 1);
   display: grid !important;
   place-items: center;
   width: 30px !important;
@@ -1996,10 +2006,10 @@
   min-height: 30px !important;
   margin: 0 !important;
   padding: 0 !important;
-  border: 1px solid rgba(255, 255, 255, .58) !important;
+  border: 1px solid var(--create-phone-image-nav-border) !important;
   border-radius: 999px !important;
-  background: rgba(17, 19, 31, .58) !important;
-  color: #fff !important;
+  background: var(--create-phone-image-nav-bg) !important;
+  color: var(--studio-color-on-accent) !important;
   box-shadow: none !important;
   transform: translateY(-50%);
 }
@@ -2030,12 +2040,12 @@
   padding: 0 !important;
   border: 2px solid transparent !important;
   border-radius: 12px !important;
-  background: #f0f1f6 !important;
+  background: var(--create-phone-image-bg) !important;
   box-shadow: none !important;
 }
 
 .laAdminShell .auctionCreatePage .phoneCarouselStrip button.active {
-  border-color: #ff7ca8 !important;
+  border-color: var(--create-phone-thumb-active-border) !important;
 }
 
 .laAdminShell .auctionCreatePage .phoneCarouselStrip img {
@@ -2053,8 +2063,8 @@
   min-width: 16px;
   height: 16px;
   border-radius: 999px;
-  background: rgba(17, 19, 31, .72);
-  color: #fff;
+  background: var(--create-phone-thumb-count-bg);
+  color: var(--studio-color-on-accent);
   font-size: 10px;
   font-weight: 900;
 }
@@ -2066,7 +2076,7 @@
 
 .laAdminShell .auctionCreatePage .h5AuctionPreview h4 {
   margin: 0 !important;
-  color: #1f2433 !important;
+  color: var(--create-phone-title-text) !important;
   font-size: 18px !important;
   line-height: 1.24 !important;
   font-weight: 850 !important;
@@ -2081,14 +2091,14 @@
 .laAdminShell .auctionCreatePage .phonePriceGrid div {
   min-width: 0;
   border-radius: 14px;
-  background: #f7f8fc;
+  background: var(--create-phone-price-tile-bg);
   padding: 9px 10px;
 }
 
 .laAdminShell .auctionCreatePage .phonePriceGrid div:first-child {
   grid-column: 1 / -1;
-  background: linear-gradient(135deg, #fff1f4, #fff);
-  border: 1px solid #ffe0e8;
+  background: var(--create-phone-price-highlight-bg);
+  border: 1px solid var(--create-phone-price-highlight-border);
 }
 
 .laAdminShell .auctionCreatePage .phonePriceGrid span,
@@ -2098,21 +2108,21 @@
 }
 
 .laAdminShell .auctionCreatePage .phonePriceGrid span {
-  color: #7a8194;
+  color: var(--create-phone-price-label-text);
   font-size: 12px;
 }
 
 .laAdminShell .auctionCreatePage .phonePriceGrid b {
   overflow: hidden;
   margin-top: 4px;
-  color: #1f2433;
+  color: var(--create-phone-title-text);
   font-size: 15px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .laAdminShell .auctionCreatePage .phonePriceGrid div:first-child b {
-  color: #e11d48;
+  color: var(--create-phone-price-emphasis-text);
   font-size: 24px;
   line-height: 1.05;
 }
@@ -2121,10 +2131,12 @@
   margin: 0 !important;
   min-height: 42px !important;
   border-radius: 14px !important;
-  background: linear-gradient(135deg, #ff3f6c, #ff7ca8 55%, #8d7cf6) !important;
+  background: var(--create-phone-action-bg) !important;
 }
+/* Console add-lot H5 preview guard boundary. */
 
 /* Post-live order review: polished成交处理 workbench. */
+/* Console order review guard slice. */
 .laAdminShell .orderReviewPage {
   container-type: inline-size;
 }
@@ -2132,11 +2144,9 @@
 .laAdminShell .orderReviewHero {
   min-height: 116px;
   padding: 24px 28px !important;
-  background:
-    linear-gradient(135deg, rgba(239, 246, 255, .92), rgba(255, 255, 255, .98) 46%, rgba(240, 253, 244, .68)),
-    var(--studio-surface) !important;
-  border-color: rgba(203, 213, 225, .86) !important;
-  box-shadow: 0 18px 44px rgba(15, 23, 42, .08) !important;
+  background: var(--postlive-hero-bg) !important;
+  border-color: var(--postlive-card-border) !important;
+  box-shadow: var(--postlive-hero-shadow) !important;
 }
 
 .laAdminShell .orderReviewHero .studioSectionHeader {
@@ -2167,11 +2177,9 @@
   min-height: 112px;
   padding: 20px !important;
   border-radius: 22px !important;
-  border-color: rgba(203, 213, 225, .86);
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(248, 250, 252, .94)),
-    var(--studio-surface) !important;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, .06) !important;
+  border-color: var(--postlive-card-border);
+  background: var(--postlive-metric-bg) !important;
+  box-shadow: var(--postlive-metric-shadow) !important;
 }
 
 .laAdminShell .postLiveMetricGrid .studioMetricCard > span {
@@ -2188,8 +2196,8 @@
 
 /* Filter card for order review. */
 .laAdminShell .orderReviewFilters {
-  border-color: rgba(203, 213, 225, .86);
-  box-shadow: 0 12px 30px rgba(15, 23, 42, .05);
+  border-color: var(--postlive-card-border);
+  box-shadow: var(--postlive-filter-shadow);
 }
 
 .orderFilterBar {
@@ -2234,7 +2242,7 @@
 
 .orderFilterSearch:focus-within {
   border-color: var(--studio-primary);
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, .12);
+  box-shadow: var(--postlive-focus-ring);
 }
 
 .orderFilterSep {
@@ -2266,7 +2274,7 @@
   object-fit: cover;
   background: var(--studio-surface-soft);
   border: 1px solid var(--studio-border);
-  box-shadow: 0 6px 14px rgba(15, 23, 42, .06);
+  box-shadow: var(--postlive-image-shadow);
   flex: 0 0 auto;
 }
 
@@ -2319,10 +2327,10 @@
 .orderDetailOverlay {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: var(--studio-z-modal);
   display: grid;
   place-items: center;
-  background: rgba(15, 23, 42, .42);
+  background: var(--postlive-overlay-bg);
   backdrop-filter: blur(6px);
   animation: orderOverlayIn .22s ease;
 }
@@ -2339,7 +2347,7 @@
   background: var(--studio-surface);
   border: 1px solid var(--studio-border);
   border-radius: var(--studio-radius-2xl);
-  box-shadow: 0 28px 64px rgba(15, 23, 42, .18);
+  box-shadow: var(--postlive-drawer-shadow);
   animation: orderDrawerIn .28s cubic-bezier(.16, 1, .3, 1);
 }
 
@@ -2355,9 +2363,7 @@
   gap: 16px;
   padding: 24px 28px 18px;
   border-bottom: 1px solid var(--studio-border);
-  background:
-    linear-gradient(135deg, rgba(239, 246, 255, .72), rgba(255, 255, 255, .96) 54%),
-    var(--studio-surface);
+  background: var(--postlive-drawer-header-bg);
   border-radius: var(--studio-radius-2xl) var(--studio-radius-2xl) 0 0;
 }
 
@@ -2400,9 +2406,7 @@
   align-items: flex-start;
   padding: 20px;
   border-radius: var(--studio-radius-xl);
-  background:
-    linear-gradient(145deg, rgba(248, 250, 252, .94), rgba(255, 255, 255, .99)),
-    var(--studio-surface-soft);
+  background: var(--postlive-drawer-hero-bg);
   border: 1px solid var(--studio-border);
 }
 
@@ -2413,7 +2417,7 @@
   object-fit: cover;
   background: var(--studio-surface-soft);
   border: 1px solid var(--studio-border);
-  box-shadow: 0 8px 22px rgba(15, 23, 42, .08);
+  box-shadow: var(--postlive-drawer-image-shadow);
   flex: 0 0 auto;
 }
 
@@ -2499,31 +2503,31 @@
   gap: 7px;
   min-height: 36px;
   padding: 0 16px;
-  border: 1px solid #dbe7f7;
+  border: 1px solid var(--postlive-pager-border);
   border-radius: 13px;
-  background: linear-gradient(180deg, #ffffff, #f8fbff);
-  color: #334155;
+  background: var(--postlive-pager-bg);
+  color: var(--postlive-pager-text);
   font-size: 13.5px;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, .05);
-  transition: all 180ms cubic-bezier(.4, 0, .2, 1);
+  box-shadow: var(--postlive-pager-shadow);
+  transition: all var(--studio-duration-normal) var(--studio-ease-standard);
   user-select: none;
   -webkit-user-select: none;
 }
 
 .orderPager button:hover:not(:disabled) {
-  background: linear-gradient(180deg, #f0f7ff, #e2eefc);
-  border-color: #b8d2f0;
-  box-shadow: 0 8px 22px rgba(37, 99, 235, .10);
+  background: var(--postlive-pager-hover-bg);
+  border-color: var(--postlive-pager-hover-border);
+  box-shadow: var(--postlive-pager-hover-shadow);
   transform: translateY(-1px);
 }
 
 .orderPager button:active:not(:disabled) {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, .05);
-  transition-duration: 60ms;
+  box-shadow: var(--postlive-pager-active-shadow);
+  transition-duration: var(--studio-duration-fast);
 }
 
 .orderPager button:disabled {
@@ -2534,7 +2538,7 @@
 }
 
 .orderPagerIndex {
-  color: var(--studio-text-2, #64748b);
+  color: var(--studio-text-2);
   font-size: 14px;
   font-weight: 650;
   padding: 0 14px;
@@ -2653,3 +2657,4 @@
     animation: none;
   }
 }
+/* Console order review guard boundary. */

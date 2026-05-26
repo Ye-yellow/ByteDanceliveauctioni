@@ -61,7 +61,7 @@ function StudioTopbar({ title }: { title: string; currentHostRoom: HostRoomSumma
 }
 
 function WebSocketStatus() {
-  return <span className="laWsStatus"><Wifi size={15} /> 实时同步正常 <b>38ms</b></span>;
+  return <span className="laWsStatus"><Wifi size={15} /> 经营数据在线</span>;
 }
 
 function StudioContent({ children }: { title: string; currentHostRoom: HostRoomSummary; children: ReactNode }) {

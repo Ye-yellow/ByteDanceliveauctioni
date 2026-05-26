@@ -36,6 +36,7 @@ type FormState = {
   startPrice: number;
   minIncrement: number;
   capPrice: number | '';
+  depositAmount: number;
   durationSeconds: number;
   antiSnipeWindowSeconds: number;
   antiSnipeExtendSeconds: number;
@@ -74,6 +75,7 @@ const initialForm: FormState = {
   startPrice: 0,
   minIncrement: 50,
   capPrice: '',
+  depositAmount: 0,
   durationSeconds: 300,
   antiSnipeWindowSeconds: 10,
   antiSnipeExtendSeconds: 15,
@@ -248,12 +250,17 @@ export function AuctionCreatePage() {
         const stepIssues = issues.filter((issue) => issue.step === step.key);
         const hasStepError = stepIssues.some((issue) => issue.level === 'error');
         const hasStepWarning = stepIssues.some((issue) => issue.level === 'warning');
+        const isActive = activeStep === step.key;
+        const isDone = index < activeStepIndex && !hasStepError;
+        const isRisk = hasStepWarning && !hasStepError;
         const isLocked = !canEnterStep(step.key);
         const lockedIssue = blockingIssues.find((issue) => stepIndex(issue.step) < index);
-        return <button key={step.key} type="button" disabled={isLocked || submitting} title={lockedIssue ? `请先完成：${lockedIssue.text}` : undefined} className={`${activeStep === step.key ? 'active' : ''} ${index < activeStepIndex && !hasStepError ? 'done' : ''} ${hasStepWarning && !hasStepError ? 'risk' : ''} ${isLocked ? 'locked' : ''}`.trim()} onClick={() => goToStep(step.key)}>
-          <b>{index < activeStepIndex && !hasStepError ? <CheckCircle2 size={16} /> : index + 1}</b>
+        const stepStatus = isDone ? '已完成' : isRisk ? '需检查' : isActive ? '当前' : '待完成';
+        return <button key={step.key} type="button" disabled={isLocked || submitting} title={lockedIssue ? `请先完成：${lockedIssue.text}` : undefined} aria-current={isActive ? 'step' : undefined} className={`${isActive ? 'active' : ''} ${isDone ? 'done' : ''} ${isRisk ? 'risk' : ''} ${isLocked ? 'locked' : ''}`.trim()} onClick={() => goToStep(step.key)}>
+          <b>{isDone ? <CheckCircle2 size={16} /> : index + 1}</b>
           <span>{step.label}</span>
           <small>{step.hint}</small>
+          <em className="stepStatus">{stepStatus}</em>
         </button>;
       })}
     </nav>
@@ -303,6 +310,7 @@ export function AuctionCreatePage() {
             <StudioField label="起拍价（元）"><input type="number" value={form.startPrice} min={0} onChange={(e) => update({ startPrice: Number(e.target.value) })} /></StudioField>
             <StudioField label="加价幅度（元）" error={issueText(issues, '加价')}><input type="number" value={form.minIncrement} min={1} onChange={(e) => update({ minIncrement: Number(e.target.value) })} /></StudioField>
             <StudioField label="封顶价（元）" error={issueText(issues, '封顶')}><input type="number" value={form.capPrice} placeholder="可选" onChange={(e) => update({ capPrice: e.target.value === '' ? '' : Number(e.target.value) })} /></StudioField>
+            <StudioField label="保证金（元）" error={issueText(issues, '保证金')}><input type="number" value={form.depositAmount} min={0} onChange={(e) => update({ depositAmount: Number(e.target.value) })} /></StudioField>
             <StudioField label="竞拍时长（秒）" error={issueText(issues, '时长')}><input type="number" value={form.durationSeconds} min={60} onChange={(e) => update({ durationSeconds: Number(e.target.value) })} /></StudioField>
             <StudioField label="延时窗口（秒）" error={issueText(issues, '延时窗口')}><input type="number" value={form.antiSnipeWindowSeconds} min={1} onChange={(e) => update({ antiSnipeWindowSeconds: Number(e.target.value) })} /></StudioField>
             <StudioField label="每次延长（秒）" error={issueText(issues, '每次延长')}><input type="number" value={form.antiSnipeExtendSeconds} min={10} max={30} onChange={(e) => update({ antiSnipeExtendSeconds: Number(e.target.value) })} /></StudioField>
@@ -367,12 +375,13 @@ export function AuctionCreatePage() {
                 <div><span>倒计时</span><b>{activeStep === 'product' ? '等待开拍' : `${form.durationSeconds}s`}</b></div>
                 <div><span>起拍价</span><b>{activeStep === 'product' ? '待配置' : formatMoneyText(auctionMoney(form.startPrice))}</b></div>
                 <div><span>加价幅度</span><b>{activeStep === 'product' ? '待配置' : formatMoneyText(auctionMoney(form.minIncrement))}</b></div>
+                <div><span>保证金</span><b>{activeStep === 'product' ? '待配置' : formatMoneyText(auctionMoney(form.depositAmount))}</b></div>
               </div>
               <button type="button">立即出价</button>
             </section>
           </div>
         </div>
-        {activeStep === 'rules' || activeStep === 'review' ? <StudioCard title="规则摘要" subtitle="Summary" padding="md"><div className="ruleSnapshotGrid"><div><span>起拍价</span><b>{formatMoneyText(auctionMoney(form.startPrice))}</b></div><div><span>加价幅度</span><b>{formatMoneyText(auctionMoney(form.minIncrement))}</b></div><div><span>封顶价</span><b>{form.capPrice === '' ? '未设置' : formatMoneyText(auctionMoney(form.capPrice))}</b></div><div><span>库存</span><b>{form.stock}</b></div><div><span>最后出价延时</span><b>{form.antiSnipeWindowSeconds}s / +{form.antiSnipeExtendSeconds}s</b></div></div></StudioCard> : null}
+        {activeStep === 'rules' || activeStep === 'review' ? <StudioCard title="规则摘要" subtitle="Summary" padding="md"><div className="ruleSnapshotGrid"><div><span>起拍价</span><b>{formatMoneyText(auctionMoney(form.startPrice))}</b></div><div><span>加价幅度</span><b>{formatMoneyText(auctionMoney(form.minIncrement))}</b></div><div><span>封顶价</span><b>{form.capPrice === '' ? '未设置' : formatMoneyText(auctionMoney(form.capPrice))}</b></div><div><span>保证金</span><b>{formatMoneyText(auctionMoney(form.depositAmount))}</b></div><div><span>库存</span><b>{form.stock}</b></div><div><span>最后出价延时</span><b>{form.antiSnipeWindowSeconds}s / +{form.antiSnipeExtendSeconds}s</b></div></div></StudioCard> : null}
       </aside>
     </div>
   </section>;
@@ -430,6 +439,7 @@ function toRequest(form: FormState): CreateLotRequest {
     tags: parseTags(form.tags),
     stock: form.stock,
     afterSaleNotes: form.afterSaleNotes.trim(),
+    depositAmount: auctionMoney(form.depositAmount),
   };
   const estimatePrice = optionalMoney(form.estimatePrice);
   if (estimatePrice) request.estimatePrice = estimatePrice;
@@ -452,6 +462,7 @@ function validate(form: FormState): FormIssue[] {
   if (!form.description.trim()) issues.push({ level: 'error', step: 'product', text: '拍品介绍必填' });
   if (form.stock < 1) issues.push({ level: 'error', step: 'product', text: '库存必须大于等于 1' });
   if (form.minIncrement <= 0) issues.push({ level: 'error', step: 'rules', text: '加价幅度必须大于 0' });
+  if (form.depositAmount < 0) issues.push({ level: 'error', step: 'rules', text: '保证金不能小于 0' });
   if (form.durationSeconds < 60) issues.push({ level: 'error', step: 'rules', text: '竞拍时长必须大于等于 60 秒' });
   if (form.antiSnipeWindowSeconds <= 0) issues.push({ level: 'error', step: 'rules', text: '延时窗口必须大于 0 秒' });
   if (form.antiSnipeExtendSeconds < 10 || form.antiSnipeExtendSeconds > 30) issues.push({ level: 'error', step: 'rules', text: '每次延长必须在 10-30 秒之间' });

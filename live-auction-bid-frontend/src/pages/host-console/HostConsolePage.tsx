@@ -30,7 +30,7 @@ const navGroups: StudioNavGroupConfig[] = [
   ] },
   { label: '团队协作', items: [
     { label: '团队成员', href: '/admin/merchants', icon: <Users size={17} />, match: (pathname) => pathname.includes('/merchants') },
-    { label: '实时同步状态', href: '/admin/realtime', icon: <Wifi size={17} />, match: (pathname) => pathname === '/admin/realtime' || pathname === '/host/realtime' },
+    { label: '直播健康', href: '/admin/realtime', icon: <Wifi size={17} />, match: (pathname) => pathname === '/admin/realtime' || pathname === '/host/realtime' },
   ] },
   { label: '系统', items: [
     { label: '工作台设置', href: '/admin/settings', icon: <Settings size={17} />, match: (pathname) => pathname.includes('/settings') },
@@ -39,7 +39,7 @@ const navGroups: StudioNavGroupConfig[] = [
 ];
 
 function pathTitle(pathname: string) {
-  if (pathname === '/admin/realtime' || pathname === '/host/realtime') return '实时同步状态';
+  if (pathname === '/admin/realtime' || pathname === '/host/realtime') return '直播健康';
   if (pathname.includes('/auctions/create')) return '添加拍品';
   if (pathname.includes('/auctions/history')) return '拍品历史';
   if (pathname.includes('/control')) return '直播间中控台';

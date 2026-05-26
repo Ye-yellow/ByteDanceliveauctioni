@@ -324,6 +324,7 @@ export function normalizeLot(input: unknown): Lot {
     estimatePrice: estimatePrice === undefined ? undefined : normalizeMoney(estimatePrice, 'lot.estimatePrice'),
     stock: field(raw, 'stock') as number | string | undefined,
     afterSaleNotes: optionalString(field(raw, 'afterSaleNotes', 'after_sale_notes')),
+    depositAmount: field(raw, 'depositAmount', 'deposit_amount') === undefined ? undefined : normalizeMoney(field(raw, 'depositAmount', 'deposit_amount'), 'lot.depositAmount'),
   };
 }
 

@@ -18,6 +18,49 @@
   --studio-warning: #F59E0B;
   --studio-danger: #EF4444;
 
+  /* Preferred semantic aliases for new LiveAuction Admin UI. */
+  --studio-color-background: var(--studio-bg);
+  --studio-color-surface: var(--studio-surface);
+  --studio-color-surface-soft: var(--studio-surface-soft);
+  --studio-color-border: var(--studio-border);
+  --studio-color-text: var(--studio-text);
+  --studio-color-text-secondary: var(--studio-text-2);
+  --studio-color-text-muted: var(--studio-text-3);
+  --studio-color-on-accent: #FFFFFF;
+  --studio-color-primary: var(--studio-primary);
+  --studio-color-primary-hover: var(--studio-primary-hover);
+  --studio-color-primary-soft: var(--studio-primary-soft);
+  --studio-color-success: var(--studio-success);
+  --studio-color-warning: var(--studio-warning);
+  --studio-color-error: var(--studio-danger);
+  --studio-color-info: var(--studio-primary);
+  --studio-color-danger: var(--studio-danger);
+  --studio-color-neutral: #475569;
+  --studio-color-neutral-bg: #F1F5F9;
+  --studio-color-neutral-border: #E2E8F0;
+  --studio-color-table-row-border: #EEF2F7;
+  --studio-color-success-text: #15803D;
+  --studio-color-success-bg: #DCFCE7;
+  --studio-color-success-border: #BBF7D0;
+  --studio-color-success-toast-bg: linear-gradient(135deg, rgba(240, 253, 244, .98), rgba(236, 253, 245, .94));
+  --studio-color-warning-text: #B45309;
+  --studio-color-warning-bg: #FEF3C7;
+  --studio-color-warning-soft-bg: #FFFBEB;
+  --studio-color-warning-border: #FDE68A;
+  --studio-color-warning-toast-bg: linear-gradient(135deg, rgba(255, 251, 235, .98), rgba(254, 243, 199, .92));
+  --studio-color-error-text: #B91C1C;
+  --studio-color-error-bg: #FEE2E2;
+  --studio-color-error-soft-bg: #FFF1F2;
+  --studio-color-error-border: #FECACA;
+  --studio-color-error-hover: #DC2626;
+  --studio-color-error-toast-bg: linear-gradient(135deg, rgba(254, 242, 242, .98), rgba(255, 228, 230, .94));
+  --studio-color-info-text: #2563EB;
+  --studio-color-info-bg: var(--studio-primary-soft);
+  --studio-color-info-border: #BFDBFE;
+  --studio-color-purple-text: #6D28D9;
+  --studio-color-purple-bg: #EDE9FE;
+  --studio-color-purple-border: #C4B5FD;
+
   --studio-radius-sm: 10px;
   --studio-radius-md: 14px;
   --studio-radius-lg: 18px;
@@ -36,6 +79,431 @@
   --studio-shadow-md: 0 12px 32px rgba(15, 23, 42, 0.08);
   --studio-shadow-lg: 0 24px 70px rgba(15, 23, 42, 0.12);
   --studio-focus-ring: 0 0 0 4px rgba(59, 130, 246, 0.18);
+  --studio-field-focus-ring: 0 0 0 4px rgba(59, 130, 246, .12);
+  --studio-danger-button-shadow: 0 8px 18px rgba(239, 68, 68, .14);
+  --studio-shell-sidebar-bg: rgba(255, 255, 255, 0.94);
+  --studio-shell-sidebar-shadow: 8px 0 24px rgba(15, 23, 42, 0.04);
+  --studio-shell-brand-shadow: 0 10px 22px rgba(59, 130, 246, 0.18);
+  --studio-shell-topbar-bg: rgba(255, 255, 255, 0.96);
+  --studio-shell-topbar-shadow: 0 1px 0 rgba(255, 255, 255, 0.82);
+  --studio-shell-mobile-border: rgba(210, 222, 241, .76);
+  --studio-shell-mobile-sidebar-bg: rgba(255, 255, 255, .82);
+  --studio-shell-mobile-topbar-bg: rgba(255, 255, 255, .64);
+  --studio-shell-mobile-shadow: 0 8px 20px rgba(15, 23, 42, .05);
+  --studio-shell-bg: radial-gradient(circle at 0 0, rgba(142, 200, 232, .2), transparent 28vw), radial-gradient(circle at 100% 8%, rgba(244, 166, 193, .16), transparent 30vw), var(--studio-bg);
+  --dashboard-welcome-bg: linear-gradient(135deg, rgba(239, 246, 255, .92), rgba(255, 255, 255, .98) 46%, rgba(255, 247, 237, .68)), var(--studio-surface);
+  --dashboard-card-border: rgba(203, 213, 225, .86);
+  --dashboard-welcome-shadow: 0 18px 44px rgba(15, 23, 42, .08);
+  --dashboard-strip-shadow: 0 14px 34px rgba(15, 23, 42, .06);
+  --dashboard-card-shadow: 0 18px 42px rgba(15, 23, 42, .08);
+  --dashboard-auction-card-bg: linear-gradient(180deg, rgba(239, 246, 255, .86), rgba(255, 255, 255, .98) 48%), var(--studio-surface);
+  --dashboard-auction-media-bg: radial-gradient(circle at 22% 22%, rgba(37, 99, 235, .18), transparent 32%), linear-gradient(135deg, #EFF6FF, #FFF7ED 64%, #F8FAFC);
+  --dashboard-soft-tile-bg: rgba(248, 250, 252, .92);
+  --postlive-hero-bg: linear-gradient(135deg, rgba(239, 246, 255, .92), rgba(255, 255, 255, .98) 46%, rgba(240, 253, 244, .68)), var(--studio-surface);
+  --postlive-card-border: var(--dashboard-card-border);
+  --postlive-hero-shadow: var(--dashboard-welcome-shadow);
+  --postlive-metric-bg: linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(248, 250, 252, .94)), var(--studio-surface);
+  --postlive-metric-shadow: var(--dashboard-strip-shadow);
+  --postlive-filter-shadow: 0 12px 30px rgba(15, 23, 42, .05);
+  --postlive-focus-ring: var(--studio-field-focus-ring);
+  --postlive-image-shadow: 0 6px 14px rgba(15, 23, 42, .06);
+  --postlive-overlay-bg: rgba(15, 23, 42, .42);
+  --postlive-drawer-shadow: 0 28px 64px rgba(15, 23, 42, .18);
+  --postlive-drawer-header-bg: linear-gradient(135deg, rgba(239, 246, 255, .72), rgba(255, 255, 255, .96) 54%), var(--studio-surface);
+  --postlive-drawer-hero-bg: linear-gradient(145deg, rgba(248, 250, 252, .94), rgba(255, 255, 255, .99)), var(--studio-surface-soft);
+  --postlive-drawer-image-shadow: 0 8px 22px rgba(15, 23, 42, .08);
+  --postlive-pager-border: #DBE7F7;
+  --postlive-pager-bg: linear-gradient(180deg, #FFFFFF, #F8FBFF);
+  --postlive-pager-text: #334155;
+  --postlive-pager-shadow: 0 4px 14px rgba(15, 23, 42, .05);
+  --postlive-pager-hover-bg: linear-gradient(180deg, #F0F7FF, #E2EEFC);
+  --postlive-pager-hover-border: #B8D2F0;
+  --postlive-pager-hover-shadow: 0 8px 22px rgba(37, 99, 235, .10);
+  --postlive-pager-active-shadow: 0 2px 8px rgba(15, 23, 42, .05);
+  --postlive-header-bg: linear-gradient(135deg, rgba(255, 255, 255, .92), rgba(241, 248, 255, .78) 58%, rgba(255, 244, 250, .66));
+  --postlive-tabs-bg: rgba(255, 255, 255, .62);
+  --postlive-tabs-border: rgba(134, 174, 229, .18);
+  --postlive-tab-text: #68738F;
+  --postlive-tab-active-bg: linear-gradient(135deg, #8FD5FF, #BCA7FF 58%, #FF9ECB);
+  --postlive-tab-active-shadow: 0 12px 28px rgba(115, 120, 220, .22);
+  --postlive-filter-bg: #F8FBFF;
+  --postlive-image-bg: linear-gradient(135deg, #E6F7FF, #FFE8F5);
+  --postlive-image-border: rgba(137, 178, 229, .2);
+  --postlive-text-main: #2E3552;
+  --postlive-text-muted: #7C879D;
+  --postlive-money-text: #7157E8;
+  --postlive-row-action-bg: rgba(142, 208, 240, .14);
+  --postlive-row-action-text: #5E8EBD;
+  --postlive-drawer-info-bg: #F7FAFF;
+  --postlive-input-border: #DBE4F0;
+  --postlive-input-text: #334155;
+  --postlive-history-hero-bg: linear-gradient(135deg, rgba(255, 255, 255, .94), rgba(242, 248, 255, .84) 48%, rgba(255, 248, 237, .72));
+  --postlive-history-image-bg: linear-gradient(135deg, #E6F7FF, #FFF1F2);
+  --postlive-history-reason-text: #42506C;
+  --postlive-bid-audit-hero-bg: linear-gradient(135deg, rgba(255, 255, 255, .94), rgba(245, 243, 255, .84) 44%, rgba(237, 242, 255, .76));
+  --postlive-workbench-card-bg: rgba(255, 255, 255, .82);
+  --postlive-workbench-card-border: rgba(137, 178, 229, .18);
+  --postlive-workbench-card-shadow: 0 12px 28px rgba(52, 48, 82, .07);
+  --postlive-workbench-title: #2E3552;
+  --postlive-workbench-text: #7C879D;
+  --postlive-workbench-danger-bg: linear-gradient(135deg, #FFF7F7, #FFFFFF);
+  --postlive-workbench-danger-border: var(--studio-color-error-border);
+  --postlive-workbench-danger-text: var(--studio-color-error-text);
+  --postlive-workbench-step-bg: linear-gradient(135deg, #8FD5FF, #BCA7FF);
+  --postlive-workbench-risk-bg: #F8FBFF;
+  --postlive-workbench-risk-border: var(--studio-color-neutral-border);
+  --postlive-workbench-risk-text: #64748B;
+  --postlive-workbench-risk-value: var(--postlive-money-text);
+  --studio-skeleton-gradient: linear-gradient(90deg, #EEF2F7, #F8FAFC, #EEF2F7);
+  --studio-skeleton-row-border: var(--studio-color-table-row-border);
+  --create-action-bar-bg: rgba(255, 255, 255, .98);
+  --create-action-bar-border: rgba(203, 213, 225, .9);
+  --create-action-bar-shadow: 0 18px 42px rgba(15, 23, 42, .14);
+  --create-step-primary-bg: #2563EB;
+  --create-step-primary-shadow: 0 12px 22px rgba(37, 99, 235, .24);
+  --create-step-soft-text: #1D4ED8;
+  --create-step-soft-bg: #EFF6FF;
+  --create-step-soft-border: #DBEAFE;
+  --create-step-secondary-text: #1E3A8A;
+  --create-step-secondary-bg: #F0F7FF;
+  --create-step-secondary-border: #BFDBFE;
+  --create-step-disabled-text: #0F3F9F;
+  --create-step-disabled-bg: #EAF3FF;
+  --create-step-disabled-border: #C7DDFF;
+  --create-step-primary-disabled-bg: linear-gradient(180deg, #EDF6FF, #DCECFF);
+  --create-step-primary-disabled-border: #ABC9FF;
+  --create-toast-centered-shadow: 0 32px 90px rgba(15, 23, 42, .24), 0 10px 28px rgba(245, 158, 11, .16);
+  --create-toast-centered-icon-ring: 0 0 0 7px color-mix(in srgb, currentColor 14%, transparent);
+  --create-toast-top-shadow: 0 14px 34px rgba(15, 23, 42, .14), 0 4px 12px rgba(245, 158, 11, .12);
+  --create-toast-top-icon-ring: 0 0 0 5px color-mix(in srgb, currentColor 13%, transparent);
+  --create-title-bar-bg: linear-gradient(135deg, rgba(255, 255, 255, .96), rgba(248, 250, 252, .92));
+  --create-gallery-thumb-bg: var(--studio-color-surface-soft);
+  --create-gallery-thumb-badge-bg: rgba(15, 23, 42, .72);
+  --create-gallery-thumb-button-border: #DBE4F0;
+  --create-trust-image-bg: #F8FBFF;
+  --create-trust-image-text: #526B9A;
+  --create-trust-image-filled-bg: var(--studio-color-text);
+  --create-trust-image-overlay-bg: linear-gradient(180deg, transparent 34%, rgba(15, 23, 42, .72));
+  --create-trust-remove-border: var(--studio-color-error-border);
+  --create-trust-remove-bg: var(--studio-color-error-soft-bg);
+  --create-trust-remove-text: #BE123C;
+  --create-h5-preview-bg: #F5F6FB;
+  --create-h5-preview-shadow: 0 22px 46px rgba(15, 23, 42, .12);
+  --create-h5-player-bg: #050712;
+  --create-h5-player-overlay-bg: linear-gradient(180deg, rgba(0, 0, 0, .5), transparent 48%, rgba(0, 0, 0, .5));
+  --create-h5-player-live-bg: linear-gradient(135deg, #FF3F6C, #FF7CA8);
+  --create-h5-player-title-shadow: 0 1px 10px rgba(0, 0, 0, .45);
+  --create-h5-player-meta-bg: rgba(255, 255, 255, .16);
+  --create-phone-lot-card-bg: var(--studio-color-surface);
+  --create-phone-lot-card-shadow: 0 12px 26px rgba(32, 39, 70, .08);
+  --create-phone-image-bg: #F0F1F6;
+  --create-phone-image-nav-border: rgba(255, 255, 255, .58);
+  --create-phone-image-nav-bg: rgba(17, 19, 31, .58);
+  --create-phone-thumb-active-border: #FF7CA8;
+  --create-phone-thumb-count-bg: rgba(17, 19, 31, .72);
+  --create-phone-title-text: #1F2433;
+  --create-phone-price-tile-bg: #F7F8FC;
+  --create-phone-price-highlight-bg: linear-gradient(135deg, #FFF1F4, #FFFFFF);
+  --create-phone-price-highlight-border: #FFE0E8;
+  --create-phone-price-label-text: #7A8194;
+  --create-phone-price-emphasis-text: #E11D48;
+  --create-phone-action-bg: linear-gradient(135deg, #FF3F6C, #FF7CA8 55%, #8D7CF6);
+  --create-trust-preview-shadow: 0 8px 20px rgba(37, 99, 235, .06);
+  --create-trust-ready-bg: #F8FFF9;
+  --create-trust-pending-bg: #FFFDF5;
+  --create-uploading-bg: linear-gradient(135deg, var(--studio-color-info-bg), var(--studio-color-surface));
+  --create-main-image-overlay-bg: linear-gradient(180deg, transparent 32%, rgba(24, 24, 40, .72));
+  --create-main-image-shadow: 0 14px 36px rgba(132, 112, 160, .12);
+  --create-main-image-text-shadow: 0 2px 12px rgba(0, 0, 0, .28);
+  --create-main-image-badge-text: #EAF7FF;
+  --create-main-image-badge-bg: rgba(255, 255, 255, .18);
+  --create-main-image-badge-border: rgba(255, 255, 255, .28);
+  --create-workbench-empty-text: #596079;
+  --create-workbench-empty-icon: #93BDE8;
+  --create-step-actions-bg: rgba(255, 255, 255, .82);
+  --create-step-actions-border: rgba(255, 255, 255, .82);
+  --create-step-actions-shadow: 0 18px 48px rgba(132, 112, 160, .12);
+  --create-product-panel-bg: linear-gradient(135deg, rgba(248, 251, 255, .92), rgba(255, 247, 251, .74));
+  --create-product-panel-border: rgba(220, 228, 242, .75);
+  --create-product-panel-shadow: inset 0 1px 0 rgba(255, 255, 255, .82);
+  --create-product-panel-title: #343052;
+  --studio-toast-bg: rgba(255, 255, 255, .96);
+  --studio-toast-border: var(--studio-border);
+  --studio-toast-shadow: 0 30px 90px rgba(52, 48, 82, .22), 0 8px 22px rgba(126, 111, 219, .12);
+  --studio-toast-text: #343052;
+  --studio-toast-icon-ring: 0 0 0 5px color-mix(in srgb, currentColor 13%, transparent);
+  --studio-table-wrap-border: rgba(137, 178, 229, .2);
+  --studio-table-wrap-bg: linear-gradient(135deg, rgba(255, 255, 255, .94), rgba(244, 249, 255, .82));
+  --studio-table-wrap-shadow: 0 18px 48px rgba(82, 103, 152, .1);
+  --studio-table-row-bg: rgba(255, 255, 255, .84);
+  --studio-table-row-shadow: 0 10px 24px rgba(82, 103, 152, .07);
+  --studio-table-row-hover-shadow: 0 16px 34px rgba(82, 103, 152, .12);
+  --studio-table-row-border: rgba(137, 178, 229, .14);
+  --auction-mgmt-table-bg: linear-gradient(135deg, rgba(255, 255, 255, .96), rgba(243, 249, 255, .9));
+  --auction-mgmt-table-cell-bg: rgba(255, 255, 255, .88);
+  --auction-mgmt-table-cell-border: rgba(137, 178, 229, .13);
+  --auction-mgmt-table-current-bg: linear-gradient(135deg, #EFF9FF, #FFFFFF);
+  --auction-mgmt-table-current-border: #93C5FD;
+  --auction-mgmt-table-current-shadow: 0 12px 32px rgba(59, 130, 246, .12);
+  --auction-mgmt-table-next-bg: linear-gradient(135deg, #FAF5FF, #FFFFFF);
+  --auction-mgmt-table-next-border: #D8B4FE;
+  --auction-mgmt-table-cancelled-bg: linear-gradient(135deg, #FFF1F2, #FFFFFF);
+  --auction-mgmt-table-cancelled-border: var(--studio-color-error-border);
+  --auction-row-more-bg: #F5F8FF;
+  --auction-row-more-text: var(--studio-color-text-muted);
+  --auction-mgmt-mobile-row-bg: rgba(255, 255, 255, .9);
+  --auction-mgmt-mobile-row-border: rgba(137, 178, 229, .18);
+  --auction-mgmt-mobile-row-shadow: 0 12px 30px rgba(82, 103, 152, .08);
+  --current-host-status-header-bg: rgba(255, 255, 255, .74);
+  --current-host-status-header-border: rgba(255, 255, 255, .8);
+  --control-empty-state-bg: rgba(255, 255, 255, .58);
+  --control-empty-state-border: rgba(137, 178, 229, .28);
+  --auction-notice-button-bg: rgba(255, 255, 255, .78);
+  --route-loading-bg: radial-gradient(circle at 50% 32%, #DBEAFE 0, transparent 34%), linear-gradient(135deg, #F8FBFF, #FFF7FB);
+  --route-loading-text: var(--studio-color-text);
+  --realtime-sync-bg: rgba(255, 255, 255, .86);
+  --realtime-sync-border: rgba(137, 178, 229, .22);
+  --realtime-sync-shadow: 0 14px 34px rgba(82, 103, 152, .1);
+  --realtime-sync-metric-bg: #F8FBFF;
+  --realtime-sync-metric-border: #E5EDF8;
+  --realtime-diag-hero-bg: linear-gradient(135deg, rgba(255, 255, 255, .9), rgba(239, 246, 255, .78), rgba(255, 244, 250, .6));
+  --realtime-diag-hero-shadow: 0 18px 48px rgba(82, 103, 152, .12);
+  --realtime-list-bg: #F8FBFF;
+  --realtime-list-border: #E4ECF7;
+  --realtime-diagnosis-bg: rgba(255, 255, 255, .76);
+  --realtime-diagnosis-border: rgba(137, 178, 229, .18);
+  --home-desktop-backdrop-bg: radial-gradient(circle at 19% 22%, rgba(145, 213, 236, .42), transparent 34%), radial-gradient(circle at 80% 18%, rgba(255, 174, 199, .42), transparent 35%), radial-gradient(circle at 50% 46%, rgba(255, 255, 255, .44), transparent 28%), linear-gradient(135deg, #DCEFF5 0%, #F6DDE8 56%, #FACDD9 100%);
+  --home-desktop-backdrop-overlay-bg: radial-gradient(circle at 50% 48%, rgba(255, 255, 255, .50), rgba(255, 255, 255, .18) 24%, transparent 43%);
+  --home-desktop-hero-card-bg: linear-gradient(135deg, rgba(255, 255, 255, .72), rgba(255, 255, 255, .52));
+  --home-desktop-hero-card-border: rgba(255, 255, 255, .88);
+  --home-desktop-hero-card-shadow: 0 36px 104px rgba(126, 102, 148, .16), 0 8px 30px rgba(126, 191, 234, .08), inset 0 1px 0 rgba(255, 255, 255, .86);
+  --home-desktop-hero-card-inner-border: rgba(255, 255, 255, .36);
+  --home-desktop-outline-stroke: rgba(77, 72, 112, .045);
+  --home-desktop-chip-bg: rgba(255, 255, 255, .64);
+  --home-desktop-chip-border: rgba(255, 255, 255, .74);
+  --home-desktop-chip-shadow: 0 12px 28px rgba(245, 166, 196, .14);
+  --home-desktop-kicker-text: rgba(77, 72, 112, .76);
+  --home-desktop-title-filter: drop-shadow(0 0 8px rgba(126, 191, 234, .22)) drop-shadow(0 9px 18px rgba(245, 166, 196, .14));
+  --home-desktop-subtitle-text: rgba(77, 72, 112, .72);
+  --home-desktop-subtitle-rule: rgba(77, 72, 112, .24);
+  --home-desktop-feature-bg: linear-gradient(135deg, rgba(255, 255, 255, .58), rgba(255, 255, 255, .32));
+  --home-desktop-feature-border: rgba(255, 255, 255, .70);
+  --home-desktop-feature-shadow: inset 0 1px 0 rgba(255, 255, 255, .72), 0 10px 24px rgba(132, 112, 160, .07);
+  --home-desktop-feature-icon: rgba(99, 92, 132, .54);
+  --home-desktop-feature-title: rgba(55, 50, 86, .88);
+  --home-desktop-feature-text: rgba(77, 72, 112, .58);
+  --home-desktop-login-bg: linear-gradient(90deg, #83C8EF, #AD95EF 48%, #EE91BA);
+  --home-desktop-login-shadow: 0 16px 36px rgba(222, 126, 174, .24), 0 7px 20px rgba(126, 191, 234, .14);
+  --home-desktop-login-icon-text: #DE75A4;
+  --home-desktop-stats-bg: rgba(255, 255, 255, .58);
+  --home-desktop-stats-border: rgba(255, 255, 255, .86);
+  --home-desktop-stats-shadow: 0 24px 64px rgba(126, 102, 148, .13), inset 0 1px 0 rgba(255, 255, 255, .80);
+  --home-desktop-stats-title: rgba(55, 50, 86, .90);
+  --home-desktop-stats-text: rgba(77, 72, 112, .62);
+  --auth-login-text: rgba(77, 72, 112, .86);
+  --auth-login-page-bg: radial-gradient(circle at 16% 18%, rgba(126, 191, 234, .38), transparent 34%), radial-gradient(circle at 82% 24%, rgba(245, 166, 196, .42), transparent 36%), linear-gradient(135deg, #DDEFF4 0%, #F7E8EF 54%, #FFF7FB 100%);
+  --auth-login-grid-dot-bg: radial-gradient(circle, rgba(255, 255, 255, .74) 0 1px, transparent 1.8px);
+  --auth-login-orb-bg: radial-gradient(circle, rgba(245, 166, 196, .28), transparent 66%);
+  --auth-particle-bg: rgba(255, 255, 255, .78);
+  --auth-particle-shadow: 0 0 16px rgba(126, 191, 234, .28);
+  --auth-float-surface: rgba(255, 255, 255, .48);
+  --auth-float-border: rgba(255, 255, 255, .74);
+  --auth-float-shadow: 0 20px 56px rgba(132, 112, 160, .12), inset 0 1px 0 rgba(255, 255, 255, .72);
+  --auth-muted-text: rgba(77, 72, 112, .46);
+  --auth-copy-text: rgba(77, 72, 112, .58);
+  --auth-title-text: rgba(77, 72, 112, .88);
+  --auth-panel-text: rgba(77, 72, 112, .72);
+  --auth-on-accent: var(--studio-color-on-accent);
+  --auth-live-pill-bg: rgba(245, 166, 196, .52);
+  --auth-bid-pill-bg: rgba(255, 255, 255, .50);
+  --auth-bid-pill-border: rgba(255, 255, 255, .76);
+  --auth-bid-pill-shadow: 0 14px 34px rgba(132, 112, 160, .10);
+  --auth-product-icon-bg: linear-gradient(135deg, rgba(126, 191, 234, .28), rgba(245, 166, 196, .24));
+  --auth-product-icon-text: rgba(126, 137, 190, .70);
+  --auth-gift-text: rgba(245, 166, 196, .58);
+  --auth-gavel-text: rgba(189, 170, 246, .25);
+  --auth-coin-text: rgba(246, 198, 106, .82);
+  --auth-back-bg: rgba(255, 255, 255, .54);
+  --auth-back-border: rgba(255, 255, 255, .76);
+  --auth-back-text: rgba(77, 72, 112, .70);
+  --auth-back-shadow: 0 14px 36px rgba(132, 112, 160, .12);
+  --auth-shell-bg: rgba(255, 255, 255, .46);
+  --auth-shell-border: rgba(255, 255, 255, .72);
+  --auth-shell-shadow: 0 36px 100px rgba(170, 128, 160, .18), inset 0 1px 0 rgba(255, 255, 255, .7);
+  --auth-shell-desktop-shadow: 0 44px 120px rgba(170, 128, 160, .18), inset 0 1px 0 rgba(255, 255, 255, .7);
+  --auth-brand-panel-bg: linear-gradient(135deg, rgba(224, 245, 250, .58), rgba(255, 226, 238, .46));
+  --auth-brand-orb-bg: radial-gradient(circle, rgba(126, 191, 234, .22), transparent 68%);
+  --auth-accent-text: rgba(126, 137, 190, .72);
+  --auth-visual-gavel-text: rgba(189, 170, 246, .46);
+  --auth-visual-gavel-filter: drop-shadow(0 16px 28px rgba(132, 112, 160, .10));
+  --auth-visual-card-bg: rgba(255, 255, 255, .46);
+  --auth-visual-card-border: rgba(255, 255, 255, .76);
+  --auth-visual-card-shadow: 0 18px 46px rgba(132, 112, 160, .12);
+  --auth-visual-card-text: rgba(77, 72, 112, .64);
+  --auth-visual-price-text: rgba(245, 118, 160, .68);
+  --auth-visual-bid-bg: rgba(255, 255, 255, .58);
+  --auth-capability-bg: rgba(255, 255, 255, .42);
+  --auth-capability-border: rgba(255, 255, 255, .68);
+  --auth-capability-text: rgba(77, 72, 112, .62);
+  --auth-capability-shadow: inset 0 1px 0 rgba(255, 255, 255, .68);
+  --auth-form-panel-bg: rgba(255, 255, 255, .36);
+  --auth-form-copy: rgba(77, 72, 112, .56);
+  --auth-role-active-bg: rgba(255, 255, 255, .78);
+  --auth-role-active-text: rgba(126, 137, 190, .92);
+  --auth-role-border: rgba(255, 255, 255, .66);
+  --auth-role-active-shadow: 0 10px 24px rgba(132, 112, 160, .10);
+  --auth-field-label-text: rgba(77, 72, 112, .66);
+  --auth-field-bg: rgba(255, 255, 255, .72);
+  --auth-field-border: rgba(190, 200, 220, .55);
+  --auth-field-shadow: inset 0 1px 0 rgba(255, 255, 255, .8);
+  --auth-field-icon-text: rgba(126, 137, 190, .72);
+  --auth-field-focus-border: #B8A2F4;
+  --auth-field-focus-shadow: inset 0 1px 0 rgba(255, 255, 255, .86), 0 0 0 4px rgba(184, 162, 244, .18), 0 12px 28px rgba(184, 162, 244, .10);
+  --auth-form-option-text: rgba(77, 72, 112, .54);
+  --auth-form-link-text: rgba(184, 118, 184, .70);
+  --auth-submit-bg: linear-gradient(90deg, #93D4F2, #B9A7F6 45%, #F4A6C4);
+  --auth-submit-shadow: 0 16px 36px rgba(226, 140, 180, .28);
+  --auth-submit-hover-shadow: 0 22px 46px rgba(226, 140, 180, .34);
+  --auth-ghost-shadow: inset 0 1px 0 rgba(255, 255, 255, .72);
+  --auth-hint-text: rgba(77, 72, 112, .42);
+  --auth-error-bg: rgba(254, 226, 226, .72);
+  --auth-error-border: rgba(252, 165, 165, .56);
+  --auth-error-text: #991B1B;
+  --auth-z-particles: 0;
+  --auth-z-floats: 1;
+  --auth-z-shell: 3;
+  --auth-z-back: 4;
+  --home-z-decor: 10;
+  --home-z-decor-raised: 11;
+  --home-z-sticker-field: 12;
+  --home-z-stats-mid: 13;
+  --home-z-card-mid: 14;
+  --home-z-stats-high: 15;
+  --home-z-card-high: 16;
+  --home-z-stats-top: 17;
+  --home-z-card-top: 18;
+  --live-control-blue: var(--studio-color-info-text);
+  --live-control-purple: #7C3AED;
+  --live-control-pink: #E11D48;
+  --live-control-red: var(--studio-color-error-hover);
+  --live-control-ink: var(--studio-color-text);
+  --live-control-muted: #667085;
+  --live-control-border: #DCE7F5;
+  --live-control-surface: rgba(255, 255, 255, .92);
+  --live-control-panel-bg: linear-gradient(145deg, rgba(255, 255, 255, .96), rgba(247, 250, 255, .9));
+  --live-control-panel-shadow: 0 18px 44px rgba(36, 56, 96, .09), inset 0 1px 0 rgba(255, 255, 255, .9);
+  --live-control-live-frame-bg: linear-gradient(135deg, #EAF2FF, #FFF1F6);
+  --live-control-live-frame-overlay: linear-gradient(180deg, transparent 40%, rgba(15, 23, 42, .42));
+  --live-control-metric-bg: var(--studio-color-surface);
+  --live-control-metric-border: #E5EDF7;
+  --live-control-prompter-bg: linear-gradient(145deg, #FFFFFF, #F7F2FF);
+  --live-control-prompter-text: #29324A;
+  --live-control-prompter-pill-bg: #F5F3FF;
+  --live-control-prompter-pill-text: var(--studio-color-purple-text);
+  --live-control-stage-bg: var(--studio-color-surface);
+  --live-control-stage-text: #73809A;
+  --live-control-stage-shadow: 0 8px 18px rgba(31, 41, 55, .04);
+  --live-control-stage-active-bg: linear-gradient(135deg, #EFF6FF, #F5F3FF);
+  --live-control-stage-active-border: var(--studio-color-purple-border);
+  --live-control-stage-active-text: #5B21B6;
+  --live-control-stage-active-shadow: 0 14px 28px rgba(124, 58, 237, .12);
+  --live-control-command-bg: radial-gradient(circle at 52% -10%, rgba(37, 99, 235, .18), transparent 38%), linear-gradient(145deg, #FFFFFF, #F8FBFF 62%, #FFF7FB);
+  --live-control-command-orb-bg: radial-gradient(circle, rgba(124, 58, 237, .18), rgba(37, 99, 235, .12) 45%, transparent 68%);
+  --live-control-price-gradient: linear-gradient(90deg, var(--live-control-blue) 0%, var(--live-control-purple) 48%, var(--live-control-pink) 100%);
+  --live-control-countdown-bg: var(--studio-color-surface);
+  --live-control-countdown-shadow: 0 16px 36px rgba(37, 99, 235, .13);
+  --live-control-countdown-urgent-border: #FECDD3;
+  --live-control-countdown-urgent-shadow: 0 18px 42px rgba(225, 29, 72, .16);
+  --live-control-emotion-bg: rgba(255, 255, 255, .94);
+  --live-control-emotion-shadow: 0 16px 36px rgba(124, 58, 237, .16);
+  --live-control-emotion-border: #DDD6FE;
+  --live-control-emotion-text: var(--live-control-stage-active-text);
+  --live-control-emotion-layer: calc(var(--studio-z-raised) + 1);
+  --live-control-action-bg: var(--studio-color-surface);
+  --live-control-action-text: #27334A;
+  --live-control-action-border: var(--live-control-border);
+  --live-control-action-shadow: 0 9px 18px rgba(36, 56, 96, .06);
+  --live-control-action-primary-bg: var(--live-control-stage-active-bg);
+  --live-control-action-primary-border: #C7D2FE;
+  --live-control-action-primary-text: #3730A3;
+  --live-control-danger-action-bg: #FFF1F2;
+  --live-control-danger-action-border: var(--live-control-countdown-urgent-border);
+  --live-control-danger-action-text: #BE123C;
+  --live-control-settle-bg: linear-gradient(135deg, var(--live-control-blue), var(--live-control-purple));
+  --live-control-settle-shadow: 0 14px 28px rgba(79, 70, 229, .18);
+  --live-control-list-bg: var(--studio-color-surface);
+  --live-control-list-border: var(--live-control-metric-border);
+  --control-gap: clamp(16px, 1.1vw, 24px);
+  --control-panel-radius: 24px;
+  --control-panel-border: rgba(203, 213, 225, .9);
+  --control-panel-bg: linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(248, 250, 252, .94)), var(--studio-surface);
+  --control-panel-shadow: 0 18px 42px rgba(15, 23, 42, .08), inset 0 1px 0 rgba(255, 255, 255, .82);
+  --control-topbar-bg: radial-gradient(circle at 88% 16%, rgba(249, 115, 22, .13), transparent 30%), linear-gradient(135deg, rgba(239, 246, 255, .96), rgba(255, 255, 255, .99) 48%, rgba(255, 247, 237, .72));
+  --control-preview-frame-bg: linear-gradient(135deg, #E0F2FE, #FFF7ED 62%, #F8FAFC);
+  --control-preview-metric-bg: rgba(248, 250, 252, .95);
+  --control-command-board-bg: radial-gradient(circle at 50% 0, rgba(37, 99, 235, .16), transparent 33%), linear-gradient(145deg, #FFFFFF, #F8FBFF 58%, #FFF7ED);
+  --control-danger-input-border: #FECDD3;
+  --control-danger-input-bg: var(--studio-color-surface);
+  --control-danger-input-active-border: #CBD5E1;
+  --control-danger-input-active-text: var(--studio-color-text);
+  --control-danger-input-placeholder: #64748B;
+  --control-danger-input-focus-border: #F43F5E;
+  --control-danger-input-focus-ring: 0 0 0 4px rgba(244, 63, 94, .12);
+  --control-feed-item-bg: var(--studio-color-surface);
+  --control-feed-item-border: rgba(226, 232, 240, .95);
+  --control-prepared-stage-bg: radial-gradient(circle at 50% 0, rgba(245, 158, 11, .16), transparent 34%), linear-gradient(145deg, #FFFFFF, #F8FBFF 62%, #FFF8ED);
+  --control-utility-button-border: #CBD5E1;
+  --control-utility-button-bg: var(--studio-color-surface);
+  --control-utility-button-text: #334155;
+  --control-utility-button-shadow: 0 8px 18px rgba(15, 23, 42, .06);
+  --control-utility-button-hover-border: #94A3B8;
+  --control-utility-button-hover-bg: var(--studio-color-surface-soft);
+  --control-utility-button-hover-text: #0F172A;
+  --control-duel-button-border: var(--studio-color-warning);
+  --control-duel-button-bg: var(--studio-color-warning-soft-bg);
+  --control-duel-button-text: #78350F;
+  --control-duel-button-shadow: 0 12px 24px rgba(180, 83, 9, .12);
+  --control-duel-button-hover-border: #D97706;
+  --control-duel-button-hover-bg: var(--studio-color-warning-bg);
+  --control-duel-button-hover-text: #451A03;
+  --control-muted-action-border: var(--studio-color-neutral-border);
+  --control-muted-action-bg: var(--studio-color-surface-soft);
+  --control-muted-action-text: #64748B;
+  --control-settle-button-border: #047857;
+  --control-settle-button-bg: #047857;
+  --control-settle-button-text: var(--studio-color-on-accent);
+  --control-settle-button-shadow: 0 14px 28px rgba(4, 120, 87, .2);
+  --control-settle-button-hover-border: #065F46;
+  --control-settle-button-hover-bg: #065F46;
+  --control-settle-button-disabled-border: var(--studio-color-success-border);
+  --control-settle-button-disabled-bg: #F0FDF4;
+  --control-settle-button-disabled-text: #166534;
+  --control-cancel-button-bg: #BE123C;
+  --control-cancel-button-hover-bg: #9F1239;
+  --control-cancel-button-disabled-border: var(--studio-color-error-border);
+  --control-cancel-button-disabled-bg: var(--studio-color-error-soft-bg);
+  --control-cancel-button-disabled-text: #9F1239;
+  --control-cancel-button-shadow: 0 14px 28px rgba(190, 18, 60, .18);
+  --control-status-card-bg: var(--studio-color-surface);
+  --control-status-card-shadow: 0 12px 30px rgba(15, 23, 42, .06);
+
+  --studio-z-base: 0;
+  --studio-z-raised: 1;
+  --studio-z-sticky: 30;
+  --studio-z-header: 40;
+  --studio-z-dropdown: 80;
+  --studio-z-overlay: 100;
+  --studio-z-drawer: 110;
+  --studio-z-modal: 120;
+  --studio-z-toast: 130;
+  --studio-z-tooltip: 140;
+
+  --studio-duration-fast: 150ms;
+  --studio-duration-normal: 200ms;
+  --studio-duration-slow: 300ms;
+  --studio-duration-spin: 800ms;
+  --studio-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --studio-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   --studio-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
 
@@ -115,6 +583,7 @@ button:disabled {
   font-family: var(--studio-font);
 }
 
+/* Admin legacy action button guard slice. */
 .laAdminShell .laPrimaryBtn,
 .laAdminShell a.laPrimaryBtn,
 .laAdminShell button.laPrimaryBtn,
@@ -124,7 +593,7 @@ button:disabled {
   border-radius: var(--studio-radius-md);
   background: var(--studio-primary);
   background-image: none;
-  color: #fff;
+  color: var(--studio-color-on-accent);
   box-shadow: var(--studio-shadow-sm);
 }
 
@@ -135,7 +604,7 @@ button:disabled {
 .laAdminShell .laWelcomeActions a:hover {
   border-color: var(--studio-primary-hover);
   background: var(--studio-primary-hover);
-  color: #fff;
+  color: var(--studio-color-on-accent);
   transform: translateY(-1px);
   box-shadow: var(--studio-shadow-md);
 }
@@ -159,7 +628,7 @@ button:disabled {
 .laAdminShell .auctionRowActions a:not(.danger):hover,
 .laAdminShell .auctionRowActions button:not(.danger):hover,
 .laAdminShell button:not(.laPrimaryBtn):not(.danger):not(.loginSubmit):not(.loginGhost):not(.studioButton):hover {
-  border-color: #BFDBFE;
+  border-color: var(--studio-color-info-border);
   background: var(--studio-primary-soft);
   color: var(--studio-primary-hover);
 }
@@ -167,7 +636,7 @@ button:disabled {
 .laAdminShell .auctionStatusTabs button.active,
 .laAdminShell .publishStepper button.active,
 .laAdminShell .auctionDrawer nav button.active {
-  border: 1px solid #BFDBFE;
+  border: 1px solid var(--studio-color-info-border);
   background: var(--studio-primary-soft);
   background-image: none;
   color: var(--studio-primary-hover);
@@ -179,22 +648,22 @@ button:disabled {
   border: 1px solid var(--studio-danger);
   background: var(--studio-danger);
   background-image: none;
-  color: #fff;
-  box-shadow: 0 8px 18px rgba(239, 68, 68, 0.14);
+  color: var(--studio-color-on-accent);
+  box-shadow: var(--studio-danger-button-shadow);
 }
 
 .laAdminShell .danger:hover,
 .laAdminShell button.danger:hover {
-  border-color: #DC2626;
-  background: #DC2626;
-  color: #fff;
+  border-color: var(--studio-color-error-hover);
+  background: var(--studio-color-error-hover);
+  color: var(--studio-color-on-accent);
 }
 
 .adminShell {
   --admin-primary: var(--studio-primary);
   --admin-primary-hover: var(--studio-primary-hover);
   --admin-primary-soft: var(--studio-primary-soft);
-  --admin-primary-border: #BFDBFE;
+  --admin-primary-border: var(--studio-color-info-border);
   --admin-text: var(--studio-text-2);
   --admin-border: var(--studio-border);
   font-family: var(--studio-font);
@@ -204,7 +673,7 @@ button:disabled {
   border: 1px solid var(--studio-primary);
   background: var(--studio-primary);
   background-image: none;
-  color: #fff;
+  color: var(--studio-color-on-accent);
   box-shadow: var(--studio-shadow-sm);
 }
 
@@ -227,10 +696,12 @@ button:disabled {
   border: 1px solid var(--studio-danger);
   background: var(--studio-danger);
   background-image: none;
-  color: #fff;
+  color: var(--studio-color-on-accent);
 }
 
+/* Admin shell layout guard boundary. */
 /* Studio AppShell: shared LiveAuction Studio backend layout. */
+/* Studio AppShell shared layout guard slice. */
 .laAdminShell.studioShell {
   min-height: 100vh;
   display: grid;
@@ -246,9 +717,9 @@ button:disabled {
   width: var(--studio-sidebar-width);
   padding: 18px 14px;
   overflow: auto;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--studio-shell-sidebar-bg);
   border-right: 1px solid var(--studio-border);
-  box-shadow: 8px 0 24px rgba(15, 23, 42, 0.04);
+  box-shadow: var(--studio-shell-sidebar-shadow);
   backdrop-filter: none;
 }
 
@@ -263,7 +734,7 @@ button:disabled {
   border-radius: var(--studio-radius-md);
   background: var(--studio-primary);
   background-image: none;
-  box-shadow: 0 10px 22px rgba(59, 130, 246, 0.18);
+  box-shadow: var(--studio-shell-brand-shadow);
 }
 
 .studioBrand strong {
@@ -323,7 +794,7 @@ button:disabled {
 
 .studioNav a.active {
   background: var(--studio-primary-soft);
-  border-color: #BFDBFE;
+  border-color: var(--studio-color-info-border);
   color: var(--studio-primary-hover);
   box-shadow: none;
 }
@@ -340,19 +811,20 @@ button:disabled {
 .studioTopbar {
   position: sticky;
   top: 0;
-  z-index: 30;
+  z-index: var(--studio-z-header);
   height: var(--studio-topbar-height);
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(260px, 420px) auto;
   gap: 18px;
   align-items: center;
   padding: 0 28px;
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--studio-shell-topbar-bg);
   border-bottom: 1px solid var(--studio-border);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.82);
+  box-shadow: var(--studio-shell-topbar-shadow);
   backdrop-filter: none;
 }
 
+/* Studio topbar title guard boundary. */
 .studioTopbarTitle {
   min-width: 0;
 }
@@ -409,10 +881,11 @@ button:disabled {
   min-width: 0;
 }
 
+/* Studio topbar actions guard slice. */
 .studioTopActions .laWsStatus {
   height: 36px;
-  border: 1px solid #BBF7D0;
-  background: #F0FDF4;
+  border: 1px solid var(--studio-color-success-border);
+  background: var(--studio-color-success-bg);
   color: var(--studio-success);
   box-shadow: none;
 }
@@ -438,10 +911,11 @@ button:disabled {
   justify-content: center;
   border: 0;
   background: linear-gradient(135deg, var(--studio-primary), var(--studio-purple));
-  color: #fff;
+  color: var(--studio-color-on-accent);
   box-shadow: var(--studio-shadow-sm);
 }
 
+/* Studio content guard boundary. */
 .studioContent {
   display: block;
   padding: 24px 28px 40px;
@@ -560,17 +1034,25 @@ button:disabled {
 }
 
 /* Studio reusable UI components. */
-.studioButton{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;border-radius:var(--studio-radius-md);font-weight:650;text-decoration:none;white-space:nowrap;transition:background .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease}.studioButton-sm{height:32px;padding:0 11px;font-size:12px}.studioButton-md{height:40px;padding:0 15px;font-size:13px}.studioButton-lg{height:46px;padding:0 18px;font-size:14px}.studioButton-primary{background:var(--studio-primary);border-color:var(--studio-primary);color:#fff;box-shadow:var(--studio-shadow-sm)}.studioButton-primary:hover{background:var(--studio-primary-hover);border-color:var(--studio-primary-hover);box-shadow:var(--studio-shadow-md);transform:translateY(-1px)}.studioButton-secondary{background:var(--studio-surface);border-color:var(--studio-border);color:var(--studio-text-2);box-shadow:var(--studio-shadow-sm)}.studioButton-secondary:hover{background:var(--studio-primary-soft);border-color:#bfdbfe;color:var(--studio-primary-hover)}.studioButton-ghost{background:transparent;border-color:transparent;color:var(--studio-text-2);box-shadow:none}.studioButton-ghost:hover{background:var(--studio-surface-soft);border-color:var(--studio-border)}.studioButton-soft{background:var(--studio-primary-soft);border-color:#bfdbfe;color:var(--studio-primary-hover);box-shadow:none}.studioButton-danger{background:var(--studio-danger);border-color:var(--studio-danger);color:#fff;box-shadow:0 8px 18px rgba(239,68,68,.14)}.studioButton-danger:hover{background:#dc2626;border-color:#dc2626}.studioButton:disabled{opacity:.52;cursor:not-allowed;transform:none;box-shadow:none}.studioButtonSpinner{width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:studioSpin .8s linear infinite}@keyframes studioSpin{to{transform:rotate(360deg)}}
+/* Studio button primitive guard slice. */
+.studioButton{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;border-radius:var(--studio-radius-md);font-weight:650;text-decoration:none;white-space:nowrap;transition:background .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease}.studioButton-sm{height:32px;padding:0 11px;font-size:12px}.studioButton-md{height:40px;padding:0 15px;font-size:13px}.studioButton-lg{height:46px;padding:0 18px;font-size:14px}.studioButton-primary{background:var(--studio-primary);border-color:var(--studio-primary);color:var(--studio-color-on-accent);box-shadow:var(--studio-shadow-sm)}.studioButton-primary:hover{background:var(--studio-primary-hover);border-color:var(--studio-primary-hover);box-shadow:var(--studio-shadow-md);transform:translateY(-1px)}.studioButton-secondary{background:var(--studio-surface);border-color:var(--studio-border);color:var(--studio-text-2);box-shadow:var(--studio-shadow-sm)}.studioButton-secondary:hover{background:var(--studio-primary-soft);border-color:var(--studio-color-info-border);color:var(--studio-primary-hover)}.studioButton-ghost{background:transparent;border-color:transparent;color:var(--studio-text-2);box-shadow:none}.studioButton-ghost:hover{background:var(--studio-surface-soft);border-color:var(--studio-border)}.studioButton-soft{background:var(--studio-primary-soft);border-color:var(--studio-color-info-border);color:var(--studio-primary-hover);box-shadow:none}.studioButton-danger{background:var(--studio-danger);border-color:var(--studio-danger);color:var(--studio-color-on-accent);box-shadow:var(--studio-danger-button-shadow)}.studioButton-danger:hover{background:var(--studio-color-error-hover);border-color:var(--studio-color-error-hover)}.studioButton:disabled{opacity:.52;cursor:not-allowed;transform:none;box-shadow:none}.studioButtonSpinner{width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:studioSpin .8s linear infinite}@keyframes studioSpin{to{transform:rotate(360deg)}}
+/* Studio card primitive guard boundary. */
 .studioCard{min-width:0;background:var(--studio-surface);border:1px solid var(--studio-border);border-radius:var(--studio-radius-xl);box-shadow:var(--studio-shadow-sm)}.studioCard-sm{padding:14px}.studioCard-md{padding:20px}.studioCard-lg{padding:26px}.studioCardHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px}.studioCardHeader p{margin:0 0 5px;color:var(--studio-text-3);font-size:12px;font-weight:650;letter-spacing:.08em;text-transform:uppercase}.studioCardHeader h2{margin:0;color:var(--studio-text);font-size:19px;letter-spacing:-.03em}.studioCardActions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end}
-.studioBadge{display:inline-flex;align-items:center;gap:6px;width:max-content;padding:6px 9px;border-radius:999px;font-size:12px;font-weight:650;white-space:nowrap}.studioBadge i{width:7px;height:7px;border-radius:50%;background:currentColor}.studioBadge-neutral{background:#f1f5f9;color:var(--studio-text-3)}.studioBadge-success{background:#dcfce7;color:var(--studio-success)}.studioBadge-warning{background:#fef3c7;color:#b45309}.studioBadge-danger{background:#fee2e2;color:var(--studio-danger)}.studioBadge-info{background:var(--studio-primary-soft);color:var(--studio-primary-hover)}.studioBadge-purple{background:#ede9fe;color:#6d28d9}
-.studioField{display:grid;gap:8px;color:var(--studio-text-2);font-size:13px;font-weight:650}.studioField>span{color:var(--studio-text-2)}.studioField input,.studioField select,.studioField textarea{width:100%;border:1px solid var(--studio-border);border-radius:var(--studio-radius-md);background:var(--studio-surface);color:var(--studio-text);padding:10px 12px;outline:none;transition:border-color .16s ease,box-shadow .16s ease}.studioField input:focus,.studioField select:focus,.studioField textarea:focus{border-color:var(--studio-primary);box-shadow:0 0 0 4px rgba(59,130,246,.12)}.studioField small{color:var(--studio-text-3);font-size:12px;line-height:1.45}.studioField em{color:var(--studio-danger);font-size:12px;font-style:normal}
+.studioBadge{display:inline-flex;align-items:center;gap:6px;width:max-content;padding:6px 9px;border-radius:999px;font-size:12px;font-weight:650;white-space:nowrap}.studioBadge i{width:7px;height:7px;border-radius:50%;background:currentColor}.studioBadge-neutral{background:var(--studio-color-neutral-bg);color:var(--studio-color-neutral)}.studioBadge-success{background:var(--studio-color-success-bg);color:var(--studio-color-success)}.studioBadge-warning{background:var(--studio-color-warning-bg);color:var(--studio-color-warning-text)}.studioBadge-danger{background:var(--studio-color-error-bg);color:var(--studio-color-error)}.studioBadge-info{background:var(--studio-color-info-bg);color:var(--studio-color-info-text)}.studioBadge-purple{background:var(--studio-color-purple-bg);color:var(--studio-color-purple-text)}
+/* Studio field primitive guard slice. */
+.studioField{display:grid;gap:8px;color:var(--studio-text-2);font-size:13px;font-weight:650}.studioField>span{color:var(--studio-text-2)}.studioField input,.studioField select,.studioField textarea{width:100%;border:1px solid var(--studio-border);border-radius:var(--studio-radius-md);background:var(--studio-surface);color:var(--studio-text);padding:10px 12px;outline:none;transition:border-color .16s ease,box-shadow .16s ease}.studioField input:focus,.studioField select:focus,.studioField textarea:focus{border-color:var(--studio-primary);box-shadow:var(--studio-field-focus-ring)}.studioField small{color:var(--studio-text-3);font-size:12px;line-height:1.45}.studioField em{color:var(--studio-danger);font-size:12px;font-style:normal}
+/* Studio section header guard boundary. */
 .studioSectionHeader{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:0 2px}.studioSectionHeader p{margin:0 0 6px;color:var(--studio-text-3);font-size:12px;font-weight:650;letter-spacing:.08em}.studioSectionHeader h2{margin:0;color:var(--studio-text);font-size:28px;letter-spacing:-.045em}.studioSectionHeader span{display:block;margin-top:7px;color:var(--studio-text-3);font-size:14px;line-height:1.55}.studioSectionActions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-.studioMetricCard{display:flex;gap:13px;align-items:flex-start;padding:17px;border-radius:var(--studio-radius-xl);background:var(--studio-surface);border:1px solid var(--studio-border);box-shadow:var(--studio-shadow-sm)}.studioMetricCard>span{display:grid;place-items:center;width:42px;height:42px;flex:0 0 auto;border-radius:var(--studio-radius-md);background:var(--studio-primary-soft);color:var(--studio-primary)}.studioMetricCard p{margin:0;color:var(--studio-text-3);font-size:12px;font-weight:650}.studioMetricCard strong{display:block;margin:5px 0 2px;color:var(--studio-text);font-size:25px;letter-spacing:-.04em}.studioMetricCard small{color:var(--studio-text-3);font-size:12px}.studioMetric-success>span{background:#dcfce7;color:var(--studio-success)}.studioMetric-warning>span{background:#fef3c7;color:#b45309}.studioMetric-danger>span{background:#fee2e2;color:var(--studio-danger)}.studioMetric-purple>span{background:#ede9fe;color:#6d28d9}
-.studioTableWrap{overflow:auto;background:var(--studio-surface);border:1px solid var(--studio-border);border-radius:var(--studio-radius-xl);box-shadow:var(--studio-shadow-sm)}.studioTableTools{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--studio-border);color:var(--studio-text-3);font-size:12px}.studioTable{width:100%;min-width:860px;border-collapse:separate;border-spacing:0}.studioTable th{background:var(--studio-surface-soft);color:var(--studio-text-3);font-size:12px;text-align:left;text-transform:uppercase;letter-spacing:.08em}.studioTable th,.studioTable td{padding:13px 14px;border-bottom:1px solid #eef2f7;vertical-align:middle}.studioTable td{color:var(--studio-text-2);font-size:13px}.studioTable tbody tr:hover{background:var(--studio-primary-soft)}.studioTableEmpty{display:grid;place-items:center;min-height:160px;color:var(--studio-text-3);font-weight:650}
+.studioMetricCard{display:flex;gap:13px;align-items:flex-start;padding:17px;border-radius:var(--studio-radius-xl);background:var(--studio-surface);border:1px solid var(--studio-border);box-shadow:var(--studio-shadow-sm)}.studioMetricCard>span{display:grid;place-items:center;width:42px;height:42px;flex:0 0 auto;border-radius:var(--studio-radius-md);background:var(--studio-primary-soft);color:var(--studio-primary)}.studioMetricCard p{margin:0;color:var(--studio-text-3);font-size:12px;font-weight:650}.studioMetricCard strong{display:block;margin:5px 0 2px;color:var(--studio-text);font-size:25px;letter-spacing:-.04em}.studioMetricCard small{color:var(--studio-text-3);font-size:12px}.studioMetric-success>span{background:var(--studio-color-success-bg);color:var(--studio-color-success)}.studioMetric-warning>span{background:var(--studio-color-warning-bg);color:var(--studio-color-warning-text)}.studioMetric-danger>span{background:var(--studio-color-error-bg);color:var(--studio-color-error)}.studioMetric-purple>span{background:var(--studio-color-purple-bg);color:var(--studio-color-purple-text)}
+/* Studio table primitive guard slice. */
+.studioTableWrap{overflow:auto;background:var(--studio-surface);border:1px solid var(--studio-border);border-radius:var(--studio-radius-xl);box-shadow:var(--studio-shadow-sm)}.studioTableTools{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--studio-border);color:var(--studio-text-3);font-size:12px}.studioTable{width:100%;min-width:860px;border-collapse:separate;border-spacing:0}.studioTable th{background:var(--studio-surface-soft);color:var(--studio-text-3);font-size:12px;text-align:left;text-transform:uppercase;letter-spacing:.08em}.studioTable th,.studioTable td{padding:13px 14px;border-bottom:1px solid var(--studio-color-table-row-border);vertical-align:middle}.studioTable td{color:var(--studio-text-2);font-size:13px}.studioTable tbody tr:hover{background:var(--studio-primary-soft)}.studioTableEmpty{display:grid;place-items:center;min-height:160px;color:var(--studio-text-3);font-weight:650}
+/* Studio component authority guard boundary. */
 
 /* Studio component authority inside backend shell. */
-.laAdminShell .studioButton-primary{background:var(--studio-primary);border-color:var(--studio-primary);color:#fff;box-shadow:var(--studio-shadow-sm)}.laAdminShell .studioButton-primary:hover{background:var(--studio-primary-hover);border-color:var(--studio-primary-hover);color:#fff}.laAdminShell .studioButton-secondary{background:var(--studio-surface);border-color:var(--studio-border);color:var(--studio-text-2);box-shadow:var(--studio-shadow-sm)}.laAdminShell .studioButton-secondary:hover{background:var(--studio-primary-soft);border-color:#bfdbfe;color:var(--studio-primary-hover)}.laAdminShell .studioButton-soft{background:var(--studio-primary-soft);border-color:#bfdbfe;color:var(--studio-primary-hover);box-shadow:none}.laAdminShell .studioButton-ghost{background:transparent;border-color:transparent;color:var(--studio-text-2);box-shadow:none}.laAdminShell .studioButton-danger{background:var(--studio-danger);border-color:var(--studio-danger);color:#fff}.laAdminShell .studioCard{background:var(--studio-surface);border-color:var(--studio-border);box-shadow:var(--studio-shadow-sm)}
-.laAdminShell button.studioButton-primary,.laAdminShell a.studioButton-primary{background:var(--studio-primary);border-color:var(--studio-primary);color:#fff;box-shadow:var(--studio-shadow-sm)}.laAdminShell button.studioButton-primary:hover,.laAdminShell a.studioButton-primary:hover{background:var(--studio-primary-hover);border-color:var(--studio-primary-hover);color:#fff}.laAdminShell button.studioButton-secondary,.laAdminShell a.studioButton-secondary{background:var(--studio-surface);border-color:var(--studio-border);color:var(--studio-text-2);box-shadow:var(--studio-shadow-sm)}.laAdminShell button.studioButton-secondary:hover,.laAdminShell a.studioButton-secondary:hover{background:var(--studio-primary-soft);border-color:#bfdbfe;color:var(--studio-primary-hover)}.laAdminShell button.studioButton-soft,.laAdminShell a.studioButton-soft{background:var(--studio-primary-soft);border-color:#bfdbfe;color:var(--studio-primary-hover);box-shadow:none}
+/* Studio button shell override guard slice. */
+.laAdminShell .studioButton-primary{background:var(--studio-primary);border-color:var(--studio-primary);color:var(--studio-color-on-accent);box-shadow:var(--studio-shadow-sm)}.laAdminShell .studioButton-primary:hover{background:var(--studio-primary-hover);border-color:var(--studio-primary-hover);color:var(--studio-color-on-accent)}.laAdminShell .studioButton-secondary{background:var(--studio-surface);border-color:var(--studio-border);color:var(--studio-text-2);box-shadow:var(--studio-shadow-sm)}.laAdminShell .studioButton-secondary:hover{background:var(--studio-primary-soft);border-color:var(--studio-color-info-border);color:var(--studio-primary-hover)}.laAdminShell .studioButton-soft{background:var(--studio-primary-soft);border-color:var(--studio-color-info-border);color:var(--studio-primary-hover);box-shadow:none}.laAdminShell .studioButton-ghost{background:transparent;border-color:transparent;color:var(--studio-text-2);box-shadow:none}.laAdminShell .studioButton-danger{background:var(--studio-danger);border-color:var(--studio-danger);color:var(--studio-color-on-accent)}.laAdminShell .studioCard{background:var(--studio-surface);border-color:var(--studio-border);box-shadow:var(--studio-shadow-sm)}
+.laAdminShell button.studioButton-primary,.laAdminShell a.studioButton-primary{background:var(--studio-primary);border-color:var(--studio-primary);color:var(--studio-color-on-accent);box-shadow:var(--studio-shadow-sm)}.laAdminShell button.studioButton-primary:hover,.laAdminShell a.studioButton-primary:hover{background:var(--studio-primary-hover);border-color:var(--studio-primary-hover);color:var(--studio-color-on-accent)}.laAdminShell button.studioButton-secondary,.laAdminShell a.studioButton-secondary{background:var(--studio-surface);border-color:var(--studio-border);color:var(--studio-text-2);box-shadow:var(--studio-shadow-sm)}.laAdminShell button.studioButton-secondary:hover,.laAdminShell a.studioButton-secondary:hover{background:var(--studio-primary-soft);border-color:var(--studio-color-info-border);color:var(--studio-primary-hover)}.laAdminShell button.studioButton-soft,.laAdminShell a.studioButton-soft{background:var(--studio-primary-soft);border-color:var(--studio-color-info-border);color:var(--studio-primary-hover);box-shadow:none}
+/* Studio shell typography guard boundary. */
 
 /* Studio typography and spacing normalization. Scoped to backend only. */
 .laAdminShell {
@@ -895,13 +1377,14 @@ button:disabled {
 .laAdminShell .studioSidebar{padding:20px 16px}.laAdminShell .studioBrand{padding:8px 8px 22px}.laAdminShell .studioBrand>span{width:44px;height:44px;border-radius:16px}.laAdminShell .studioBrand strong{font-size:15px;line-height:22px;font-weight:750}.laAdminShell .studioBrand small{font-size:13px;line-height:20px}.laAdminShell .studioNav{gap:22px}.laAdminShell .studioNavGroup p{margin:0 10px 10px;font-size:13px;line-height:20px;font-weight:650;letter-spacing:0;color:var(--studio-text-3)}.laAdminShell .studioNav a{min-height:44px;padding:10px 12px;border-radius:15px;font-size:15px;line-height:22px;font-weight:650;gap:11px}.laAdminShell .studioNav a svg{width:18px;height:18px;stroke-width:1.9}.laAdminShell .studioNav a.active{font-weight:700}.laAdminShell .studioNav a.active svg{stroke-width:2.1}@media(max-width:900px){.laAdminShell .studioNav a{font-size:14px;line-height:21px}.laAdminShell .studioNavGroup p{font-size:12px;line-height:18px}}
 
 /* Add-lot page redesign: product-to-auction preparation workbench. */
-.auctionCreatePage{max-width:none;width:100%;gap:20px}.auctionCreateHeader{padding:24px;background:var(--studio-surface);border:1px solid var(--studio-border);box-shadow:var(--studio-shadow-sm);border-radius:var(--studio-radius-xl)}.auctionCreateHeader:after{display:none}.auctionCreateHeader .studioSectionHeader{align-items:center}.auctionCreateHeader .studioSectionActions{gap:10px}.publishStepper{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.publishStepper button{min-height:66px;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;align-items:center;gap:2px 10px;padding:12px 14px;border:1px solid var(--studio-border);border-radius:var(--studio-radius-lg);background:var(--studio-surface);box-shadow:var(--studio-shadow-sm);color:var(--studio-text-2);text-align:left}.publishStepper button b{grid-row:1/3;display:grid;place-items:center;width:34px;height:34px;border-radius:12px;background:var(--studio-surface-soft);color:var(--studio-text-3);font-size:14px;font-weight:700}.publishStepper button span{font-size:15px;line-height:22px;font-weight:700;color:var(--studio-text)}.publishStepper button small{font-size:12px;line-height:18px;color:var(--studio-text-3);font-weight:650}.publishStepper button.active{border-color:#bfdbfe;background:var(--studio-primary-soft)}.publishStepper button.active b,.publishStepper button.done b{background:var(--studio-primary);color:#fff}.publishStepper button.done{border-color:#dbeafe}.publishStepper button.risk{border-color:#fde68a;background:#fffbeb}.publishStepper button.risk b{background:#f59e0b;color:#fff}.publishStepper button.locked{opacity:.52}.auctionCreateMeta{padding:0 2px;color:var(--studio-text-3);font-size:13px;line-height:20px}.auctionCreateLayout{display:grid;grid-template-columns:minmax(0,8fr) minmax(340px,4fr);gap:20px;align-items:start}.auctionCreateMain{display:grid;gap:20px;min-width:0}.stickyPreviewPanel{position:sticky;top:88px;display:grid;gap:14px;min-width:340px}.auctionStepCard{padding:24px;background:var(--studio-surface);border:1px solid var(--studio-border);border-radius:var(--studio-radius-xl);box-shadow:var(--studio-shadow-sm)}.auctionStepCard>header{display:flex;justify-content:space-between;gap:18px;margin-bottom:20px}.auctionStepCard>header span{max-width:520px;text-align:right;color:var(--studio-text-3)}.productInfoRedesign{display:grid;grid-template-columns:minmax(280px,38%) minmax(0,1fr);gap:20px}.productMediaColumn,.productBaseColumn,.productDetailRow{min-width:0}.productDetailRow{grid-column:1/-1}.productInfoRedesign .studioCard{height:100%}.productBaseGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.productBaseGrid .fieldSource,.productBaseGrid .fieldTitle,.productBaseGrid .fieldTags{grid-column:1/-1}.productDetailGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.productDetailGrid .fieldDescription{grid-row:span 2}.fieldMainImage .mainImageUpload{min-height:300px}.carouselUpload{min-height:78px}.auctionField input,.auctionField select,.auctionField textarea,.studioField input,.studioField select,.studioField textarea{min-height:44px;font-size:14px;line-height:22px}.productDetailGrid textarea{min-height:118px}.productDetailGrid .fieldDescription textarea{min-height:190px}.auctionTagPicker{gap:8px}.auctionTagPicker button{min-height:34px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:650}.ruleWorkbench .ruleCardGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.ruleFieldGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.ruleFieldGrid .fieldWide{grid-column:1/-1}.playTemplateList{display:grid;gap:10px}.playTemplateList button{display:grid;gap:4px;width:100%;padding:14px;border:1px solid var(--studio-border);border-radius:var(--studio-radius-md);background:var(--studio-surface-soft);text-align:left;color:var(--studio-text-2)}.playTemplateList button:hover{border-color:#bfdbfe;background:var(--studio-primary-soft)}.playTemplateList b{font-size:14px;line-height:22px}.playTemplateList span{font-size:13px;line-height:20px;color:var(--studio-text-3)}.ruleSimulator{margin-top:16px;border:1px solid var(--studio-border);background:var(--studio-surface-soft);border-radius:var(--studio-radius-lg);box-shadow:none}.mobilePreviewWrap,.stickyMiniCard{padding:16px;border:1px solid var(--studio-border);border-radius:var(--studio-radius-xl);background:var(--studio-surface);box-shadow:var(--studio-shadow-sm)}.mobileAuctionPhone{width:100%;max-width:280px;padding:14px;border-radius:26px}.phoneImage{height:132px}.stickyMiniCard h3{margin-bottom:10px}.stickyMiniCard div{padding:8px 0}.publishHealthCard p,.actionHintCard p{margin:8px 0;color:var(--studio-text-3);font-size:13px;line-height:20px}.auctionStepActions{position:sticky;bottom:12px;z-index:8;display:flex;justify-content:space-between;gap:12px;padding:12px;border-radius:var(--studio-radius-lg);background:rgba(255,255,255,.94);border:1px solid var(--studio-border);box-shadow:var(--studio-shadow-md);backdrop-filter:blur(14px)}.auctionStepActions>div{display:flex;gap:10px;flex-wrap:wrap}.publishDialogMask{z-index:60}@media(max-width:1366px){.auctionCreateLayout{grid-template-columns:minmax(0,8fr) minmax(340px,4fr)}.productInfoRedesign{grid-template-columns:minmax(250px,36%) minmax(0,1fr)}.fieldMainImage .mainImageUpload{min-height:260px}.ruleWorkbench .ruleCardGrid{grid-template-columns:1fr}.ruleFieldGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:1120px){.auctionCreateLayout{grid-template-columns:1fr}.stickyPreviewPanel{position:static;min-width:0;grid-template-columns:repeat(2,minmax(0,1fr))}.productInfoRedesign{grid-template-columns:1fr}.productDetailGrid{grid-template-columns:1fr}.mobileAuctionPhone{max-width:320px}.auctionStepActions{position:static}}@media(max-width:760px){.publishStepper,.productBaseGrid,.ruleFieldGrid,.stickyPreviewPanel{grid-template-columns:1fr}.auctionCreateHeader .studioSectionHeader,.auctionStepCard>header{display:block}.auctionStepCard>header span{text-align:left}.auctionStepActions{display:grid}.auctionStepActions>div{justify-content:stretch}.auctionStepActions .studioButton{flex:1 1 130px}}
+.laAdminShell .studioPage:has(.auctionCreatePage){--create-workflow-surface:var(--studio-color-surface);--create-workflow-floating-bg:color-mix(in srgb,var(--studio-color-surface) 94%,transparent);--create-workflow-contrast:var(--studio-color-surface);--create-workflow-success-soft:color-mix(in srgb,var(--studio-color-success-bg) 42%,var(--studio-color-surface));--create-workflow-info-border:var(--studio-color-info-border);--create-workflow-info-bg:var(--studio-color-info-bg);--create-workflow-warning-bg:var(--studio-color-warning-soft-bg);--create-workflow-warning-border:var(--studio-color-warning-border)}
+.auctionCreatePage{max-width:none;width:100%;gap:20px}.auctionCreateHeader{padding:24px;background:var(--studio-surface);border:1px solid var(--studio-border);box-shadow:var(--studio-shadow-sm);border-radius:var(--studio-radius-xl)}.auctionCreateHeader:after{display:none}.auctionCreateHeader .studioSectionHeader{align-items:center}.auctionCreateHeader .studioSectionActions{gap:10px}.publishStepper{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.publishStepper button{min-height:66px;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;align-items:center;gap:2px 10px;padding:12px 14px;border:1px solid var(--studio-border);border-radius:var(--studio-radius-lg);background:var(--studio-surface);box-shadow:var(--studio-shadow-sm);color:var(--studio-text-2);text-align:left}.publishStepper button b{grid-row:1/3;display:grid;place-items:center;width:34px;height:34px;border-radius:12px;background:var(--studio-surface-soft);color:var(--studio-text-3);font-size:14px;font-weight:700}.publishStepper button span{font-size:15px;line-height:22px;font-weight:700;color:var(--studio-text)}.publishStepper button small{font-size:12px;line-height:18px;color:var(--studio-text-3);font-weight:650}.publishStepper button.active{border-color:var(--create-workflow-info-border);background:var(--studio-primary-soft)}.publishStepper button.active b,.publishStepper button.done b{background:var(--studio-primary);color:var(--create-workflow-contrast)}.publishStepper button.done{border-color:var(--create-workflow-info-bg)}.publishStepper button.risk{border-color:var(--create-workflow-warning-border);background:var(--create-workflow-warning-bg)}.publishStepper button.risk b{background:var(--studio-color-warning);color:var(--create-workflow-contrast)}.publishStepper button.locked{opacity:.52}.auctionCreateMeta{padding:0 2px;color:var(--studio-text-3);font-size:13px;line-height:20px}.auctionCreateLayout{display:grid;grid-template-columns:minmax(0,8fr) minmax(340px,4fr);gap:20px;align-items:start}.auctionCreateMain{display:grid;gap:20px;min-width:0}.stickyPreviewPanel{position:sticky;top:88px;display:grid;gap:14px;min-width:340px}.auctionStepCard{padding:24px;background:var(--studio-surface);border:1px solid var(--studio-border);border-radius:var(--studio-radius-xl);box-shadow:var(--studio-shadow-sm)}.auctionStepCard>header{display:flex;justify-content:space-between;gap:18px;margin-bottom:20px}.auctionStepCard>header span{max-width:520px;text-align:right;color:var(--studio-text-3)}.productInfoRedesign{display:grid;grid-template-columns:minmax(280px,38%) minmax(0,1fr);gap:20px}.productMediaColumn,.productBaseColumn,.productDetailRow{min-width:0}.productDetailRow{grid-column:1/-1}.productInfoRedesign .studioCard{height:100%}.productBaseGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.productBaseGrid .fieldSource,.productBaseGrid .fieldTitle,.productBaseGrid .fieldTags{grid-column:1/-1}.productDetailGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.productDetailGrid .fieldDescription{grid-row:span 2}.fieldMainImage .mainImageUpload{min-height:300px}.carouselUpload{min-height:78px}.auctionField input,.auctionField select,.auctionField textarea,.studioField input,.studioField select,.studioField textarea{min-height:44px;font-size:14px;line-height:22px}.productDetailGrid textarea{min-height:118px}.productDetailGrid .fieldDescription textarea{min-height:190px}.auctionTagPicker{gap:8px}.auctionTagPicker button{min-height:34px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:650}.ruleWorkbench .ruleCardGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.ruleFieldGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.ruleFieldGrid .fieldWide{grid-column:1/-1}.playTemplateList{display:grid;gap:10px}.playTemplateList button{display:grid;gap:4px;width:100%;padding:14px;border:1px solid var(--studio-border);border-radius:var(--studio-radius-md);background:var(--studio-surface-soft);text-align:left;color:var(--studio-text-2)}.playTemplateList button:hover{border-color:var(--create-workflow-info-border);background:var(--studio-primary-soft)}.playTemplateList b{font-size:14px;line-height:22px}.playTemplateList span{font-size:13px;line-height:20px;color:var(--studio-text-3)}.ruleSimulator{margin-top:16px;border:1px solid var(--studio-border);background:var(--studio-surface-soft);border-radius:var(--studio-radius-lg);box-shadow:none}.mobilePreviewWrap,.stickyMiniCard{padding:16px;border:1px solid var(--studio-border);border-radius:var(--studio-radius-xl);background:var(--studio-surface);box-shadow:var(--studio-shadow-sm)}.mobileAuctionPhone{width:100%;max-width:280px;padding:14px;border-radius:26px}.phoneImage{height:132px}.stickyMiniCard h3{margin-bottom:10px}.stickyMiniCard div{padding:8px 0}.publishHealthCard p,.actionHintCard p{margin:8px 0;color:var(--studio-text-3);font-size:13px;line-height:20px}.auctionStepActions{position:sticky;bottom:12px;z-index:var(--studio-z-sticky);display:flex;justify-content:space-between;gap:12px;padding:12px;border-radius:var(--studio-radius-lg);background:var(--create-workflow-floating-bg);border:1px solid var(--studio-border);box-shadow:var(--studio-shadow-md);backdrop-filter:blur(14px)}.auctionStepActions>div{display:flex;gap:10px;flex-wrap:wrap}.publishDialogMask{z-index:var(--studio-z-modal)}@media(max-width:1366px){.auctionCreateLayout{grid-template-columns:minmax(0,8fr) minmax(340px,4fr)}.productInfoRedesign{grid-template-columns:minmax(250px,36%) minmax(0,1fr)}.fieldMainImage .mainImageUpload{min-height:260px}.ruleWorkbench .ruleCardGrid{grid-template-columns:1fr}.ruleFieldGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:1120px){.auctionCreateLayout{grid-template-columns:1fr}.stickyPreviewPanel{position:static;min-width:0;grid-template-columns:repeat(2,minmax(0,1fr))}.productInfoRedesign{grid-template-columns:1fr}.productDetailGrid{grid-template-columns:1fr}.mobileAuctionPhone{max-width:320px}.auctionStepActions{position:static}}@media(max-width:760px){.publishStepper,.productBaseGrid,.ruleFieldGrid,.stickyPreviewPanel{grid-template-columns:1fr}.auctionCreateHeader .studioSectionHeader,.auctionStepCard>header{display:block}.auctionStepCard>header span{text-align:left}.auctionStepActions{display:grid}.auctionStepActions>div{justify-content:stretch}.auctionStepActions .studioButton{flex:1 1 130px}}
 
 /* Override earlier step-1 fullwidth experiment: add-lot page must keep 8/4 form + sticky preview at 1366px. */
 .laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench){display:grid;grid-template-columns:minmax(0,8fr) minmax(340px,4fr);gap:20px}.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) .stickyPreviewPanel{display:grid;position:sticky;top:88px;min-width:340px}.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) .auctionCreateMain{max-width:none}@media(max-width:900px){.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench){grid-template-columns:1fr}.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) .stickyPreviewPanel{position:static;min-width:0}}
 
 /* Step 3 briefing-card redesign for add-lot workbench. */
-.liveBriefingWorkbench .briefingCardGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:18px}.briefingCard{display:grid;gap:10px;min-height:156px;padding:16px;border:1px solid var(--studio-border);border-radius:var(--studio-radius-lg);background:var(--studio-surface);box-shadow:var(--studio-shadow-sm)}.briefingCard>div{display:flex;align-items:center;justify-content:space-between;gap:10px}.briefingCard b{font-size:15px;line-height:22px;color:var(--studio-text)}.briefingCard p{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:60px;margin:0;color:var(--studio-text-3);font-size:13px;line-height:20px}.briefingCard button{justify-self:start;min-height:34px;padding:0 12px;border:1px solid var(--studio-border);border-radius:10px;background:#fff;color:var(--studio-text-2);font-weight:650}.briefingCard.ready{border-color:#bbf7d0;background:#f8fffb}.briefingCard.pending{border-color:#fde68a;background:#fffbeb}.briefingConfigGrid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}.briefingConfigGrid .roomHealthCard{height:100%}.auctionFormGrid.twoCols{grid-template-columns:repeat(2,minmax(0,1fr))}@media(max-width:1366px){.liveBriefingWorkbench .briefingCardGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.briefingConfigGrid{grid-template-columns:1fr}.auctionFormGrid.twoCols{grid-template-columns:1fr}}@media(max-width:760px){.liveBriefingWorkbench .briefingCardGrid{grid-template-columns:1fr}}
+.liveBriefingWorkbench .briefingCardGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:18px}.briefingCard{display:grid;gap:10px;min-height:156px;padding:16px;border:1px solid var(--studio-border);border-radius:var(--studio-radius-lg);background:var(--studio-surface);box-shadow:var(--studio-shadow-sm)}.briefingCard>div{display:flex;align-items:center;justify-content:space-between;gap:10px}.briefingCard b{font-size:15px;line-height:22px;color:var(--studio-text)}.briefingCard p{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:60px;margin:0;color:var(--studio-text-3);font-size:13px;line-height:20px}.briefingCard button{justify-self:start;min-height:34px;padding:0 12px;border:1px solid var(--studio-border);border-radius:10px;background:var(--create-workflow-surface);color:var(--studio-text-2);font-weight:650}.briefingCard.ready{border-color:var(--studio-color-success-border);background:var(--create-workflow-success-soft)}.briefingCard.pending{border-color:var(--create-workflow-warning-border);background:var(--create-workflow-warning-bg)}.briefingConfigGrid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}.briefingConfigGrid .roomHealthCard{height:100%}.auctionFormGrid.twoCols{grid-template-columns:repeat(2,minmax(0,1fr))}@media(max-width:1366px){.liveBriefingWorkbench .briefingCardGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.briefingConfigGrid{grid-template-columns:1fr}.auctionFormGrid.twoCols{grid-template-columns:1fr}}@media(max-width:760px){.liveBriefingWorkbench .briefingCardGrid{grid-template-columns:1fr}}
 
 /* Add-lot final polish pass: keep the workbench readable under the 260px shell sidebar. */
 .laAdminShell .auctionCreatePage{container-type:inline-size}.laAdminShell .auctionCreatePage .auctionCreateHeader{padding:22px 24px}.laAdminShell .auctionCreatePage .auctionCreateHeader .studioSectionHeader{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px}.laAdminShell .auctionCreatePage .auctionCreateHeader .studioSectionActions{display:grid;grid-template-columns:repeat(2,max-content);justify-content:end}.laAdminShell .auctionCreatePage .publishStepper{gap:10px}.laAdminShell .auctionCreatePage .publishStepper button{min-height:62px;padding:10px 12px}.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench){grid-template-columns:minmax(0,1fr) 320px;gap:16px}.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) .stickyPreviewPanel{min-width:320px;gap:12px}.laAdminShell .auctionCreatePage .productInfoRedesign{grid-template-columns:minmax(285px,42%) minmax(0,1fr);gap:16px}.laAdminShell .auctionCreatePage .productInfoRedesign .studioCard{border-radius:18px}.laAdminShell .auctionCreatePage .productInfoRedesign .studioCardBody{padding:16px}.laAdminShell .auctionCreatePage .productBaseGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.laAdminShell .auctionCreatePage .productBaseGrid .fieldSource,.laAdminShell .auctionCreatePage .productBaseGrid .fieldTitle,.laAdminShell .auctionCreatePage .productBaseGrid .fieldTags{grid-column:1/-1}.laAdminShell .auctionCreatePage .fieldMainImage .mainImageUpload{min-height:286px}.laAdminShell .auctionCreatePage .fieldMainImage .mainImageUpload:not(.hasImage){gap:12px}.laAdminShell .auctionCreatePage .fieldMainImage .mainImageUpload:not(.hasImage) b{font-size:16px}.laAdminShell .auctionCreatePage .carouselUpload{min-height:72px}.laAdminShell .auctionCreatePage .productDetailGrid{grid-template-columns:1.15fr .85fr;gap:14px}.laAdminShell .auctionCreatePage .productDetailGrid .fieldDescription{grid-row:span 3}.laAdminShell .auctionCreatePage .productDetailGrid textarea{min-height:102px}.laAdminShell .auctionCreatePage .productDetailGrid .fieldDescription textarea{min-height:248px}.laAdminShell .auctionCreatePage .mobilePreviewWrap,.laAdminShell .auctionCreatePage .stickyMiniCard{padding:14px;border-radius:18px}.laAdminShell .auctionCreatePage .mobileAuctionPhone{max-width:248px;padding:12px;border-width:5px}.laAdminShell .auctionCreatePage .phoneImage{height:116px}.laAdminShell .auctionCreatePage .stickyMiniCard div{padding:7px 0}.laAdminShell .auctionCreatePage .auctionStepActions{align-items:center}.laAdminShell .auctionCreatePage .auctionStepActions>div:last-child{justify-content:flex-end}.laAdminShell .auctionCreatePage .auctionStepActions .studioButton{min-width:auto;padding-inline:14px}@container (max-width:980px){.laAdminShell .auctionCreatePage .auctionCreateHeader .studioSectionHeader{grid-template-columns:1fr}.laAdminShell .auctionCreatePage .auctionCreateHeader .studioSectionActions{justify-content:start}.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench){grid-template-columns:1fr}.laAdminShell .auctionCreatePage .auctionCreateLayout:has(.productInfoWorkbench) .stickyPreviewPanel{position:static;min-width:0;grid-template-columns:repeat(2,minmax(0,1fr))}.laAdminShell .auctionCreatePage .productInfoRedesign{grid-template-columns:1fr}.laAdminShell .auctionCreatePage .productDetailGrid{grid-template-columns:1fr}.laAdminShell .auctionCreatePage .productDetailGrid .fieldDescription textarea{min-height:170px}}
@@ -1261,19 +1744,22 @@ button:disabled {
 
 /* Task 8: demo-grade live control room redesign. Scoped to Host Console only. */
 .laAdminShell .liveControlPage{
-  --control-blue:#2563eb;
-  --control-purple:#7c3aed;
-  --control-pink:#e11d48;
-  --control-red:#dc2626;
-  --control-ink:#172033;
-  --control-muted:#667085;
-  --control-border:#dce7f5;
-  --control-surface:rgba(255,255,255,.92);
+  --control-blue:var(--live-control-blue);
+  --control-purple:var(--live-control-purple);
+  --control-pink:var(--live-control-pink);
+  --control-red:var(--live-control-red);
+  --control-ink:var(--live-control-ink);
+  --control-muted:var(--live-control-muted);
+  --control-border:var(--live-control-border);
+  --control-surface:var(--live-control-surface);
+  --control-live-frame-bg:var(--live-control-live-frame-bg);
+  --control-live-frame-overlay:var(--live-control-live-frame-overlay);
   max-width:none;
   width:100%;
   gap:16px;
 }
 
+/* Live-control top surface guard slice. */
 .laAdminShell .liveControlPage .controlTopBar,
 .laAdminShell .liveControlPage .controlCard,
 .laAdminShell .liveControlPage .roomLivePreview,
@@ -1283,11 +1769,12 @@ button:disabled {
 .laAdminShell .liveControlPage .controlBottomCard,
 .laAdminShell .liveControlPage .controlEmptyState{
   border:1px solid var(--control-border);
-  background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(247,250,255,.9));
-  box-shadow:0 18px 44px rgba(36,56,96,.09), inset 0 1px 0 rgba(255,255,255,.9);
+  background:var(--live-control-panel-bg);
+  box-shadow:var(--live-control-panel-shadow);
   backdrop-filter:blur(18px);
 }
 
+/* Live-control top bar detail guard slice. */
 .laAdminShell .liveControlPage .controlTopBar{
   grid-template-columns:150px minmax(230px,.8fr) minmax(520px,1.65fr) auto;
   gap:12px;
@@ -1300,12 +1787,13 @@ button:disabled {
 .laAdminShell .liveControlPage .controlTopIdentity h2{font-size:24px;line-height:30px;color:var(--control-ink)}
 .laAdminShell .liveControlPage .controlTopIdentity span{display:block;color:var(--control-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .laAdminShell .liveControlPage .controlTopMetrics{display:grid;grid-template-columns:1.25fr 1fr .9fr .82fr .72fr;gap:8px;min-width:0}
-.laAdminShell .liveControlPage .controlTopMetrics>span{display:grid;align-content:center;min-height:42px;border-radius:15px;background:#fff;border:1px solid #e5edf7;padding:7px 10px;color:var(--control-muted);font-size:12px;line-height:16px;font-weight:650;min-width:0}
+.laAdminShell .liveControlPage .controlTopMetrics>span{display:grid;align-content:center;min-height:42px;border-radius:15px;background:var(--live-control-metric-bg);border:1px solid var(--live-control-metric-border);padding:7px 10px;color:var(--control-muted);font-size:12px;line-height:16px;font-weight:650;min-width:0}
 .laAdminShell .liveControlPage .controlTopMetrics b{display:block;color:var(--control-ink);font-size:13px;line-height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .laAdminShell .liveControlPage .controlTopMetrics .studioBadge{justify-self:start;margin-top:2px}
 .laAdminShell .liveControlPage .controlTopActions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:nowrap}
 .laAdminShell .liveControlPage .controlTopActions button{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
 
+/* Live-control room grid boundary. */
 .laAdminShell .liveControlPage .controlRoomGrid{
   display:grid;
   grid-template-columns:340px minmax(0,1fr) 400px;
@@ -1319,66 +1807,75 @@ button:disabled {
 .laAdminShell .liveControlPage .briefingRailTitle span{color:var(--control-purple);font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
 .laAdminShell .liveControlPage .briefingRailTitle b{color:var(--control-ink);font-size:18px;line-height:24px}
 
-.laAdminShell .liveControlPage .liveFrame{height:176px;border-radius:20px;background:linear-gradient(135deg,#eaf2ff,#fff1f6)}
-.laAdminShell .liveControlPage .liveFrame:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(15,23,42,.42));pointer-events:none}
-.laAdminShell .liveControlPage .liveFrame b{z-index:1;font-size:30px;letter-spacing:-.04em}
+.laAdminShell .liveControlPage .liveFrame{height:176px;border-radius:20px;background:var(--control-live-frame-bg)}
+.laAdminShell .liveControlPage .liveFrame:after{content:"";position:absolute;inset:0;background:var(--control-live-frame-overlay);pointer-events:none}
+.laAdminShell .liveControlPage .liveFrame b{z-index:var(--studio-z-raised);font-size:30px;letter-spacing:-.04em}
 .laAdminShell .liveControlPage .roomLivePreview>div:last-child{grid-template-columns:repeat(3,minmax(0,1fr))}
 .laAdminShell .liveControlPage .controlLotImg{height:128px;border-radius:18px}
 .laAdminShell .liveControlPage .controlCard p{margin:8px 0 10px;color:var(--control-muted);font-size:13px;line-height:20px}
-.laAdminShell .liveControlPage .teleprompterCard{background:linear-gradient(145deg,#ffffff,#f7f2ff)}
-.laAdminShell .liveControlPage .teleprompterCard p{font-size:15px;line-height:24px;color:#29324a}
+/* Live-control briefing/prompter guard slice. */
+.laAdminShell .liveControlPage .teleprompterCard{background:var(--live-control-prompter-bg)}
+.laAdminShell .liveControlPage .teleprompterCard p{font-size:15px;line-height:24px;color:var(--live-control-prompter-text)}
 .laAdminShell .liveControlPage .teleprompterCard b{color:var(--control-pink)}
 .laAdminShell .liveControlPage .teleprompterCard div{display:flex;flex-wrap:wrap;gap:7px}
-.laAdminShell .liveControlPage .teleprompterCard span{border-radius:999px;background:#f5f3ff;color:#6d28d9;padding:5px 9px;font-size:12px;font-weight:800}
+.laAdminShell .liveControlPage .teleprompterCard span{border-radius:999px;background:var(--live-control-prompter-pill-bg);color:var(--live-control-prompter-pill-text);padding:5px 9px;font-size:12px;font-weight:800}
+/* Live-control trust card boundary. */
 .laAdminShell .liveControlPage .trustCardList{max-height:250px;overflow:auto;padding-right:2px}
 .laAdminShell .liveControlPage .trustCardList div{border-radius:14px;padding:10px 11px}
 .laAdminShell .liveControlPage .trustCardList p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:5px 0}
 
+/* Live-control playbook stage guard slice. */
 .laAdminShell .liveControlPage .playbookStageBar{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
-.laAdminShell .liveControlPage .playbookStageBar div{position:relative;min-height:58px;border-radius:17px;background:#fff;color:#73809a;box-shadow:0 8px 18px rgba(31,41,55,.04)}
-.laAdminShell .liveControlPage .playbookStageBar div.active{background:linear-gradient(135deg,#eff6ff,#f5f3ff);border-color:#c4b5fd;color:#5b21b6;box-shadow:0 14px 28px rgba(124,58,237,.12)}
+.laAdminShell .liveControlPage .playbookStageBar div{position:relative;min-height:58px;border-radius:17px;background:var(--live-control-stage-bg);color:var(--live-control-stage-text);box-shadow:var(--live-control-stage-shadow)}
+.laAdminShell .liveControlPage .playbookStageBar div.active{background:var(--live-control-stage-active-bg);border-color:var(--live-control-stage-active-border);color:var(--live-control-stage-active-text);box-shadow:var(--live-control-stage-active-shadow)}
+/* Live-control command area boundary. */
 .laAdminShell .liveControlPage .commandArea{position:relative;display:grid;gap:12px;min-width:0}
-.laAdminShell .liveControlPage .priceCommandBoard{min-height:356px;padding:24px;border-radius:28px;background:radial-gradient(circle at 52% -10%,rgba(37,99,235,.18),transparent 38%),linear-gradient(145deg,#ffffff,#f8fbff 62%,#fff7fb);overflow:hidden}
-.laAdminShell .liveControlPage .priceCommandBoard:before{width:420px;height:420px;inset:-140px auto auto 50%;background:radial-gradient(circle,rgba(124,58,237,.18),rgba(37,99,235,.12) 45%,transparent 68%)}
+/* Live-control command board legacy guard slice. */
+.laAdminShell .liveControlPage .priceCommandBoard{min-height:356px;padding:24px;border-radius:28px;background:var(--live-control-command-bg);overflow:hidden}
+.laAdminShell .liveControlPage .priceCommandBoard:before{width:420px;height:420px;inset:-140px auto auto 50%;background:var(--live-control-command-orb-bg)}
 .laAdminShell .liveControlPage .priceCommandEyebrow{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;color:var(--control-purple);font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
 .laAdminShell .liveControlPage .currentPriceFocus{position:relative;text-align:center}
 .laAdminShell .liveControlPage .priceCommandBoard p{font-size:13px;color:var(--control-muted)}
-.laAdminShell .liveControlPage .priceCommandBoard strong{font-size:clamp(72px,6.3vw,96px);line-height:.9;color:var(--control-blue);background:linear-gradient(90deg,#2563eb 0%,#7c3aed 48%,#e11d48 100%);-webkit-background-clip:text;background-clip:text;color:transparent;font-variant-numeric:tabular-nums;text-shadow:none}
-.laAdminShell .liveControlPage .serverCountdown{margin:18px auto 14px;padding:12px 18px;border-radius:22px;font-size:clamp(42px,4vw,62px);font-weight:900;letter-spacing:-.04em;color:var(--control-blue);font-variant-numeric:tabular-nums;background:#fff;box-shadow:0 16px 36px rgba(37,99,235,.13)}
-.laAdminShell .liveControlPage .serverCountdown.urgent{color:var(--control-pink);border-color:#fecdd3;box-shadow:0 18px 42px rgba(225,29,72,.16)}
+.laAdminShell .liveControlPage .priceCommandBoard strong{font-size:clamp(72px,6.3vw,96px);line-height:.9;color:var(--control-blue);background:var(--live-control-price-gradient);-webkit-background-clip:text;background-clip:text;color:transparent;font-variant-numeric:tabular-nums;text-shadow:none}
+.laAdminShell .liveControlPage .serverCountdown{margin:18px auto 14px;padding:12px 18px;border-radius:22px;font-size:clamp(42px,4vw,62px);font-weight:900;letter-spacing:-.04em;color:var(--control-blue);font-variant-numeric:tabular-nums;background:var(--live-control-countdown-bg);box-shadow:var(--live-control-countdown-shadow)}
+.laAdminShell .liveControlPage .serverCountdown.urgent{color:var(--control-pink);border-color:var(--live-control-countdown-urgent-border);box-shadow:var(--live-control-countdown-urgent-shadow)}
 .laAdminShell .liveControlPage .priceCommandMetrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
-.laAdminShell .liveControlPage .priceCommandMetrics span{border-radius:17px;background:#fff;border:1px solid #e5edf7;color:var(--control-muted);padding:12px 10px;font-size:12px;line-height:18px}
+.laAdminShell .liveControlPage .priceCommandMetrics span{border-radius:17px;background:var(--live-control-metric-bg);border:1px solid var(--live-control-metric-border);color:var(--control-muted);padding:12px 10px;font-size:12px;line-height:18px}
 .laAdminShell .liveControlPage .priceCommandMetrics b{color:var(--control-ink);font-size:18px;line-height:24px;font-variant-numeric:tabular-nums}
 .laAdminShell .liveControlPage .priceCommandMetrics span:nth-child(1) b{color:var(--control-purple)}
 .laAdminShell .liveControlPage .priceCommandMetrics span:nth-child(2) b{color:var(--control-pink)}
-.laAdminShell .liveControlPage .emotionFeedbackLayer{position:absolute;left:18px;right:18px;top:98px;z-index:2;pointer-events:none;min-height:0}
-.laAdminShell .liveControlPage .emotionFeedbackLayer span{background:rgba(255,255,255,.94);box-shadow:0 16px 36px rgba(124,58,237,.16);border-color:#ddd6fe;color:#5b21b6}
+.laAdminShell .liveControlPage .emotionFeedbackLayer{position:absolute;left:18px;right:18px;top:98px;z-index:var(--live-control-emotion-layer);pointer-events:none;min-height:0}
+.laAdminShell .liveControlPage .emotionFeedbackLayer span{background:var(--live-control-emotion-bg);box-shadow:var(--live-control-emotion-shadow);border-color:var(--live-control-emotion-border);color:var(--live-control-emotion-text)}
 
+/* Live-control action deck legacy guard slice. */
 .laAdminShell .liveControlPage .controlActionDeck{padding:18px;border-radius:24px}
 .laAdminShell .liveControlPage .controlActionsGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
-.laAdminShell .liveControlPage .controlActionsGrid button{min-height:48px;border-radius:15px;background:#fff;color:#27334a;border:1px solid #dce7f5;box-shadow:0 9px 18px rgba(36,56,96,.06)}
-.laAdminShell .liveControlPage .controlActionsGrid button:nth-child(-n+3){background:linear-gradient(135deg,#eff6ff,#f5f3ff);border-color:#c7d2fe;color:#3730a3}
-.laAdminShell .liveControlPage .dangerActionStrip button{min-height:48px;border-radius:16px;background:#fff1f2!important;border-color:#fecdd3!important;color:#be123c!important}
-.laAdminShell .liveControlPage .dangerActionStrip .settleButton{background:linear-gradient(135deg,#2563eb,#7c3aed)!important;color:#fff!important;border-color:transparent!important;box-shadow:0 14px 28px rgba(79,70,229,.18)!important}
+.laAdminShell .liveControlPage .controlActionsGrid button{min-height:48px;border-radius:15px;background:var(--live-control-action-bg);color:var(--live-control-action-text);border:1px solid var(--live-control-action-border);box-shadow:var(--live-control-action-shadow)}
+.laAdminShell .liveControlPage .controlActionsGrid button:nth-child(-n+3){background:var(--live-control-action-primary-bg);border-color:var(--live-control-action-primary-border);color:var(--live-control-action-primary-text)}
+.laAdminShell .liveControlPage .dangerActionStrip button{min-height:48px;border-radius:16px;background:var(--live-control-danger-action-bg)!important;border-color:var(--live-control-danger-action-border)!important;color:var(--live-control-danger-action-text)!important}
+.laAdminShell .liveControlPage .dangerActionStrip .settleButton{background:var(--live-control-settle-bg)!important;color:var(--studio-color-on-accent)!important;border-color:transparent!important;box-shadow:var(--live-control-settle-shadow)!important}
 
+/* Live-control side card boundary. */
 .laAdminShell .liveControlPage .controlSideCard{border-radius:22px;padding:16px}
 .laAdminShell .liveControlPage .controlSideCard h3,.laAdminShell .liveControlPage .controlBottomCard h3,.laAdminShell .liveControlPage .controlActionDeck h3{color:var(--control-ink);margin-bottom:10px}
 .laAdminShell .liveControlPage .controlBidFeed,.laAdminShell .liveControlPage .controlRanking{max-height:294px;gap:7px}
-.laAdminShell .liveControlPage .controlBidFeed div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;border-radius:14px;background:#fff}
+.laAdminShell .liveControlPage .controlBidFeed div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;border-radius:14px;background:var(--live-control-list-bg)}
 .laAdminShell .liveControlPage .controlBidFeed b{margin:0;color:var(--control-pink);font-size:18px;font-variant-numeric:tabular-nums}
 .laAdminShell .liveControlPage .controlBidFeed small{grid-column:1/-1}
-.laAdminShell .liveControlPage .controlRanking div{grid-template-columns:38px minmax(0,1fr) auto;border-radius:14px;background:#fff}
+.laAdminShell .liveControlPage .controlRanking div{grid-template-columns:38px minmax(0,1fr) auto;border-radius:14px;background:var(--live-control-list-bg)}
 .laAdminShell .liveControlPage .controlRanking b{color:var(--control-purple)}
 .laAdminShell .liveControlPage .controlRanking strong{color:var(--control-blue);font-variant-numeric:tabular-nums}
 .laAdminShell .liveControlPage .systemHealthGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.laAdminShell .liveControlPage .systemHealthGrid span{background:#fff;border:1px solid #e5edf7;border-radius:14px;padding:9px;color:var(--control-muted)}
+.laAdminShell .liveControlPage .systemHealthGrid span{background:var(--live-control-list-bg);border:1px solid var(--live-control-list-border);border-radius:14px;padding:9px;color:var(--control-muted)}
 .laAdminShell .liveControlPage .systemHealthGrid b{color:var(--control-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+/* Live-control bottom log guard slice. */
 .laAdminShell .liveControlPage .controlBottomGrid{grid-template-columns:340px minmax(0,1fr);gap:16px}
 .laAdminShell .liveControlPage .controlBottomCard{border-radius:22px}
 .laAdminShell .liveControlPage .controlEventLog{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-height:220px;gap:8px}
-.laAdminShell .liveControlPage .controlEventLog div{border-radius:14px;background:#fff}
+.laAdminShell .liveControlPage .controlEventLog div{border-radius:14px;background:var(--live-control-list-bg)}
 
+/* Live-control legacy responsive boundary. */
 @media(max-width:1500px){
   .laAdminShell .liveControlPage .controlTopBar{grid-template-columns:140px minmax(220px,.75fr) minmax(450px,1.55fr)}
   .laAdminShell .liveControlPage .controlTopActions{grid-column:1/-1;justify-content:flex-start}
@@ -1416,7 +1913,7 @@ button:disabled {
   padding:20px;
   border:1px solid var(--studio-border);
   border-radius:24px;
-  background:linear-gradient(180deg,#fff,#f8fbff);
+  background:var(--queue-neutral-bg);
   box-shadow:var(--studio-shadow-sm);
 }
 
@@ -1427,17 +1924,17 @@ button:disabled {
   width:150px;
   height:150px;
   border-radius:999px;
-  background:#dbeafe;
+  background:var(--studio-color-info-bg);
   opacity:.42;
 }
 
 .laAdminShell .queueTopCard.current.isLive{
-  border-color:#93c5fd;
-  box-shadow:0 0 0 3px #dbeafe, var(--studio-shadow-md);
+  border-color:var(--studio-color-info-border);
+  box-shadow:var(--queue-current-ring);
 }
 
 .laAdminShell .queueTopCard.next.hasNext{
-  border-color:#ddd6fe;
+  border-color:var(--studio-color-purple-border);
 }
 
 .laAdminShell .queueTopCard.next.hasNext::after{
@@ -1448,15 +1945,66 @@ button:disabled {
   width:112px;
   padding:4px 0;
   transform:rotate(35deg);
-  background:#ede9fe;
-  color:#6d28d9;
+  background:var(--studio-color-purple-bg);
+  color:var(--studio-color-purple-text);
   text-align:center;
   font-size:11px;
   font-weight:800;
   letter-spacing:.08em;
 }
 
-.laAdminShell .queueTopCard.health::before{background:#dcfce7}.laAdminShell .queueTopCard header{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.laAdminShell .queueTopCard header>span{display:inline-flex;align-items:center;gap:8px;color:var(--studio-text-2);font-size:13px;font-weight:750}.laAdminShell .queueTopCard h3{position:relative;z-index:1;margin:0 0 12px;color:var(--studio-text);font-size:21px;line-height:28px;font-weight:760;letter-spacing:-.03em}.laAdminShell .queueTopCard p{position:relative;z-index:1;margin:10px 0 0;color:var(--studio-text-3);font-size:13px;line-height:20px}.laAdminShell .queuePriceLine{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:end}.laAdminShell .queuePriceLine span,.laAdminShell .queuePriceLine small{color:var(--studio-text-3);font-size:13px;font-weight:650}.laAdminShell .queuePriceLine b{grid-row:1/3;color:var(--studio-primary);font-size:34px;line-height:38px;font-weight:800;letter-spacing:-.05em}.laAdminShell .queueRulePills,.laAdminShell .queueHealthGrid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.laAdminShell .queueHealthGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.laAdminShell .queueRulePills span,.laAdminShell .queueHealthGrid span{display:grid;gap:2px;min-width:0;padding:10px 12px;border:1px solid var(--studio-border);border-radius:14px;background:rgba(255,255,255,.78);color:var(--studio-text-3);font-size:12px;font-weight:650}.laAdminShell .queueRulePills b,.laAdminShell .queueHealthGrid b{color:var(--studio-text);font-size:15px;line-height:22px;font-weight:750}.laAdminShell .queueTopActions{position:relative;z-index:1;display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.laAdminShell .queueTopActions button:not(.studioButton){min-height:32px;padding:0 12px;border:1px solid var(--studio-border);border-radius:10px;background:#fff;color:var(--studio-text-2);font-weight:650}.laAdminShell .auctionStatusTabs{border-radius:18px;background:#fff;box-shadow:var(--studio-shadow-sm)}.laAdminShell .auctionStatusTabs button{min-height:40px;border-radius:13px}.laAdminShell .auctionStatusTabs button.active{background:var(--studio-primary-soft);color:var(--studio-primary-hover);border:1px solid #bfdbfe;box-shadow:none}.laAdminShell .queueFilters{grid-template-columns:minmax(240px,1.5fr) repeat(4,minmax(120px,.72fr));align-items:center;border-radius:18px;background:#fff;box-shadow:var(--studio-shadow-sm)}.laAdminShell .auctionQueueList{display:grid;gap:12px}.laAdminShell .queueRowCard{display:grid;grid-template-columns:minmax(320px,1.15fr) minmax(430px,1.5fr) minmax(260px,.82fr);gap:16px;align-items:center;min-height:108px;padding:14px 16px;border:1px solid var(--studio-border);border-radius:22px;background:#fff;box-shadow:var(--studio-shadow-sm);cursor:pointer;transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease,background .18s ease}.laAdminShell .queueRowCard:hover{transform:translateY(-1px);border-color:#bfdbfe;box-shadow:var(--studio-shadow-md)}.laAdminShell .queueRowCard.isCurrent{border-color:#93c5fd;box-shadow:0 0 0 3px #dbeafe,var(--studio-shadow-md)}.laAdminShell .queueRowCard.isNext{border-color:#c4b5fd;background:linear-gradient(90deg,#faf8ff,#fff 42%)}.laAdminShell .queueRowCard.isNext .queueNo{background:#ede9fe;color:#6d28d9}.laAdminShell .queueRowCard.isCancelled{border-color:#fecdd3;background:#fff1f2}.laAdminShell .queueRowLeft{display:grid;grid-template-columns:auto 76px minmax(0,1fr);gap:13px;align-items:center;min-width:0}.laAdminShell .queueNo{display:grid;place-items:center;min-width:44px;height:32px;border-radius:999px;background:var(--studio-surface-soft);color:var(--studio-text-3);font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}.laAdminShell .queueRowLeft img{width:76px;height:76px;border-radius:18px;object-fit:cover;border:1px solid var(--studio-border);background:linear-gradient(135deg,#e0f2fe,#f5f3ff)}.laAdminShell .queueRowLeft h3{margin:0 0 8px;color:var(--studio-text);font-size:16px;line-height:22px;font-weight:760;letter-spacing:-.02em}.laAdminShell .queueTags{display:flex;gap:6px;flex-wrap:wrap}.laAdminShell .queueTags>span:not(.studioBadge):not(.laStatusBadge){display:inline-flex;align-items:center;min-height:24px;padding:0 8px;border-radius:999px;background:var(--studio-surface-soft);color:var(--studio-text-3);font-size:12px;font-weight:650}.laAdminShell .queueRowMiddle{display:grid;grid-template-columns:1.25fr .95fr .72fr .72fr .72fr .9fr;gap:8px;align-items:center}.laAdminShell .queueRowMiddle>span{min-width:0;padding:8px 10px;border-radius:12px;background:var(--studio-surface-soft);color:var(--studio-text-2);font-size:12px;line-height:18px;font-weight:650}.laAdminShell .queueRowMiddle b{display:block;margin-bottom:2px;color:var(--studio-text-3);font-size:11px;line-height:16px;font-weight:700}.laAdminShell .queueRowRight{display:grid;grid-template-columns:minmax(82px,.8fr) minmax(98px,1fr);gap:8px 10px;align-items:center}.laAdminShell .queueRowRight>div:last-child{grid-column:1/-1}.laAdminShell .queueAccount b,.laAdminShell .orderState b{display:block;color:var(--studio-text);font-size:13px;line-height:19px;font-weight:750}.laAdminShell .queueAccount span,.laAdminShell .orderState span,.laAdminShell .mutedText{display:block;color:var(--studio-text-3);font-size:12px;line-height:18px;font-weight:650}.laAdminShell .auctionRowActions{display:flex;flex-wrap:wrap;gap:6px;min-width:0}.laAdminShell .auctionRowActions button,.laAdminShell .auctionRowActions a,.laAdminShell .auctionRowActions summary{min-height:32px;padding:0 10px;border:1px solid var(--studio-border);border-radius:10px;background:#fff;color:var(--studio-text-2);font-size:12px;font-weight:700;text-decoration:none;box-shadow:none;cursor:pointer;list-style:none}.laAdminShell .auctionRowActions>a:nth-of-type(n+3),.laAdminShell .auctionRowActions>button:nth-of-type(n+4){display:none}.laAdminShell .queueMoreActions{position:relative}.laAdminShell .queueMoreActions summary::-webkit-details-marker{display:none}.laAdminShell .queueMoreActions>div{position:absolute;right:0;top:38px;z-index:9;display:grid;gap:6px;min-width:130px;padding:8px;border:1px solid var(--studio-border);border-radius:14px;background:#fff;box-shadow:var(--studio-shadow-lg)}.laAdminShell .queueMoreActions:not([open])>div{display:none}.laAdminShell .queueMoreActions>div a,.laAdminShell .queueMoreActions>div button{justify-content:flex-start;width:100%;white-space:nowrap}.laAdminShell .auctionRowActions .danger{border-color:var(--studio-danger);background:var(--studio-danger);color:#fff}.laAdminShell .orderState.danger b{color:#be123c}@container (max-width:1180px){.laAdminShell .queueTopCards{grid-template-columns:1fr}.laAdminShell .queueRowCard{grid-template-columns:1fr}.laAdminShell .queueRowMiddle{grid-template-columns:repeat(3,minmax(0,1fr))}.laAdminShell .queueRowRight{grid-template-columns:1fr 1fr}.laAdminShell .queueFilters{grid-template-columns:minmax(220px,1fr) repeat(2,minmax(120px,.6fr));}}@container (max-width:900px){.laAdminShell .queueTopCards,.laAdminShell .queueFilters{grid-template-columns:1fr}.laAdminShell .queueRowCard{min-height:auto;padding:14px;align-items:stretch}.laAdminShell .queueRowLeft{grid-template-columns:auto 68px minmax(0,1fr)}.laAdminShell .queueRowLeft img{width:68px;height:68px}.laAdminShell .queueRowMiddle,.laAdminShell .queueRowRight{grid-template-columns:1fr}.laAdminShell .auctionRowActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.laAdminShell .auctionRowActions button,.laAdminShell .auctionRowActions a,.laAdminShell .auctionRowActions summary{width:100%;justify-content:center}.laAdminShell .queueMoreActions>div{left:0;right:auto}.laAdminShell .queueRulePills{grid-template-columns:1fr}.laAdminShell .queueHealthGrid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+/* Queue top card content guard slice. */
+.laAdminShell .queueTopCard.health::before{background:var(--studio-color-success-bg)}
+.laAdminShell .queueTopCard header{position:relative;z-index:var(--queue-content-layer);display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.laAdminShell .queueTopCard header>span{display:inline-flex;align-items:center;gap:8px;color:var(--studio-text-2);font-size:13px;font-weight:750}
+.laAdminShell .queueTopCard h3{position:relative;z-index:var(--queue-content-layer);margin:0 0 12px;color:var(--studio-text);font-size:21px;line-height:28px;font-weight:760;letter-spacing:-.03em}
+.laAdminShell .queueTopCard p{position:relative;z-index:var(--queue-content-layer);margin:10px 0 0;color:var(--studio-text-3);font-size:13px;line-height:20px}
+.laAdminShell .queuePriceLine{position:relative;z-index:var(--queue-content-layer);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:end}
+.laAdminShell .queuePriceLine span,.laAdminShell .queuePriceLine small{color:var(--studio-text-3);font-size:13px;font-weight:650}
+.laAdminShell .queuePriceLine b{grid-row:1/3;color:var(--studio-primary);font-size:34px;line-height:38px;font-weight:800;letter-spacing:-.05em}
+.laAdminShell .queueRulePills,.laAdminShell .queueHealthGrid{position:relative;z-index:var(--queue-content-layer);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.laAdminShell .queueHealthGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.laAdminShell .queueRulePills span,.laAdminShell .queueHealthGrid span{display:grid;gap:2px;min-width:0;padding:10px 12px;border:1px solid var(--studio-border);border-radius:14px;background:var(--queue-surface-glass);color:var(--studio-text-3);font-size:12px;font-weight:650}
+.laAdminShell .queueRulePills b,.laAdminShell .queueHealthGrid b{color:var(--studio-text);font-size:15px;line-height:22px;font-weight:750}
+.laAdminShell .queueTopActions{position:relative;z-index:var(--queue-content-layer);display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.laAdminShell .queueTopActions button:not(.studioButton){min-height:32px;padding:0 12px;border:1px solid var(--studio-border);border-radius:10px;background:var(--queue-surface);color:var(--studio-text-2);font-weight:650}
+/* Queue top card content guard boundary. */
+.laAdminShell .auctionStatusTabs{border-radius:18px;background:var(--queue-surface);box-shadow:var(--studio-shadow-sm)}
+.laAdminShell .auctionStatusTabs button{min-height:40px;border-radius:13px}
+.laAdminShell .auctionStatusTabs button.active{background:var(--studio-primary-soft);color:var(--studio-primary-hover);border:1px solid var(--studio-color-info-border);box-shadow:none}
+.laAdminShell .queueFilters{grid-template-columns:minmax(240px,1.5fr) repeat(4,minmax(120px,.72fr));align-items:center;border-radius:18px;background:var(--queue-surface);box-shadow:var(--studio-shadow-sm)}
+.laAdminShell .auctionQueueList{display:grid;gap:12px}
+.laAdminShell .queueRowCard{display:grid;grid-template-columns:minmax(320px,1.15fr) minmax(430px,1.5fr) minmax(260px,.82fr);gap:16px;align-items:center;min-height:108px;padding:14px 16px;border:1px solid var(--studio-border);border-radius:22px;background:var(--queue-surface);box-shadow:var(--studio-shadow-sm);cursor:pointer;transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease,background .18s ease}
+.laAdminShell .queueRowCard:hover{transform:translateY(-1px);border-color:var(--studio-color-info-border);box-shadow:var(--studio-shadow-md)}
+.laAdminShell .queueRowCard.isCurrent{border-color:var(--studio-color-info-border);box-shadow:var(--queue-current-ring)}
+.laAdminShell .queueRowCard.isNext{border-color:var(--studio-color-purple-border);background:var(--queue-next-bg)}
+.laAdminShell .queueRowCard.isNext .queueNo{background:var(--studio-color-purple-bg);color:var(--studio-color-purple-text)}
+.laAdminShell .queueRowCard.isCancelled{border-color:var(--studio-color-error-border);background:var(--studio-color-error-soft-bg)}
+.laAdminShell .queueRowLeft{display:grid;grid-template-columns:auto 76px minmax(0,1fr);gap:13px;align-items:center;min-width:0}
+.laAdminShell .queueNo{display:grid;place-items:center;min-width:44px;height:32px;border-radius:999px;background:var(--studio-surface-soft);color:var(--studio-text-3);font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
+.laAdminShell .queueRowLeft img{width:76px;height:76px;border-radius:18px;object-fit:cover;border:1px solid var(--studio-border);background:var(--queue-image-bg)}
+.laAdminShell .queueRowLeft h3{margin:0 0 8px;color:var(--studio-text);font-size:16px;line-height:22px;font-weight:760;letter-spacing:-.02em}
+.laAdminShell .queueTags{display:flex;gap:6px;flex-wrap:wrap}
+.laAdminShell .queueTags>span:not(.studioBadge):not(.laStatusBadge){display:inline-flex;align-items:center;min-height:24px;padding:0 8px;border-radius:999px;background:var(--studio-surface-soft);color:var(--studio-text-3);font-size:12px;font-weight:650}
+.laAdminShell .queueRowMiddle{display:grid;grid-template-columns:1.25fr .95fr .72fr .72fr .72fr .9fr;gap:8px;align-items:center}
+.laAdminShell .queueRowMiddle>span{min-width:0;padding:8px 10px;border-radius:12px;background:var(--studio-surface-soft);color:var(--studio-text-2);font-size:12px;line-height:18px;font-weight:650}
+.laAdminShell .queueRowMiddle b{display:block;margin-bottom:2px;color:var(--studio-text-3);font-size:11px;line-height:16px;font-weight:700}
+.laAdminShell .queueRowRight{display:grid;grid-template-columns:minmax(82px,.8fr) minmax(98px,1fr);gap:8px 10px;align-items:center}
+.laAdminShell .queueRowRight>div:last-child{grid-column:1/-1}
+.laAdminShell .queueAccount b,.laAdminShell .orderState b{display:block;color:var(--studio-text);font-size:13px;line-height:19px;font-weight:750}
+.laAdminShell .queueAccount span,.laAdminShell .orderState span,.laAdminShell .mutedText{display:block;color:var(--studio-text-3);font-size:12px;line-height:18px;font-weight:650}
+.laAdminShell .auctionRowActions{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.laAdminShell .auctionRowActions button,.laAdminShell .auctionRowActions a,.laAdminShell .auctionRowActions summary{min-height:32px;padding:0 10px;border:1px solid var(--studio-border);border-radius:10px;background:var(--queue-surface);color:var(--studio-text-2);font-size:12px;font-weight:700;text-decoration:none;box-shadow:none;cursor:pointer;list-style:none}
+.laAdminShell .auctionRowActions>a:nth-of-type(n+3),.laAdminShell .auctionRowActions>button:nth-of-type(n+4){display:none}
+.laAdminShell .queueMoreActions{position:relative}
+.laAdminShell .queueMoreActions summary::-webkit-details-marker{display:none}
+.laAdminShell .queueMoreActions>div{position:absolute;right:0;top:38px;z-index:var(--studio-z-dropdown);display:grid;gap:6px;min-width:130px;padding:8px;border:1px solid var(--studio-border);border-radius:14px;background:var(--queue-surface);box-shadow:var(--studio-shadow-lg)}
+.laAdminShell .queueMoreActions:not([open])>div{display:none}
+.laAdminShell .queueMoreActions>div a,.laAdminShell .queueMoreActions>div button{justify-content:flex-start;width:100%;white-space:nowrap}
+.laAdminShell .auctionRowActions .danger{border-color:var(--studio-color-error);background:var(--studio-color-error);color:var(--queue-contrast)}
+.laAdminShell .orderState.danger b{color:var(--studio-color-error-text)}
+@container (max-width:1180px){.laAdminShell .queueTopCards{grid-template-columns:1fr}.laAdminShell .queueRowCard{grid-template-columns:1fr}.laAdminShell .queueRowMiddle{grid-template-columns:repeat(3,minmax(0,1fr))}.laAdminShell .queueRowRight{grid-template-columns:1fr 1fr}.laAdminShell .queueFilters{grid-template-columns:minmax(220px,1fr) repeat(2,minmax(120px,.6fr));}}
+@container (max-width:900px){.laAdminShell .queueTopCards,.laAdminShell .queueFilters{grid-template-columns:1fr}.laAdminShell .queueRowCard{min-height:auto;padding:14px;align-items:stretch}.laAdminShell .queueRowLeft{grid-template-columns:auto 68px minmax(0,1fr)}.laAdminShell .queueRowLeft img{width:68px;height:68px}.laAdminShell .queueRowMiddle,.laAdminShell .queueRowRight{grid-template-columns:1fr}.laAdminShell .auctionRowActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.laAdminShell .auctionRowActions button,.laAdminShell .auctionRowActions a,.laAdminShell .auctionRowActions summary{width:100%;justify-content:center}.laAdminShell .queueMoreActions>div{left:0;right:auto}.laAdminShell .queueRulePills{grid-template-columns:1fr}.laAdminShell .queueHealthGrid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 
 /* Task 11/12 responsive authority: backend shell, add-lot, queues, and control room. */
 .laAdminShell .studioPage{
@@ -1518,17 +2066,19 @@ button:disabled {
     display: block;
   }
 
+  /* Responsive shell mobile sidebar guard slice. */
   .laAdminShell .studioSidebar{
     position: sticky;
     top: 0;
-    z-index: 35;
+    z-index: var(--studio-z-header);
     max-height: none;
     padding: 10px 12px;
     border-right: 0;
     border-bottom: 1px solid var(--studio-border);
-    box-shadow: 0 8px 20px rgba(15,23,42,.05);
+    box-shadow: var(--studio-shell-mobile-shadow);
   }
 
+  /* Responsive shell mobile sidebar boundary. */
   .laAdminShell .studioBrand{
     min-height: 42px;
     padding: 0 4px 8px;
@@ -1723,24 +2273,29 @@ button:disabled {
 }
 
 /* Task 8 PM follow-up: prepared control stage, detector hooks, and 1366-friendly layout. */
-.laAdminShell .liveControlPage.preparedControlStage .auctionMgmtNotice{
-  display:flex;align-items:center;gap:8px;border:1px solid #bfdbfe;border-radius:18px;background:#eff6ff;color:#1d4ed8;padding:12px 14px;font-weight:700;
+.laAdminShell .liveControlPage{
+  --live-prepared-ring-shadow: 0 0 0 6px color-mix(in srgb, var(--studio-color-warning) 14%, transparent);
+  --live-prepared-countdown-shadow: 0 14px 30px color-mix(in srgb, var(--studio-color-warning) 12%, transparent);
+  --live-prepared-link-shadow: 0 9px 18px color-mix(in srgb, var(--studio-color-text) 6%, transparent);
 }
-.laAdminShell .liveControlPage.preparedControlStage .auctionMgmtNotice.danger{border-color:#fecdd3;background:#fff1f2;color:#be123c}
+.laAdminShell .liveControlPage.preparedControlStage .auctionMgmtNotice{
+  display:flex;align-items:center;gap:8px;border:1px solid var(--studio-color-info-border);border-radius:18px;background:var(--studio-color-info-bg);color:var(--studio-color-info-text);padding:12px 14px;font-weight:700;
+}
+.laAdminShell .liveControlPage.preparedControlStage .auctionMgmtNotice.danger{border-color:var(--studio-color-error-border);background:var(--studio-color-error-soft-bg);color:var(--studio-color-error-text)}
 .laAdminShell .liveControlPage .controlStatusBar{position:relative}
 .laAdminShell .liveControlPage .auctionCommandCenter{isolation:isolate}
 .laAdminShell .liveControlPage .livePriceBig{font-variant-numeric:tabular-nums}
-.laAdminShell .liveControlPage .liveFrame.prepared{background:linear-gradient(135deg,#edf4ff,#f7f2ff)}
+.laAdminShell .liveControlPage .liveFrame.prepared{background:linear-gradient(135deg,var(--studio-color-info-bg),var(--studio-color-purple-bg))}
 .laAdminShell .liveControlPage .liveFrame.prepared img{opacity:.24;filter:saturate(.75)}
-.laAdminShell .liveControlPage .liveFrame.prepared span{background:#f59e0b;box-shadow:0 0 0 6px rgba(245,158,11,.14)}
-.laAdminShell .liveControlPage .liveFrame.prepared b{font-size:26px;color:#fff}
-.laAdminShell .liveControlPage .preparedCommandCenter{background:radial-gradient(circle at 50% -8%,rgba(245,158,11,.2),transparent 34%),linear-gradient(145deg,#fff,#f8fbff 62%,#fff8ed)}
-.laAdminShell .liveControlPage .preparedCommandCenter .livePriceBig{background:linear-gradient(90deg,#94a3b8,#2563eb 48%,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent}
-.laAdminShell .liveControlPage .serverCountdown.prepared{color:#f59e0b;border-color:#fde68a;background:#fffbeb;box-shadow:0 14px 30px rgba(245,158,11,.12)}
+.laAdminShell .liveControlPage .liveFrame.prepared span{background:var(--studio-color-warning);box-shadow:var(--live-prepared-ring-shadow)}
+.laAdminShell .liveControlPage .liveFrame.prepared b{font-size:26px;color:var(--studio-color-surface)}
+.laAdminShell .liveControlPage .preparedCommandCenter{background:radial-gradient(circle at 50% -8%,color-mix(in srgb, var(--studio-color-warning) 20%, transparent),transparent 34%),linear-gradient(145deg,var(--studio-color-surface),var(--queue-chip-bg) 62%,var(--studio-color-warning-soft-bg))}
+.laAdminShell .liveControlPage .preparedCommandCenter .livePriceBig{background:linear-gradient(90deg,var(--studio-color-neutral),var(--studio-color-info) 48%,var(--studio-color-purple-text));-webkit-background-clip:text;background-clip:text;color:transparent}
+.laAdminShell .liveControlPage .serverCountdown.prepared{color:var(--studio-color-warning);border-color:var(--studio-color-warning-border);background:var(--studio-color-warning-soft-bg);box-shadow:var(--live-prepared-countdown-shadow)}
 .laAdminShell .liveControlPage .emotionFeedbackLayer.prepared{position:static;min-height:42px;margin-top:-4px;pointer-events:auto}
-.laAdminShell .liveControlPage .emotionFeedbackLayer.prepared span{animation:none;color:#92400e;border-color:#fde68a;background:#fffbeb;box-shadow:none}
+.laAdminShell .liveControlPage .emotionFeedbackLayer.prepared span{animation:none;color:var(--studio-color-warning-text);border-color:var(--studio-color-warning-border);background:var(--studio-color-warning-soft-bg);box-shadow:none}
 .laAdminShell .liveControlPage .preparedActionDeck .controlActionsGrid{grid-template-columns:repeat(3,minmax(0,1fr))}
-.laAdminShell .liveControlPage .controlActionLink{display:grid;place-items:center;min-height:48px;border:1px solid #dce7f5;border-radius:15px;background:linear-gradient(135deg,#eff6ff,#f5f3ff);color:#3730a3;text-decoration:none;font-weight:750;box-shadow:0 9px 18px rgba(36,56,96,.06)}
+.laAdminShell .liveControlPage .controlActionLink{display:grid;place-items:center;min-height:48px;border:1px solid var(--studio-color-info-border);border-radius:15px;background:linear-gradient(135deg,var(--studio-color-info-bg),var(--studio-color-purple-bg));color:var(--studio-color-purple-text);text-decoration:none;font-weight:750;box-shadow:var(--live-prepared-link-shadow)}
 
 @container (max-width:1150px){
   .laAdminShell .liveControlPage .controlRoomGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -1769,18 +2324,35 @@ button:disabled {
   box-shadow:var(--studio-shadow-md);
 }
 .laAdminShell .queueTopCard.current.isEmpty{
-  background:linear-gradient(135deg,#ffffff,#eef6ff 78%);
-  border-color:#bfdbfe;
+  background:linear-gradient(135deg,var(--queue-surface),var(--studio-color-info-bg) 78%);
+  border-color:var(--studio-color-info-border);
 }
 .laAdminShell .queueTopCard.next.isEmpty{
-  background:linear-gradient(135deg,#ffffff,#f5f3ff 78%);
-  border-color:#ddd6fe;
+  background:linear-gradient(135deg,var(--queue-surface),var(--studio-color-purple-bg) 78%);
+  border-color:var(--studio-color-purple-border);
 }
 .laAdminShell .queueTopCard.health{
-  background:linear-gradient(135deg,#ffffff,#f0fdf4 82%);
-  border-color:#bbf7d0;
+  background:linear-gradient(135deg,var(--queue-surface),var(--studio-color-success-bg) 82%);
+  border-color:var(--studio-color-success-border);
 }
-.laAdminShell .queueTopCard h3{font-size:22px;line-height:30px}.laAdminShell .queueTopCard header>span{font-size:14px}.laAdminShell .queueFilters{grid-template-columns:minmax(260px,1.45fr) repeat(4,minmax(116px,.75fr));gap:10px}.laAdminShell .queueFilters select,.laAdminShell .queueFilters input{min-height:42px}.laAdminShell .queueRowCard{grid-template-columns:minmax(230px,1.05fr) minmax(300px,1.35fr) minmax(220px,.9fr);min-height:112px}.laAdminShell .queueRowMiddle{grid-template-columns:repeat(2,minmax(0,1fr));}.laAdminShell .queueEmptyWorkbench{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:center;padding:28px;border:1px solid #bfdbfe;border-radius:28px;background:linear-gradient(135deg,#fff,#f8fbff 52%,#eff6ff);box-shadow:var(--studio-shadow-md)}.laAdminShell .queueEmptyIcon{display:grid;place-items:center;width:72px;height:72px;border-radius:24px;background:var(--studio-primary-soft);color:var(--studio-primary)}.laAdminShell .queueEmptyWorkbench p{margin:0 0 4px;color:var(--studio-primary);font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.laAdminShell .queueEmptyWorkbench h3{margin:0;color:var(--studio-text);font-size:22px;line-height:30px;font-weight:780;letter-spacing:-.03em}.laAdminShell .queueEmptyWorkbench span{display:block;margin-top:6px;color:var(--studio-text-3);font-size:14px;line-height:22px}.laAdminShell .queueEmptyActions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}.laAdminShell .queueEmptyChecklist{grid-column:2/-1;display:flex;gap:10px;flex-wrap:wrap}.laAdminShell .queueEmptyChecklist span{display:inline-flex;align-items:center;gap:6px;margin:0;padding:8px 10px;border:1px solid var(--studio-border);border-radius:999px;background:#fff;color:var(--studio-text-2);font-size:12px;font-weight:700}.laAdminShell .preparedControlHero{display:flex;justify-content:space-between;gap:18px;align-items:center;padding:24px;border:1px solid var(--studio-border);border-radius:26px;background:#fff;box-shadow:var(--studio-shadow-sm)}.laAdminShell .preparedControlHero p{margin:0 0 4px;color:var(--studio-primary);font-size:12px;font-weight:800;letter-spacing:.08em}.laAdminShell .preparedControlHero h2{margin:0;color:var(--studio-text)}.laAdminShell .preparedControlHero span{color:var(--studio-text-3)}
+.laAdminShell .queueTopCard h3{font-size:22px;line-height:30px}
+.laAdminShell .queueTopCard header>span{font-size:14px}
+.laAdminShell .queueFilters{grid-template-columns:minmax(260px,1.45fr) repeat(4,minmax(116px,.75fr));gap:10px}
+.laAdminShell .queueFilters select,.laAdminShell .queueFilters input{min-height:42px}
+.laAdminShell .queueRowCard{grid-template-columns:minmax(230px,1.05fr) minmax(300px,1.35fr) minmax(220px,.9fr);min-height:112px}
+.laAdminShell .queueRowMiddle{grid-template-columns:repeat(2,minmax(0,1fr));}
+.laAdminShell .queueEmptyWorkbench{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:center;padding:28px;border:1px solid var(--studio-color-info-border);border-radius:28px;background:linear-gradient(135deg,var(--queue-surface),var(--queue-chip-bg) 52%,var(--studio-color-info-bg));box-shadow:var(--studio-shadow-md)}
+.laAdminShell .queueEmptyIcon{display:grid;place-items:center;width:72px;height:72px;border-radius:24px;background:var(--studio-primary-soft);color:var(--studio-primary)}
+.laAdminShell .queueEmptyWorkbench p{margin:0 0 4px;color:var(--studio-primary);font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.laAdminShell .queueEmptyWorkbench h3{margin:0;color:var(--studio-text);font-size:22px;line-height:30px;font-weight:780;letter-spacing:-.03em}
+.laAdminShell .queueEmptyWorkbench span{display:block;margin-top:6px;color:var(--studio-text-3);font-size:14px;line-height:22px}
+.laAdminShell .queueEmptyActions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.laAdminShell .queueEmptyChecklist{grid-column:2/-1;display:flex;gap:10px;flex-wrap:wrap}
+.laAdminShell .queueEmptyChecklist span{display:inline-flex;align-items:center;gap:6px;margin:0;padding:8px 10px;border:1px solid var(--studio-border);border-radius:999px;background:var(--queue-surface);color:var(--studio-text-2);font-size:12px;font-weight:700}
+.laAdminShell .preparedControlHero{display:flex;justify-content:space-between;gap:18px;align-items:center;padding:24px;border:1px solid var(--studio-border);border-radius:26px;background:var(--queue-surface);box-shadow:var(--studio-shadow-sm)}
+.laAdminShell .preparedControlHero p{margin:0 0 4px;color:var(--studio-primary);font-size:12px;font-weight:800;letter-spacing:.08em}
+.laAdminShell .preparedControlHero h2{margin:0;color:var(--studio-text)}
+.laAdminShell .preparedControlHero span{color:var(--studio-text-3)}
 @container (max-width:1180px){
   .laAdminShell .queueTopCards{grid-template-columns:repeat(3,minmax(0,1fr));}
   .laAdminShell .queueRowCard{grid-template-columns:minmax(230px,1.05fr) minmax(300px,1.35fr) minmax(220px,.9fr);}
@@ -1964,6 +2536,7 @@ button:disabled {
   font-weight:700;
 }
 
+/* Post-live filter controls guard slice. */
 .laAdminShell .bidFilterBar input,
 .laAdminShell .bidFilterBar select{
   width:100%;
@@ -1971,7 +2544,7 @@ button:disabled {
   height:34px;
   border:1px solid var(--studio-border);
   border-radius:11px;
-  background:#fff;
+  background:var(--studio-color-surface);
   color:var(--studio-text-2);
   padding:0 9px;
   font:inherit;
@@ -1982,12 +2555,13 @@ button:disabled {
   padding:8px 10px;
   border:1px solid var(--studio-border);
   border-radius:999px;
-  background:#fff;
+  background:var(--studio-color-surface);
   color:var(--studio-text-3);
   font-size:12px;
   font-weight:700;
   text-align:center;
 }
+/* Post-live filter controls guard boundary. */
 
 .laAdminShell .bidIdentityCell,
 .laAdminShell .orderProductCell,
@@ -2002,6 +2576,7 @@ button:disabled {
 .laAdminShell .latencyDanger{color:var(--studio-danger);font-weight:750}.laAdminShell .latencyText{color:var(--studio-success);font-weight:750}
 
 @container (max-width: 760px){
+  /* Post-live mobile table guard slice. */
   .laAdminShell .studioPage:has(.postLivePage) .studioTableWrap{
     overflow:visible;
     border:0;
@@ -2014,7 +2589,7 @@ button:disabled {
     flex-direction:column;
     border:1px solid var(--studio-border);
     border-radius:18px;
-    background:#fff;
+    background:var(--studio-color-surface);
     box-shadow:var(--studio-shadow-sm);
   }
 
@@ -2033,7 +2608,7 @@ button:disabled {
     padding:14px;
     border:1px solid var(--studio-border);
     border-radius:22px;
-    background:#fff;
+    background:var(--studio-color-surface);
     box-shadow:var(--studio-shadow-sm);
   }
 
@@ -2076,6 +2651,7 @@ button:disabled {
     width:100%;
     justify-content:center;
   }
+  /* Post-live mobile table guard boundary. */
 }
 
 @media(max-width:420px){
@@ -2089,6 +2665,7 @@ button:disabled {
    StudioTable already emits data-label, so team/product/alert pages no longer rely on
    a tiny horizontal scroller at 640px. Post-live tables keep their dedicated rules. */
 @media(max-width:760px){
+  /* General mobile table guard slice. */
   .laAdminShell .studioPage:not(:has(.postLivePage)) .studioTableWrap{
     overflow:visible;
     border:0;
@@ -2101,7 +2678,7 @@ button:disabled {
     flex-direction:column;
     border:1px solid var(--studio-border);
     border-radius:18px;
-    background:#fff;
+    background:var(--studio-color-surface);
     box-shadow:var(--studio-shadow-sm);
   }
 
@@ -2119,7 +2696,7 @@ button:disabled {
     padding:14px;
     border:1px solid var(--studio-border);
     border-radius:22px;
-    background:#fff;
+    background:var(--studio-color-surface);
     box-shadow:var(--studio-shadow-sm);
   }
 
@@ -2141,6 +2718,7 @@ button:disabled {
     font-size:12px;
     font-weight:750;
   }
+  /* General mobile table guard boundary. */
 }
 
 @media(max-width:420px){
@@ -2151,17 +2729,19 @@ button:disabled {
 }
 
 /* Add-lot single action bar: clear, one-row desktop controls near the current form. */
+/* Add-lot action bar shell guard slice. */
 .laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions {
   width: 100% !important;
   max-width: none !important;
   align-items: center !important;
   padding: 14px 16px !important;
   border-radius: 22px !important;
-  background: rgba(255, 255, 255, .98) !important;
-  border-color: rgba(203, 213, 225, .9) !important;
-  box-shadow: 0 18px 42px rgba(15, 23, 42, .14) !important;
+  background: var(--create-action-bar-bg) !important;
+  border-color: var(--create-action-bar-border) !important;
+  box-shadow: var(--create-action-bar-shadow) !important;
 }
 
+/* Add-lot action bar header override boundary. */
 /* In header: strip box chrome so buttons sit naturally inside the step card header. */
 .laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepCard > header .auctionStepActions {
   background: transparent !important;
@@ -2203,49 +2783,51 @@ button:disabled {
   -webkit-text-fill-color: currentColor !important;
 }
 
+/* Add-lot action button state guard slice. */
 .laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions .studioButton-primary {
-  color: #fff !important;
-  background: #2563eb !important;
-  border-color: #2563eb !important;
-  box-shadow: 0 12px 22px rgba(37, 99, 235, .24) !important;
+  color: var(--studio-color-on-accent) !important;
+  background: var(--create-step-primary-bg) !important;
+  border-color: var(--create-step-primary-bg) !important;
+  box-shadow: var(--create-step-primary-shadow) !important;
 }
 
 .laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions .studioButton-soft {
-  color: #1d4ed8 !important;
-  background: #eff6ff !important;
-  border-color: #dbeafe !important;
+  color: var(--create-step-soft-text) !important;
+  background: var(--create-step-soft-bg) !important;
+  border-color: var(--create-step-soft-border) !important;
 }
 
 .laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions .studioButton-secondary {
-  color: #1e3a8a !important;
-  background: #f0f7ff !important;
-  border-color: #bfdbfe !important;
+  color: var(--create-step-secondary-text) !important;
+  background: var(--create-step-secondary-bg) !important;
+  border-color: var(--create-step-secondary-border) !important;
 }
 
 .laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions .studioButton:disabled {
-  color: #0f3f9f !important;
-  background: #eaf3ff !important;
-  border-color: #c7ddff !important;
+  color: var(--create-step-disabled-text) !important;
+  background: var(--create-step-disabled-bg) !important;
+  border-color: var(--create-step-disabled-border) !important;
   opacity: 1 !important;
   box-shadow: none !important;
   cursor: not-allowed !important;
-  -webkit-text-fill-color: #0f3f9f !important;
+  -webkit-text-fill-color: var(--create-step-disabled-text) !important;
 }
 
 .laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions .studioButton-primary:disabled {
-  color: #0f3f9f !important;
-  background: linear-gradient(180deg, #edf6ff, #dcecff) !important;
-  border-color: #abc9ff !important;
-  -webkit-text-fill-color: #0f3f9f !important;
+  color: var(--create-step-disabled-text) !important;
+  background: var(--create-step-primary-disabled-bg) !important;
+  border-color: var(--create-step-primary-disabled-border) !important;
+  -webkit-text-fill-color: var(--create-step-disabled-text) !important;
 }
 
 .laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions .studioButton:disabled span,
 .laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions .studioButton:disabled svg {
-  color: #0f3f9f !important;
+  color: var(--create-step-disabled-text) !important;
   opacity: 1 !important;
-  -webkit-text-fill-color: #0f3f9f !important;
+  -webkit-text-fill-color: var(--create-step-disabled-text) !important;
 }
 
+/* Add-lot action button responsive boundary. */
 @media (max-width: 960px) {
   .laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions,
   .laAdminShell .studioPage:has(.auctionCreatePage) .auctionStepActions > div {
@@ -2378,13 +2960,14 @@ button:disabled {
 }
 
 /* Add-lot validation tips: centered modal-like toast, larger and auto-dismissed by toast timer. */
+/* Add-lot toast guard slice. */
 .laAdminShell .auctionCreateToastViewport {
   left: 50% !important;
   top: 50% !important;
   right: auto !important;
   width: min(620px, calc(100vw - 48px)) !important;
   transform: translate(-50%, -50%) !important;
-  z-index: 220 !important;
+  z-index: var(--studio-z-toast) !important;
   place-items: center !important;
 }
 
@@ -2394,14 +2977,14 @@ button:disabled {
   padding: 22px 26px !important;
   border-radius: 28px !important;
   gap: 16px !important;
-  box-shadow: 0 32px 90px rgba(15, 23, 42, .24), 0 10px 28px rgba(245, 158, 11, .16) !important;
+  box-shadow: var(--create-toast-centered-shadow) !important;
   animation: auctionCenteredToastIn .22s cubic-bezier(.2, .8, .2, 1) both !important;
 }
 
 .laAdminShell .auctionCreateToastViewport .studioToast > i {
   width: 14px !important;
   height: 14px !important;
-  box-shadow: 0 0 0 7px color-mix(in srgb, currentColor 14%, transparent) !important;
+  box-shadow: var(--create-toast-centered-icon-ring) !important;
 }
 
 .laAdminShell .auctionCreateToastViewport .studioToast strong {
@@ -2437,7 +3020,7 @@ button:disabled {
   right: auto !important;
   width: min(420px, calc(100vw - var(--studio-sidebar-width) - 48px)) !important;
   transform: translateX(-50%) !important;
-  z-index: 220 !important;
+  z-index: var(--studio-z-toast) !important;
   place-items: center !important;
 }
 
@@ -2447,14 +3030,14 @@ button:disabled {
   padding: 12px 16px !important;
   border-radius: 18px !important;
   gap: 10px !important;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, .14), 0 4px 12px rgba(245, 158, 11, .12) !important;
+  box-shadow: var(--create-toast-top-shadow) !important;
   animation: auctionTopToastIn .2s cubic-bezier(.2, .8, .2, 1) both !important;
 }
 
 .laAdminShell .auctionCreateToastViewport .studioToast > i {
   width: 9px !important;
   height: 9px !important;
-  box-shadow: 0 0 0 5px color-mix(in srgb, currentColor 13%, transparent) !important;
+  box-shadow: var(--create-toast-top-icon-ring) !important;
 }
 
 .laAdminShell .auctionCreateToastViewport .studioToast strong {
@@ -2495,6 +3078,7 @@ button:disabled {
   font-size: 16px !important;
   line-height: 1.35 !important;
 }
+/* Add-lot toast guard boundary. */
 
 @keyframes auctionTopToastLifecycle {
   0% { opacity: 0; transform: translateY(-8px) scale(.98); }
@@ -2504,6 +3088,7 @@ button:disabled {
 }
 
 /* Add-lot autosave + queue-only operation model. */
+/* Add-lot title bar guard slice. */
 .laAdminShell .auctionCreateTitleBar {
   display: flex;
   align-items: center;
@@ -2512,7 +3097,7 @@ button:disabled {
   padding: 20px 22px;
   border: 1px solid var(--studio-border);
   border-radius: var(--studio-radius-xl);
-  background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(248,250,252,.92));
+  background: var(--create-title-bar-bg);
   box-shadow: var(--studio-shadow-sm);
 }
 .laAdminShell .auctionCreateTitleBar p {
@@ -2537,6 +3122,7 @@ button:disabled {
   font-size: 13px;
   line-height: 20px;
 }
+/* Add-lot title bar guard boundary. */
 .laAdminShell .autoSaveIndicator {
   flex: 0 0 auto;
   display: inline-flex;
@@ -2689,7 +3275,7 @@ button:disabled {
   min-height: 132px !important;
   padding: 28px 30px !important;
   border-radius: 30px !important;
-  box-shadow: 0 22px 54px rgba(37, 99, 235, .10) !important;
+  box-shadow: var(--queue-hover-shadow) !important;
 }
 .laAdminShell .auctionMgmtHeader h2 {
   font-size: 30px !important;
@@ -2709,7 +3295,7 @@ button:disabled {
   min-height: 286px !important;
   padding: 28px !important;
   border-radius: 30px !important;
-  box-shadow: 0 20px 48px rgba(15, 23, 42, .09), 0 2px 0 rgba(255,255,255,.8) inset !important;
+  box-shadow: var(--queue-card-shadow) !important;
 }
 .laAdminShell .queueTopCard::before {
   right: -42px !important;
@@ -2815,7 +3401,7 @@ button:disabled {
   padding: 22px 24px !important;
   gap: 22px !important;
   border-radius: 28px !important;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, .08) !important;
+  box-shadow: var(--queue-row-shadow) !important;
 }
 .laAdminShell .queueRowLeft {
   grid-template-columns: 54px 96px minmax(0, 1fr) !important;
@@ -2830,7 +3416,7 @@ button:disabled {
   width: 96px !important;
   height: 96px !important;
   border-radius: 24px !important;
-  box-shadow: 0 14px 26px rgba(15, 23, 42, .10) !important;
+  box-shadow: var(--queue-button-shadow) !important;
 }
 .laAdminShell .queueRowLeft h3 {
   margin-bottom: 12px !important;
@@ -3205,54 +3791,54 @@ button:disabled {
 }
 
 /* Queue row right operation panel: group account, order state and actions as one clean block. */
-.laAdminShell .queueRowRight {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight {
   align-self: stretch !important;
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) !important;
   align-content: center !important;
   gap: 10px !important;
   padding: 12px !important;
-  border: 1px solid rgba(226, 232, 240, .92) !important;
+  border: 1px solid var(--queue-border-soft) !important;
   border-radius: 22px !important;
-  background: linear-gradient(180deg, rgba(248,250,252,.92), rgba(255,255,255,.98)) !important;
+  background: var(--queue-neutral-bg) !important;
 }
-.laAdminShell .queueRowRight .queueAccount,
-.laAdminShell .queueRowRight .orderState,
-.laAdminShell .queueRowRight > .mutedText {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .queueAccount,
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .orderState,
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight > .mutedText {
   min-width: 0 !important;
 }
-.laAdminShell .queueRowRight .queueAccount {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .queueAccount {
   display: grid !important;
   gap: 2px !important;
 }
-.laAdminShell .queueRowRight .queueAccount b {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .queueAccount b {
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
   font-size: 15px !important;
   line-height: 20px !important;
 }
-.laAdminShell .queueRowRight .queueAccount span,
-.laAdminShell .queueRowRight .mutedText,
-.laAdminShell .queueRowRight .orderState span {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .queueAccount span,
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .mutedText,
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .orderState span {
   font-size: 12px !important;
   line-height: 18px !important;
 }
-.laAdminShell .queueRowRight .orderState b {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .orderState b {
   font-size: 14px !important;
   line-height: 19px !important;
 }
-.laAdminShell .queueRowRight > div:last-child {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight > div:last-child {
   grid-column: auto !important;
 }
-.laAdminShell .queueRowRight .auctionRowActions {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   gap: 8px !important;
 }
-.laAdminShell .queueRowRight .auctionRowActions button,
-.laAdminShell .queueRowRight .auctionRowActions a,
-.laAdminShell .queueRowRight .auctionRowActions summary {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions button,
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions a,
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions summary {
   display: inline-grid !important;
   place-items: center !important;
   width: 100% !important;
@@ -3264,10 +3850,10 @@ button:disabled {
   font-weight: 850 !important;
   white-space: nowrap !important;
 }
-.laAdminShell .queueRowRight .queueMoreActions {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .queueMoreActions {
   min-width: 0 !important;
 }
-.laAdminShell .queueRowRight .queueMoreActions summary {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .queueMoreActions summary {
   width: 100% !important;
 }
 @container (min-width: 1321px) {
@@ -3293,7 +3879,7 @@ button:disabled {
 }
 
 /* Queue row action area v2: no extra card, just larger clear buttons. */
-.laAdminShell .queueRowRight {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight {
   align-self: center !important;
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) !important;
@@ -3304,48 +3890,48 @@ button:disabled {
   background: transparent !important;
   box-shadow: none !important;
 }
-.laAdminShell .queueRowRight .queueAccount b {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .queueAccount b {
   font-size: 18px !important;
   line-height: 24px !important;
   font-weight: 900 !important;
-  color: var(--studio-text) !important;
+  color: var(--queue-text) !important;
 }
-.laAdminShell .queueRowRight .queueAccount span,
-.laAdminShell .queueRowRight .mutedText,
-.laAdminShell .queueRowRight .orderState span {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .queueAccount span,
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .mutedText,
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .orderState span {
   font-size: 14px !important;
   line-height: 22px !important;
-  color: var(--studio-text-3) !important;
+  color: var(--queue-text-muted) !important;
 }
-.laAdminShell .queueRowRight .orderState b {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .orderState b {
   font-size: 15px !important;
   line-height: 22px !important;
   font-weight: 850 !important;
 }
-.laAdminShell .queueRowRight .auctionRowActions {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(136px, 1fr)) !important;
   gap: 12px !important;
   width: 100% !important;
 }
-.laAdminShell .queueRowRight .auctionRowActions button,
-.laAdminShell .queueRowRight .auctionRowActions a,
-.laAdminShell .queueRowRight .auctionRowActions summary {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions button,
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions a,
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions summary {
   min-height: 48px !important;
   padding: 0 18px !important;
   border-radius: 16px !important;
   font-size: 15px !important;
   font-weight: 900 !important;
-  background: #fff !important;
-  border-color: #e5edf7 !important;
-  box-shadow: 0 12px 26px rgba(15, 23, 42, .08) !important;
+  background: var(--queue-surface) !important;
+  border-color: var(--queue-border-soft) !important;
+  box-shadow: var(--queue-button-shadow) !important;
 }
-.laAdminShell .queueRowRight .auctionRowActions button:hover,
-.laAdminShell .queueRowRight .auctionRowActions a:hover,
-.laAdminShell .queueRowRight .auctionRowActions summary:hover {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions button:hover,
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions a:hover,
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions summary:hover {
   transform: translateY(-1px) !important;
-  border-color: #bfdbfe !important;
-  box-shadow: 0 16px 30px rgba(37, 99, 235, .12) !important;
+  border-color: var(--studio-color-info-border) !important;
+  box-shadow: var(--queue-hover-shadow) !important;
 }
 @container (min-width: 1321px) {
   .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowCard {
@@ -3413,25 +3999,25 @@ button:disabled {
     font-size: 17px !important;
     line-height: 22px !important;
     letter-spacing: -.02em !important;
-    border: 1px solid rgba(210, 222, 241, .95) !important;
-    background: linear-gradient(180deg, #ffffff, #f8fbff) !important;
-    color: #172033 !important;
-    box-shadow: 0 16px 34px rgba(15, 23, 42, .10), inset 0 1px 0 rgba(255,255,255,.95) !important;
+    border: 1px solid var(--queue-border-soft) !important;
+    background: var(--queue-neutral-bg) !important;
+    color: var(--queue-text) !important;
+    box-shadow: var(--queue-button-shadow), var(--queue-surface-highlight) !important;
   }
   .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions button:nth-of-type(2) {
-    border-color: #2563eb !important;
-    background: linear-gradient(135deg, #2563eb, #4f46e5) !important;
-    color: #fff !important;
-    box-shadow: 0 18px 36px rgba(37, 99, 235, .26) !important;
+    border-color: var(--studio-color-info) !important;
+    background: var(--queue-primary-bg) !important;
+    color: var(--queue-contrast) !important;
+    box-shadow: var(--queue-primary-shadow) !important;
   }
   .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions a {
-    color: #1d4ed8 !important;
-    border-color: #bfdbfe !important;
-    background: linear-gradient(180deg, #ffffff, #eff6ff) !important;
+    color: var(--studio-color-info-text) !important;
+    border-color: var(--studio-color-info-border) !important;
+    background: var(--queue-chip-bg) !important;
   }
   .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .auctionRowActions summary {
-    color: #475569 !important;
-    background: linear-gradient(180deg, #ffffff, #f8fafc) !important;
+    color: var(--queue-text-muted) !important;
+    background: var(--queue-neutral-bg) !important;
   }
   .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight .queueAccount b {
     font-size: 20px !important;
@@ -3474,7 +4060,7 @@ button:disabled {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
 }
-.laAdminShell .queueRowRight > div:last-child .auctionRowActions {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowRight > div:last-child .auctionRowActions {
   inline-size: 100% !important;
   min-inline-size: 100% !important;
   max-inline-size: 100% !important;
@@ -3487,6 +4073,25 @@ button:disabled {
   max-width: none !important;
   margin-inline: 0 !important;
   container-type: inline-size;
+  --product-surface: var(--studio-color-surface);
+  --product-surface-soft: var(--studio-color-surface-soft);
+  --product-surface-glass: color-mix(in srgb, var(--studio-color-surface) 92%, transparent);
+  --product-border: var(--studio-color-neutral-border);
+  --product-border-soft: color-mix(in srgb, var(--studio-color-info-border) 62%, var(--studio-border));
+  --product-text: var(--studio-color-text);
+  --product-text-secondary: var(--studio-color-text-secondary);
+  --product-text-muted: var(--studio-color-text-muted);
+  --product-hero-bg: radial-gradient(circle at 86% 18%, color-mix(in srgb, var(--studio-color-info) 18%, transparent), transparent 34%), radial-gradient(circle at 8% 100%, color-mix(in srgb, var(--studio-color-success) 12%, transparent), transparent 30%), linear-gradient(135deg, var(--product-surface), var(--studio-color-info-bg) 52%, var(--studio-color-purple-bg));
+  --product-hero-orb: color-mix(in srgb, var(--studio-color-info) 8%, transparent);
+  --product-card-bg: linear-gradient(180deg, var(--product-surface), var(--studio-color-info-bg));
+  --product-row-bg: linear-gradient(180deg, var(--product-surface), var(--product-surface-glass));
+  --product-thumb-bg: radial-gradient(circle at 30% 22%, var(--product-surface-glass), transparent 26%), linear-gradient(135deg, var(--studio-color-info-bg), var(--studio-color-purple-bg));
+  --product-primary-bg: linear-gradient(135deg, var(--studio-color-info), var(--studio-color-purple-text));
+  --product-card-shadow: 0 18px 38px color-mix(in srgb, var(--studio-color-text) 7%, transparent);
+  --product-row-shadow: 0 18px 42px color-mix(in srgb, var(--studio-color-text) 8%, transparent);
+  --product-hover-shadow: 0 24px 54px color-mix(in srgb, var(--studio-color-info) 12%, transparent);
+  --product-button-shadow: 0 14px 30px color-mix(in srgb, var(--studio-color-text) 8%, transparent);
+  --product-primary-shadow: 0 18px 36px color-mix(in srgb, var(--studio-color-info) 24%, transparent);
 }
 .laAdminShell .studioContent:has(.productLibraryPage) {
   padding-inline: 28px !important;
@@ -3506,10 +4111,10 @@ button:disabled {
   justify-content: space-between;
   gap: 24px;
   padding: 30px 34px;
-  border: 1px solid rgba(214, 224, 242, .94);
+  border: 1px solid var(--product-border-soft);
   border-radius: 32px;
-  background: radial-gradient(circle at 86% 18%, rgba(59,130,246,.18), transparent 34%), radial-gradient(circle at 8% 100%, rgba(34,197,94,.12), transparent 30%), linear-gradient(135deg, #ffffff, #f7fbff 52%, #f5f3ff);
-  box-shadow: 0 24px 58px rgba(37, 99, 235, .10);
+  background: var(--product-hero-bg);
+  box-shadow: var(--product-hover-shadow);
 }
 .laAdminShell .productLibraryHero::after {
   content: "";
@@ -3519,7 +4124,7 @@ button:disabled {
   width: 220px;
   height: 220px;
   border-radius: 999px;
-  background: rgba(37, 99, 235, .08);
+  background: var(--product-hero-orb);
   pointer-events: none;
 }
 .laAdminShell .productLibraryHero p,
@@ -3527,7 +4132,7 @@ button:disabled {
 .laAdminShell .productLibraryHero span {
   margin: 0;
   position: relative;
-  z-index: 1;
+  z-index: var(--studio-z-raised);
 }
 .laAdminShell .productLibraryHero p {
   color: var(--studio-primary);
@@ -3556,7 +4161,7 @@ button:disabled {
 }
 .laAdminShell .productLibraryHeroActions {
   position: relative;
-  z-index: 1;
+  z-index: var(--studio-z-raised);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -3580,8 +4185,8 @@ button:disabled {
   padding: 22px 24px;
   border: 1px solid var(--studio-border);
   border-radius: 26px;
-  background: linear-gradient(180deg, #fff, #f8fbff);
-  box-shadow: 0 18px 38px rgba(15, 23, 42, .07);
+  background: var(--product-card-bg);
+  box-shadow: var(--product-card-shadow);
 }
 .laAdminShell .productLibraryStats span,
 .laAdminShell .productLibraryStats small {
@@ -3609,8 +4214,8 @@ button:disabled {
   padding: 12px;
   border: 1px solid var(--studio-border);
   border-radius: 24px;
-  background: rgba(255,255,255,.92);
-  box-shadow: 0 14px 30px rgba(15, 23, 42, .06);
+  background: var(--product-surface-glass);
+  box-shadow: var(--product-button-shadow);
 }
 .laAdminShell .productLibraryFilters label {
   display: flex;
@@ -3618,9 +4223,9 @@ button:disabled {
   gap: 10px;
   min-height: 46px;
   padding: 0 14px;
-  border: 1px solid #e5edf7;
+  border: 1px solid var(--product-border-soft);
   border-radius: 16px;
-  background: #fff;
+  background: var(--product-surface);
   color: var(--studio-text-3);
 }
 .laAdminShell .productLibraryFilters input,
@@ -3628,9 +4233,9 @@ button:disabled {
   width: 100%;
   min-width: 0;
   height: 46px;
-  border: 1px solid #e5edf7;
+  border: 1px solid var(--product-border-soft);
   border-radius: 16px;
-  background: #fff;
+  background: var(--product-surface);
   color: var(--studio-text-2);
   font-size: 14px;
   font-weight: 760;
@@ -3657,14 +4262,14 @@ button:disabled {
   padding: 22px 24px;
   border: 1px solid var(--studio-border);
   border-radius: 30px;
-  background: linear-gradient(180deg, #fff, #fbfdff);
-  box-shadow: 0 18px 42px rgba(15, 23, 42, .08);
+  background: var(--product-row-bg);
+  box-shadow: var(--product-row-shadow);
   transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
 }
 .laAdminShell .productLibraryRow:hover {
   transform: translateY(-1px);
-  border-color: #bfdbfe;
-  box-shadow: 0 24px 54px rgba(37, 99, 235, .12);
+  border-color: var(--studio-color-info-border);
+  box-shadow: var(--product-hover-shadow);
 }
 .laAdminShell .productIdentity {
   display: grid;
@@ -3692,10 +4297,10 @@ button:disabled {
   overflow: hidden;
   flex: 0 0 auto;
   border-radius: 26px;
-  border: 1px solid #dbeafe;
-  background: radial-gradient(circle at 30% 22%, rgba(255,255,255,.95), transparent 26%), linear-gradient(135deg, #dbeafe, #f5f3ff);
+  border: 1px solid var(--studio-color-info-border);
+  background: var(--product-thumb-bg);
   color: var(--studio-primary);
-  box-shadow: 0 16px 30px rgba(37, 99, 235, .12);
+  box-shadow: var(--product-hover-shadow);
 }
 .laAdminShell .productLibraryThumb img {
   display: block;
@@ -3763,22 +4368,22 @@ button:disabled {
   place-items: center;
   min-height: 50px;
   padding: 0 16px;
-  border: 1px solid #dbe7f7;
+  border: 1px solid var(--product-border-soft);
   border-radius: 17px;
-  background: linear-gradient(180deg, #fff, #f8fbff);
+  background: var(--product-card-bg);
   color: var(--studio-text-2);
   font-size: 15px;
   line-height: 22px;
   font-weight: 900;
   text-decoration: none;
   cursor: pointer;
-  box-shadow: 0 14px 30px rgba(15, 23, 42, .08);
+  box-shadow: var(--product-button-shadow);
 }
 .laAdminShell .productLibraryActions .primary {
-  border-color: #2563eb;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
-  color: #fff;
-  box-shadow: 0 18px 36px rgba(37, 99, 235, .24);
+  border-color: var(--studio-color-info);
+  background: var(--product-primary-bg);
+  color: var(--product-surface);
+  box-shadow: var(--product-primary-shadow);
 }
 @container (max-width: 1320px) {
   .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -3841,15 +4446,15 @@ button:disabled {
 }
 
 /* Queue top cards: unify action button sizing across current/next cards. */
-.laAdminShell .queueTopCard .queueTopActions {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions {
   display: flex !important;
   align-items: center !important;
   gap: 12px !important;
   flex-wrap: wrap !important;
   margin-top: 18px !important;
 }
-.laAdminShell .queueTopCard .queueTopActions > a,
-.laAdminShell .queueTopCard .queueTopActions > button {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > a,
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > button {
   box-sizing: border-box !important;
   display: inline-grid !important;
   place-items: center !important;
@@ -3863,36 +4468,36 @@ button:disabled {
   font-weight: 900 !important;
   letter-spacing: -.02em !important;
   text-decoration: none !important;
-  border: 1px solid #dbe7f7 !important;
-  background: linear-gradient(180deg, #ffffff, #f8fbff) !important;
-  color: #172033 !important;
-  box-shadow: 0 14px 28px rgba(15, 23, 42, .09), inset 0 1px 0 rgba(255,255,255,.96) !important;
+  border: 1px solid var(--queue-border-soft) !important;
+  background: var(--queue-neutral-bg) !important;
+  color: var(--queue-text) !important;
+  box-shadow: var(--queue-button-shadow), var(--queue-surface-highlight) !important;
 }
-.laAdminShell .queueTopCard .queueTopActions > .studioButton-primary,
-.laAdminShell .queueTopCard .queueTopActions > button:not(.studioButton):first-child {
-  border-color: #2563eb !important;
-  background: linear-gradient(135deg, #2563eb, #4f46e5) !important;
-  color: #fff !important;
-  box-shadow: 0 16px 32px rgba(37, 99, 235, .24) !important;
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > .studioButton-primary,
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > button:not(.studioButton):first-child {
+  border-color: var(--studio-color-info) !important;
+  background: var(--queue-primary-bg) !important;
+  color: var(--queue-contrast) !important;
+  box-shadow: var(--queue-primary-shadow) !important;
 }
-.laAdminShell .queueTopCard .queueTopActions > .studioButton-soft,
-.laAdminShell .queueTopCard .queueTopActions > .studioButton-secondary,
-.laAdminShell .queueTopCard .queueTopActions > button:not(.studioButton) {
-  border-color: #dbe7f7 !important;
-  background: linear-gradient(180deg, #ffffff, #f8fbff) !important;
-  color: #334155 !important;
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > .studioButton-soft,
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > .studioButton-secondary,
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > button:not(.studioButton) {
+  border-color: var(--queue-border-soft) !important;
+  background: var(--queue-neutral-bg) !important;
+  color: var(--queue-text-secondary) !important;
 }
-.laAdminShell .queueTopCard .queueTopActions > a:hover,
-.laAdminShell .queueTopCard .queueTopActions > button:hover:not(:disabled) {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > a:hover,
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > button:hover:not(:disabled) {
   transform: translateY(-1px) !important;
-  border-color: #bfdbfe !important;
-  box-shadow: 0 18px 34px rgba(37, 99, 235, .13) !important;
+  border-color: var(--studio-color-info-border) !important;
+  box-shadow: var(--queue-hover-shadow) !important;
 }
-.laAdminShell .queueTopCard .queueTopActions > button:disabled,
-.laAdminShell .queueTopCard .queueTopActions > .studioButton-secondary[disabled] {
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > button:disabled,
+.laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > .studioButton-secondary[disabled] {
   opacity: 1 !important;
-  color: #64748b !important;
-  background: linear-gradient(180deg, #f8fafc, #eef2f7) !important;
+  color: var(--queue-text-muted) !important;
+  background: var(--queue-disabled-bg) !important;
   box-shadow: none !important;
   cursor: not-allowed !important;
 }
@@ -3911,6 +4516,36 @@ button:disabled {
 /* Queue page 5-up operations pass: compact, scan-first layout for host teams. */
 .laAdminShell .studioPage:has(.auctionMgmtPage) {
   container-type: inline-size;
+  --queue-surface: var(--studio-color-surface);
+  --queue-surface-soft: var(--studio-color-surface-soft);
+  --queue-surface-raised: color-mix(in srgb, var(--studio-color-surface) 96%, transparent);
+  --queue-surface-glass: color-mix(in srgb, var(--studio-color-surface) 92%, transparent);
+  --queue-surface-highlight: inset 0 1px 0 color-mix(in srgb, var(--studio-color-surface) 92%, transparent);
+  --queue-border: var(--studio-color-neutral-border);
+  --queue-border-soft: color-mix(in srgb, var(--studio-color-info-border) 66%, var(--studio-border));
+  --queue-text: var(--studio-color-text);
+  --queue-text-secondary: var(--studio-color-text-secondary);
+  --queue-text-muted: var(--studio-color-text-muted);
+  --queue-contrast: var(--studio-color-surface);
+  --queue-chip-bg: color-mix(in srgb, var(--studio-color-info-bg) 42%, var(--studio-color-surface));
+  --queue-primary-bg: linear-gradient(135deg, var(--studio-color-info), var(--studio-color-purple-text));
+  --queue-neutral-bg: linear-gradient(180deg, var(--queue-surface), var(--queue-chip-bg));
+  --queue-next-bg: linear-gradient(90deg, var(--studio-color-purple-bg), var(--queue-surface) 42%);
+  --queue-image-bg: linear-gradient(135deg, var(--studio-color-info-bg), var(--studio-color-purple-bg));
+  --queue-header-shadow: 0 16px 40px color-mix(in srgb, var(--studio-color-info) 8%, transparent), var(--queue-surface-highlight);
+  --queue-card-shadow: 0 14px 32px color-mix(in srgb, var(--queue-text) 7%, transparent), var(--queue-surface-highlight);
+  --queue-panel-shadow: 0 14px 34px color-mix(in srgb, var(--queue-text) 7%, transparent);
+  --queue-row-shadow: 0 12px 28px color-mix(in srgb, var(--queue-text) 7%, transparent);
+  --queue-button-shadow: 0 10px 22px color-mix(in srgb, var(--queue-text) 6%, transparent);
+  --queue-hover-shadow: 0 16px 30px color-mix(in srgb, var(--studio-color-info) 12%, transparent);
+  --queue-primary-shadow: 0 13px 26px color-mix(in srgb, var(--studio-color-info) 22%, transparent);
+  --queue-current-ring: 0 0 0 3px var(--studio-color-info-bg), var(--studio-shadow-md);
+  --queue-disabled-bg: linear-gradient(180deg, var(--queue-surface-soft), var(--studio-color-neutral-bg));
+  --queue-overlay-bg: color-mix(in srgb, var(--queue-text) 28%, transparent);
+  --queue-drawer-bg: linear-gradient(180deg, var(--queue-surface), var(--queue-surface-soft));
+  --queue-drawer-shadow: -24px 0 70px color-mix(in srgb, var(--queue-text) 24%, transparent);
+  --queue-modal-shadow: 0 26px 80px color-mix(in srgb, var(--queue-text) 28%, transparent);
+  --queue-content-layer: var(--studio-z-raised);
 }
 .laAdminShell .studioPage:has(.auctionMgmtPage) .auctionMgmtPage {
   gap: 14px !important;
@@ -3919,7 +4554,7 @@ button:disabled {
   min-height: 104px !important;
   padding: 20px 24px !important;
   border-radius: 26px !important;
-  box-shadow: 0 16px 40px rgba(37, 99, 235, .08), inset 0 1px 0 rgba(255,255,255,.86) !important;
+  box-shadow: var(--queue-header-shadow) !important;
 }
 .laAdminShell .studioPage:has(.auctionMgmtPage) .auctionMgmtHeader h2 {
   font-size: 28px !important;
@@ -3934,7 +4569,7 @@ button:disabled {
   min-height: 62px !important;
   padding: 10px 12px !important;
   border-radius: 20px !important;
-  box-shadow: 0 10px 26px rgba(15, 23, 42, .06) !important;
+  box-shadow: var(--queue-button-shadow) !important;
 }
 .laAdminShell .studioPage:has(.auctionMgmtPage) .syncCapsuleMetrics span {
   min-height: 32px !important;
@@ -3949,7 +4584,7 @@ button:disabled {
   min-height: 184px !important;
   padding: 18px !important;
   border-radius: 24px !important;
-  box-shadow: 0 14px 32px rgba(15, 23, 42, .07), inset 0 1px 0 rgba(255,255,255,.92) !important;
+  box-shadow: var(--queue-card-shadow) !important;
 }
 .laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard::before {
   right: -58px !important;
@@ -4014,7 +4649,7 @@ button:disabled {
 .laAdminShell .studioPage:has(.auctionMgmtPage) .queueToolbarCard {
   padding: 14px !important;
   border-radius: 24px !important;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, .07) !important;
+  box-shadow: var(--queue-panel-shadow) !important;
 }
 .laAdminShell .studioPage:has(.auctionMgmtPage) .queueToolbarHeader {
   display: flex !important;
@@ -4049,15 +4684,15 @@ button:disabled {
   align-items: center !important;
   min-height: 30px !important;
   padding: 0 10px !important;
-  border: 1px solid #e2e8f0 !important;
+  border: 1px solid var(--queue-border) !important;
   border-radius: 999px !important;
-  background: #f8fbff !important;
-  color: #64748b !important;
+  background: var(--queue-chip-bg) !important;
+  color: var(--queue-text-muted) !important;
   font-size: 12px !important;
   font-weight: 850 !important;
 }
 .laAdminShell .studioPage:has(.auctionMgmtPage) .queuePageMeta b {
-  color: #172033 !important;
+  color: var(--queue-text) !important;
   font-variant-numeric: tabular-nums !important;
 }
 .laAdminShell .studioPage:has(.auctionMgmtPage) .queueFilters {
@@ -4076,8 +4711,8 @@ button:disabled {
 .laAdminShell .studioPage:has(.auctionMgmtPage) .queueFilters input,
 .laAdminShell .studioPage:has(.auctionMgmtPage) .queueFilters select {
   min-height: 42px !important;
-  border-color: #dbe7f7 !important;
-  background: #fff !important;
+  border-color: var(--queue-border-soft) !important;
+  background: var(--queue-surface) !important;
   font-size: 13px !important;
 }
 .laAdminShell .studioPage:has(.auctionMgmtPage) .queuePager {
@@ -4092,14 +4727,14 @@ button:disabled {
   justify-content: center !important;
   gap: 6px !important;
   min-height: 42px !important;
-  border: 1px solid #dbe7f7 !important;
+  border: 1px solid var(--queue-border-soft) !important;
   border-radius: 14px !important;
-  background: linear-gradient(180deg, #ffffff, #f8fbff) !important;
-  color: #334155 !important;
+  background: var(--queue-neutral-bg) !important;
+  color: var(--queue-text-secondary) !important;
   font-size: 13px !important;
   font-weight: 900 !important;
   cursor: pointer !important;
-  box-shadow: 0 10px 22px rgba(15, 23, 42, .06) !important;
+  box-shadow: var(--queue-button-shadow) !important;
 }
 .laAdminShell .studioPage:has(.auctionMgmtPage) .queuePager button:disabled {
   opacity: .48 !important;
@@ -4115,7 +4750,7 @@ button:disabled {
   padding: 14px 16px !important;
   gap: 16px !important;
   border-radius: 22px !important;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, .07) !important;
+  box-shadow: var(--queue-row-shadow) !important;
 }
 .laAdminShell .studioPage:has(.auctionMgmtPage) .queueRowLeft {
   grid-template-columns: 42px 68px minmax(0, 1fr) !important;
@@ -4214,23 +4849,23 @@ button:disabled {
   line-height: 18px !important;
   font-weight: 900 !important;
   letter-spacing: 0 !important;
-  box-shadow: 0 10px 22px rgba(15, 23, 42, .07), inset 0 1px 0 rgba(255,255,255,.96) !important;
+  box-shadow: var(--queue-button-shadow), var(--queue-surface-highlight) !important;
 }
 .laAdminShell .studioPage:has(.auctionMgmtPage) .auctionRowActions .queueActionPrimary {
-  border-color: #2563eb !important;
-  background: linear-gradient(135deg, #2563eb, #4f46e5) !important;
-  color: #fff !important;
-  box-shadow: 0 13px 26px rgba(37, 99, 235, .22) !important;
+  border-color: var(--studio-color-info) !important;
+  background: var(--queue-primary-bg) !important;
+  color: var(--queue-contrast) !important;
+  box-shadow: var(--queue-primary-shadow) !important;
 }
 .laAdminShell .studioPage:has(.auctionMgmtPage) .auctionRowActions .queueActionPlain {
-  border-color: #dbe7f7 !important;
-  background: linear-gradient(180deg, #fff, #f8fbff) !important;
-  color: #334155 !important;
+  border-color: var(--queue-border-soft) !important;
+  background: var(--queue-neutral-bg) !important;
+  color: var(--queue-text-secondary) !important;
 }
 .laAdminShell .studioPage:has(.auctionMgmtPage) .auctionRowActions .queueActionDanger {
-  border-color: #fecdd3 !important;
-  background: #fff1f2 !important;
-  color: #be123c !important;
+  border-color: var(--studio-color-error-border) !important;
+  background: var(--studio-color-error-soft-bg) !important;
+  color: var(--studio-color-error-text) !important;
   box-shadow: none !important;
 }
 .laAdminShell .studioPage:has(.auctionMgmtPage) .auctionRowActions button:disabled {
@@ -4284,6 +4919,31 @@ button:disabled {
 }
 
 /* Add-lot carousel upload: always render uploaded images as bounded thumbnails. */
+.laAdminShell .studioPage:has(.auctionCreatePage) {
+  --create-media-surface: var(--studio-color-surface);
+  --create-media-surface-soft: var(--studio-color-surface-soft);
+  --create-media-border: var(--studio-color-neutral-border);
+  --create-media-border-soft: color-mix(in srgb, var(--studio-color-neutral-border) 86%, transparent);
+  --create-media-card-bg: linear-gradient(145deg, var(--studio-color-neutral-bg), var(--studio-color-info-bg));
+  --create-media-checker-bg:
+    linear-gradient(45deg, color-mix(in srgb, var(--studio-color-neutral) 12%, transparent) 25%, transparent 25%),
+    linear-gradient(-45deg, color-mix(in srgb, var(--studio-color-neutral) 12%, transparent) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, color-mix(in srgb, var(--studio-color-neutral) 12%, transparent) 75%),
+    linear-gradient(-45deg, transparent 75%, color-mix(in srgb, var(--studio-color-neutral) 12%, transparent) 75%),
+    var(--studio-color-neutral-bg);
+  --create-media-preview-bg: linear-gradient(135deg, var(--studio-color-info-bg), var(--studio-color-error-soft-bg));
+  --create-media-phone-bg:
+    radial-gradient(circle at 22% 12%, color-mix(in srgb, var(--studio-color-info-border) 20%, transparent), transparent 36%),
+    var(--create-media-preview-bg);
+  --create-media-overlay-bg: color-mix(in srgb, var(--studio-color-text) 66%, transparent);
+  --create-media-overlay-soft: color-mix(in srgb, var(--create-media-surface) 22%, transparent);
+  --create-media-overlay-border: color-mix(in srgb, var(--create-media-surface) 75%, transparent);
+  --create-media-overlay-text: var(--create-media-surface);
+  --create-media-danger-bg: color-mix(in srgb, var(--studio-color-error) 90%, transparent);
+  --create-media-card-shadow: 0 10px 24px color-mix(in srgb, var(--studio-color-text) 8%, transparent);
+  --create-media-control-shadow: 0 8px 18px color-mix(in srgb, var(--studio-color-text) 18%, transparent);
+  --create-media-label-shadow: 0 10px 24px color-mix(in srgb, var(--studio-color-text) 18%, transparent);
+}
 .laAdminShell .studioPage:has(.auctionCreatePage) .fieldCarousel,
 .laAdminShell .studioPage:has(.auctionCreatePage) .fieldCarousel .studioFieldControl{
   min-width: 0;
@@ -4323,9 +4983,9 @@ button:disabled {
   aspect-ratio: 4 / 3;
   overflow: hidden;
   border-radius: 16px;
-  border: 1px solid rgba(203, 213, 225, .86);
-  background: linear-gradient(145deg, #f8fafc, #eef4ff);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, .08);
+  border: 1px solid var(--create-media-border-soft);
+  background: var(--create-media-card-bg);
+  box-shadow: var(--create-media-card-shadow);
 }
 .laAdminShell .studioPage:has(.auctionCreatePage) .carouselPreviewGrid figure > img{
   display: block;
@@ -4352,8 +5012,8 @@ button:disabled {
   min-width: 0;
   padding: 5px 7px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, .66);
-  color: #fff;
+  background: var(--create-media-overlay-bg);
+  color: var(--create-media-overlay-text);
   backdrop-filter: blur(10px);
 }
 .laAdminShell .studioPage:has(.auctionCreatePage) .carouselPreviewGrid figcaption b{
@@ -4363,7 +5023,7 @@ button:disabled {
   width: 18px;
   height: 18px;
   border-radius: 999px;
-  background: rgba(255,255,255,.22);
+  background: var(--create-media-overlay-soft);
   font-size: 11px;
   line-height: 1;
 }
@@ -4385,18 +5045,18 @@ button:disabled {
   width: 28px;
   height: 28px;
   padding: 0;
-  border: 1px solid rgba(255,255,255,.75);
+  border: 1px solid var(--create-media-overlay-border);
   border-radius: 999px;
-  background: rgba(15, 23, 42, .68);
-  color: #fff;
+  background: var(--create-media-overlay-bg);
+  color: var(--create-media-overlay-text);
   font-size: 19px;
   line-height: 1;
   font-weight: 900;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, .18);
+  box-shadow: var(--create-media-control-shadow);
   cursor: pointer;
 }
 .laAdminShell .studioPage:has(.auctionCreatePage) .carouselPreviewGrid figure > button:hover{
-  background: rgba(220, 38, 38, .9);
+  background: var(--create-media-danger-bg);
   transform: translateY(-1px);
 }
 @container (max-width: 980px){
@@ -4418,16 +5078,11 @@ button:disabled {
   min-height: 0 !important;
   height: auto !important;
   aspect-ratio: 4 / 3 !important;
-  max-height: 420px !important;
+  max-height: none !important;
   padding: 0 !important;
   overflow: hidden !important;
   border-radius: 20px !important;
-  background:
-    linear-gradient(45deg, rgba(148,163,184,.12) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(148,163,184,.12) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, rgba(148,163,184,.12) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(148,163,184,.12) 75%),
-    #f8fafc !important;
+  background: var(--create-media-checker-bg) !important;
   background-position: 0 0, 0 12px, 12px -12px, -12px 0 !important;
   background-size: 24px 24px !important;
 }
@@ -4443,7 +5098,7 @@ button:disabled {
 .laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .mainImageUpload.hasImage > b,
 .laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .mainImageUpload.hasImage > span{
   position: absolute !important;
-  z-index: 2 !important;
+  z-index: var(--studio-z-raised) !important;
   bottom: 12px !important;
   max-width: calc(100% - 30px) !important;
   min-height: 30px !important;
@@ -4451,9 +5106,9 @@ button:disabled {
   align-items: center !important;
   padding: 0 10px !important;
   border-radius: 999px !important;
-  background: rgba(15, 23, 42, .64) !important;
-  color: #fff !important;
-  box-shadow: 0 10px 24px rgba(15,23,42,.18) !important;
+  background: var(--create-media-overlay-bg) !important;
+  color: var(--create-media-overlay-text) !important;
+  box-shadow: var(--create-media-label-shadow) !important;
   backdrop-filter: blur(10px) !important;
 }
 .laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .mainImageUpload.hasImage > b{
@@ -4472,12 +5127,10 @@ button:disabled {
   font-weight: 850 !important;
 }
 .laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .mainImageUpload.hasImage > input{
-  z-index: 4 !important;
+  z-index: var(--studio-z-dropdown) !important;
 }
 .laAdminShell .studioPage:has(.auctionCreatePage) .phoneImage{
-  background:
-    radial-gradient(circle at 22% 12%, rgba(147, 197, 253, .2), transparent 36%),
-    linear-gradient(135deg, #f8fbff, #fff5f9) !important;
+  background: var(--create-media-phone-bg) !important;
 }
 .laAdminShell .studioPage:has(.auctionCreatePage) .phoneImage img{
   display: block !important;
@@ -4519,7 +5172,7 @@ button:disabled {
 
 /* Final media rule: previews are cover cards. Recommended upload size is 1200×900 (4:3). */
 .laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .mainImageUpload.hasImage{
-  background: linear-gradient(135deg, #eef4ff, #fff5f9) !important;
+  background: var(--create-media-preview-bg) !important;
 }
 .laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .mainImageUpload.hasImage > img{
   object-fit: cover !important;
@@ -4536,6 +5189,101 @@ button:disabled {
 }
 .laAdminShell .studioPage:has(.auctionCreatePage) .fieldMainImage .studioFieldHelp,
 .laAdminShell .studioPage:has(.auctionCreatePage) .fieldCarousel .studioFieldHelp{
-  color: #2563eb !important;
+  color: var(--studio-color-info-text) !important;
   font-weight: 750 !important;
+}
+
+/* Auction create stepper clarity: shallow states, dark text, centered icons. */
+.laAdminShell .auctionCreatePage .auctionCreateStepper button{
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  color: var(--studio-color-text-secondary);
+}
+.laAdminShell .auctionCreatePage .auctionCreateStepper button b{
+  grid-column: 1;
+  grid-row: 1 / 3;
+  background: var(--studio-color-neutral-bg);
+  color: var(--studio-color-text-muted);
+}
+.laAdminShell .auctionCreatePage .auctionCreateStepper button b svg{
+  display: block;
+  margin: 0;
+  color: currentColor;
+}
+.laAdminShell .auctionCreatePage .auctionCreateStepper button span{
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  color: var(--studio-color-text);
+}
+.laAdminShell .auctionCreatePage .auctionCreateStepper button small{
+  grid-column: 2 / 4;
+  grid-row: 2;
+  min-width: 0;
+}
+.laAdminShell .auctionCreatePage .auctionCreateStepper .stepStatus{
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  padding: 3px 8px;
+  border: 1px solid var(--studio-color-neutral-border);
+  border-radius: 999px;
+  background: var(--studio-color-neutral-bg);
+  color: var(--studio-color-text-muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 750;
+  line-height: 16px;
+  white-space: nowrap;
+}
+.laAdminShell .auctionCreatePage .auctionCreateStepper button.done{
+  border-color: var(--studio-color-success-border);
+  background: color-mix(in srgb, var(--studio-color-success-bg) 38%, var(--studio-color-surface));
+}
+.laAdminShell .auctionCreatePage .auctionCreateStepper button.done b,
+.laAdminShell .auctionCreatePage .auctionCreateStepper button.done .stepStatus{
+  background: var(--studio-color-success-bg);
+  color: var(--studio-color-success);
+  border-color: var(--studio-color-success-border);
+}
+.laAdminShell .auctionCreatePage .auctionCreateStepper button.active{
+  border-color: var(--studio-color-info-border);
+  background: color-mix(in srgb, var(--studio-color-info-bg) 58%, var(--studio-color-surface));
+  color: var(--studio-color-text);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--studio-color-info) 10%, transparent), var(--studio-shadow-sm);
+}
+.laAdminShell .auctionCreatePage .auctionCreateStepper button.active b,
+.laAdminShell .auctionCreatePage .auctionCreateStepper button.active .stepStatus{
+  background: var(--studio-color-info-bg);
+  color: var(--studio-color-info-text);
+  border-color: var(--studio-color-info-border);
+}
+.laAdminShell .auctionCreatePage .auctionCreateStepper button.risk:not(.active){
+  border-color: var(--studio-color-warning-border);
+  background: color-mix(in srgb, var(--studio-color-warning-soft-bg) 62%, var(--studio-color-surface));
+}
+.laAdminShell .auctionCreatePage .auctionCreateStepper button.risk:not(.active) b,
+.laAdminShell .auctionCreatePage .auctionCreateStepper button.risk .stepStatus{
+  background: var(--studio-color-warning-bg);
+  color: var(--studio-color-warning-text);
+  border-color: var(--studio-color-warning-border);
+}
+.laAdminShell .auctionCreatePage .auctionCreateStepper button.active.risk{
+  border-color: var(--studio-color-info-border);
+  background: color-mix(in srgb, var(--studio-color-info-bg) 58%, var(--studio-color-surface));
+}
+.laAdminShell .auctionCreatePage .auctionCreateStepper button.active.risk b{
+  background: var(--studio-color-info-bg);
+  color: var(--studio-color-info-text);
+  border-color: var(--studio-color-info-border);
+}
+.laAdminShell .auctionCreatePage .auctionCreateStepper button.locked{
+  opacity: .72;
+  filter: none;
+}
+.laAdminShell .auctionCreatePage .auctionCreateStepper button.locked .stepStatus{
+  background: var(--studio-color-neutral-bg);
+  color: var(--studio-color-text-muted);
+  border-color: var(--studio-color-neutral-border);
 }

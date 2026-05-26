@@ -1,0 +1,1104 @@
+.studioPage:has(.merchantDashboardPage) {
+  width: 100%;
+  max-width: none;
+}
+
+.merchantDashboardPage {
+  --merchant-ink: var(--studio-color-text);
+  --merchant-muted: var(--studio-color-text-muted);
+  --merchant-line: color-mix(in srgb, var(--studio-color-text) 10%, transparent);
+  --merchant-surface-solid: var(--studio-color-surface);
+  --merchant-surface: color-mix(in srgb, var(--studio-color-surface) 88%, transparent);
+  --merchant-surface-strong: color-mix(in srgb, var(--studio-color-surface) 94%, transparent);
+  --merchant-surface-panel: color-mix(in srgb, var(--studio-color-surface) 86%, transparent);
+  --merchant-surface-row: color-mix(in srgb, var(--studio-color-surface) 76%, transparent);
+  --merchant-surface-soft: color-mix(in srgb, var(--studio-color-surface) 68%, transparent);
+  --merchant-soft: color-mix(in srgb, var(--studio-color-surface-soft) 92%, transparent);
+  --merchant-table-head-bg: color-mix(in srgb, var(--studio-color-surface-soft) 94%, transparent);
+  --merchant-surface-border: color-mix(in srgb, var(--studio-color-surface) 82%, transparent);
+  --merchant-surface-border-soft: color-mix(in srgb, var(--studio-color-surface) 78%, transparent);
+  --merchant-surface-highlight: inset 0 1px 0 color-mix(in srgb, var(--studio-color-surface) 80%, transparent);
+  --merchant-contrast-text: var(--studio-color-surface);
+  --merchant-contrast-muted: color-mix(in srgb, var(--studio-color-surface) 78%, transparent);
+  --merchant-active-shadow: 0 10px 24px color-mix(in srgb, var(--studio-color-text) 18%, transparent);
+  --merchant-hero-shadow: 0 20px 54px color-mix(in srgb, var(--studio-color-neutral) 10%, transparent);
+  --merchant-card-shadow: 0 16px 44px color-mix(in srgb, var(--studio-color-neutral) 10%, transparent);
+  --merchant-tooltip-shadow: 0 14px 34px color-mix(in srgb, var(--studio-color-neutral) 10%, transparent);
+  --merchant-duration-hover: 180ms;
+  --merchant-duration-row: 380ms;
+  --merchant-duration-feed-row: 420ms;
+  --merchant-duration-area: 500ms;
+  --merchant-duration-bubble: 640ms;
+  --merchant-duration-funnel: 720ms;
+  --merchant-duration-funnel-large: 900ms;
+  --merchant-duration-line: 1050ms;
+  --merchant-delay-area: 180ms;
+  --merchant-ease-default: ease;
+  --merchant-ease-emphasized: cubic-bezier(.22, 1, .36, 1);
+  --merchant-z-raised: var(--studio-z-raised);
+  --merchant-green: var(--studio-color-success);
+  --merchant-blue: var(--studio-color-info);
+  --merchant-amber: var(--studio-color-warning);
+  --merchant-rose: var(--studio-color-error);
+  --merchant-violet: var(--studio-color-purple-text);
+  --merchant-slate: var(--studio-color-neutral);
+  --merchant-primary-border-soft: color-mix(in srgb, var(--merchant-blue) 28%, transparent);
+  --merchant-subtle-bg: color-mix(in srgb, var(--studio-color-text) 4%, transparent);
+  --merchant-neutral-bg: color-mix(in srgb, var(--merchant-slate) 12%, transparent);
+  --merchant-success-bg: color-mix(in srgb, var(--merchant-green) 12%, transparent);
+  --merchant-error-bg: color-mix(in srgb, var(--merchant-rose) 12%, transparent);
+  --merchant-chart-gmv: var(--merchant-blue);
+  --merchant-chart-paid: var(--merchant-green);
+  --merchant-chart-pending: var(--merchant-amber);
+  --merchant-chart-abnormal: var(--merchant-rose);
+  --merchant-chart-gmv-bg: color-mix(in srgb, var(--merchant-chart-gmv) 12%, transparent);
+  display: grid;
+  gap: 20px;
+  width: 100%;
+  color: var(--merchant-ink);
+}
+
+.merchantDashboardPage .merchantDashboardHero {
+  overflow: hidden;
+  border-color: var(--merchant-surface-border-soft);
+  background:
+    linear-gradient(135deg, var(--merchant-surface-strong), var(--merchant-surface-soft)),
+    linear-gradient(120deg, var(--merchant-success-bg), color-mix(in srgb, var(--merchant-amber) 10%, transparent) 48%, color-mix(in srgb, var(--merchant-blue) 10%, transparent));
+  box-shadow: var(--merchant-hero-shadow);
+}
+
+.merchantDashboardHero .studioSectionHeader {
+  align-items: center;
+}
+
+.merchantDashboardHero .studioSectionHeader h2,
+.merchantDashboardHero .studioSectionHeader p,
+.merchantDashboardHero .studioSectionHeader span {
+  letter-spacing: 0;
+}
+
+.merchantHeroActions,
+.merchantRangeBar,
+.merchantHeroMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.merchantHeroActions {
+  justify-content: flex-end;
+}
+
+.merchantRangeBar {
+  margin-top: 22px;
+  padding: 6px;
+  width: max-content;
+  max-width: 100%;
+  border: 1px solid var(--merchant-line);
+  border-radius: 18px;
+  background: var(--merchant-surface-soft);
+  box-shadow: var(--merchant-surface-highlight);
+}
+
+.merchantRangeBar button {
+  min-width: 98px;
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--merchant-muted);
+  text-align: left;
+  cursor: pointer;
+}
+
+.merchantRangeBar button b {
+  color: var(--merchant-ink);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.merchantRangeBar button span,
+.merchantHeroMeta span {
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.merchantRangeBar button.active {
+  background: var(--merchant-ink);
+  color: var(--merchant-contrast-muted);
+  box-shadow: var(--merchant-active-shadow);
+}
+
+.merchantRangeBar button.active b {
+  color: var(--merchant-contrast-text);
+}
+
+.merchantHeroMeta {
+  margin-top: 16px;
+}
+
+.merchantHeroMeta span {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--merchant-surface-soft);
+  color: var(--merchant-muted);
+  border: 1px solid var(--merchant-surface-border-soft);
+}
+
+.merchantHeroMeta b {
+  color: var(--merchant-ink);
+  font-weight: 750;
+}
+
+.merchantMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.merchantMetricCard {
+  position: relative;
+  overflow: hidden;
+  min-height: 172px;
+  display: grid;
+  align-content: space-between;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid var(--merchant-surface-border);
+  background: var(--merchant-surface);
+  box-shadow: var(--merchant-card-shadow);
+}
+
+.merchantMetricCard::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 4px;
+  background: currentColor;
+  opacity: .45;
+}
+
+.merchantMetricCard header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.merchantMetricIcon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 15px;
+  background: color-mix(in srgb, currentColor 14%, white);
+}
+
+.merchantMetricCard p {
+  margin: 0;
+  color: var(--merchant-muted);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 750;
+}
+
+.merchantMetricCard strong {
+  display: block;
+  min-width: 0;
+  color: var(--merchant-ink);
+  font-size: 30px;
+  line-height: 38px;
+  font-weight: 780;
+  letter-spacing: 0;
+}
+
+.merchantAnimatedValue {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.merchantTrendBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 800;
+  white-space: nowrap;
+  background: var(--merchant-neutral-bg);
+  color: var(--merchant-slate);
+}
+
+.merchantTrendBadge.up {
+  background: var(--merchant-success-bg);
+  color: var(--merchant-green);
+}
+
+.merchantTrendBadge.down {
+  background: var(--merchant-error-bg);
+  color: var(--merchant-rose);
+}
+
+.merchantSparkline {
+  width: 100%;
+  height: 30px;
+  color: currentColor;
+  opacity: .78;
+}
+
+.metric-green { color: var(--merchant-green); }
+.metric-blue { color: var(--merchant-blue); }
+.metric-amber { color: var(--merchant-amber); }
+.metric-rose { color: var(--merchant-rose); }
+.metric-violet { color: var(--merchant-violet); }
+.metric-slate { color: var(--merchant-slate); }
+
+.merchantTopGrid,
+.merchantChartGrid,
+.merchantPerformanceGrid,
+.merchantRiskGrid {
+  display: grid;
+  gap: 20px;
+}
+
+.merchantTopGrid {
+  grid-template-columns: minmax(0, 1.35fr) minmax(360px, .65fr);
+}
+
+.merchantChartGrid {
+  grid-template-columns: minmax(380px, .85fr) minmax(0, 1.15fr);
+}
+
+.merchantPerformanceGrid {
+  grid-template-columns: minmax(380px, .95fr) minmax(0, 1.05fr);
+}
+
+.merchantRiskGrid {
+  grid-template-columns: minmax(360px, .8fr) minmax(0, 1.2fr);
+}
+
+.merchantDashboardPage .merchantPanel {
+  min-width: 0;
+  border-color: var(--merchant-surface-border);
+  background: var(--merchant-surface-panel);
+  box-shadow: var(--merchant-card-shadow);
+}
+
+.merchantLiveLot {
+  display: grid;
+  grid-template-columns: minmax(320px, .45fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.merchantLiveImage {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 0;
+  aspect-ratio: 4 / 3;
+  border-radius: 20px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--merchant-ink) 92%, transparent), color-mix(in srgb, var(--merchant-green) 58%, transparent));
+  color: var(--merchant-contrast-text);
+}
+
+.merchantLiveImage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+}
+
+.merchantLiveBody {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.merchantLiveBody h3 {
+  margin: 0;
+  color: var(--merchant-ink);
+  font-size: 22px;
+  line-height: 30px;
+  letter-spacing: 0;
+}
+
+.merchantLivePrice {
+  display: grid;
+  gap: 3px;
+}
+
+.merchantLivePrice span,
+.merchantLiveFacts span,
+.merchantBidTape span {
+  color: var(--merchant-muted);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.merchantLivePrice b {
+  color: var(--merchant-rose);
+  font-size: 36px;
+  line-height: 42px;
+  font-weight: 780;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.merchantLiveFacts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.merchantLiveFacts span {
+  display: grid;
+  gap: 3px;
+  min-height: 68px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--merchant-line);
+  background: var(--merchant-soft);
+}
+
+.merchantLiveFacts b {
+  overflow: hidden;
+  color: var(--merchant-ink);
+  font-size: 14px;
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merchantBidTape {
+  display: grid;
+  gap: 8px;
+}
+
+.merchantBidTape div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--merchant-subtle-bg);
+  animation: merchantRowIn var(--merchant-duration-feed-row) var(--merchant-ease-default) both;
+}
+
+.merchantBidTape b {
+  color: var(--merchant-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.merchantActionList {
+  display: grid;
+  gap: 10px;
+}
+
+.merchantActionItem {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 13px;
+  border-radius: 16px;
+  border: 1px solid var(--merchant-line);
+  background: var(--merchant-soft);
+  color: var(--merchant-ink);
+  text-decoration: none;
+  transition:
+    transform var(--merchant-duration-hover) var(--merchant-ease-default),
+    border-color var(--merchant-duration-hover) var(--merchant-ease-default),
+    background var(--merchant-duration-hover) var(--merchant-ease-default);
+}
+
+.merchantActionItem:hover {
+  transform: translateY(-1px);
+  border-color: var(--merchant-primary-border-soft);
+  background: var(--merchant-surface-strong);
+}
+
+.merchantActionItem > span {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: var(--merchant-subtle-bg);
+}
+
+.merchantActionItem b,
+.merchantActionItem small {
+  display: block;
+}
+
+.merchantActionItem b {
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.merchantActionItem small {
+  color: var(--merchant-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.merchantActionItem strong {
+  min-width: 38px;
+  text-align: right;
+  color: currentColor;
+  font-size: 24px;
+  line-height: 30px;
+  font-variant-numeric: tabular-nums;
+}
+
+.merchantAction-warning { color: var(--merchant-amber); }
+.merchantAction-danger { color: var(--merchant-rose); }
+.merchantAction-success { color: var(--merchant-green); }
+.merchantAction-info { color: var(--merchant-blue); }
+
+.merchantFunnel {
+  display: grid;
+  gap: 13px;
+}
+
+.merchantFunnelRow {
+  display: grid;
+  grid-template-columns: minmax(126px, .42fr) minmax(140px, 1fr) 72px;
+  gap: 12px;
+  align-items: center;
+}
+
+.merchantFunnelLabel {
+  display: grid;
+  gap: 2px;
+}
+
+.merchantFunnelLabel b {
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.merchantFunnelLabel span {
+  color: var(--merchant-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.merchantFunnelTrack {
+  overflow: hidden;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--merchant-subtle-bg);
+}
+
+.merchantFunnelTrack span {
+  display: block;
+  width: var(--funnel-width);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--merchant-green), var(--merchant-blue));
+  transform-origin: left center;
+  animation: merchantFunnelIn var(--merchant-duration-funnel-large) var(--merchant-ease-emphasized) both;
+  animation-delay: var(--delay);
+}
+
+.merchantFunnelRow strong {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.merchantLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.merchantLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--merchant-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.merchantLegend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 99px;
+}
+
+.merchantLegend .gmv { background: var(--merchant-chart-gmv); }
+.merchantLegend .paid { background: var(--merchant-chart-paid); }
+.merchantLegend .pending { background: var(--merchant-chart-pending); }
+.merchantLegend .abnormal { background: var(--merchant-chart-abnormal); }
+
+.merchantTrendChart {
+  position: relative;
+  min-height: 350px;
+}
+
+.merchantTrendChart svg {
+  width: 100%;
+  min-height: 300px;
+  overflow: visible;
+}
+
+.merchantTrendChart line {
+  stroke: var(--merchant-line);
+}
+
+.merchantTrendChart text {
+  fill: var(--merchant-muted);
+  font-size: 11px;
+  text-anchor: middle;
+}
+
+.merchantTrendChart g > text:first-of-type {
+  text-anchor: start;
+}
+
+.merchantArea {
+  fill: var(--merchant-chart-gmv-bg);
+  opacity: 0;
+  animation: merchantAreaIn var(--merchant-duration-area) var(--merchant-ease-default) var(--merchant-delay-area) both;
+}
+
+.merchantLine {
+  fill: none;
+  stroke: var(--merchant-chart-gmv);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+  animation: merchantDrawLine var(--merchant-duration-line) var(--merchant-ease-default) both;
+}
+
+.merchantLinePoint {
+  fill: var(--merchant-surface-solid);
+  stroke: var(--merchant-chart-gmv);
+  stroke-width: 3;
+}
+
+.merchantTrendChart rect {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: merchantBarGrow var(--merchant-duration-funnel) var(--merchant-ease-emphasized) both;
+}
+
+.bar-paid { fill: var(--merchant-chart-paid); }
+.bar-pending { fill: var(--merchant-chart-pending); }
+.bar-abnormal { fill: var(--merchant-chart-abnormal); }
+
+.merchantTrendChart .merchantHoverBand {
+  fill: transparent;
+  animation: none;
+}
+
+.merchantChartTooltip {
+  position: absolute;
+  right: 10px;
+  top: 44px;
+  display: grid;
+  gap: 4px;
+  min-width: 160px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--merchant-surface-border);
+  background: var(--merchant-surface);
+  box-shadow: var(--merchant-tooltip-shadow);
+}
+
+.merchantChartTooltip b {
+  font-size: 13px;
+}
+
+.merchantChartTooltip span {
+  color: var(--merchant-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.merchantLotRanking {
+  display: grid;
+  gap: 10px;
+}
+
+.merchantLotRanking > div {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) minmax(120px, .7fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--merchant-line);
+}
+
+.merchantLotRanking > div:last-child {
+  border-bottom: 0;
+}
+
+.merchantLotRanking span {
+  color: var(--merchant-muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.merchantLotRanking b,
+.merchantLotRanking small {
+  display: block;
+}
+
+.merchantLotRanking b {
+  overflow: hidden;
+  color: var(--merchant-ink);
+  font-size: 14px;
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merchantLotRanking small {
+  color: var(--merchant-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.merchantLotRanking strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.merchantRankBar {
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--merchant-subtle-bg);
+}
+
+.merchantRankBar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--merchant-amber), var(--merchant-rose));
+  animation: merchantFunnelIn var(--merchant-duration-funnel) var(--merchant-ease-default) both;
+}
+
+.merchantBubbleChart {
+  width: 100%;
+  min-height: 320px;
+}
+
+.merchantBubbleChart line {
+  stroke: var(--merchant-line);
+}
+
+.merchantBubbleChart text {
+  fill: var(--merchant-muted);
+  font-size: 11px;
+}
+
+.merchantBubbleChart .axisLabel {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.bubble {
+  stroke: var(--merchant-surface-solid);
+  stroke-width: 2;
+  opacity: .76;
+  animation: merchantBubbleIn var(--merchant-duration-bubble) var(--merchant-ease-default) both;
+}
+
+.bubble-0 { fill: var(--merchant-chart-paid); }
+.bubble-1 { fill: var(--merchant-chart-gmv); }
+.bubble-2 { fill: var(--merchant-chart-pending); }
+.bubble-3 { fill: var(--merchant-chart-abnormal); }
+.bubble-4 { fill: var(--merchant-violet); }
+
+.merchantRiskPanelBody {
+  display: grid;
+  grid-template-columns: 190px minmax(180px, .65fr) minmax(240px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.merchantRiskDonut {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  width: 176px;
+  height: 176px;
+  border-radius: 50%;
+}
+
+.merchantRiskDonut::after {
+  content: "";
+  position: absolute;
+  inset: 28px;
+  border-radius: 50%;
+  background: var(--merchant-surface-solid);
+}
+
+.merchantRiskDonut strong,
+.merchantRiskDonut span {
+  position: relative;
+  z-index: var(--merchant-z-raised);
+}
+
+.merchantRiskDonut strong {
+  font-size: 30px;
+  line-height: 36px;
+  font-variant-numeric: tabular-nums;
+}
+
+.merchantRiskDonut span {
+  color: var(--merchant-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.merchantRiskLegend,
+.merchantCountdownList {
+  display: grid;
+  gap: 9px;
+}
+
+.merchantRiskLegend div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--merchant-line);
+}
+
+.merchantRiskLegend div:last-child {
+  border-bottom: 0;
+}
+
+.merchantRiskLegend b {
+  font-variant-numeric: tabular-nums;
+}
+
+.merchantCountdownList h3 {
+  margin: 0 0 2px;
+  color: var(--merchant-ink);
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.merchantCountdownList a {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 12px;
+  border-radius: 14px;
+  background: var(--merchant-subtle-bg);
+  color: var(--merchant-ink);
+  text-decoration: none;
+}
+
+.merchantCountdownList a.expired {
+  background: var(--merchant-error-bg);
+}
+
+.merchantCountdownList b,
+.merchantCountdownList span {
+  display: block;
+}
+
+.merchantCountdownList b {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merchantCountdownList span {
+  color: var(--merchant-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.merchantCountdownList strong {
+  color: var(--merchant-amber);
+  font-size: 14px;
+  line-height: 22px;
+  font-variant-numeric: tabular-nums;
+}
+
+.merchantLotTable {
+  overflow: hidden;
+  border: 1px solid var(--merchant-line);
+  border-radius: 18px;
+}
+
+.merchantLotTableHead,
+.merchantLotRow {
+  display: grid;
+  grid-template-columns: minmax(230px, 1.3fr) 110px 110px 120px 90px 92px 110px 70px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.merchantLotTableHead {
+  background: var(--merchant-table-head-bg);
+  color: var(--merchant-muted);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 850;
+}
+
+.merchantLotRow {
+  min-height: 74px;
+  background: var(--merchant-surface-row);
+  border-top: 1px solid var(--merchant-line);
+  animation: merchantRowIn var(--merchant-duration-row) var(--merchant-ease-default) both;
+}
+
+.merchantLotRow:hover {
+  background: var(--merchant-surface-solid);
+}
+
+.merchantLotRow > div {
+  min-width: 0;
+  color: var(--merchant-ink);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.merchantLotRow strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.merchantLotIdentity {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.merchantLotIdentity > span {
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: var(--merchant-subtle-bg);
+  color: var(--merchant-muted);
+}
+
+.merchantLotIdentity img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.merchantLotIdentity b,
+.merchantLotIdentity small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merchantLotIdentity b {
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.merchantLotIdentity small {
+  color: var(--merchant-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.merchantLotRow a {
+  color: var(--merchant-blue);
+  font-weight: 850;
+  text-decoration: none;
+}
+
+@keyframes merchantFunnelIn {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes merchantDrawLine {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes merchantAreaIn {
+  to { opacity: 1; }
+}
+
+@keyframes merchantBarGrow {
+  from { transform: scaleY(0); opacity: .3; }
+  to { transform: scaleY(1); opacity: 1; }
+}
+
+@keyframes merchantBubbleIn {
+  from { transform: scale(.72); opacity: 0; }
+  to { transform: scale(1); opacity: .76; }
+}
+
+@keyframes merchantRowIn {
+  from { opacity: .45; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1480px) {
+  .merchantMetricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .merchantChartGrid,
+  .merchantPerformanceGrid,
+  .merchantRiskGrid,
+  .merchantTopGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 920px) {
+  .merchantDashboardHero .studioSectionHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .merchantHeroActions,
+  .merchantRangeBar,
+  .merchantHeroMeta {
+    width: 100%;
+  }
+
+  .merchantRangeBar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .merchantRangeBar button {
+    min-width: 0;
+  }
+
+  .merchantLiveLot,
+  .merchantLiveFacts,
+  .merchantRiskPanelBody,
+  .merchantMetricGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .merchantLiveImage,
+  .merchantLiveImage img {
+    min-height: 0;
+  }
+
+  .merchantLotRanking > div {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .merchantLotRanking strong,
+  .merchantRankBar {
+    grid-column: 2;
+  }
+
+  .merchantLotTableHead {
+    display: none;
+  }
+
+  .merchantLotTable {
+    border: 0;
+    border-radius: 0;
+    display: grid;
+    gap: 12px;
+  }
+
+  .merchantLotRow {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 14px;
+    border: 1px solid var(--merchant-line);
+    border-radius: 16px;
+  }
+
+  .merchantLotRow > div:not(.merchantLotIdentity) {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .merchantLotRow > div:not(.merchantLotIdentity)::before {
+    content: attr(data-label);
+    color: var(--merchant-muted);
+    font-size: 12px;
+    font-weight: 850;
+  }
+}
+
+@media (max-width: 560px) {
+  .merchantHeroActions .studioButton,
+  .merchantHeroActions a {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .merchantMetricCard strong,
+  .merchantLivePrice b {
+    font-size: 26px;
+    line-height: 34px;
+  }
+
+  .merchantFunnelRow {
+    grid-template-columns: 1fr;
+  }
+
+  .merchantFunnelRow strong {
+    text-align: left;
+  }
+
+  .merchantChartTooltip {
+    position: static;
+    margin-top: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .merchantDashboardPage *,
+  .merchantDashboardPage *::before,
+  .merchantDashboardPage *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .merchantLine {
+    stroke-dashoffset: 0 !important;
+  }
+
+  .merchantArea {
+    opacity: 1 !important;
+  }
+}

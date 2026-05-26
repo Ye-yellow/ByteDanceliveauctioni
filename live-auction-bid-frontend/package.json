@@ -3,6 +3,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
+    "check:ui-debt": "../scripts/check-ui-debt.sh",
     "generate:api": "openapi-typescript ../live-auction-bid-backend/openapi/auction.openapi.json -o src/shared/api/generated/auction.schema.ts"
   },
   "dependencies": {
