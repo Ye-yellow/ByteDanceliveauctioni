@@ -633,6 +633,9 @@ message Lot {
 
   // 售后说明。
   string after_sale_notes = 30;
+
+  // 参拍保证金。观众首次参与该拍品出价前需要确认。
+  Money deposit_amount = 31;
 }
 
 // ============================================================================
@@ -762,6 +765,9 @@ message CreateLotRequest {
 
   // 售后说明。
   string after_sale_notes = 12;
+
+  // 参拍保证金。为空或 amount=0 表示不强制保证金。
+  Money deposit_amount = 13;
 }
 
 // PatchLotDraftRequest 表示添加拍品页静默草稿保存请求。
@@ -805,6 +811,9 @@ message PatchLotDraftRequest {
 
   // 售后说明。
   string after_sale_notes = 13;
+
+  // 参拍保证金。为空或 amount=0 表示不强制保证金。
+  Money deposit_amount = 14;
 }
 
 // QueueLotRequest 表示将草稿提交进入本场拍品队列。

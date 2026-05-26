@@ -64,6 +64,10 @@ func NewLotDraftFromRequest(id string, req *v1.CreateLotRequest, requireComplete
 		EstimatePrice:    cloneMoney(req.GetEstimatePrice()),
 		Stock:            stock,
 		AfterSaleNotes:   req.GetAfterSaleNotes(),
+		DepositAmount:    cloneMoney(req.GetDepositAmount()),
+	}
+	if err := validateOptionalMoney("depositAmount", lot.GetDepositAmount()); err != nil {
+		return nil, err
 	}
 	normalizeTrustCards(lot)
 	if requireComplete {
@@ -175,6 +179,12 @@ func ApplyDraftPatch(lot *v1.Lot, req *v1.PatchLotDraftRequest) error {
 	if req.GetAfterSaleNotes() != "" {
 		lot.AfterSaleNotes = req.GetAfterSaleNotes()
 	}
+	if req.GetDepositAmount() != nil {
+		if err := validateOptionalMoney("depositAmount", req.GetDepositAmount()); err != nil {
+			return err
+		}
+		lot.DepositAmount = cloneMoney(req.GetDepositAmount())
+	}
 	if req.GetRule() != nil {
 		lot.Rule = cloneRule(req.GetRule())
 		if lot.Rule.GetStartPrice() != nil {
@@ -229,6 +239,19 @@ func cloneRule(rule *v1.BidRule) *v1.BidRule {
 		return nil
 	}
 	return proto.Clone(rule).(*v1.BidRule)
+}
+
+func validateOptionalMoney(field string, money *v1.Money) error {
+	if money == nil {
+		return nil
+	}
+	if money.GetAmount() < 0 {
+		return fmt.Errorf("%w: %s amount must be >= 0", apperr.ErrInvalidArgument, field)
+	}
+	if money.GetAmount() > 0 && strings.TrimSpace(money.GetCurrency()) == "" {
+		return fmt.Errorf("%w: %s currency is required", apperr.ErrInvalidArgument, field)
+	}
+	return nil
 }
 
 func cloneMoney(money *v1.Money) *v1.Money {
