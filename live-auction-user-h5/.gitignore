@@ -19,6 +19,7 @@ dist-ssr
 coverage
 .codex
 .agents
+.codegraph
 tmp/shot
 # Editor directories and files
 .vscode/*

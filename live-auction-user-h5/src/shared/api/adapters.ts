@@ -186,6 +186,7 @@ export function normalizeLot(input: unknown): Lot {
     queuePosition: numberValue(pick(raw, 'queuePosition', 'queue_position')),
     cancelReason: stringValue(pick(raw, 'cancelReason', 'cancel_reason')),
     cancelledAtUnixMs: pick(raw, 'cancelledAtUnixMs', 'cancelled_at_unix_ms'),
+    depositAmount: pick(raw, 'depositAmount', 'deposit_amount') ? normalizeMoney(pick(raw, 'depositAmount', 'deposit_amount')) : undefined,
   };
 }
 

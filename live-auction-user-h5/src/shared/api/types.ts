@@ -146,6 +146,7 @@ export type Lot = {
   queuePosition?: number;
   cancelReason?: string;
   cancelledAtUnixMs?: number | string;
+  depositAmount?: Money;
 };
 
 export type RankingItem = {

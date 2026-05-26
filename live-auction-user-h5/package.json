@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "check:ui-debt": "../scripts/check-ui-debt.sh",
     "preview": "vite preview"
   },
   "dependencies": {

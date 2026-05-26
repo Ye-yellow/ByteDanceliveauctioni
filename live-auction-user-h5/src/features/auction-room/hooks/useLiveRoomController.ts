@@ -4,6 +4,7 @@ import { ownOrderForLot } from '../../../entities/order/model/privacy';
 import { listRoomLots, placeBid } from '../../auction/api/auctionApi';
 import { createIdempotencyKey } from '../../../shared/lib/idempotency';
 import { normalizeMoney } from '../../../shared/api/adapters';
+import { AuthExpiredError } from '../../../shared/api/errors';
 import { AUCTION_EVENT_TYPE, type AuctionSocketEvent, type Lot, type OrderSummary, type PaymentSummary } from '../../../shared/api/types';
 import { normalizeBuyerUsername, validateBuyerCredentials } from '../../../shared/auth/credentialRules';
 import { useAuthSession } from '../../../shared/auth/useAuthSession';
@@ -25,6 +26,12 @@ type DepositPrompt = {
 function bidFailureMessage(reason: unknown): string {
   const message = reason instanceof Error ? reason.message : typeof reason === 'string' ? reason : '请稍后重试';
   return message.startsWith('出价失败') ? message : `出价失败：${message}`;
+}
+
+function shouldOpenBuyerAuth(reason: unknown): boolean {
+  if (reason instanceof AuthExpiredError) return true;
+  const message = reason instanceof Error ? reason.message : typeof reason === 'string' ? reason : '';
+  return message.includes('请先登录') || message.includes('登录已过期') || message.includes('登录会话已失效') || message.includes('登录凭证无效');
 }
 
 function nicknameFromUsername(username: string): string {
@@ -106,7 +113,7 @@ export function useLiveRoomController(roomId: string) {
   const roomName = roomProfile?.roomName || room.snapshot?.roomName || DEFAULT_DEMO_ROOM_PROFILE.roomName;
   const isBidPending = Boolean(room.localOptimistic.pendingBid) || bidding;
   const accountRoleMessage = status !== 'authenticated' && reason === '该账号不是买家账号' ? reason : '';
-  const showBuyerAuth = authMode === 'real' && !user;
+  const showBuyerAuth = !user && (authMode === 'real' || reason?.includes('请先登录'));
 
   const ranking = useMemo(
     () => room.ranking.map((item) => ({ ...item, isMe: item.userId === meId })),
@@ -239,9 +246,17 @@ export function useLiveRoomController(roomId: string) {
   const openAuctionPanel = useCallback((tab: AuctionPanelTab = 'current') => {
     setAuctionPanelTab(tab);
     setAuctionPanelOpen(true);
+    setBidError('');
+    void reload().catch(() => undefined);
     void refreshRoomLots().catch(() => undefined);
     if (tab === 'mine') void refreshOrders(DEFAULT_ACTIVITY_QUERY).catch(() => undefined);
-  }, [refreshOrders, refreshRoomLots]);
+  }, [refreshOrders, refreshRoomLots, reload]);
+
+  const openBuyerAuthPanel = useCallback(() => {
+    setAuthFormMode('login');
+    setAuctionPanelTab('current');
+    setAuctionPanelOpen(true);
+  }, []);
 
   const submitBid = useCallback(async (amount: number) => {
     if (isBidPending) return;
@@ -267,6 +282,7 @@ export function useLiveRoomController(roomId: string) {
     } catch (e) {
       const message = bidFailureMessage(e);
       setBidError(message);
+      if (shouldOpenBuyerAuth(e)) openBuyerAuthPanel();
       pushNotice(message);
       return;
     }
@@ -309,12 +325,13 @@ export function useLiveRoomController(roomId: string) {
     } catch (e) {
       const message = bidFailureMessage(e);
       setBidError(message);
+      if (shouldOpenBuyerAuth(e)) openBuyerAuthPanel();
       pushNotice(message);
     } finally {
       markBidSettled(idempotencyKey);
       setBidding(false);
     }
-  }, [applyEvent, currentLot, ensureReadyForBid, isBidPending, markBidSettled, markBidStarted, meId, pushNotice, roomId]);
+  }, [applyEvent, currentLot, ensureReadyForBid, isBidPending, markBidSettled, markBidStarted, meId, openBuyerAuthPanel, pushNotice, roomId]);
 
   const confirmDepositPayment = useCallback(() => {
     if (!depositPrompt) return;

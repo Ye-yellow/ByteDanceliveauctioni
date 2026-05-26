@@ -10,6 +10,231 @@
   --primary-purple: #6f63e8;
   --warning: #ffb020;
   --success: #16a36d;
+
+  /* Preferred semantic aliases for new LiveAuction H5 UI. */
+  --live-color-background: var(--live-bg);
+  --live-color-surface: var(--panel-bg);
+  --live-color-card: var(--card-bg);
+  --live-color-border: var(--line);
+  --live-color-text: var(--text-main);
+  --live-color-text-muted: var(--text-sub);
+  --live-color-primary: var(--primary-red);
+  --live-color-primary-soft: var(--primary-pink);
+  --live-color-accent: var(--primary-purple);
+  --live-color-success: var(--success);
+  --live-color-warning: var(--warning);
+  --live-color-error: var(--primary-red);
+  --live-color-neutral: #555b68;
+  --live-color-neutral-bg: #f1f3f7;
+  --live-color-neutral-border: #e1e5ee;
+  --live-color-success-text: #15803d;
+  --live-color-success-bg: #f0fdf4;
+  --live-color-success-border: #bbf7d0;
+  --live-color-warning-text: #b45309;
+  --live-color-warning-bg: #fffbeb;
+  --live-color-warning-border: #fde68a;
+  --live-color-warning-strong-text: #c2410c;
+  --live-color-warning-strong-bg: #fff7ed;
+  --live-color-error-text: #be123c;
+  --live-color-error-bg: #fff1f2;
+  --live-color-error-border: #fecdd3;
+  --live-color-info-text: #2563eb;
+  --live-color-info-bg: #eef2ff;
+  --live-color-info-border: #c7d2fe;
+  --live-color-processing-text: #4f46e5;
+  --live-color-processing-bg: #eef2ff;
+  --live-color-contrast: #fff;
+  --live-color-surface-glass: rgba(246, 247, 251, 0.96);
+  --live-color-card-glass: rgba(255, 255, 255, 0.92);
+  --live-color-toast-bg: rgba(17, 19, 31, 0.88);
+  --live-color-player-message-bg: rgba(17, 19, 31, 0.72);
+  --live-color-sheet-backdrop: rgba(0, 0, 0, 0.34);
+  --live-color-sheet-backdrop-strong: rgba(0, 0, 0, 0.38);
+  --live-color-modal-backdrop: rgba(8, 10, 18, 0.58);
+  --live-shell-bg-gradient: linear-gradient(180deg, #11131f 0, #171827 300px, #f5f6fb 301px);
+  --live-douyin-bg:
+    radial-gradient(circle at 22% 86%, rgba(103, 136, 22, 0.42), transparent 30%),
+    radial-gradient(circle at 74% 74%, rgba(37, 76, 90, 0.34), transparent 34%),
+    linear-gradient(180deg, #000 0, #030407 46%, #070812 100%);
+  --live-home-bg:
+    radial-gradient(circle at 28% 78%, rgba(91, 114, 12, 0.5), transparent 32%),
+    radial-gradient(circle at 82% 72%, rgba(70, 28, 82, 0.36), transparent 36%),
+    linear-gradient(180deg, #000 0, #010102 44%, #101115 100%);
+  --live-home-foreground: var(--live-color-contrast);
+  --live-home-feed-bg:
+    linear-gradient(180deg, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0.12) 48%, rgba(0, 0, 0, 0.72) 100%),
+    linear-gradient(180deg, #030303 0, #090a0e 44%, #14151a 100%);
+  --live-home-feed-warm-bg:
+    linear-gradient(180deg, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0.16) 48%, rgba(0, 0, 0, 0.74) 100%),
+    linear-gradient(180deg, #040303 0, #11100b 45%, #17130f 100%);
+  --live-home-feed-cool-bg:
+    linear-gradient(180deg, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0.14) 48%, rgba(0, 0, 0, 0.72) 100%),
+    linear-gradient(180deg, #010305 0, #061012 45%, #10161a 100%);
+  --live-home-preview-bg: #10131b;
+  --live-home-preview-game-bg: linear-gradient(90deg, rgba(0, 0, 0, 0.64), rgba(20, 24, 34, 0.38));
+  --live-home-preview-rank-text: rgba(255, 255, 255, 0.8);
+  --live-home-preview-rank-bg: rgba(255, 255, 255, 0.08);
+  --live-home-preview-feed-bg: rgba(14, 17, 24, 0.62);
+  --live-home-preview-feed-text: rgba(255, 255, 255, 0.82);
+  --live-home-preview-tile-bg: rgba(0, 0, 0, 0.24);
+  --live-home-preview-tile-pink-border: #ff4d7c;
+  --live-home-preview-tile-pink-shadow: 0 0 10px rgba(255, 77, 124, 0.75);
+  --live-home-preview-tile-blue-border: #65c8ff;
+  --live-home-preview-tile-blue-shadow: 0 0 10px rgba(101, 200, 255, 0.76);
+  --live-home-preview-tile-yellow-border: #ffe36b;
+  --live-home-preview-tile-yellow-shadow: 0 0 10px rgba(255, 227, 107, 0.78);
+  --live-home-preview-tile-purple-border: #a45cff;
+  --live-home-preview-tile-purple-shadow: 0 0 10px rgba(164, 92, 255, 0.78);
+  --live-home-preview-cta-bg: #dfff17;
+  --live-home-preview-cta-text: #111;
+  --live-home-enter-border: rgba(255, 255, 255, 0.28);
+  --live-home-enter-bg: rgba(255, 255, 255, 0.16);
+  --live-home-enter-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+  --live-home-anchor-badge-bg: #ff2d78;
+  --live-home-anchor-chip-bg: rgba(255, 255, 255, 0.08);
+  --live-home-bottom-nav-bg: #151515;
+  --live-home-bottom-nav-text: rgba(255, 255, 255, 0.56);
+  --live-home-bottom-nav-button-bg: #111;
+  --live-room-foreground: var(--live-color-contrast);
+  --live-room-muted-foreground: rgba(255, 255, 255, 0.66);
+  --live-room-muted-strong: rgba(255, 255, 255, 0.78);
+  --live-room-overlay-bg: linear-gradient(180deg, rgba(0, 0, 0, 0.48), transparent 42%, rgba(0, 0, 0, 0.68));
+  --live-room-avatar-bg: linear-gradient(135deg, #88f069, #5eead4 55%, #ffd166);
+  --live-room-avatar-text: #06110b;
+  --live-room-glass-bg: rgba(255, 255, 255, 0.16);
+  --live-room-glass-soft-bg: rgba(255, 255, 255, 0.14);
+  --live-room-action-bg: rgba(255, 255, 255, 0.12);
+  --live-room-border: rgba(255, 255, 255, 0.78);
+  --live-room-action-border: rgba(255, 255, 255, 0.12);
+  --live-room-primary-border: rgba(255, 255, 255, 0.36);
+  --live-room-text-shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.65);
+  --live-room-text-shadow-md: 0 2px 12px rgba(0, 0, 0, 0.7);
+  --live-room-text-shadow-strong: 0 2px 12px rgba(0, 0, 0, 0.75);
+  --live-room-text-shadow-soft: 0 1px 10px rgba(0, 0, 0, 0.45);
+  --live-room-primary-shadow: 0 12px 24px rgba(255, 63, 108, 0.28);
+  --live-drawer-tab-foreground: #111827;
+  --live-drawer-active-bg: #fff0f4;
+  --live-drawer-active-border: rgba(255, 63, 108, 0.34);
+  --live-drawer-active-outline: #ffd0df;
+  --live-drawer-active-outline-soft: rgba(255, 63, 108, 0.28);
+  --live-drawer-media-bg: #f4f5f8;
+  --live-drawer-section-bg: #f7f8fc;
+  --live-drawer-control-muted-bg: #eef1f7;
+  --live-drawer-fallback-bg: #eef2ff;
+  --live-drawer-danger-pulse-shadow: 0 0 18px rgba(255, 63, 108, 0.35);
+  --live-drawer-primary-shadow: 0 16px 30px rgba(255, 63, 108, 0.24);
+  --live-drawer-row-shadow: 0 10px 24px rgba(32, 39, 70, 0.07);
+  --live-drawer-action-shadow: 0 10px 24px rgba(32, 39, 70, 0.08);
+  --live-modal-close-bg: #f0f1f6;
+  --live-modal-media-bg: #f4f5f8;
+  --live-modal-section-bg: #f7f8fc;
+  --live-modal-soft-accent-bg: #fff0f4;
+  --live-modal-neutral-bg: #f1f2f5;
+  --live-modal-product-media-bg: linear-gradient(135deg, #1b1c24, #3b3d4e);
+  --live-modal-highlight-bg:
+    radial-gradient(circle at top left, rgba(255, 47, 101, 0.16), transparent 45%),
+    var(--live-modal-section-bg);
+  --live-modal-lose-product-bg:
+    linear-gradient(135deg, rgba(255, 47, 101, 0.08), transparent 42%),
+    var(--live-modal-section-bg);
+  --live-modal-avatar-bg: linear-gradient(135deg, var(--live-color-primary), var(--live-color-primary-soft));
+  --live-modal-media-shadow: 0 14px 28px rgba(17, 19, 25, 0.16);
+  --live-modal-avatar-shadow: 0 10px 22px rgba(255, 63, 108, 0.2);
+  --live-modal-primary-shadow: 0 16px 32px rgba(254, 44, 85, 0.24);
+  --live-modal-secondary-bg: #111319;
+  --live-modal-secondary-shadow: 0 16px 32px rgba(17, 19, 25, 0.22);
+  --live-modal-disabled-bg: #c9cbd3;
+  --live-order-page-bg: #f5f6fb;
+  --live-order-header-bg: rgba(245, 246, 251, 0.94);
+  --live-order-header-action-shadow: 0 8px 22px rgba(32, 39, 70, 0.08);
+  --live-order-focus-shadow:
+    0 0 0 3px rgba(255, 47, 101, 0.18),
+    0 12px 28px rgba(32, 39, 70, 0.08);
+  --live-order-fallback-bg: #eef2ff;
+  --live-profile-bg: #fff;
+  --live-profile-text: #171923;
+  --live-profile-hero-foreground: var(--live-color-contrast);
+  --live-profile-hero-bg:
+    radial-gradient(circle at 4% 7%, rgba(255, 255, 255, 0.72), transparent 23%),
+    radial-gradient(circle at 78% 5%, rgba(209, 255, 248, 0.58), transparent 25%),
+    linear-gradient(145deg, #7ba4db 0, #1f9ee0 54%, #0475bd 100%);
+  --live-profile-menu-bg: rgba(36, 76, 105, 0.44);
+  --live-profile-avatar-border: rgba(255, 255, 255, 0.94);
+  --live-profile-avatar-bg:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0)),
+    linear-gradient(135deg, #ff6b8b, #ffd36a 52%, #36d399);
+  --live-profile-avatar-empty-bg:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0)),
+    linear-gradient(135deg, #7d8794, #c7ced8);
+  --live-profile-avatar-shadow: 0 14px 34px rgba(0, 46, 84, 0.22);
+  --live-profile-avatar-text-shadow: 0 3px 14px rgba(0, 0, 0, 0.26);
+  --live-profile-badge-border: #147ed6;
+  --live-profile-badge-bg: #32db4d;
+  --live-profile-glass-bg: rgba(255, 255, 255, 0.16);
+  --live-profile-hero-muted: rgba(255, 255, 255, 0.62);
+  --live-profile-stat-text: #12151f;
+  --live-profile-muted-text: #747984;
+  --live-profile-soft-control-bg: #f1f1f3;
+  --live-profile-secondary-text: #70757f;
+  --live-profile-tag-bg: #f2f3f5;
+  --live-profile-action-bg: #f5f6f8;
+  --live-profile-action-text: #191c25;
+  --live-profile-tabs-border: #edeef1;
+  --live-profile-tabs-muted: #7b808b;
+  --live-profile-tabs-active: #151820;
+  --live-profile-empty-border: #f0f1f4;
+  --live-profile-empty-text: #868b96;
+  --live-profile-empty-title: #30343d;
+  --live-account-muted-text: #717784;
+  --live-account-close-bg: #f1f2f5;
+  --live-account-border: #e5e8f0;
+  --live-account-control-text: #1f2433;
+  --live-account-active-border: rgba(255, 63, 108, 0.34);
+  --live-account-active-bg: #fff0f4;
+  --live-account-field-bg: #f7f8fc;
+  --live-account-primary-bg: linear-gradient(135deg, var(--live-color-primary), var(--live-color-primary-soft));
+  --live-account-notice-bg: #ecfdf5;
+  --live-account-notice-text: #047857;
+  --live-shadow-card: 0 12px 26px rgba(32, 39, 70, 0.08);
+  --live-shadow-toast: 0 12px 28px rgba(0, 0, 0, 0.18);
+  --live-shadow-sheet: 0 -18px 54px rgba(0, 0, 0, 0.36);
+  --live-shadow-sheet-strong: 0 -18px 56px rgba(0, 0, 0, 0.32);
+  --live-shadow-modal: 0 30px 80px rgba(0, 0, 0, 0.34);
+  --live-shell-desktop-shadow: 0 22px 70px rgba(0, 0, 0, 0.42);
+
+  --live-z-base: 0;
+  --live-z-feed: 1;
+  --live-z-raised: 2;
+  --live-z-local-overlay: 3;
+  --live-z-video: 5;
+  --live-z-overlay: 10;
+  --live-z-sticky: 20;
+  --live-z-sheet: 50;
+  --live-z-modal: 70;
+  --live-z-toast: 80;
+  --live-z-tooltip: 90;
+
+  --live-duration-fast: 150ms;
+  --live-duration-normal: 220ms;
+  --live-duration-slow: 320ms;
+  --live-duration-pull: 160ms;
+  --live-duration-pager: 360ms;
+  --live-duration-pulse: 900ms;
+  --live-duration-toast: 3400ms;
+  --live-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --live-ease-swipe: cubic-bezier(0.22, 1, 0.36, 1);
+  --live-ease-simple: ease;
+  --live-ease-attention: ease-in-out;
+
+  --live-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --live-shell-bottom-padding: calc(28px + var(--live-safe-bottom));
+  --live-bottom-nav-height: 86px;
+  --live-bottom-nav-total-height: calc(var(--live-bottom-nav-height) + var(--live-safe-bottom));
+  --live-home-copy-bottom: calc(104px + var(--live-safe-bottom));
+  --live-action-rail-bottom: calc(82px + var(--live-safe-bottom));
+  --live-composer-bottom: calc(18px + var(--live-safe-bottom));
+  --live-drawer-bottom-padding: calc(18px + var(--live-safe-bottom));
+  --live-sync-bottom-padding: calc(10px + var(--live-safe-bottom));
 }
 
 .mobileShell {
@@ -18,10 +243,10 @@
   height: 100dvh;
   min-height: 100dvh;
   margin: 0 auto;
-  padding: 0 12px calc(28px + env(safe-area-inset-bottom));
+  padding: 0 12px var(--live-shell-bottom-padding);
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: linear-gradient(180deg, #11131f 0, #171827 300px, #f5f6fb 301px);
+  background: var(--live-shell-bg-gradient);
   color: var(--text-main);
   -webkit-overflow-scrolling: touch;
 }
@@ -32,10 +257,7 @@
   height: 100dvh;
   overflow: hidden;
   padding: 0;
-  background:
-    radial-gradient(circle at 22% 86%, rgba(103, 136, 22, 0.42), transparent 30%),
-    radial-gradient(circle at 74% 74%, rgba(37, 76, 90, 0.34), transparent 34%),
-    linear-gradient(180deg, #000 0, #030407 46%, #070812 100%);
+  background: var(--live-douyin-bg);
   isolation: isolate;
 }
 
@@ -46,11 +268,8 @@
   height: 100dvh;
   overflow: hidden;
   padding: 0;
-  color: #fff;
-  background:
-    radial-gradient(circle at 28% 78%, rgba(91, 114, 12, 0.5), transparent 32%),
-    radial-gradient(circle at 82% 72%, rgba(70, 28, 82, 0.36), transparent 36%),
-    linear-gradient(180deg, #000 0, #010102 44%, #101115 100%);
+  color: var(--live-home-foreground);
+  background: var(--live-home-bg);
 }
 
 .homeTopTabs {
@@ -59,7 +278,7 @@
 
 .homeLivePager {
   position: absolute;
-  z-index: 1;
+  z-index: var(--live-z-feed);
   inset: 0;
   overflow: hidden;
   touch-action: pan-y;
@@ -67,7 +286,7 @@
 
 .homeLiveTrack {
   height: 100%;
-  transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--live-duration-pager) var(--live-ease-swipe);
   will-change: transform;
 }
 
@@ -80,32 +299,26 @@
   height: 100%;
   min-height: 100%;
   overflow: hidden;
-  background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0.12) 48%, rgba(0, 0, 0, 0.72) 100%),
-    linear-gradient(180deg, #030303 0, #090a0e 44%, #14151a 100%);
+  background: var(--live-home-feed-bg);
 }
 
 .homeFeedItem:nth-child(3n) {
-  background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0.16) 48%, rgba(0, 0, 0, 0.74) 100%),
-    linear-gradient(180deg, #040303 0, #11100b 45%, #17130f 100%);
+  background: var(--live-home-feed-warm-bg);
 }
 
 .homeFeedItem:nth-child(3n + 1) {
-  background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0.14) 48%, rgba(0, 0, 0, 0.72) 100%),
-    linear-gradient(180deg, #010305 0, #061012 45%, #10161a 100%);
+  background: var(--live-home-feed-cool-bg);
 }
 
 .homeLivePreview {
   position: absolute;
-  z-index: 5;
+  z-index: var(--live-z-video);
   top: 190px;
   left: 0;
   right: 0;
   height: 224px;
   overflow: hidden;
-  background: #10131b;
+  background: var(--live-home-preview-bg);
 }
 
 .homeLivePreview > img,
@@ -118,7 +331,7 @@
 }
 
 .homeLiveVideo {
-  background: #10131b;
+  background: var(--live-home-preview-bg);
 }
 
 .previewGamePanel {
@@ -129,20 +342,20 @@
   gap: 8px;
   align-items: center;
   padding: 14px 8px 28px;
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.64), rgba(20, 24, 34, 0.38));
+  background: var(--live-home-preview-game-bg);
 }
 
 .previewRankList {
   display: grid;
   gap: 10px;
   font-size: 9px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--live-home-preview-rank-text);
 }
 
 .previewRankList span {
   min-height: 34px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--live-home-preview-rank-bg);
   padding: 4px;
 }
 
@@ -151,15 +364,15 @@
   gap: 6px;
   min-width: 0;
   border-radius: 8px;
-  background: rgba(14, 17, 24, 0.62);
+  background: var(--live-home-preview-feed-bg);
   padding: 8px;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--live-home-preview-feed-text);
   font-size: 9px;
 }
 
 .previewCenterFeed b {
   text-align: center;
-  color: #fff;
+  color: var(--live-home-foreground);
 }
 
 .previewCenterFeed p {
@@ -178,24 +391,24 @@
 .previewGrid i {
   min-height: 34px;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.24);
-  border: 2px solid #ff4d7c;
-  box-shadow: 0 0 10px rgba(255, 77, 124, 0.75);
+  background: var(--live-home-preview-tile-bg);
+  border: 2px solid var(--live-home-preview-tile-pink-border);
+  box-shadow: var(--live-home-preview-tile-pink-shadow);
 }
 
 .previewGrid i:nth-child(2n) {
-  border-color: #65c8ff;
-  box-shadow: 0 0 10px rgba(101, 200, 255, 0.76);
+  border-color: var(--live-home-preview-tile-blue-border);
+  box-shadow: var(--live-home-preview-tile-blue-shadow);
 }
 
 .previewGrid i:nth-child(3n) {
-  border-color: #ffe36b;
-  box-shadow: 0 0 10px rgba(255, 227, 107, 0.78);
+  border-color: var(--live-home-preview-tile-yellow-border);
+  box-shadow: var(--live-home-preview-tile-yellow-shadow);
 }
 
 .previewGrid i:nth-child(5n) {
-  border-color: #a45cff;
-  box-shadow: 0 0 10px rgba(164, 92, 255, 0.78);
+  border-color: var(--live-home-preview-tile-purple-border);
+  box-shadow: var(--live-home-preview-tile-purple-shadow);
 }
 
 .previewGamePanel > button {
@@ -205,8 +418,8 @@
   width: 100px;
   height: 28px;
   border: 0;
-  background: #dfff17;
-  color: #111;
+  background: var(--live-home-preview-cta-bg);
+  color: var(--live-home-preview-cta-text);
   font-size: 13px;
   font-weight: 950;
   transform: translateX(-50%);
@@ -214,7 +427,7 @@
 
 .homeEnterLive {
   position: absolute;
-  z-index: 10;
+  z-index: var(--live-z-overlay);
   left: 50%;
   width: 236px;
   top: 542px;
@@ -223,15 +436,15 @@
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  border: 2px solid rgba(255, 255, 255, 0.28);
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
+  border: 2px solid var(--live-home-enter-border);
+  background: var(--live-home-enter-bg);
+  color: var(--live-home-foreground);
   padding: 0 16px;
   text-decoration: none;
   font-size: 20px;
   font-weight: 950;
   white-space: nowrap;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+  box-shadow: var(--live-home-enter-shadow);
   backdrop-filter: blur(12px);
   transform: translateX(-50%);
 }
@@ -243,11 +456,11 @@
 
 .homeAnchorIntro {
   position: absolute;
-  z-index: 8;
+  z-index: var(--live-z-overlay);
   left: 18px;
   right: 18px;
-  bottom: calc(104px + env(safe-area-inset-bottom));
-  color: #fff;
+  bottom: var(--live-home-copy-bottom);
+  color: var(--live-home-foreground);
 }
 
 .homeAnchorIntro div {
@@ -258,14 +471,14 @@
 
 .homeAnchorIntro div b {
   border-radius: 6px;
-  background: #ff2d78;
+  background: var(--live-home-anchor-badge-bg);
   padding: 5px 9px;
   font-size: 16px;
 }
 
 .homeAnchorIntro div span {
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--live-home-anchor-chip-bg);
   padding: 5px 9px;
   font-size: 14px;
   font-weight: 900;
@@ -285,24 +498,24 @@
 
 .homeBottomNav {
   position: absolute;
-  z-index: 12;
+  z-index: var(--live-z-sticky);
   left: 0;
   right: 0;
   bottom: 0;
-  height: calc(86px + env(safe-area-inset-bottom));
+  height: var(--live-bottom-nav-total-height);
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   align-items: center;
-  padding: 0 14px env(safe-area-inset-bottom);
-  background: #151515;
-  color: rgba(255, 255, 255, 0.56);
+  padding: 0 14px var(--live-safe-bottom);
+  background: var(--live-home-bottom-nav-bg);
+  color: var(--live-home-bottom-nav-text);
   font-size: 24px;
   font-weight: 950;
   text-align: center;
 }
 
 .homeBottomNav b {
-  color: #fff;
+  color: var(--live-home-foreground);
 }
 
 .homeBottomNav span:empty {
@@ -313,20 +526,21 @@
   width: 56px;
   height: 46px;
   justify-self: center;
-  border: 4px solid #fff;
+  border: 4px solid var(--live-home-foreground);
   border-radius: 14px;
-  background: #111;
-  color: #fff;
+  background: var(--live-home-bottom-nav-button-bg);
+  color: var(--live-home-foreground);
   font-size: 30px;
   font-weight: 950;
   line-height: 1;
 }
 
 .homeBottomNav a {
-  color: rgba(255, 255, 255, 0.56);
+  color: var(--live-home-bottom-nav-text);
   text-decoration: none;
 }
 
+/* Profile page main body. */
 .profileShell {
   position: relative;
   width: min(100%, 390px);
@@ -334,31 +548,28 @@
   min-height: 100dvh;
   overflow: hidden;
   padding: 0;
-  background: #fff;
-  color: #171923;
+  background: var(--live-profile-bg);
+  color: var(--live-profile-text);
 }
 
 .profileScroller {
   height: 100%;
   overflow-y: auto;
-  padding-bottom: calc(86px + env(safe-area-inset-bottom));
-  background: #fff;
+  padding-bottom: var(--live-bottom-nav-total-height);
+  background: var(--live-profile-bg);
 }
 
 .profileHero {
   position: relative;
   min-height: 224px;
   padding: 34px 16px 32px;
-  color: #fff;
-  background:
-    radial-gradient(circle at 4% 7%, rgba(255, 255, 255, 0.72), transparent 23%),
-    radial-gradient(circle at 78% 5%, rgba(209, 255, 248, 0.58), transparent 25%),
-    linear-gradient(145deg, #7ba4db 0, #1f9ee0 54%, #0475bd 100%);
+  color: var(--live-profile-hero-foreground);
+  background: var(--live-profile-hero-bg);
 }
 
 .profileMenuButton {
   position: absolute;
-  z-index: 3;
+  z-index: var(--live-z-local-overlay);
   top: 16px;
   right: 16px;
   width: 40px;
@@ -371,7 +582,7 @@
   justify-content: center;
   gap: 5px;
   padding: 0 11px;
-  background: rgba(36, 76, 105, 0.44);
+  background: var(--live-profile-menu-bg);
   backdrop-filter: blur(12px);
 }
 
@@ -380,7 +591,7 @@
   width: 16px;
   height: 2px;
   border-radius: 999px;
-  background: #fff;
+  background: var(--live-profile-hero-foreground);
 }
 
 .profileMenuButton span:nth-child(2) {
@@ -403,27 +614,23 @@
   position: relative;
   width: 110px;
   height: 110px;
-  border: 4px solid rgba(255, 255, 255, 0.94);
+  border: 4px solid var(--live-profile-avatar-border);
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0)),
-    linear-gradient(135deg, #ff6b8b, #ffd36a 52%, #36d399);
-  box-shadow: 0 14px 34px rgba(0, 46, 84, 0.22);
+  background: var(--live-profile-avatar-bg);
+  box-shadow: var(--live-profile-avatar-shadow);
 }
 
 .profileAvatar.empty {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0)),
-    linear-gradient(135deg, #7d8794, #c7ced8);
+  background: var(--live-profile-avatar-empty-bg);
 }
 
 .profileAvatar span {
-  color: #fff;
+  color: var(--live-profile-hero-foreground);
   font-size: 46px;
   font-weight: 950;
-  text-shadow: 0 3px 14px rgba(0, 0, 0, 0.26);
+  text-shadow: var(--live-profile-avatar-text-shadow);
 }
 
 .profileAvatar i {
@@ -432,12 +639,12 @@
   bottom: 4px;
   width: 43px;
   height: 43px;
-  border: 6px solid #147ed6;
+  border: 6px solid var(--live-profile-badge-border);
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #32db4d;
-  color: #fff;
+  background: var(--live-profile-badge-bg);
+  color: var(--live-profile-hero-foreground);
   font-size: 31px;
   font-style: normal;
   font-weight: 950;
@@ -450,7 +657,7 @@
   gap: 8px;
   margin: 0;
   overflow: hidden;
-  color: #fff;
+  color: var(--live-profile-hero-foreground);
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: 30px;
@@ -470,7 +677,7 @@
   height: 28px;
   border: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--live-profile-glass-bg);
   display: grid;
   place-items: center;
 }
@@ -481,14 +688,14 @@
   height: 0;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
-  border-top: 6px solid #fff;
+  border-top: 6px solid var(--live-profile-hero-foreground);
   transform: translateY(1px);
 }
 
 .profileIdentity p {
   margin: 10px 0 0;
   overflow: hidden;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--live-profile-hero-muted);
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: 17px;
@@ -497,10 +704,10 @@
 
 .profileBody {
   position: relative;
-  z-index: 2;
+  z-index: var(--live-z-raised);
   margin-top: -22px;
   border-radius: 22px 22px 0 0;
-  background: #fff;
+  background: var(--live-profile-bg);
   padding: 22px 16px 14px;
 }
 
@@ -521,14 +728,14 @@
 }
 
 .profileStats b {
-  color: #12151f;
+  color: var(--live-profile-stat-text);
   font-size: 25px;
   line-height: 1;
 }
 
 .profileStats small {
   margin-top: 5px;
-  color: #747984;
+  color: var(--live-profile-muted-text);
   font-size: 16px;
   font-weight: 900;
 }
@@ -537,15 +744,15 @@
   min-height: 45px;
   border: 0;
   border-radius: 8px;
-  background: #f1f1f3;
-  color: #171923;
+  background: var(--live-profile-soft-control-bg);
+  color: var(--live-profile-text);
   font-size: 18px;
   font-weight: 950;
 }
 
 .profileBio {
   margin: 20px 0 8px;
-  color: #70757f;
+  color: var(--live-profile-secondary-text);
   font-size: 18px;
   line-height: 1.35;
 }
@@ -554,8 +761,8 @@
   min-height: 30px;
   border: 0;
   border-radius: 4px;
-  background: #f2f3f5;
-  color: #70757f;
+  background: var(--live-profile-tag-bg);
+  color: var(--live-profile-secondary-text);
   padding: 0 9px;
   font-size: 16px;
   font-weight: 900;
@@ -573,8 +780,8 @@
   min-width: 0;
   border: 0;
   border-radius: 10px;
-  background: #f5f6f8;
-  color: #191c25;
+  background: var(--live-profile-action-bg);
+  color: var(--live-profile-action-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -595,21 +802,21 @@
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   margin: 22px -16px 0;
-  border-bottom: 1px solid #edeef1;
+  border-bottom: 1px solid var(--live-profile-tabs-border);
 }
 
 .profileTabs button {
   position: relative;
   min-height: 52px;
   border: 0;
-  background: #fff;
-  color: #7b808b;
+  background: var(--live-profile-bg);
+  color: var(--live-profile-tabs-muted);
   font-size: 18px;
   font-weight: 900;
 }
 
 .profileTabs button.active {
-  color: #151820;
+  color: var(--live-profile-tabs-active);
 }
 
 .profileTabs button.active:after {
@@ -620,7 +827,7 @@
   bottom: 0;
   height: 3px;
   border-radius: 999px;
-  background: #151820;
+  background: var(--live-profile-tabs-active);
 }
 
 .profileWorksEmpty {
@@ -630,14 +837,14 @@
   align-content: center;
   gap: 8px;
   margin: 12px -16px 0;
-  border-top: 1px solid #f0f1f4;
-  background: #fff;
-  color: #868b96;
+  border-top: 1px solid var(--live-profile-empty-border);
+  background: var(--live-profile-bg);
+  color: var(--live-profile-empty-text);
   text-align: center;
 }
 
 .profileWorksEmpty b {
-  color: #30343d;
+  color: var(--live-profile-empty-title);
   font-size: 17px;
 }
 
@@ -649,10 +856,10 @@
 .accountMenuMask {
   position: absolute;
   inset: 0;
-  z-index: 50;
+  z-index: var(--live-z-sheet);
   display: grid;
   place-items: end center;
-  background: rgba(0, 0, 0, 0.38);
+  background: var(--live-color-sheet-backdrop-strong);
 }
 
 .accountMenuSheet {
@@ -660,9 +867,9 @@
   max-height: min(78vh, 640px);
   overflow-y: auto;
   border-radius: 22px 22px 0 0;
-  background: #fff;
-  padding: 16px 16px calc(18px + env(safe-area-inset-bottom));
-  box-shadow: 0 -18px 56px rgba(0, 0, 0, 0.32);
+  background: var(--live-color-card);
+  padding: 16px 16px var(--live-drawer-bottom-padding);
+  box-shadow: var(--live-shadow-sheet-strong);
 }
 
 .accountMenuHeader {
@@ -685,7 +892,7 @@
 
 .accountMenuHeader span {
   margin-top: 4px;
-  color: #717784;
+  color: var(--live-account-muted-text);
   font-size: 13px;
   font-weight: 800;
 }
@@ -695,8 +902,8 @@
   height: 40px;
   border: 0;
   border-radius: 50%;
-  background: #f1f2f5;
-  color: #171923;
+  background: var(--live-account-close-bg);
+  color: var(--live-profile-text);
   font-size: 26px;
   line-height: 1;
 }
@@ -710,17 +917,17 @@
 
 .accountAuthTabs button {
   min-height: 42px;
-  border: 1px solid #e5e8f0;
+  border: 1px solid var(--live-account-border);
   border-radius: 14px;
-  background: #fff;
-  color: #1f2433;
+  background: var(--live-color-card);
+  color: var(--live-account-control-text);
   font-weight: 950;
 }
 
 .accountAuthTabs button.active {
-  border-color: rgba(255, 63, 108, 0.34);
-  background: #fff0f4;
-  color: var(--primary-red);
+  border-color: var(--live-account-active-border);
+  background: var(--live-account-active-bg);
+  color: var(--live-color-primary);
 }
 
 .accountAuthForm {
@@ -731,13 +938,13 @@
 .accountAuthForm label {
   display: block;
   border-radius: 16px;
-  background: #f7f8fc;
+  background: var(--live-account-field-bg);
   padding: 9px 12px;
 }
 
 .accountAuthForm label span {
   display: block;
-  color: #717784;
+  color: var(--live-account-muted-text);
   font-size: 12px;
   font-weight: 800;
 }
@@ -746,7 +953,7 @@
   width: 100%;
   border: 0;
   background: transparent;
-  color: #171923;
+  color: var(--live-profile-text);
   outline: 0;
   font-size: 17px;
   font-weight: 900;
@@ -757,8 +964,8 @@
   min-height: 48px;
   border: 0;
   border-radius: 16px;
-  background: linear-gradient(135deg, var(--primary-red), var(--primary-pink));
-  color: #fff;
+  background: var(--live-account-primary-bg);
+  color: var(--live-color-contrast);
   font-size: 16px;
   font-weight: 950;
 }
@@ -766,8 +973,8 @@
 .accountFormError {
   margin: 0;
   border-radius: 14px;
-  background: #fff1f2;
-  color: #be123c;
+  background: var(--live-color-error-bg);
+  color: var(--live-color-error-text);
   padding: 9px 10px;
   font-size: 13px;
   font-weight: 800;
@@ -776,8 +983,8 @@
 .accountFormNotice {
   margin: 0;
   border-radius: 14px;
-  background: #ecfdf5;
-  color: #047857;
+  background: var(--live-account-notice-bg);
+  color: var(--live-account-notice-text);
   padding: 9px 10px;
   font-size: 13px;
   font-weight: 800;
@@ -795,12 +1002,12 @@
   align-items: center;
   margin: 0;
   border-radius: 16px;
-  background: #f7f8fc;
+  background: var(--live-account-field-bg);
   padding: 12px;
 }
 
 .accountSignedIn span {
-  color: #717784;
+  color: var(--live-account-muted-text);
   font-size: 13px;
   font-weight: 900;
 }
@@ -821,7 +1028,7 @@
     min-height: min(844px, calc(100dvh - 32px));
     height: min(844px, calc(100dvh - 32px));
     border-radius: 18px;
-    box-shadow: 0 22px 70px rgba(0, 0, 0, 0.42);
+    box-shadow: var(--live-shell-desktop-shadow);
   }
 }
 
@@ -837,7 +1044,7 @@
 
 .douyinShell .livePlayerShell {
   position: absolute;
-  z-index: 3;
+  z-index: var(--live-z-local-overlay);
   top: 204px;
   left: 0;
   right: 0;
@@ -909,10 +1116,10 @@
 .posterFallback p,
 .playerMessage {
   position: relative;
-  z-index: 3;
+  z-index: var(--live-z-local-overlay);
   border-radius: 999px;
-  background: rgba(17, 19, 31, 0.72);
-  color: #fff;
+  background: var(--live-color-player-message-bg);
+  color: var(--live-color-contrast);
   padding: 8px 12px;
   font-size: 12px;
 }
@@ -929,10 +1136,10 @@
   pointer-events: none;
   position: absolute;
   inset: 0;
-  z-index: 5;
+  z-index: var(--live-z-overlay);
   padding: 14px;
-  color: #fff;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.48), transparent 42%, rgba(0, 0, 0, 0.68));
+  color: var(--live-room-foreground);
+  background: var(--live-room-overlay-bg);
 }
 
 .douyinShell .liveOverlay {
@@ -941,7 +1148,7 @@
 
 .douyinTopTabs {
   position: absolute;
-  z-index: 18;
+  z-index: var(--live-z-sticky);
   top: 14px;
   left: 14px;
   right: 14px;
@@ -950,14 +1157,14 @@
   grid-template-columns: 42px repeat(6, minmax(0, 1fr)) 42px;
   gap: 4px;
   align-items: center;
-  color: rgba(255, 255, 255, 0.66);
+  color: var(--live-room-muted-foreground);
 }
 
 .douyinTopTabs button {
   height: 42px;
   border: 0;
   background: transparent;
-  color: #fff;
+  color: var(--live-room-foreground);
   font-size: 30px;
   font-weight: 800;
 }
@@ -974,7 +1181,7 @@
 
 .douyinTopTabs b {
   position: relative;
-  color: #fff;
+  color: var(--live-room-foreground);
 }
 
 .douyinTopTabs b:after {
@@ -985,17 +1192,17 @@
   width: 30px;
   height: 3px;
   border-radius: 999px;
-  background: #fff;
+  background: var(--live-room-foreground);
   transform: translateX(-50%);
 }
 
 .liveRoomChrome {
   position: absolute;
-  z-index: 16;
+  z-index: var(--live-z-overlay);
   top: 70px;
   left: 0;
   right: 0;
-  color: #fff;
+  color: var(--live-room-foreground);
   pointer-events: none;
 }
 
@@ -1017,9 +1224,9 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #88f069, #5eead4 55%, #ffd166);
-  color: #06110b;
-  border: 2px solid rgba(255, 255, 255, 0.78);
+  background: var(--live-room-avatar-bg);
+  color: var(--live-room-avatar-text);
+  border: 2px solid var(--live-room-border);
   font-weight: 950;
 }
 
@@ -1033,7 +1240,7 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.65);
+  text-shadow: var(--live-room-text-shadow-sm);
 }
 
 .anchorCopy strong {
@@ -1043,7 +1250,7 @@
 
 .anchorCopy span {
   margin-top: 3px;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--live-room-muted-strong);
   font-size: 12px;
   font-weight: 800;
 }
@@ -1054,26 +1261,26 @@
   border: 0;
   border-radius: 50%;
   background: transparent;
-  color: #fff;
+  color: var(--live-room-foreground);
   font-size: 28px;
   font-weight: 800;
 }
 
 .roomTitleBlock {
   position: absolute;
-  z-index: 16;
+  z-index: var(--live-z-overlay);
   top: 540px;
   left: 20px;
   right: 90px;
   display: grid;
   gap: 5px;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.75);
+  text-shadow: var(--live-room-text-shadow-strong);
 }
 
 .roomTitleBlock span {
   width: fit-content;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--live-room-glass-soft-bg);
   padding: 2px 8px;
   font-size: 14px;
   font-weight: 950;
@@ -1102,13 +1309,13 @@
 
 .liveTopLine b {
   font-size: 14px;
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.45);
+  text-shadow: var(--live-room-text-shadow-soft);
 }
 
 .wsDot {
   margin-left: auto;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--live-room-glass-bg);
   padding: 5px 9px;
   font-size: 12px;
 }
@@ -1120,7 +1327,7 @@
   height: 7px;
   border-radius: 50%;
   margin-right: 5px;
-  background: #ef4444;
+  background: var(--live-color-error);
 }
 
 .wsDot.ok:before {
@@ -1147,7 +1354,7 @@
   font-style: normal;
   white-space: nowrap;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--live-room-glass-bg);
   backdrop-filter: blur(8px);
   padding: 6px 9px;
   font-size: 12px;
@@ -1165,14 +1372,14 @@
   font-size: 17px;
   font-weight: 950;
   line-height: 1.25;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+  text-shadow: var(--live-room-text-shadow-md);
 }
 
 .liveActionRail {
   position: absolute;
-  z-index: 17;
+  z-index: var(--live-z-sticky);
   right: 14px;
-  bottom: calc(82px + env(safe-area-inset-bottom));
+  bottom: var(--live-action-rail-bottom);
   display: grid;
   grid-template-columns: repeat(2, 50px);
   gap: 9px;
@@ -1182,12 +1389,12 @@
 .liveActionRail button {
   border: 0;
   background: transparent;
-  color: #fff;
+  color: var(--live-room-foreground);
   display: grid;
   justify-items: center;
   gap: 5px;
   padding: 0;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.65);
+  text-shadow: var(--live-room-text-shadow-sm);
 }
 
 .liveActionRail span {
@@ -1196,8 +1403,8 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--live-room-action-bg);
+  border: 1px solid var(--live-room-action-border);
   backdrop-filter: blur(10px);
   font-size: 15px;
   font-weight: 950;
@@ -1205,8 +1412,8 @@
 
 .liveActionRail .quickBidButton span {
   background: linear-gradient(135deg, var(--primary-red), var(--primary-pink));
-  border-color: rgba(255, 255, 255, 0.36);
-  box-shadow: 0 12px 24px rgba(255, 63, 108, 0.28);
+  border-color: var(--live-room-primary-border);
+  box-shadow: var(--live-room-primary-shadow);
   font-size: 24px;
   line-height: 1;
 }
@@ -1218,13 +1425,13 @@
 
 .liveConnectionWarn {
   position: absolute;
-  z-index: 16;
+  z-index: var(--live-z-overlay);
   left: 14px;
   right: 14px;
   top: 94px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #9f1239;
+  background: var(--live-color-card-glass);
+  color: var(--live-color-error-text);
   padding: 10px 12px;
   font-size: 13px;
   font-weight: 900;
@@ -1236,10 +1443,10 @@
 
 .liveComposer {
   position: absolute;
-  z-index: 18;
+  z-index: var(--live-z-sticky);
   left: 16px;
   right: 84px;
-  bottom: calc(18px + env(safe-area-inset-bottom));
+  bottom: var(--live-composer-bottom);
   display: grid;
   grid-template-columns: minmax(0, 1fr) 44px;
   gap: 8px;
@@ -1250,8 +1457,8 @@
   height: 44px;
   border: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: var(--live-room-action-bg);
+  color: var(--live-room-foreground);
   font-size: 18px;
   font-weight: 950;
   backdrop-filter: blur(12px);
@@ -1261,17 +1468,17 @@
   border-radius: 999px;
   justify-content: flex-start;
   padding: 0 18px;
-  color: rgba(255, 255, 255, 0.68);
+  color: var(--live-room-muted-foreground);
   text-align: left;
 }
 
 .auctionDrawerMask {
   position: absolute;
   inset: 0;
-  z-index: 42;
+  z-index: var(--live-z-sheet);
   display: grid;
   place-items: end center;
-  background: rgba(0, 0, 0, 0.34);
+  background: var(--live-color-sheet-backdrop);
 }
 
 .auctionDrawer {
@@ -1280,8 +1487,8 @@
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   border-radius: 24px 24px 0 0;
-  background: var(--panel-bg);
-  box-shadow: 0 -18px 54px rgba(0, 0, 0, 0.36);
+  background: var(--live-color-surface);
+  box-shadow: var(--live-shadow-sheet);
   overflow: hidden;
 }
 
@@ -1291,11 +1498,11 @@
   gap: 10px;
   align-items: center;
   padding: 14px 14px 8px;
-  background: rgba(246, 247, 251, 0.96);
+  background: var(--live-color-surface-glass);
 }
 
 .auctionDrawerHeader span {
-  color: var(--primary-red);
+  color: var(--live-color-primary);
   font-size: 12px;
   font-weight: 950;
 }
@@ -1314,7 +1521,7 @@
   height: 40px;
   border: 0;
   border-radius: 50%;
-  background: #fff;
+  background: var(--live-color-card);
   color: var(--text-main);
   font-size: 24px;
   line-height: 1;
@@ -1325,7 +1532,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
   padding: 0 22px 12px;
-  background: rgba(246, 247, 251, 0.96);
+  background: var(--live-color-surface-glass);
 }
 
 .activityTabs {
@@ -1342,7 +1549,7 @@
   border: 0;
   border-radius: 16px;
   background: transparent;
-  color: #111827;
+  color: var(--live-drawer-tab-foreground);
   display: grid;
   grid-template-rows: 30px auto;
   justify-items: center;
@@ -1362,7 +1569,7 @@
 }
 
 .drawerTabs button.active {
-  color: var(--primary-red);
+  color: var(--live-color-primary);
 }
 
 .drawerTabs button.active b {
@@ -1396,15 +1603,15 @@
   min-height: 42px;
   border: 1px solid var(--line);
   border-radius: 15px;
-  background: #fff;
+  background: var(--live-color-card);
   color: var(--text-main);
   font-weight: 950;
 }
 
 .activityTabs button.active {
-  border-color: rgba(255, 63, 108, 0.34);
-  background: #fff0f4;
-  color: var(--primary-red);
+  border-color: var(--live-drawer-active-border);
+  background: var(--live-drawer-active-bg);
+  color: var(--live-color-primary);
 }
 
 .drawerContent {
@@ -1414,9 +1621,9 @@
 }
 
 .drawerSyncState {
-  padding: 8px 14px calc(10px + env(safe-area-inset-bottom));
+  padding: 8px 14px var(--live-sync-bottom-padding);
   color: var(--text-sub);
-  background: rgba(246, 247, 251, 0.96);
+  background: var(--live-color-surface-glass);
   font-size: 12px;
   font-weight: 800;
   text-align: center;
@@ -1425,24 +1632,24 @@
 .drawerEmpty,
 .emptyState {
   border-radius: 20px;
-  background: #fff;
+  background: var(--live-color-card);
   margin: 12px 0;
   padding: 20px 14px;
   text-align: center;
   color: var(--text-sub);
-  box-shadow: 0 12px 26px rgba(32, 39, 70, 0.08);
+  box-shadow: var(--live-shadow-card);
 }
 
 .emptyState.error {
-  color: #be123c;
+  color: var(--live-color-error-text);
 }
 
 .connectionWarn,
 .cancelBanner {
   margin: 10px 0;
   border-radius: 16px;
-  background: #fff1f2;
-  color: #be123c;
+  background: var(--live-color-error-bg);
+  color: var(--live-color-error-text);
   padding: 10px 12px;
   font-weight: 800;
   font-size: 13px;
@@ -1454,16 +1661,16 @@
 .feedCard,
 .buyerAuthPanel {
   border-radius: 22px;
-  background: var(--card-bg);
+  background: var(--live-color-card);
   margin: 12px 0;
   padding: 14px;
-  box-shadow: 0 12px 28px rgba(32, 39, 70, 0.08);
+  box-shadow: var(--live-shadow-card);
 }
 
 .lotMedia {
   height: 360px;
   border-radius: 18px;
-  background: #f4f5f8;
+  background: var(--live-drawer-media-bg);
   overflow: hidden;
   display: grid;
   place-items: center;
@@ -1484,8 +1691,8 @@
 
 .statusPill {
   border-radius: 999px;
-  background: #eef2ff;
-  color: var(--primary-purple);
+  background: var(--live-color-info-bg);
+  color: var(--live-color-accent);
   padding: 4px 8px;
   font-size: 11px;
   font-weight: 900;
@@ -1513,7 +1720,7 @@
 
 .priceGrid div {
   border-radius: 16px;
-  background: #f7f8fc;
+  background: var(--live-drawer-section-bg);
   padding: 10px;
 }
 
@@ -1530,17 +1737,17 @@
 }
 
 .dangerText {
-  color: var(--primary-red) !important;
+  color: var(--live-color-error);
 }
 
 .pulse {
-  animation: pulseDanger 0.9s ease-in-out infinite;
+  animation: pulseDanger var(--live-duration-pulse) var(--live-ease-attention) infinite;
 }
 
 @keyframes pulseDanger {
   50% {
     transform: scale(1.04);
-    text-shadow: 0 0 18px rgba(255, 63, 108, 0.35);
+    text-shadow: var(--live-drawer-danger-pulse-shadow);
   }
 }
 
@@ -1561,7 +1768,7 @@
   height: 48px;
   border: 0;
   border-radius: 16px;
-  background: #eef1f7;
+  background: var(--live-drawer-control-muted-bg);
   font-size: 24px;
   font-weight: 900;
 }
@@ -1570,7 +1777,7 @@
 .buyerAuthPanel label {
   display: block;
   border-radius: 16px;
-  background: #f7f8fc;
+  background: var(--live-drawer-section-bg);
   padding: 8px 12px;
 }
 
@@ -1601,17 +1808,17 @@
   margin-top: 12px;
   border: 0;
   border-radius: 18px;
-  background: linear-gradient(135deg, var(--primary-red), var(--primary-pink) 55%, var(--primary-purple));
-  color: white;
+  background: linear-gradient(135deg, var(--live-color-primary), var(--live-color-primary-soft) 55%, var(--live-color-accent));
+  color: var(--live-color-contrast);
   padding: 14px 16px;
   font-size: 16px;
   font-weight: 950;
-  box-shadow: 0 16px 30px rgba(255, 63, 108, 0.24);
+  box-shadow: var(--live-drawer-primary-shadow);
 }
 
 .bidError {
-  color: #be123c;
-  background: #fff1f2;
+  color: var(--live-color-error-text);
+  background: var(--live-color-error-bg);
   border-radius: 14px;
   padding: 9px 10px;
   font-size: 13px;
@@ -1625,8 +1832,8 @@
 
 .pendingHint {
   border-radius: 16px;
-  background: #fff7ed;
-  color: #c2410c;
+  background: var(--live-color-warning-strong-bg);
+  color: var(--live-color-warning-strong-text);
   margin: 8px 0 12px;
   padding: 10px 12px;
   font-size: 12px;
@@ -1644,16 +1851,16 @@
 .buyerAuthTabs button {
   border: 1px solid var(--line);
   border-radius: 16px;
-  background: #fff;
+  background: var(--live-color-card);
   padding: 10px;
   font-weight: 900;
   color: var(--text-main);
 }
 
 .buyerAuthTabs button.active {
-  border-color: rgba(255, 63, 108, 0.34);
-  background: #fff0f4;
-  color: var(--primary-red);
+  border-color: var(--live-drawer-active-border);
+  background: var(--live-drawer-active-bg);
+  color: var(--live-color-primary);
 }
 
 .buyerAuthPanel form {
@@ -1692,7 +1899,7 @@
   min-height: 38px;
   border: 0;
   border-radius: 14px;
-  background: #fff;
+  background: var(--live-color-card);
   color: var(--text-main);
   padding: 0 12px;
   font-size: 13px;
@@ -1700,12 +1907,12 @@
 }
 
 .rankingCard header b {
-  color: var(--success);
+  color: var(--live-color-success);
   font-size: 13px;
 }
 
 .rankingCard header b.warn {
-  color: var(--primary-red);
+  color: var(--live-color-primary);
 }
 
 .rankRow {
@@ -1714,19 +1921,19 @@
   gap: 8px;
   align-items: center;
   border-radius: 16px;
-  background: #f7f8fc;
+  background: var(--live-drawer-section-bg);
   margin-top: 8px;
   padding: 9px;
 }
 
 .rankRow.me {
-  background: #fff0f4;
-  outline: 1px solid #ffd0df;
+  background: var(--live-drawer-active-bg);
+  outline: 1px solid var(--live-drawer-active-outline);
 }
 
 .rankRow > span {
   font-weight: 950;
-  color: var(--primary-purple);
+  color: var(--live-color-accent);
 }
 
 .rankRow b,
@@ -1748,7 +1955,7 @@
 
 .feedCard > div {
   border-radius: 16px;
-  background: #f7f8fc;
+  background: var(--live-drawer-section-bg);
   margin-top: 8px;
   padding: 9px;
   display: grid;
@@ -1761,7 +1968,7 @@
 }
 
 .feedCard b {
-  color: var(--primary-red);
+  color: var(--live-color-primary);
 }
 
 .feedCard small {
@@ -1771,7 +1978,7 @@
 }
 
 .feedCard .rejected {
-  background: #fff1f2;
+  background: var(--live-color-error-bg);
 }
 
 .queueList {
@@ -1785,13 +1992,13 @@
   gap: 10px;
   align-items: center;
   border-radius: 18px;
-  background: #fff;
+  background: var(--live-color-card);
   padding: 10px;
-  box-shadow: 0 10px 24px rgba(32, 39, 70, 0.07);
+  box-shadow: var(--live-drawer-row-shadow);
 }
 
 .queueLot.active {
-  outline: 2px solid rgba(255, 63, 108, 0.28);
+  outline: 2px solid var(--live-drawer-active-outline-soft);
 }
 
 .queueLot img,
@@ -1800,8 +2007,8 @@
   height: 64px;
   border-radius: 16px;
   object-fit: cover;
-  background: #eef2ff;
-  color: var(--primary-purple);
+  background: var(--live-drawer-fallback-bg);
+  color: var(--live-color-accent);
   display: grid;
   place-items: center;
   font-weight: 950;
@@ -1836,7 +2043,7 @@
 
 .queueLot aside b {
   display: block;
-  color: var(--primary-red);
+  color: var(--live-color-primary);
   font-size: 14px;
 }
 
@@ -1844,8 +2051,8 @@
   display: inline-flex;
   margin-top: 6px;
   border-radius: 999px;
-  background: #f0fdf4;
-  color: #15803d;
+  background: var(--live-color-success-bg);
+  color: var(--live-color-success-text);
   padding: 4px 7px;
   font-weight: 900;
 }
@@ -1861,7 +2068,7 @@
   gap: 10px;
   align-items: center;
   border-radius: 18px;
-  background: #fff;
+  background: var(--live-color-card);
   padding: 9px;
 }
 
@@ -1873,8 +2080,8 @@
   object-fit: cover;
   display: grid;
   place-items: center;
-  background: #eef2ff;
-  color: var(--primary-purple);
+  background: var(--live-drawer-fallback-bg);
+  color: var(--live-color-accent);
   font-weight: 950;
 }
 
@@ -1898,7 +2105,7 @@
 
 .miniOrder strong {
   display: block;
-  color: var(--primary-red);
+  color: var(--live-color-primary);
   font-size: 14px;
 }
 
@@ -1907,7 +2114,7 @@
   min-height: 44px;
   border: 0;
   border-radius: 16px;
-  background: #fff;
+  background: var(--live-color-card);
   color: var(--text-main);
   display: flex;
   align-items: center;
@@ -1916,7 +2123,7 @@
   text-decoration: none;
   font-size: 13px;
   font-weight: 950;
-  box-shadow: 0 10px 24px rgba(32, 39, 70, 0.08);
+  box-shadow: var(--live-drawer-action-shadow);
 }
 
 .historyLink {
@@ -1926,7 +2133,7 @@
 .noticeLayer {
   pointer-events: none;
   position: fixed;
-  z-index: 60;
+  z-index: var(--live-z-toast);
   top: 94px;
   left: 50%;
   width: min(350px, calc(100vw - 28px));
@@ -1948,14 +2155,14 @@
 .noticeLayer span {
   max-width: 100%;
   border-radius: 999px;
-  background: rgba(17, 19, 31, 0.88);
-  color: #fff;
+  background: var(--live-color-toast-bg);
+  color: var(--live-color-contrast);
   padding: 9px 13px;
   font-weight: 900;
   overflow-wrap: anywhere;
   text-align: center;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
-  animation: noticePop 3.4s ease both;
+  box-shadow: var(--live-shadow-toast);
+  animation: noticePop var(--live-duration-toast) var(--live-ease-simple) both;
 }
 
 @keyframes noticePop {
@@ -1977,10 +2184,10 @@
 .modalMask {
   position: fixed;
   inset: 0;
-  z-index: 70;
+  z-index: var(--live-z-modal);
   display: grid;
   place-items: end center;
-  background: rgba(8, 10, 18, 0.58);
+  background: var(--live-color-modal-backdrop);
   padding: 16px;
 }
 
@@ -1996,9 +2203,9 @@
 .payModal {
   width: min(390px, 100%);
   border-radius: 28px;
-  background: #fff;
+  background: var(--live-color-card);
   padding: 18px;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.34);
+  box-shadow: var(--live-shadow-modal);
   position: relative;
   text-align: center;
 }
@@ -2019,7 +2226,7 @@
   right: 14px;
   top: 12px;
   border: 0;
-  background: #f0f1f6;
+  background: var(--live-modal-close-bg);
   border-radius: 50%;
   width: 32px;
   height: 32px;
@@ -2032,8 +2239,8 @@
   aspect-ratio: 1 / 0.9;
   overflow: hidden;
   border-radius: 22px;
-  background: #f4f5f8;
-  color: #fff;
+  background: var(--live-modal-media-bg);
+  color: var(--live-color-contrast);
   font-size: 34px;
   font-weight: 950;
 }
@@ -2048,7 +2255,7 @@
 
 .resultTitle {
   margin: 0;
-  color: var(--text-main);
+  color: var(--live-color-text);
   font-size: 18px;
   font-weight: 950;
   line-height: 1.28;
@@ -2060,32 +2267,32 @@
   align-items: center;
   gap: 12px;
   border-radius: 18px;
-  background: #f7f8fc;
+  background: var(--live-modal-section-bg);
   padding: 12px 14px;
 }
 
 .resultDeposit span {
-  color: var(--text-sub);
+  color: var(--live-color-text-muted);
   font-size: 13px;
   font-weight: 800;
 }
 
 .resultDeposit b {
-  color: var(--text-main);
+  color: var(--live-color-text);
   font-size: 16px;
   font-weight: 950;
   text-align: right;
 }
 
 .resultDeposit small {
-  color: var(--text-sub);
+  color: var(--live-color-text-muted);
   font-size: 12px;
   font-weight: 900;
 }
 
 .resultPayCountdown {
   margin: -2px 0 0;
-  color: var(--text-sub);
+  color: var(--live-color-text-muted);
   font-size: 12px;
   font-weight: 800;
 }
@@ -2096,9 +2303,7 @@
   gap: 12px;
   align-items: center;
   border-radius: 22px;
-  background:
-    linear-gradient(135deg, rgba(255, 47, 101, 0.08), transparent 42%),
-    #f7f8fc;
+  background: var(--live-modal-lose-product-bg);
   padding: 8px 32px 8px 8px;
   text-align: left;
 }
@@ -2110,11 +2315,11 @@
   height: 112px;
   overflow: hidden;
   border-radius: 18px;
-  background: #f4f5f8;
-  color: #fff;
+  background: var(--live-modal-media-bg);
+  color: var(--live-color-contrast);
   font-size: 28px;
   font-weight: 950;
-  box-shadow: 0 14px 28px rgba(17, 19, 25, 0.16);
+  box-shadow: var(--live-modal-media-shadow);
 }
 
 .resultLoseProductMedia img {
@@ -2127,7 +2332,7 @@
 
 .resultLoseProduct span {
   display: block;
-  color: var(--text-sub);
+  color: var(--live-color-text-muted);
   font-size: 12px;
   font-weight: 800;
 }
@@ -2136,7 +2341,7 @@
   display: -webkit-box;
   margin-top: 3px;
   overflow: hidden;
-  color: var(--text-main);
+  color: var(--live-color-text);
   font-size: 16px;
   font-weight: 950;
   line-height: 1.3;
@@ -2160,17 +2365,17 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-red), var(--primary-pink));
-  color: #fff;
+  background: var(--live-modal-avatar-bg);
+  color: var(--live-color-contrast);
   font-size: 17px;
   font-weight: 950;
-  box-shadow: 0 10px 22px rgba(255, 63, 108, 0.2);
+  box-shadow: var(--live-modal-avatar-shadow);
 }
 
 .resultWinnerProfile span,
 .resultFinalPrice span {
   display: block;
-  color: var(--text-sub);
+  color: var(--live-color-text-muted);
   font-size: 12px;
   font-weight: 800;
 }
@@ -2179,7 +2384,7 @@
   display: block;
   margin-top: 3px;
   overflow: hidden;
-  color: var(--text-main);
+  color: var(--live-color-text);
   font-size: 16px;
   font-weight: 950;
   text-overflow: ellipsis;
@@ -2188,7 +2393,7 @@
 
 .resultLoserStory {
   margin: 0;
-  color: var(--text-main);
+  color: var(--live-color-text);
   font-size: 14px;
   font-weight: 900;
   line-height: 1.45;
@@ -2197,15 +2402,13 @@
 .resultFinalPrice {
   border-radius: 22px;
   padding: 14px;
-  background:
-    radial-gradient(circle at top left, rgba(255, 47, 101, 0.16), transparent 45%),
-    #f7f8fc;
+  background: var(--live-modal-highlight-bg);
 }
 
 .resultFinalPrice strong {
   display: block;
   margin-top: 4px;
-  color: var(--text-main);
+  color: var(--live-color-text);
   font-size: 28px;
   font-weight: 950;
   line-height: 1.15;
@@ -2226,8 +2429,8 @@
   height: 72px;
   overflow: hidden;
   border-radius: 18px;
-  background: linear-gradient(135deg, #1b1c24, #3b3d4e);
-  color: #fff;
+  background: var(--live-modal-product-media-bg);
+  color: var(--live-color-contrast);
   font-size: 24px;
   font-weight: 950;
 }
@@ -2241,14 +2444,14 @@
 .resultKicker {
   display: inline-flex;
   margin-bottom: 4px;
-  color: var(--text-sub);
+  color: var(--live-color-text-muted);
   font-size: 12px;
   font-weight: 800;
 }
 
 .resultProduct h2 {
   margin: 0;
-  color: var(--text-main);
+  color: var(--live-color-text);
   font-size: 17px;
   line-height: 1.28;
 }
@@ -2266,35 +2469,33 @@
 }
 
 .resultStateBadge.win {
-  background: #fff0f4;
-  color: var(--primary-red);
+  background: var(--live-modal-soft-accent-bg);
+  color: var(--live-color-primary);
 }
 
 .resultStateBadge.lose {
-  background: #f1f2f5;
-  color: var(--text-main);
+  background: var(--live-modal-neutral-bg);
+  color: var(--live-color-text);
 }
 
 .resultAmountPanel {
   border-radius: 22px;
   padding: 16px;
-  background:
-    radial-gradient(circle at top left, rgba(255, 47, 101, 0.16), transparent 45%),
-    #f7f8fc;
+  background: var(--live-modal-highlight-bg);
   text-align: center;
 }
 
 .resultAmountPanel span {
   display: block;
   margin-bottom: 4px;
-  color: var(--text-sub);
+  color: var(--live-color-text-muted);
   font-size: 12px;
   font-weight: 800;
 }
 
 .resultAmountPanel strong {
   display: block;
-  color: var(--text-main);
+  color: var(--live-color-text);
   font-size: 30px;
   font-weight: 950;
   line-height: 1.15;
@@ -2311,9 +2512,9 @@
   justify-content: space-between;
   gap: 12px;
   border-radius: 16px;
-  background: #f7f8fc;
+  background: var(--live-modal-section-bg);
   padding: 11px 12px;
-  color: var(--text-sub);
+  color: var(--live-color-text-muted);
   font-size: 12px;
   font-weight: 800;
 }
@@ -2321,7 +2522,7 @@
 .resultWinnerInfo b {
   min-width: 0;
   overflow: hidden;
-  color: var(--text-main);
+  color: var(--live-color-text);
   font-size: 13px;
   font-weight: 950;
   text-align: right;
@@ -2331,7 +2532,7 @@
 
 .resultHint {
   margin: 0;
-  color: var(--text-sub);
+  color: var(--live-color-text-muted);
   font-size: 13px;
   font-weight: 700;
   line-height: 1.55;
@@ -2341,7 +2542,7 @@
 .resultHint span {
   display: block;
   margin-top: 3px;
-  color: var(--text-main);
+  color: var(--live-color-text);
   font-weight: 900;
 }
 
@@ -2353,20 +2554,20 @@
   min-height: 52px;
   border: 0;
   border-radius: 999px;
-  background: var(--primary-red);
-  color: #fff;
+  background: var(--live-color-primary);
+  color: var(--live-color-contrast);
   font-size: 16px;
   font-weight: 950;
-  box-shadow: 0 16px 32px rgba(254, 44, 85, 0.24);
+  box-shadow: var(--live-modal-primary-shadow);
 }
 
 .resultModalLose .resultPrimaryButton {
-  background: #111319;
-  box-shadow: 0 16px 32px rgba(17, 19, 25, 0.22);
+  background: var(--live-modal-secondary-bg);
+  box-shadow: var(--live-modal-secondary-shadow);
 }
 
 .resultPrimaryButton:disabled {
-  background: #c9cbd3;
+  background: var(--live-modal-disabled-bg);
   box-shadow: none;
   cursor: not-allowed;
 }
@@ -2391,7 +2592,7 @@
 .depositLotName {
   margin: 0;
   overflow: hidden;
-  color: var(--text-main);
+  color: var(--live-color-text);
   font-size: 15px;
   font-weight: 900;
   text-overflow: ellipsis;
@@ -2401,22 +2602,20 @@
 .depositAmount {
   border-radius: 22px;
   padding: 16px;
-  background:
-    radial-gradient(circle at top left, rgba(255, 47, 101, 0.16), transparent 45%),
-    #f7f8fc;
+  background: var(--live-modal-highlight-bg);
 }
 
 .depositAmount span {
   display: block;
   margin-bottom: 4px;
-  color: var(--text-sub);
+  color: var(--live-color-text-muted);
   font-size: 12px;
   font-weight: 800;
 }
 
 .depositAmount b {
   display: block;
-  color: var(--text-main);
+  color: var(--live-color-text);
   font-size: 30px;
   font-weight: 950;
   line-height: 1.15;
@@ -2424,47 +2623,47 @@
 
 .depositNote {
   margin: 0;
-  color: var(--text-sub);
+  color: var(--live-color-text-muted);
   font-size: 13px;
   font-weight: 800;
   line-height: 1.5;
 }
 
 .payMethods button {
-  border: 1px solid var(--line);
+  border: 1px solid var(--live-color-border);
   border-radius: 16px;
-  background: #fff;
+  background: var(--live-color-card);
   padding: 12px;
   font-weight: 900;
 }
 
 .payMethods button.active {
-  border-color: var(--primary-pink);
-  background: #fff0f4;
-  color: var(--primary-red);
+  border-color: var(--live-color-primary-soft);
+  background: var(--live-modal-soft-accent-bg);
+  color: var(--live-color-primary);
 }
 
 .payResult {
-  color: var(--success);
+  color: var(--live-color-success);
   font-weight: 900;
 }
 
 .orderPage {
   min-height: 100%;
-  background: #f5f6fb;
+  background: var(--live-order-page-bg);
 }
 
 .orderPageHeader {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: var(--live-z-sticky);
   display: grid;
   grid-template-columns: minmax(62px, auto) 1fr minmax(62px, auto);
   gap: 10px;
   align-items: center;
   margin: 0 -12px 12px;
   padding: 12px;
-  background: rgba(245, 246, 251, 0.94);
+  background: var(--live-order-header-bg);
   backdrop-filter: blur(10px);
 }
 
@@ -2479,12 +2678,12 @@
   min-height: 44px;
   border: 0;
   border-radius: 14px;
-  background: #fff;
-  color: var(--text-main);
+  background: var(--live-color-card);
+  color: var(--live-color-text);
   padding: 0 12px;
   text-decoration: none;
   font-weight: 900;
-  box-shadow: 0 8px 22px rgba(32, 39, 70, 0.08);
+  box-shadow: var(--live-order-header-action-shadow);
 }
 
 .orderHeaderSpacer {
@@ -2500,10 +2699,10 @@
   display: grid;
   place-items: center;
   overflow: hidden;
-  color: var(--text-sub);
+  color: var(--live-color-text-muted);
   font-size: 12px;
   font-weight: 900;
-  transition: height 160ms ease;
+  transition: height var(--live-duration-pull) var(--live-ease-simple);
 }
 
 .activityPullArea.pulling .pullRefreshHint {
@@ -2522,17 +2721,15 @@
   align-items: center;
   border: 0;
   border-radius: 20px;
-  background: #fff;
+  background: var(--live-color-card);
   padding: 10px;
-  box-shadow: 0 12px 28px rgba(32, 39, 70, 0.08);
+  box-shadow: var(--live-shadow-card);
   cursor: pointer;
   outline: none;
 }
 
 .orderCard:focus-visible {
-  box-shadow:
-    0 0 0 3px rgba(255, 47, 101, 0.18),
-    0 12px 28px rgba(32, 39, 70, 0.08);
+  box-shadow: var(--live-order-focus-shadow);
 }
 
 .orderCard img,
@@ -2541,8 +2738,8 @@
   height: 72px;
   border-radius: 16px;
   object-fit: cover;
-  background: #eef2ff;
-  color: var(--primary-purple);
+  background: var(--live-order-fallback-bg);
+  color: var(--live-color-accent);
   display: grid;
   place-items: center;
   font-size: 13px;
@@ -2557,7 +2754,7 @@
 
 .orderCard p {
   margin: 2px 0;
-  color: var(--text-sub);
+  color: var(--live-color-text-muted);
   font-size: 12px;
 }
 
@@ -2567,7 +2764,7 @@
 
 .orderCard aside b {
   display: block;
-  color: var(--primary-red);
+  color: var(--live-color-primary);
   font-size: 15px;
 }
 
@@ -2575,8 +2772,8 @@
   display: inline-flex;
   margin-top: 6px;
   border-radius: 999px;
-  background: #fff7ed;
-  color: #c2410c;
+  background: var(--live-color-warning-strong-bg);
+  color: var(--live-color-warning-strong-text);
   padding: 4px 8px;
   font-size: 11px;
   font-weight: 900;
@@ -2584,20 +2781,20 @@
 
 .orderCard aside span.paid,
 .orderStatePill.paid {
-  background: #f0fdf4;
-  color: #15803d;
+  background: var(--live-color-success-bg);
+  color: var(--live-color-success-text);
 }
 
 .orderCard aside span.processing,
 .orderStatePill.processing {
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--live-color-processing-bg);
+  color: var(--live-color-processing-text);
 }
 
 .orderCard aside span.danger,
 .orderStatePill.danger {
-  background: #fff1f2;
-  color: #be123c;
+  background: var(--live-color-error-bg);
+  color: var(--live-color-error-text);
 }
 
 .orderMiniPayButton {
@@ -2606,8 +2803,8 @@
   margin-top: 7px;
   border: 0;
   border-radius: 999px;
-  background: var(--primary-red);
-  color: #fff;
+  background: var(--live-color-primary);
+  color: var(--live-color-contrast);
   padding: 6px 9px;
   font-size: 11px;
   font-weight: 950;
@@ -2626,9 +2823,9 @@
   max-height: min(760px, calc(100dvh - 32px));
   overflow-y: auto;
   border-radius: 28px 28px 24px 24px;
-  background: #fff;
+  background: var(--live-color-card);
   padding: 18px;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.34);
+  box-shadow: var(--live-shadow-modal);
 }
 
 .orderDetailHero,
@@ -2639,8 +2836,8 @@
   height: 220px;
   overflow: hidden;
   border-radius: 22px;
-  background: #f4f5f8;
-  color: var(--text-sub);
+  background: var(--live-modal-media-bg);
+  color: var(--live-color-text-muted);
   font-weight: 950;
 }
 
@@ -2661,8 +2858,8 @@
   align-items: center;
   min-height: 26px;
   border-radius: 999px;
-  background: #fff7ed;
-  color: #c2410c;
+  background: var(--live-color-warning-strong-bg);
+  color: var(--live-color-warning-strong-text);
   padding: 0 10px;
   font-size: 12px;
   font-weight: 950;
@@ -2670,7 +2867,7 @@
 
 .orderDetailTitle h2 {
   margin: 9px 0 4px;
-  color: var(--text-main);
+  color: var(--live-color-text);
   font-size: 19px;
   line-height: 1.25;
 }
@@ -2678,23 +2875,21 @@
 .orderDetailTitle p {
   margin: 0;
   overflow-wrap: anywhere;
-  color: var(--text-sub);
+  color: var(--live-color-text-muted);
   font-size: 12px;
   font-weight: 800;
 }
 
 .orderDetailAmount {
   border-radius: 22px;
-  background:
-    radial-gradient(circle at top left, rgba(255, 47, 101, 0.16), transparent 45%),
-    #f7f8fc;
+  background: var(--live-modal-highlight-bg);
   padding: 14px;
   text-align: center;
 }
 
 .orderDetailAmount span {
   display: block;
-  color: var(--text-sub);
+  color: var(--live-color-text-muted);
   font-size: 12px;
   font-weight: 800;
 }
@@ -2702,7 +2897,7 @@
 .orderDetailAmount strong {
   display: block;
   margin-top: 4px;
-  color: var(--text-main);
+  color: var(--live-color-text);
   font-size: 28px;
   font-weight: 950;
   line-height: 1.15;
@@ -2713,12 +2908,12 @@
   grid-template-columns: auto minmax(0, 1fr);
   gap: 9px 14px;
   border-radius: 20px;
-  background: #f7f8fc;
+  background: var(--live-modal-section-bg);
   padding: 13px 14px;
 }
 
 .orderDetailRows span {
-  color: var(--text-sub);
+  color: var(--live-color-text-muted);
   font-size: 12px;
   font-weight: 800;
 }
@@ -2726,7 +2921,7 @@
 .orderDetailRows b {
   min-width: 0;
   overflow-wrap: anywhere;
-  color: var(--text-main);
+  color: var(--live-color-text);
   font-size: 12px;
   font-weight: 950;
   text-align: right;
@@ -2740,30 +2935,30 @@
   min-height: 52px;
   border: 0;
   border-radius: 999px;
-  background: var(--primary-red);
-  color: #fff;
+  background: var(--live-color-primary);
+  color: var(--live-color-contrast);
   font-size: 16px;
   font-weight: 950;
-  box-shadow: 0 16px 32px rgba(254, 44, 85, 0.24);
+  box-shadow: var(--live-modal-primary-shadow);
 }
 
 .orderDetailPayButton:disabled {
-  background: #c9cbd3;
+  background: var(--live-modal-disabled-bg);
   box-shadow: none;
   cursor: not-allowed;
 }
 
 .activityMeta {
   margin: 0 0 10px;
-  color: var(--text-sub);
+  color: var(--live-color-text-muted);
   font-size: 12px;
   font-weight: 800;
   text-align: center;
 }
 
 .bidRecordCard aside span.success {
-  background: #f0fdf4;
-  color: #15803d;
+  background: var(--live-color-success-bg);
+  color: var(--live-color-success-text);
 }
 
 @media (max-width: 360px) {
@@ -2773,6 +2968,18 @@
 
   .auctionDrawer {
     height: 74vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .homeLiveTrack,
+  .pullRefreshHint {
+    transition: none;
+  }
+
+  .pulse,
+  .noticeLayer span {
+    animation: none;
   }
 }
 
@@ -2786,7 +2993,7 @@
     min-height: 0 !important;
     max-height: min(844px, calc(100dvh - 32px));
     border-radius: 18px;
-    box-shadow: 0 22px 70px rgba(0, 0, 0, 0.42);
+    box-shadow: var(--live-shell-desktop-shadow);
   }
 
   #root > .mobileShell {
