@@ -22,7 +22,7 @@ export function lotHasBid(lot: Lot): boolean {
 
 export function lotHasLockedResult(lot: Lot): boolean {
   return lot.status === LOT_STATUS.SETTLED ||
-    Boolean(lot.winnerUserId || moneyNumber(lot.finalPrice) > 0 || lot.settledAtUnixMs);
+    Boolean(lot.winnerUserId || moneyNumber(lot.finalPrice) > 0 || Number(lot.settledAtUnixMs || 0) > 0);
 }
 
 export function orderForLot(orders: OrderSummary[], lot: Lot): OrderSummary | null {
