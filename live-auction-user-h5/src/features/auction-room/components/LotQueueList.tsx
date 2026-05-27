@@ -1,5 +1,5 @@
 import { LOT_QUEUE_STATUS, LOT_STATUS, type Lot, type OrderSummary } from '../../../shared/api/types';
-import { formatMoney } from '../../../shared/lib/money';
+import { formatMoney, moneyNumber } from '../../../shared/lib/money';
 import { deriveLotDisplayState, lotHasBid, lotHasLockedResult, lotIsDisplayable, orderForLot, type LotDisplayState } from '../model/lotDisplayState';
 
 type QueueLotView = {
@@ -29,10 +29,16 @@ const statusClassByState: Record<LotDisplayState, string> = {
   syncing: 'isUpcoming',
 };
 
+function lotResultPrice(lot: Lot) {
+  if (lotHasLockedResult(lot) && moneyNumber(lot.finalPrice) > 0) return lot.finalPrice;
+  if (moneyNumber(lot.currentPrice) > 0) return lot.currentPrice;
+  return lot.rule.startPrice;
+}
+
 function queueLotView(lot: Lot, order: OrderSummary | null, paymentKnownPaid: boolean, nowMs?: number): QueueLotView {
   const displayState = deriveLotDisplayState(lot, { order, paymentKnownPaid, nowMs });
   const hasBid = lotHasBid(lot);
-  const resultPrice = lotHasLockedResult(lot) ? lot.finalPrice || lot.currentPrice : lot.currentPrice;
+  const resultPrice = lotResultPrice(lot);
   const priceLabel = displayState === 'finished'
     ? '成交价'
     : displayState === 'pendingPayment'

@@ -1,5 +1,5 @@
 import type { Lot } from '../../../shared/api/types';
-import { formatMoney } from '../../../shared/lib/money';
+import { formatMoney, moneyNumber } from '../../../shared/lib/money';
 import { useServerCountdown } from '../hooks/useServerCountdown';
 import { deriveLotDisplayState, type LotDisplayState } from '../model/lotDisplayState';
 
@@ -40,9 +40,11 @@ function primaryPriceLabel(lot: Lot, state: LotDisplayState) {
 
 function primaryPrice(lot: Lot, state: LotDisplayState) {
   if (state === 'finished' || state === 'pendingPayment' || (state === 'failed' && lot.stats?.bidCount)) {
-    return lot.finalPrice || lot.currentPrice || lot.rule.startPrice;
+    if (moneyNumber(lot.finalPrice) > 0) return lot.finalPrice;
+    if (moneyNumber(lot.currentPrice) > 0) return lot.currentPrice;
+    return lot.rule.startPrice;
   }
-  if (state === 'live') return lot.currentPrice || lot.rule.startPrice;
+  if (state === 'live') return moneyNumber(lot.currentPrice) > 0 ? lot.currentPrice : lot.rule.startPrice;
   return lot.rule.startPrice;
 }
 

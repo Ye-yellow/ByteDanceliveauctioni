@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { formatLotDeposit } from '../../../entities/auction/model/deposit';
 import { canPayOrder, isOrderFailed, maskPublicBuyerName, ORDER_PAYMENT_WINDOW_MS, orderStatusLabel } from '../../../entities/order/model/privacy';
 import type { Lot, OrderSummary } from '../../../shared/api/types';
-import { formatMoney } from '../../../shared/lib/money';
+import { formatMoney, moneyNumber } from '../../../shared/lib/money';
 
 function paymentStatusLabel(order?: OrderSummary | null): string {
   if (!order) return '订单生成中';
@@ -64,6 +64,13 @@ function createPaymentTimer(key: string, order: OrderSummary | null | undefined,
   };
 }
 
+function resultAmount(order: OrderSummary | null | undefined, lot: Lot) {
+  if (moneyNumber(order?.amount) > 0) return order?.amount;
+  if (moneyNumber(lot.finalPrice) > 0) return lot.finalPrice;
+  if (moneyNumber(lot.currentPrice) > 0) return lot.currentPrice;
+  return lot.rule.startPrice;
+}
+
 export function ResultModal({
   lot,
   meId,
@@ -80,7 +87,7 @@ export function ResultModal({
   onClose: () => void;
 }) {
   const hasWinningClaim = Boolean(order) || (Boolean(meId) && lot.winnerUserId === meId);
-  const finalAmount = order?.amount || lot.finalPrice || lot.currentPrice;
+  const finalAmount = resultAmount(order, lot);
   const timerKey = `${lot.id}:${order?.id || 'pending'}`;
   const [paymentTimer, setPaymentTimer] = useState(() => createPaymentTimer(timerKey, order, lot));
   const fallbackStartAt = paymentTimer.key === timerKey ? paymentTimer.fallbackStartAt : fallbackPaymentStart(order, lot) || paymentTimer.nowMs;
