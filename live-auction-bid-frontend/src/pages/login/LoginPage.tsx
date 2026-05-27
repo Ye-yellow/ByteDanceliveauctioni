@@ -80,7 +80,7 @@ function AuctionDecorations() {
 export function LoginPage({ embedded = false }: { embedded?: boolean; title?: string }) {
   const redirectTo = useMemo(() => nextPath('/host'), []);
   const [mode, setMode] = useState<'login' | 'register' | 'reset'>('login');
-  const [username, setUsername] = useState('main');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);

@@ -1015,8 +1015,8 @@ html,body,#root{height:100%}.softHomePage{height:100vh!important;min-height:100v
 
 /* Login claymorphism surface: primary frontend style. */
 .loginPage.adminOnlyLogin{
-  --login-clay-bg: var(--clay-bg, #f6f0ff);
-  --login-clay-surface: var(--clay-surface, #fff8fb);
+  --login-clay-bg: #ffffff;
+  --login-clay-surface: #ffffff;
   --login-clay-surface-2: var(--clay-surface-blue, #eef8ff);
   --login-clay-surface-3: var(--clay-surface-warm, #fff5df);
   --login-clay-ink: var(--clay-ink, #342f46);
@@ -1032,7 +1032,7 @@ html,body,#root{height:100%}.softHomePage{height:100vh!important;min-height:100v
   --login-clay-focus: var(--clay-focus-ring, 0 0 0 5px rgba(169,139,244,.18), inset 5px 6px 14px rgba(117,92,150,.10), inset -5px -5px 14px rgba(255,255,255,.76));
   min-height: 100dvh !important;
   padding: 34px !important;
-  background: var(--studio-shell-bg, var(--login-clay-bg)) !important;
+  background: #ffffff !important;
   color: var(--login-clay-ink) !important;
   isolation: isolate !important;
 }
@@ -1042,14 +1042,7 @@ html,body,#root{height:100%}.softHomePage{height:100vh!important;min-height:100v
   mask-image: none !important;
 }
 .loginPage.adminOnlyLogin:after{
-  left: auto !important;
-  right: -15vw !important;
-  top: -20vh !important;
-  bottom: auto !important;
-  width: 48vw !important;
-  height: 48vw !important;
-  background: color-mix(in srgb, var(--login-clay-lilac) 14%, transparent) !important;
-  filter: blur(30px) !important;
+  opacity: 0 !important;
 }
 .loginPage.adminOnlyLogin .authParticleField i{
   background: rgba(255,255,255,.78) !important;
@@ -1066,27 +1059,28 @@ html,body,#root{height:100%}.softHomePage{height:100vh!important;min-height:100v
   min-height: 680px !important;
   display: grid !important;
   grid-template-columns: minmax(0, .96fr) minmax(420px, 1fr) !important;
-  gap: 24px !important;
-  padding: 24px !important;
-  border: 0 !important;
-  border-radius: 52px !important;
-  background: rgba(255,255,255,.22) !important;
-  box-shadow: none !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  border: 1px solid #e8ebf2 !important;
+  border-radius: 42px !important;
+  background: #ffffff !important;
+  box-shadow: 0 28px 90px rgba(15,23,42,.12) !important;
   backdrop-filter: none !important;
-  overflow: visible !important;
+  overflow: hidden !important;
 }
 .loginPage.adminOnlyLogin .authBrandPanel,
 .loginPage.adminOnlyLogin .authFormPanel{
   position: relative !important;
   min-height: 632px !important;
-  border: 1px solid var(--login-clay-border) !important;
-  border-radius: 42px !important;
-  box-shadow: var(--login-clay-shadow) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
   overflow: hidden !important;
 }
 .loginPage.adminOnlyLogin .authBrandPanel{
   padding: 68px !important;
-  background: var(--login-clay-surface) !important;
+  background: linear-gradient(135deg, #ffffff 0%, #fbf9ff 56%, #f8fbff 100%) !important;
+  box-shadow: inset -1px 0 0 #eef1f6 !important;
 }
 .loginPage.adminOnlyLogin .authBrandPanel:before{
   width: 310px !important;
@@ -1147,7 +1141,7 @@ html,body,#root{height:100%}.softHomePage{height:100vh!important;min-height:100v
 }
 .loginPage.adminOnlyLogin .authFormPanel{
   padding: 78px !important;
-  background: var(--login-clay-surface) !important;
+  background: #ffffff !important;
 }
 .loginPage.adminOnlyLogin .loginField span,
 .loginPage.adminOnlyLogin .authFormOptions{
@@ -1155,16 +1149,17 @@ html,body,#root{height:100%}.softHomePage{height:100vh!important;min-height:100v
 }
 .loginPage.adminOnlyLogin .loginField div{
   height: 62px !important;
-  border: 0 !important;
+  border: 1px solid #e4e7ef !important;
   border-radius: 26px !important;
-  background: var(--clay-surface-muted, #efe8fa) !important;
+  background: #f8fafc !important;
   color: #8f80aa !important;
-  box-shadow: var(--login-clay-pressed) !important;
+  box-shadow: none !important;
   transition: box-shadow .22s ease, transform .22s ease, background .22s ease !important;
 }
 .loginPage.adminOnlyLogin .loginField div:focus-within{
-  background: var(--login-clay-surface) !important;
-  box-shadow: var(--login-clay-focus) !important;
+  border-color: rgba(122,97,200,.42) !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 4px rgba(169,139,244,.14) !important;
   transform: translateY(-1px) !important;
 }
 .loginPage.adminOnlyLogin .loginField input{
