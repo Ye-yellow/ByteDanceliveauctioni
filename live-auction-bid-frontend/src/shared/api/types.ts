@@ -114,6 +114,7 @@ export type UploadImageReply = {
 
 export type LoginReply = { user?: User; tokens?: AuthTokens; result?: ReplyResult };
 export type RegisterMerchantReply = { user?: User; tokens?: AuthTokens; result?: ReplyResult };
+export type ResetPasswordReply = { user?: User; result?: ReplyResult };
 export type RefreshTokenReply = { tokens?: AuthTokens; result?: ReplyResult };
 export type LogoutReply = { result?: ReplyResult };
 export type GetMeReply = { user?: User; result?: ReplyResult };

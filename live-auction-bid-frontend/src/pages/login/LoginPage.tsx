@@ -17,7 +17,7 @@ import {
   UserPlus,
   UserRound,
 } from 'lucide-react';
-import { currentAuth, login, logout, registerMerchant } from '../../features/auth/api/authApi';
+import { currentAuth, login, logout, registerMerchant, resetPassword } from '../../features/auth/api/authApi';
 import { resultMessage } from '../../shared/api/result';
 import { canAccessBackoffice } from '../../shared/api/types';
 import { clearExpiredMessage, readExpiredMessage } from '../../shared/auth/authStorage';
@@ -79,13 +79,15 @@ function AuctionDecorations() {
 
 export function LoginPage({ embedded = false }: { embedded?: boolean; title?: string }) {
   const redirectTo = useMemo(() => nextPath('/host'), []);
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'reset'>('login');
   const [username, setUsername] = useState('main');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
   const currentUser = currentAuth().user;
   const current = canAccessBackoffice(currentUser) ? currentUser : null;
@@ -102,9 +104,18 @@ export function LoginPage({ embedded = false }: { embedded?: boolean; title?: st
     if (busy) return;
     setBusy(true);
     setError('');
+    setMessage('');
     try {
       if (mode === 'register') {
         await registerMerchant(username.trim(), password);
+      } else if (mode === 'reset') {
+        if (password !== confirmPassword) throw new Error('两次输入的新密码不一致');
+        await resetPassword(username.trim(), password);
+        setPassword('');
+        setConfirmPassword('');
+        setMode('login');
+        setMessage('密码已重置，请使用新密码登录');
+        return;
       } else {
         await login(username.trim(), password);
       }
@@ -175,39 +186,61 @@ export function LoginPage({ embedded = false }: { embedded?: boolean; title?: st
           ) : (
             <>
               <p className="loginEyebrow"><ShieldCheck size={14} /> ByteDance LiveAuction</p>
-              <h2>{mode === 'register' ? '注册主账号' : '进入工作台'}</h2>
-              <p className="loginSubcopy">{mode === 'register' ? '每个主播或商家注册一个主账号；主账号登录后再创建自己的团队子账号。' : '使用主账号或团队子账号登录；账号所属主播 / 商家空间和岗位权限由系统自动识别。'}</p>
+              <h2>{mode === 'register' ? '注册主账号' : mode === 'reset' ? '重置密码' : '进入工作台'}</h2>
+              <p className="loginSubcopy">
+                {mode === 'register'
+                  ? '每个主播或商家注册一个主账号；主账号登录后再创建自己的团队子账号。'
+                  : mode === 'reset'
+                    ? '输入账号和新密码，重置后回到登录入口。'
+                    : '使用主账号或团队子账号登录；账号所属主播 / 商家空间和岗位权限由系统自动识别。'}
+              </p>
 
-              <nav className="loginTabs" aria-label="账号入口">
-                <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setError(''); }}>账号登录</button>
-                <button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => { setMode('register'); setError(''); }}>注册主账号</button>
-              </nav>
+              {mode !== 'reset' ? (
+                <nav className="loginTabs" aria-label="账号入口">
+                  <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setError(''); setMessage(''); }}>账号登录</button>
+                  <button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => { setMode('register'); setError(''); setMessage(''); }}>注册主账号</button>
+                </nav>
+              ) : null}
 
               <label className="loginField">
                 <span>账号 / 邮箱 / 手机号</span>
-                <div><UserRound size={16} /><input value={username} onChange={(e) => setUsername(e.target.value)} placeholder={mode === 'register' ? '请输入主账号' : '请输入团队账号'} autoComplete="username" /></div>
+                <div><UserRound size={16} /><input value={username} onChange={(e) => setUsername(e.target.value)} placeholder={mode === 'register' ? '请输入主账号' : mode === 'reset' ? '请输入要重置的账号' : '请输入团队账号'} autoComplete="username" /></div>
               </label>
               <label className="loginField">
-                <span>密码</span>
+                <span>{mode === 'reset' ? '新密码' : '密码'}</span>
                 <div>
                   <LockKeyhole size={16} />
-                  <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="请输入密码" type={showPassword ? 'text' : 'password'} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} />
+                  <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === 'reset' ? '请输入新密码' : '请输入密码'} type={showPassword ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
                   <button type="button" className="passwordToggle" onClick={() => setShowPassword((x) => !x)} aria-label={showPassword ? '隐藏密码' : '显示密码'}>{showPassword ? <EyeOff size={15} /> : <Eye size={15} />}</button>
                 </div>
               </label>
+              {mode === 'reset' ? (
+                <label className="loginField">
+                  <span>确认新密码</span>
+                  <div>
+                    <LockKeyhole size={16} />
+                    <input value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="再次输入新密码" type={showPassword ? 'text' : 'password'} autoComplete="new-password" />
+                  </div>
+                </label>
+              ) : null}
 
               <div className="authFormOptions">
-                <label><input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} /> 记住我</label>
-                <a href="/login">忘记密码</a>
+                {mode === 'reset' ? (
+                  <button type="button" className="authTextButton" onClick={() => { setMode('login'); setError(''); setMessage(''); }}>返回登录</button>
+                ) : (
+                  <label><input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} /> 记住我</label>
+                )}
+                {mode !== 'reset' ? <button type="button" className="authTextButton" onClick={() => { setMode('reset'); setError(''); setMessage(''); }}>忘记密码</button> : null}
               </div>
 
               {error && <p className="loginError">{error}</p>}
+              {message && <p className="loginSuccess">{message}</p>}
 
-              <button className="loginSubmit" disabled={busy || !username.trim() || !password} onClick={submit}>
-                {mode === 'register' ? <UserPlus size={17} /> : <LogIn size={17} />} {busy ? '处理中...' : mode === 'register' ? '创建主账号并进入' : '进入 LiveAuction 工作台'}
+              <button className="loginSubmit" disabled={busy || !username.trim() || !password || (mode === 'reset' && !confirmPassword)} onClick={submit}>
+                {mode === 'register' ? <UserPlus size={17} /> : mode === 'reset' ? <LockKeyhole size={17} /> : <LogIn size={17} />} {busy ? '处理中...' : mode === 'register' ? '创建主账号并进入' : mode === 'reset' ? '重置密码' : '进入 LiveAuction 工作台'}
               </button>
 
-              <p className="loginHint">主账号密码来自服务器部署配置；也可以直接注册新的主播 / 商家主账号。买家账号只在 H5 端使用。</p>
+              <p className="loginHint">{mode === 'reset' ? '重置成功后，使用新密码重新登录。' : '主账号密码来自服务器部署配置；也可以直接注册新的主播 / 商家主账号。买家账号只在 H5 端使用。'}</p>
             </>
           )}
         </article>
