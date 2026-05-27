@@ -66,7 +66,7 @@ export function uiStatusOfLot(lot: Pick<Lot, 'status' | 'queueStatus' | 'playboo
 
 export function isSettlementLot(lot: Pick<Lot, 'status' | 'settledAtUnixMs' | 'winnerUserId'>) {
   return lot.status === 'LOT_STATUS_SETTLED'
-    || Boolean(lot.settledAtUnixMs)
+    || Number(lot.settledAtUnixMs || 0) > 0
     || Boolean(lot.winnerUserId);
 }
 

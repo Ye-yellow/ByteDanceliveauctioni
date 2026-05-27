@@ -83,7 +83,7 @@ function normalizeLotResultReply(input: unknown): LotResultReply {
 
 function isSettlementCandidate(lot: Lot) {
   return lot.status === 'LOT_STATUS_SETTLED'
-    || Boolean(lot.settledAtUnixMs)
+    || Number(lot.settledAtUnixMs || 0) > 0
     || Boolean(lot.winnerUserId);
 }
 
