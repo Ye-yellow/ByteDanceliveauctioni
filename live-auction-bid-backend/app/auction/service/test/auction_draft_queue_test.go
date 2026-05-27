@@ -15,7 +15,7 @@ func TestAuctionDraftAutosaveAndQueueFlow(t *testing.T) {
 	store := newTestStore()
 	uc := auction.NewAuctionUsecase(store, store, store, nil)
 	svc := appsvc.NewAuctionService(uc)
-	ctx := auth.WithClaims(context.Background(), &auth.Claims{UserID: "anchor-draft", Username: "anchor", Nickname: "主播", Role: v1.UserRole_USER_ROLE_ANCHOR})
+	ctx := auth.WithClaims(context.Background(), &auth.Claims{UserID: "anchor-draft", Username: "anchor", Nickname: "主播", Role: v1.UserRole_USER_ROLE_ANCHOR, MainAccountID: testMainAccountID})
 
 	empty, err := svc.CreateLotDraft(ctx, &v1.CreateLotRequest{})
 	if err != nil || empty.GetResult().GetCode() != appsvc.ResultCodeOK {
@@ -75,7 +75,7 @@ func TestQueueLotRejectsInvalidRule(t *testing.T) {
 	store := newTestStore()
 	uc := auction.NewAuctionUsecase(store, store, store, nil)
 	svc := appsvc.NewAuctionService(uc)
-	ctx := auth.WithClaims(context.Background(), &auth.Claims{UserID: "anchor-invalid", Username: "anchor", Nickname: "主播", Role: v1.UserRole_USER_ROLE_ANCHOR})
+	ctx := auth.WithClaims(context.Background(), &auth.Claims{UserID: "anchor-invalid", Username: "anchor", Nickname: "主播", Role: v1.UserRole_USER_ROLE_ANCHOR, MainAccountID: testMainAccountID})
 
 	create, err := svc.CreateLotDraft(ctx, &v1.CreateLotRequest{RoomId: "invalid-room", Title: "规则错误", ImageUrl: "https://example.com/lot.jpg"})
 	if err != nil || create.GetResult().GetCode() != appsvc.ResultCodeOK {

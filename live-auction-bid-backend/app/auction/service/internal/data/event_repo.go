@@ -45,8 +45,11 @@ func (s *Store) ListRoomEvents(ctx context.Context, query auction.RoomEventQuery
 	}
 
 	var models []AuctionEventModel
-	if err := s.db.WithContext(ctx).
-		Where("room_id = ?", query.RoomID).
+	db := s.db.WithContext(ctx).Where("room_id = ?", query.RoomID)
+	if query.MainAccountID != "" {
+		db = db.Where("main_account_id = ?", query.MainAccountID)
+	}
+	if err := db.
 		Order("occurred_at_unix_ms DESC").
 		Order("id DESC").
 		Offset(offset).
@@ -107,6 +110,7 @@ func eventToModel(event v1.AuctionEvent) (*AuctionEventModel, error) {
 	}
 	return &AuctionEventModel{
 		ID:               event.Id,
+		MainAccountID:    event.GetMainAccountId(),
 		RoomID:           event.RoomId,
 		LotID:            event.LotId,
 		Type:             int32(event.Type),

@@ -90,74 +90,94 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 		t.Fatalf("expected logged out refresh token to fail, got %v", err)
 	}
 
-	if err := uc.BootstrapAdmin(ctx, "admin", "adminpass123", "管理员"); err != nil {
-		t.Fatalf("bootstrap admin failed: %v", err)
-	}
-	if _, err := uc.ResetPassword(ctx, "admin", "newadminpass123"); !apperr.IsInvalidArgument(err) {
-		t.Fatalf("expected admin password reset to be rejected, got %v", err)
-	}
-	admin, _, err := uc.Login(ctx, "admin", "adminpass123")
+	mainAccount, mainTokens, err := uc.RegisterMerchant(ctx, &v1.RegisterMerchantRequest{
+		Username: "merchant_a",
+		Password: "merchantpass123",
+	})
 	if err != nil {
-		t.Fatalf("admin login failed: %v", err)
+		t.Fatalf("register main account failed: %v", err)
 	}
-	adminCtx := auth.WithClaims(ctx, &auth.Claims{UserID: admin.Id, Username: admin.Username, Nickname: admin.Nickname, Role: admin.Role})
-	anchor, err := uc.AdminCreateUser(adminCtx, &v1.AdminCreateUserRequest{
+	if mainAccount.GetRole() != v1.UserRole_USER_ROLE_MAIN_ACCOUNT ||
+		mainAccount.GetMainAccountId() != mainAccount.GetId() ||
+		mainAccount.GetStatus() != v1.UserStatus_USER_STATUS_ACTIVE ||
+		mainAccount.GetNickname() != "merchant_a" {
+		t.Fatalf("main account mismatch: %+v", mainAccount)
+	}
+	resetMain, err := uc.ResetPassword(ctx, "merchant_a", "newmerchantpass123")
+	if err != nil {
+		t.Fatalf("reset main account password failed: %v", err)
+	}
+	if resetMain.GetId() != mainAccount.GetId() {
+		t.Fatalf("reset main account mismatch: %+v", resetMain)
+	}
+	if _, err := uc.RefreshToken(ctx, mainTokens.GetRefreshToken()); !apperr.IsSessionExpired(err) {
+		t.Fatalf("expected main account password reset to revoke old refresh token, got %v", err)
+	}
+	mainAccount, _, err = uc.Login(ctx, "merchant_a", "newmerchantpass123")
+	if err != nil {
+		t.Fatalf("main account login failed: %v", err)
+	}
+	mainCtx := auth.WithClaims(ctx, claimsForUser(mainAccount))
+	anchor, err := uc.AdminCreateUser(mainCtx, &v1.AdminCreateUserRequest{
 		Username: "anchor1",
 		Password: "anchorpass123",
 		Nickname: "主播",
 		Role:     v1.UserRole_USER_ROLE_ANCHOR,
 	})
 	if err != nil {
-		t.Fatalf("admin create user failed: %v", err)
+		t.Fatalf("main account create user failed: %v", err)
 	}
-	if anchor.GetRole() != v1.UserRole_USER_ROLE_ANCHOR {
+	if anchor.GetRole() != v1.UserRole_USER_ROLE_ANCHOR ||
+		anchor.GetMainAccountId() != mainAccount.GetId() ||
+		anchor.GetCreatedByUserId() != mainAccount.GetId() ||
+		anchor.GetStatus() != v1.UserStatus_USER_STATUS_ACTIVE {
 		t.Fatalf("expected anchor role, got %+v", anchor)
 	}
-	if _, err := uc.AdminCreateUser(adminCtx, &v1.AdminCreateUserRequest{Username: "buyer_from_admin", Password: "password123", Nickname: "后台买家", Role: v1.UserRole_USER_ROLE_BUYER}); !apperr.IsInvalidArgument(err) {
-		t.Fatalf("expected invalid argument for admin creating buyer, got %v", err)
+	if _, err := uc.AdminCreateUser(mainCtx, &v1.AdminCreateUserRequest{Username: "buyer_from_main", Password: "password123", Nickname: "后台买家", Role: v1.UserRole_USER_ROLE_BUYER}); !apperr.IsInvalidArgument(err) {
+		t.Fatalf("expected invalid argument for main account creating buyer, got %v", err)
 	}
-	if _, err := uc.AdminCreateUser(adminCtx, &v1.AdminCreateUserRequest{Username: "missing_role", Password: "password123", Nickname: "缺少角色"}); !apperr.IsInvalidArgument(err) {
-		t.Fatalf("expected invalid argument for missing admin user role, got %v", err)
+	if _, err := uc.AdminCreateUser(mainCtx, &v1.AdminCreateUserRequest{Username: "missing_role", Password: "password123", Nickname: "缺少角色"}); !apperr.IsInvalidArgument(err) {
+		t.Fatalf("expected invalid argument for missing team user role, got %v", err)
 	}
-	anchorCtx := auth.WithClaims(ctx, &auth.Claims{UserID: anchor.Id, Username: anchor.Username, Nickname: anchor.Nickname, Role: v1.UserRole_USER_ROLE_ANCHOR})
+	anchorCtx := auth.WithClaims(ctx, claimsForUser(anchor))
 	if _, err := uc.AdminCreateUser(anchorCtx, &v1.AdminCreateUserRequest{Username: "anchor_child", Password: "password123", Nickname: "主播子账号"}); !apperr.IsPermissionDenied(err) {
-		t.Fatalf("expected permission denied for anchor admin create, got %v", err)
+		t.Fatalf("expected permission denied for anchor team create, got %v", err)
 	}
-	operator, err := uc.AdminUpdateUserRole(adminCtx, anchor.GetId(), v1.UserRole_USER_ROLE_OPERATOR)
+	operator, err := uc.AdminUpdateUserRole(mainCtx, anchor.GetId(), v1.UserRole_USER_ROLE_OPERATOR)
 	if err != nil {
-		t.Fatalf("admin update role failed: %v", err)
+		t.Fatalf("main account update role failed: %v", err)
 	}
 	if operator.GetRole() != v1.UserRole_USER_ROLE_OPERATOR {
 		t.Fatalf("expected operator role, got %+v", operator)
 	}
-	if _, err := uc.AdminUpdateUserRole(adminCtx, registered.GetId(), v1.UserRole_USER_ROLE_BUYER); !apperr.IsInvalidArgument(err) {
-		t.Fatalf("expected invalid argument for admin updating role to buyer, got %v", err)
+	if _, err := uc.AdminUpdateUserRole(mainCtx, registered.GetId(), v1.UserRole_USER_ROLE_BUYER); !apperr.IsInvalidArgument(err) {
+		t.Fatalf("expected invalid argument for main account updating role to buyer, got %v", err)
 	}
-	operatorCtx := auth.WithClaims(ctx, &auth.Claims{UserID: operator.Id, Username: operator.Username, Nickname: operator.Nickname, Role: v1.UserRole_USER_ROLE_OPERATOR})
+	operatorCtx := auth.WithClaims(ctx, claimsForUser(operator))
 	if _, err := uc.AdminUpdateUserRole(operatorCtx, registered.GetId(), v1.UserRole_USER_ROLE_ANCHOR); !apperr.IsPermissionDenied(err) {
 		t.Fatalf("expected permission denied for operator role update, got %v", err)
 	}
-	buyerCtx := auth.WithClaims(ctx, &auth.Claims{UserID: registered.Id, Username: registered.Username, Nickname: registered.Nickname, Role: registered.Role})
+	buyerCtx := auth.WithClaims(ctx, claimsForUser(registered))
 	if _, err := uc.AdminCreateUser(buyerCtx, &v1.AdminCreateUserRequest{Username: "xuser", Password: "password123", Nickname: "x"}); !apperr.IsPermissionDenied(err) {
-		t.Fatalf("expected permission denied for buyer admin create, got %v", err)
+		t.Fatalf("expected permission denied for buyer team create, got %v", err)
 	}
-	userList, err := uc.ListUsers(adminCtx, userbiz.ListUsersQuery{Role: v1.UserRole_USER_ROLE_OPERATOR, Keyword: "anchor", Page: 1, PageSize: 10})
+	userList, err := uc.ListUsers(mainCtx, userbiz.ListUsersQuery{Role: v1.UserRole_USER_ROLE_OPERATOR, Keyword: "anchor", Page: 1, PageSize: 10})
 	if err != nil {
-		t.Fatalf("admin list users failed: %v", err)
+		t.Fatalf("main account list users failed: %v", err)
 	}
 	if userList.Total != 1 || len(userList.Users) != 1 || userList.Users[0].GetRole() != v1.UserRole_USER_ROLE_OPERATOR {
 		t.Fatalf("expected filtered operator user list, got %+v", userList)
 	}
-	if _, err := uc.ListUsers(adminCtx, userbiz.ListUsersQuery{Role: v1.UserRole_USER_ROLE_BUYER, Page: 1, PageSize: 10}); !apperr.IsInvalidArgument(err) {
-		t.Fatalf("expected invalid argument for admin listing buyer users, got %v", err)
+	if _, err := uc.ListUsers(mainCtx, userbiz.ListUsersQuery{Role: v1.UserRole_USER_ROLE_BUYER, Page: 1, PageSize: 10}); !apperr.IsInvalidArgument(err) {
+		t.Fatalf("expected invalid argument for main account listing buyer users, got %v", err)
 	}
-	backofficeList, err := uc.ListUsers(adminCtx, userbiz.ListUsersQuery{Page: 1, PageSize: 10})
+	backofficeList, err := uc.ListUsers(mainCtx, userbiz.ListUsersQuery{Page: 1, PageSize: 10})
 	if err != nil {
-		t.Fatalf("admin list backoffice users failed: %v", err)
+		t.Fatalf("main account list team users failed: %v", err)
 	}
 	for _, user := range backofficeList.Users {
-		if user.GetRole() == v1.UserRole_USER_ROLE_BUYER {
-			t.Fatalf("admin list users must not return buyer accounts: %+v", backofficeList)
+		if !isManagedTeamRoleForTest(user.GetRole()) || user.GetMainAccountId() != mainAccount.GetId() {
+			t.Fatalf("main account list users must only return own subaccounts: %+v", backofficeList)
 		}
 	}
 	if _, err := uc.ListUsers(operatorCtx, userbiz.ListUsersQuery{}); !apperr.IsPermissionDenied(err) {
@@ -165,6 +185,80 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 	}
 	if _, err := uc.ListUsers(buyerCtx, userbiz.ListUsersQuery{}); !apperr.IsPermissionDenied(err) {
 		t.Fatalf("expected buyer list users denied, got %v", err)
+	}
+}
+
+func TestUserUsecaseMainAccountScopeAndStatus(t *testing.T) {
+	repo := newTestUserRepo()
+	manager := newTestAuthManager(t)
+	uc := userbiz.NewUsecase(repo, manager)
+	ctx := context.Background()
+
+	mainA, _, err := uc.RegisterMerchant(ctx, &v1.RegisterMerchantRequest{Username: "merchant_a", Password: "merchantpass123"})
+	if err != nil {
+		t.Fatalf("register main a failed: %v", err)
+	}
+	mainB, _, err := uc.RegisterMerchant(ctx, &v1.RegisterMerchantRequest{Username: "merchant_b", Password: "merchantpass123"})
+	if err != nil {
+		t.Fatalf("register main b failed: %v", err)
+	}
+	ctxA := auth.WithClaims(ctx, claimsForUser(mainA))
+	ctxB := auth.WithClaims(ctx, claimsForUser(mainB))
+
+	anchorA, err := uc.AdminCreateUser(ctxA, &v1.AdminCreateUserRequest{Username: "anchor_a", Password: "anchorpass123", Nickname: "Anchor A", Role: v1.UserRole_USER_ROLE_ANCHOR})
+	if err != nil {
+		t.Fatalf("main a create anchor failed: %v", err)
+	}
+	operatorB, err := uc.AdminCreateUser(ctxB, &v1.AdminCreateUserRequest{Username: "operator_b", Password: "operatorpass123", Nickname: "Operator B", Role: v1.UserRole_USER_ROLE_OPERATOR})
+	if err != nil {
+		t.Fatalf("main b create operator failed: %v", err)
+	}
+	listA, err := uc.ListUsers(ctxA, userbiz.ListUsersQuery{Page: 1, PageSize: 20})
+	if err != nil {
+		t.Fatalf("main a list failed: %v", err)
+	}
+	if listA.Total != 1 || listA.Users[0].GetId() != anchorA.GetId() {
+		t.Fatalf("main a list leaked or missed scoped subaccounts: %+v", listA)
+	}
+	if _, err := uc.AdminUpdateUserRole(ctxA, operatorB.GetId(), v1.UserRole_USER_ROLE_ANCHOR); !apperr.IsPermissionDenied(err) {
+		t.Fatalf("main a must not update main b subaccount role, got %v", err)
+	}
+	if _, err := uc.AdminUpdateUserStatus(ctxA, operatorB.GetId(), v1.UserStatus_USER_STATUS_DISABLED); !apperr.IsPermissionDenied(err) {
+		t.Fatalf("main a must not update main b subaccount status, got %v", err)
+	}
+
+	operator, operatorTokens, err := uc.Login(ctx, "operator_b", "operatorpass123")
+	if err != nil {
+		t.Fatalf("operator b login before disable failed: %v", err)
+	}
+	disabled, err := uc.AdminUpdateUserStatus(ctxB, operator.GetId(), v1.UserStatus_USER_STATUS_DISABLED)
+	if err != nil {
+		t.Fatalf("disable operator failed: %v", err)
+	}
+	if disabled.GetStatus() != v1.UserStatus_USER_STATUS_DISABLED {
+		t.Fatalf("expected disabled operator, got %+v", disabled)
+	}
+	if _, _, err := uc.Login(ctx, "operator_b", "operatorpass123"); !apperr.IsAccountDisabled(err) {
+		t.Fatalf("disabled operator login should fail, got %v", err)
+	}
+	if _, err := uc.RefreshToken(ctx, operatorTokens.GetRefreshToken()); !apperr.IsSessionExpired(err) {
+		t.Fatalf("disabled operator refresh token should be revoked, got %v", err)
+	}
+	if _, err := uc.GetMe(auth.WithClaims(ctx, claimsForUser(disabled))); !apperr.IsAccountDisabled(err) {
+		t.Fatalf("disabled operator get me should fail, got %v", err)
+	}
+	enabled, err := uc.AdminUpdateUserStatus(ctxB, operator.GetId(), v1.UserStatus_USER_STATUS_ACTIVE)
+	if err != nil {
+		t.Fatalf("enable operator failed: %v", err)
+	}
+	if enabled.GetStatus() != v1.UserStatus_USER_STATUS_ACTIVE {
+		t.Fatalf("expected active operator, got %+v", enabled)
+	}
+	if _, _, err := uc.Login(ctx, "operator_b", "operatorpass123"); err != nil {
+		t.Fatalf("operator login after enable failed: %v", err)
+	}
+	if _, err := uc.AdminUpdateUserStatus(ctxB, mainB.GetId(), v1.UserStatus_USER_STATUS_DISABLED); !apperr.IsInvalidArgument(err) {
+		t.Fatalf("main account cannot be disabled through team status API, got %v", err)
 	}
 }
 
@@ -266,7 +360,10 @@ func (r *testUserRepo) ListUsers(ctx context.Context, query userbiz.ListUsersQue
 		if query.Role != v1.UserRole_USER_ROLE_UNSPECIFIED && user.Role != query.Role {
 			continue
 		}
-		if query.Role == v1.UserRole_USER_ROLE_UNSPECIFIED && user.Role == v1.UserRole_USER_ROLE_BUYER {
+		if query.Role == v1.UserRole_USER_ROLE_UNSPECIFIED && !isManagedTeamRoleForTest(user.Role) {
+			continue
+		}
+		if query.MainAccountID != "" && user.GetMainAccountId() != query.MainAccountID {
 			continue
 		}
 		if keyword != "" && !strings.Contains(strings.ToLower(user.Id+" "+user.Username+" "+user.Nickname), keyword) {
@@ -287,13 +384,31 @@ func (r *testUserRepo) ListUsers(ctx context.Context, query userbiz.ListUsersQue
 	return userbiz.ListUsersResult{Users: users[start:end], Total: total, Page: query.Page, PageSize: query.PageSize}, nil
 }
 
-func (r *testUserRepo) UpdateUserRole(ctx context.Context, userID string, role v1.UserRole, updatedAtUnixMs int64) (*v1.User, error) {
+func (r *testUserRepo) UpdateUserRole(ctx context.Context, userID string, mainAccountID string, role v1.UserRole, updatedAtUnixMs int64) (*v1.User, error) {
 	user, found := r.usersByID[userID]
 	if !found {
 		return nil, apperr.ErrUserNotFound
 	}
+	if user.GetMainAccountId() != mainAccountID {
+		return nil, apperr.ErrPermissionDenied
+	}
 	next := proto.Clone(user).(*v1.User)
 	next.Role = role
+	next.UpdatedAtUnixMs = updatedAtUnixMs
+	r.usersByID[userID] = next
+	return proto.Clone(next).(*v1.User), nil
+}
+
+func (r *testUserRepo) UpdateUserStatus(ctx context.Context, userID string, mainAccountID string, status v1.UserStatus, updatedAtUnixMs int64) (*v1.User, error) {
+	user, found := r.usersByID[userID]
+	if !found {
+		return nil, apperr.ErrUserNotFound
+	}
+	if user.GetMainAccountId() != mainAccountID {
+		return nil, apperr.ErrPermissionDenied
+	}
+	next := proto.Clone(user).(*v1.User)
+	next.Status = status
 	next.UpdatedAtUnixMs = updatedAtUnixMs
 	r.usersByID[userID] = next
 	return proto.Clone(next).(*v1.User), nil
@@ -347,6 +462,21 @@ func (r *testUserRepo) RevokeSessionsByUserID(ctx context.Context, userID string
 		}
 	}
 	return nil
+}
+
+func claimsForUser(user *v1.User) *auth.Claims {
+	return &auth.Claims{
+		UserID:        user.GetId(),
+		Username:      user.GetUsername(),
+		Nickname:      user.GetNickname(),
+		Role:          user.GetRole(),
+		MainAccountID: user.GetMainAccountId(),
+		Status:        user.GetStatus(),
+	}
+}
+
+func isManagedTeamRoleForTest(role v1.UserRole) bool {
+	return role == v1.UserRole_USER_ROLE_ANCHOR || role == v1.UserRole_USER_ROLE_OPERATOR
 }
 
 func newTestAuthManager(t *testing.T) *auth.Manager {

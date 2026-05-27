@@ -276,7 +276,7 @@ func (c *connection) canReceivePrivateEvents() bool {
 		return false
 	}
 	switch c.authCtx.Claims.Role {
-	case v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_ADMIN:
+	case v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_MAIN_ACCOUNT:
 		return true
 	default:
 		return false

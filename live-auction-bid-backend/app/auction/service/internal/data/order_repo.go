@@ -104,6 +104,9 @@ func (s *Store) ListOrdersByBuyer(ctx context.Context, buyerUserID string) ([]au
 func (s *Store) ListOrders(ctx context.Context, query auction.OrderQuery) (auction.OrderList, error) {
 	query.Page, query.PageSize = auction.NormalizePagination(query.Page, query.PageSize)
 	db := s.db.WithContext(ctx).Model(&AuctionOrderModel{})
+	if query.MainAccountID != "" {
+		db = db.Where("main_account_id = ?", query.MainAccountID)
+	}
 	if query.BuyerUserID != "" {
 		db = db.Where("buyer_user_id = ?", query.BuyerUserID)
 	}
@@ -205,6 +208,7 @@ func orderToModel(order auction.Order) (*AuctionOrderModel, error) {
 	}
 	return &AuctionOrderModel{
 		ID:              order.ID,
+		MainAccountID:   order.MainAccountID,
 		LotID:           order.LotID,
 		RoomID:          order.RoomID,
 		LotTitle:        order.LotTitle,
@@ -231,6 +235,7 @@ func modelToOrder(model *AuctionOrderModel) (*auction.Order, error) {
 		return nil, err
 	}
 	order.ID = model.ID
+	order.MainAccountID = model.MainAccountID
 	order.LotID = model.LotID
 	order.RoomID = model.RoomID
 	order.LotTitle = model.LotTitle
@@ -261,6 +266,7 @@ func paymentToModel(payment auction.Payment) (*AuctionPaymentModel, error) {
 	}
 	return &AuctionPaymentModel{
 		ID:              payment.ID,
+		MainAccountID:   payment.MainAccountID,
 		OrderID:         payment.OrderID,
 		LotID:           payment.LotID,
 		BuyerUserID:     payment.BuyerUserID,
@@ -281,6 +287,7 @@ func modelToPayment(model *AuctionPaymentModel) (*auction.Payment, error) {
 		return nil, err
 	}
 	payment.ID = model.ID
+	payment.MainAccountID = model.MainAccountID
 	payment.OrderID = model.OrderID
 	payment.LotID = model.LotID
 	payment.BuyerUserID = model.BuyerUserID

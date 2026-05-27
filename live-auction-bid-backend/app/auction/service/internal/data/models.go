@@ -2,15 +2,32 @@ package data
 
 import "time"
 
+type AuctionRoomModel struct {
+	ID              string `gorm:"column:id;type:varchar(64);primaryKey"`
+	MainAccountID   string `gorm:"column:main_account_id;type:varchar(64);not null;uniqueIndex:uidx_room_main_account;index:idx_room_main_status,priority:1"`
+	Name            string `gorm:"column:name;type:varchar(128);not null"`
+	Platform        string `gorm:"column:platform;type:varchar(32);not null;default:'douyin'"`
+	PlatformRoomID  string `gorm:"column:platform_room_id;type:varchar(128);not null;default:'';index:idx_platform_room"`
+	Status          string `gorm:"column:status;type:varchar(32);not null;default:'ACTIVE';index:idx_room_main_status,priority:2"`
+	CreatedByUserID string `gorm:"column:created_by_user_id;type:varchar(64);not null;default:'';index:idx_room_created_by"`
+	CreatedAtUnixMs int64  `gorm:"column:created_at_unix_ms;not null"`
+	UpdatedAtUnixMs int64  `gorm:"column:updated_at_unix_ms;not null"`
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+func (AuctionRoomModel) TableName() string { return "auction_rooms" }
+
 type AuctionLotModel struct {
 	ID                     string `gorm:"column:id;type:varchar(64);primaryKey"`
-	RoomID                 string `gorm:"column:room_id;type:varchar(64);not null;index:idx_room_status,priority:1;index:idx_room_updated,priority:1"`
+	MainAccountID          string `gorm:"column:main_account_id;type:varchar(64);not null;index:idx_lot_main_room_status,priority:1;index:idx_lot_main_updated,priority:1;index:idx_lot_main_room_queue,priority:1"`
+	RoomID                 string `gorm:"column:room_id;type:varchar(64);not null;index:idx_room_status,priority:1;index:idx_room_updated,priority:1;index:idx_lot_main_room_status,priority:2;index:idx_lot_main_room_queue,priority:2"`
 	Title                  string `gorm:"column:title;type:varchar(255);not null"`
 	Description            string `gorm:"column:description;type:text;not null"`
 	ImageURL               string `gorm:"column:image_url;type:varchar(1024);not null"`
-	Status                 int32  `gorm:"column:status;type:int;not null;index:idx_room_status,priority:2;index:idx_status_ends_at,priority:1"`
-	QueueStatus            int32  `gorm:"column:queue_status;type:int;not null;default:1;index:idx_room_queue,priority:2"`
-	QueuePosition          int32  `gorm:"column:queue_position;type:int;not null;default:0;index:idx_room_queue,priority:3"`
+	Status                 int32  `gorm:"column:status;type:int;not null;index:idx_room_status,priority:2;index:idx_status_ends_at,priority:1;index:idx_lot_main_room_status,priority:3"`
+	QueueStatus            int32  `gorm:"column:queue_status;type:int;not null;default:1;index:idx_room_queue,priority:2;index:idx_lot_main_room_queue,priority:3"`
+	QueuePosition          int32  `gorm:"column:queue_position;type:int;not null;default:0;index:idx_room_queue,priority:3;index:idx_lot_main_room_queue,priority:4"`
 	StartPriceAmount       int64  `gorm:"column:start_price_amount;not null"`
 	StartPriceCurrency     string `gorm:"column:start_price_currency;type:varchar(16);not null"`
 	MinIncrementAmount     int64  `gorm:"column:min_increment_amount;not null"`
@@ -38,20 +55,21 @@ type AuctionLotModel struct {
 	PlaybookStage          int32  `gorm:"column:playbook_stage;type:int;not null"`
 	Payload                string `gorm:"column:payload;type:json;not null"`
 	CreatedAt              time.Time
-	UpdatedAt              time.Time `gorm:"index:idx_room_updated,priority:2"`
+	UpdatedAt              time.Time `gorm:"index:idx_room_updated,priority:2;index:idx_lot_main_updated,priority:2"`
 }
 
 func (AuctionLotModel) TableName() string { return "auction_lots" }
 
 type AuctionBidModel struct {
 	ID              string `gorm:"column:id;type:varchar(64);primaryKey"`
-	LotID           string `gorm:"column:lot_id;type:varchar(64);not null;index:idx_lot_created,priority:1;index:idx_lot_amount,priority:1;index:idx_lot_user,priority:1;uniqueIndex:idx_lot_user_idem,priority:1"`
+	MainAccountID   string `gorm:"column:main_account_id;type:varchar(64);not null;index:idx_bid_main_lot_created,priority:1"`
+	LotID           string `gorm:"column:lot_id;type:varchar(64);not null;index:idx_lot_created,priority:1;index:idx_lot_amount,priority:1;index:idx_lot_user,priority:1;index:idx_bid_main_lot_created,priority:2;uniqueIndex:idx_lot_user_idem,priority:1"`
 	UserID          string `gorm:"column:user_id;type:varchar(64);not null;index:idx_lot_user,priority:2;uniqueIndex:idx_lot_user_idem,priority:2"`
 	Nickname        string `gorm:"column:nickname;type:varchar(128);not null"`
 	Amount          int64  `gorm:"column:amount;not null;index:idx_lot_amount,priority:2"`
 	Currency        string `gorm:"column:currency;type:varchar(16);not null"`
 	IdempotencyKey  string `gorm:"column:idempotency_key;type:varchar(128);not null;uniqueIndex:idx_lot_user_idem,priority:3"`
-	CreatedAtUnixMs int64  `gorm:"column:created_at_unix_ms;not null;index:idx_lot_created,priority:2"`
+	CreatedAtUnixMs int64  `gorm:"column:created_at_unix_ms;not null;index:idx_lot_created,priority:2;index:idx_bid_main_lot_created,priority:3"`
 	Payload         string `gorm:"column:payload;type:json;not null"`
 	CreatedAt       time.Time
 }
@@ -60,7 +78,8 @@ func (AuctionBidModel) TableName() string { return "auction_bids" }
 
 type AuctionLotStatsModel struct {
 	LotID            string `gorm:"column:lot_id;type:varchar(64);primaryKey"`
-	RoomID           string `gorm:"column:room_id;type:varchar(64);not null;index:idx_lot_stats_room"`
+	MainAccountID    string `gorm:"column:main_account_id;type:varchar(64);not null;index:idx_lot_stats_main_room,priority:1"`
+	RoomID           string `gorm:"column:room_id;type:varchar(64);not null;index:idx_lot_stats_room;index:idx_lot_stats_main_room,priority:2"`
 	BidCount         int64  `gorm:"column:bid_count;not null;default:0"`
 	ParticipantCount int64  `gorm:"column:participant_count;not null;default:0"`
 	LastBidID        string `gorm:"column:last_bid_id;type:varchar(64);not null;default:''"`
@@ -76,7 +95,8 @@ func (AuctionLotStatsModel) TableName() string { return "auction_lot_stats" }
 type AuctionLotParticipantModel struct {
 	LotID            string `gorm:"column:lot_id;type:varchar(64);primaryKey"`
 	UserID           string `gorm:"column:user_id;type:varchar(64);primaryKey"`
-	RoomID           string `gorm:"column:room_id;type:varchar(64);not null;index:idx_lot_participants_room"`
+	MainAccountID    string `gorm:"column:main_account_id;type:varchar(64);not null;index:idx_lot_participants_main_room,priority:1"`
+	RoomID           string `gorm:"column:room_id;type:varchar(64);not null;index:idx_lot_participants_room;index:idx_lot_participants_main_room,priority:2"`
 	FirstBidID       string `gorm:"column:first_bid_id;type:varchar(64);not null"`
 	FirstBidAtUnixMs int64  `gorm:"column:first_bid_at_unix_ms;not null"`
 	CreatedAt        time.Time
@@ -86,10 +106,11 @@ func (AuctionLotParticipantModel) TableName() string { return "auction_lot_parti
 
 type AuctionEventModel struct {
 	ID               string `gorm:"column:id;type:varchar(64);primaryKey"`
-	RoomID           string `gorm:"column:room_id;type:varchar(64);not null;index:idx_room_occurred,priority:1"`
+	MainAccountID    string `gorm:"column:main_account_id;type:varchar(64);not null;index:idx_event_main_room_occurred,priority:1"`
+	RoomID           string `gorm:"column:room_id;type:varchar(64);not null;index:idx_room_occurred,priority:1;index:idx_event_main_room_occurred,priority:2"`
 	LotID            string `gorm:"column:lot_id;type:varchar(64);not null;default:'';index:idx_lot_occurred,priority:1"`
 	Type             int32  `gorm:"column:type;type:int;not null;index:idx_type_occurred,priority:1"`
-	OccurredAtUnixMs int64  `gorm:"column:occurred_at_unix_ms;not null;index:idx_room_occurred,priority:2;index:idx_lot_occurred,priority:2;index:idx_type_occurred,priority:2"`
+	OccurredAtUnixMs int64  `gorm:"column:occurred_at_unix_ms;not null;index:idx_room_occurred,priority:2;index:idx_lot_occurred,priority:2;index:idx_type_occurred,priority:2;index:idx_event_main_room_occurred,priority:3"`
 	Reason           string `gorm:"column:reason;type:varchar(512);not null;default:''"`
 	Payload          string `gorm:"column:payload;type:json;not null"`
 	StreamID         string `gorm:"column:stream_id;type:varchar(64);not null;default:''"`
@@ -102,18 +123,19 @@ func (AuctionEventModel) TableName() string { return "auction_events" }
 
 type AuctionOrderModel struct {
 	ID              string `gorm:"column:id;type:varchar(64);primaryKey"`
+	MainAccountID   string `gorm:"column:main_account_id;type:varchar(64);not null;index:idx_order_main_room_created,priority:1;index:idx_order_main_status,priority:1"`
 	LotID           string `gorm:"column:lot_id;type:varchar(64);not null;uniqueIndex:uk_lot_order"`
-	RoomID          string `gorm:"column:room_id;type:varchar(64);not null;index:idx_order_room_created,priority:1"`
+	RoomID          string `gorm:"column:room_id;type:varchar(64);not null;index:idx_order_room_created,priority:1;index:idx_order_main_room_created,priority:2"`
 	LotTitle        string `gorm:"column:lot_title;type:varchar(255);not null"`
 	LotImageURL     string `gorm:"column:lot_image_url;type:varchar(1024);not null"`
 	BuyerUserID     string `gorm:"column:buyer_user_id;type:varchar(64);not null;index:idx_order_buyer_status,priority:1"`
 	BuyerNickname   string `gorm:"column:buyer_nickname;type:varchar(128);not null"`
-	Status          string `gorm:"column:status;type:varchar(32);not null;index:idx_order_buyer_status,priority:2"`
+	Status          string `gorm:"column:status;type:varchar(32);not null;index:idx_order_buyer_status,priority:2;index:idx_order_main_status,priority:2"`
 	PaymentStatus   string `gorm:"column:payment_status;type:varchar(32);not null;index:idx_order_payment_status"`
 	PaymentID       string `gorm:"column:payment_id;type:varchar(64);not null;default:''"`
 	Amount          int64  `gorm:"column:amount;not null"`
 	Currency        string `gorm:"column:currency;type:varchar(16);not null"`
-	CreatedAtUnixMs int64  `gorm:"column:created_at_unix_ms;not null;index:idx_order_room_created,priority:2"`
+	CreatedAtUnixMs int64  `gorm:"column:created_at_unix_ms;not null;index:idx_order_room_created,priority:2;index:idx_order_main_room_created,priority:3"`
 	UpdatedAtUnixMs int64  `gorm:"column:updated_at_unix_ms;not null"`
 	ExpiresAtUnixMs int64  `gorm:"column:expires_at_unix_ms;not null;index:idx_order_expiry"`
 	PaidAtUnixMs    int64  `gorm:"column:paid_at_unix_ms;not null;default:0"`
@@ -127,6 +149,7 @@ func (AuctionOrderModel) TableName() string { return "auction_orders" }
 
 type AuctionPaymentModel struct {
 	ID              string  `gorm:"column:id;type:varchar(64);primaryKey"`
+	MainAccountID   string  `gorm:"column:main_account_id;type:varchar(64);not null;index:idx_payment_main_created,priority:1"`
 	OrderID         string  `gorm:"column:order_id;type:varchar(64);not null;index:idx_payment_order;uniqueIndex:uk_order_payment_idem,priority:1"`
 	LotID           string  `gorm:"column:lot_id;type:varchar(64);not null;index:idx_payment_lot"`
 	BuyerUserID     string  `gorm:"column:buyer_user_id;type:varchar(64);not null;index:idx_payment_buyer"`
@@ -134,7 +157,7 @@ type AuctionPaymentModel struct {
 	Amount          int64   `gorm:"column:amount;not null"`
 	Currency        string  `gorm:"column:currency;type:varchar(16);not null"`
 	IdempotencyKey  *string `gorm:"column:idempotency_key;type:varchar(128);uniqueIndex:uk_order_payment_idem,priority:2"`
-	CreatedAtUnixMs int64   `gorm:"column:created_at_unix_ms;not null;index:idx_payment_created"`
+	CreatedAtUnixMs int64   `gorm:"column:created_at_unix_ms;not null;index:idx_payment_created;index:idx_payment_main_created,priority:2"`
 	UpdatedAtUnixMs int64   `gorm:"column:updated_at_unix_ms;not null"`
 	SucceededAtMs   int64   `gorm:"column:succeeded_at_unix_ms;not null;default:0"`
 	Payload         string  `gorm:"column:payload;type:json;not null"`
@@ -149,7 +172,10 @@ type AuctionUserModel struct {
 	Username        string `gorm:"column:username;type:varchar(64);not null;uniqueIndex:idx_username"`
 	Nickname        string `gorm:"column:nickname;type:varchar(128);not null"`
 	PasswordHash    string `gorm:"column:password_hash;type:varchar(255);not null"`
-	Role            int32  `gorm:"column:role;type:int;not null;index:idx_role"`
+	Role            int32  `gorm:"column:role;type:int;not null;index:idx_role;index:idx_user_main_role,priority:2"`
+	MainAccountID   string `gorm:"column:main_account_id;type:varchar(64);not null;default:'';index:idx_user_main_role,priority:1"`
+	CreatedByUserID string `gorm:"column:created_by_user_id;type:varchar(64);not null;default:'';index:idx_user_created_by"`
+	Status          int32  `gorm:"column:status;type:int;not null;default:1;index:idx_user_main_role,priority:3;index:idx_user_status"`
 	CreatedAtUnixMs int64  `gorm:"column:created_at_unix_ms;not null"`
 	UpdatedAtUnixMs int64  `gorm:"column:updated_at_unix_ms;not null"`
 	CreatedAt       time.Time
@@ -173,8 +199,9 @@ func (AuctionUserSessionModel) TableName() string { return "auction_user_session
 
 type AssetFileModel struct {
 	ID               string `gorm:"column:id;type:varchar(64);primaryKey"`
+	MainAccountID    string `gorm:"column:main_account_id;type:varchar(64);not null;default:'';index:idx_asset_main_room,priority:1"`
 	OwnerUserID      string `gorm:"column:owner_user_id;type:varchar(64);not null;index:idx_asset_owner"`
-	RoomID           string `gorm:"column:room_id;type:varchar(64);not null;default:'';index:idx_asset_room"`
+	RoomID           string `gorm:"column:room_id;type:varchar(64);not null;default:'';index:idx_asset_room;index:idx_asset_main_room,priority:2"`
 	BizType          string `gorm:"column:biz_type;type:varchar(64);not null;index:idx_asset_biz_type"`
 	Status           string `gorm:"column:status;type:varchar(32);not null;default:'temporary';index:idx_asset_status"`
 	AttachedLotID    string `gorm:"column:attached_lot_id;type:varchar(64);not null;default:'';index:idx_asset_attached_lot"`

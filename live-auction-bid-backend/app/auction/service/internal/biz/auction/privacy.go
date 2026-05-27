@@ -9,11 +9,15 @@ import (
 
 func (v LotResultViewer) CanViewPrivateAuctionData() bool {
 	switch v.Role {
-	case v1.UserRole_USER_ROLE_ADMIN, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR:
+	case v1.UserRole_USER_ROLE_MAIN_ACCOUNT, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR:
 		return true
 	default:
 		return false
 	}
+}
+
+func (v LotResultViewer) CanViewMainAccountPrivate(mainAccountID string) bool {
+	return v.CanViewPrivateAuctionData() && strings.TrimSpace(v.MainAccountID) != "" && strings.TrimSpace(v.MainAccountID) == strings.TrimSpace(mainAccountID)
 }
 
 func (v LotResultViewer) CanViewBuyerIdentity(userID string) bool {
@@ -21,6 +25,15 @@ func (v LotResultViewer) CanViewBuyerIdentity(userID string) bool {
 		return true
 	}
 	return v.Role == v1.UserRole_USER_ROLE_BUYER && v.UserID != "" && v.UserID == userID
+}
+
+func viewerForMainAccount(viewer LotResultViewer, mainAccountID string) LotResultViewer {
+	if !viewer.CanViewPrivateAuctionData() || viewer.CanViewMainAccountPrivate(mainAccountID) {
+		return viewer
+	}
+	viewer.Role = v1.UserRole_USER_ROLE_UNSPECIFIED
+	viewer.MainAccountID = ""
+	return viewer
 }
 
 func MaskBuyerNickname(nickname string) string {
@@ -86,25 +99,25 @@ func SnapshotForViewer(snapshot *v1.RoomSnapshot, viewer LotResultViewer) *v1.Ro
 	if snapshot == nil {
 		return nil
 	}
-	if viewer.CanViewPrivateAuctionData() {
+	if snapshot.GetCurrentLot() == nil || viewer.CanViewMainAccountPrivate(snapshot.GetCurrentLot().GetMainAccountId()) {
 		return snapshot
 	}
 	cloned := proto.Clone(snapshot).(*v1.RoomSnapshot)
-	RedactSnapshotForViewer(cloned, viewer)
+	RedactSnapshotForViewer(cloned, viewerForMainAccount(viewer, snapshot.GetCurrentLot().GetMainAccountId()))
 	return cloned
 }
 
 func EventForViewer(event v1.AuctionEvent, viewer LotResultViewer) v1.AuctionEvent {
-	if viewer.CanViewPrivateAuctionData() {
+	if viewer.CanViewMainAccountPrivate(event.GetMainAccountId()) {
 		return event
 	}
 	cloned := proto.Clone(&event).(*v1.AuctionEvent)
-	RedactEventForViewer(cloned, viewer)
+	RedactEventForViewer(cloned, viewerForMainAccount(viewer, event.GetMainAccountId()))
 	return *cloned
 }
 
 func RedactEventForViewer(event *v1.AuctionEvent, viewer LotResultViewer) {
-	if event == nil || viewer.CanViewPrivateAuctionData() {
+	if event == nil || viewer.CanViewMainAccountPrivate(event.GetMainAccountId()) {
 		return
 	}
 	RedactLotForViewer(event.Lot, viewer)
@@ -119,10 +132,11 @@ func RedactEventForViewer(event *v1.AuctionEvent, viewer LotResultViewer) {
 		v1.AuctionEventType_AUCTION_EVENT_TYPE_PAYMENT_SUCCESS:
 		event.Reason = ""
 	}
+	event.MainAccountId = ""
 }
 
 func RedactSnapshotForViewer(snapshot *v1.RoomSnapshot, viewer LotResultViewer) {
-	if snapshot == nil || viewer.CanViewPrivateAuctionData() {
+	if snapshot == nil || (snapshot.GetCurrentLot() != nil && viewer.CanViewMainAccountPrivate(snapshot.GetCurrentLot().GetMainAccountId())) {
 		return
 	}
 	RedactLotForViewer(snapshot.CurrentLot, viewer)
@@ -133,9 +147,14 @@ func RedactSnapshotForViewer(snapshot *v1.RoomSnapshot, viewer LotResultViewer) 
 }
 
 func RedactLotForViewer(lot *v1.Lot, viewer LotResultViewer) {
-	if lot == nil || viewer.CanViewPrivateAuctionData() {
+	if lot == nil {
 		return
 	}
+	viewer = viewerForMainAccount(viewer, lot.GetMainAccountId())
+	if viewer.CanViewMainAccountPrivate(lot.GetMainAccountId()) {
+		return
+	}
+	lot.MainAccountId = ""
 	if !viewer.CanViewBuyerIdentity(lot.GetLeadingUserId()) {
 		lot.LeadingUserId = ""
 		if IsAuctionOpenStatus(lot.Status) {

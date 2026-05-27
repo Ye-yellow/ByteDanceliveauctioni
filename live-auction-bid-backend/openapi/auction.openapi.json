@@ -19,7 +19,7 @@
     "/api/admin/orders": {
       "get": {
         "operationId": "listAdminOrders",
-        "summary": "List orders for admin roles",
+        "summary": "List orders for backoffice roles",
         "parameters": [
           { "$ref": "#/components/parameters/Page" },
           { "$ref": "#/components/parameters/PageSize" },
@@ -54,7 +54,7 @@
     "/api/admin/lots": {
       "get": {
         "operationId": "listAdminLots",
-        "summary": "List lots for admin roles",
+        "summary": "List lots for backoffice roles",
         "parameters": [
           { "$ref": "#/components/parameters/Page" },
           { "$ref": "#/components/parameters/PageSize" },
@@ -89,7 +89,7 @@
     "/api/admin/users": {
       "get": {
         "operationId": "listAdminUsers",
-        "summary": "List users for admin role",
+        "summary": "List team users for current main account",
         "parameters": [
           { "$ref": "#/components/parameters/Page" },
           { "$ref": "#/components/parameters/PageSize" },
@@ -296,7 +296,15 @@
           "USER_ROLE_BUYER",
           "USER_ROLE_ANCHOR",
           "USER_ROLE_OPERATOR",
-          "USER_ROLE_ADMIN"
+          "USER_ROLE_MAIN_ACCOUNT"
+        ]
+      },
+      "UserStatus": {
+        "type": "string",
+        "enum": [
+          "USER_STATUS_UNSPECIFIED",
+          "USER_STATUS_ACTIVE",
+          "USER_STATUS_DISABLED"
         ]
       },
       "AuctionState": {
@@ -314,12 +322,15 @@
       "User": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["id", "username", "nickname", "role"],
+        "required": ["id", "username", "nickname", "role", "mainAccountId", "createdByUserId", "status"],
         "properties": {
           "id": { "type": "string" },
           "username": { "type": "string" },
           "nickname": { "type": "string" },
           "role": { "$ref": "#/components/schemas/UserRole" },
+          "mainAccountId": { "type": "string" },
+          "createdByUserId": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/UserStatus" },
           "createdAtUnixMs": { "type": "integer", "format": "int64" },
           "updatedAtUnixMs": { "type": "integer", "format": "int64" }
         }

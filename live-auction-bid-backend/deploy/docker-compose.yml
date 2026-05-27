@@ -15,9 +15,9 @@ services:
       AUCTION_SERVICE_ADDR: "auction-backend"
       AUCTION_JWT_SECRET: "local-dev-jwt-secret-change-me"
       AUCTION_JWT_ISSUER: "auction-backend"
-      AUCTION_BOOTSTRAP_ADMIN_USERNAME: "admin"
-      AUCTION_BOOTSTRAP_ADMIN_PASSWORD: "admin_dev_password"
-      AUCTION_BOOTSTRAP_ADMIN_NICKNAME: "管理员"
+      AUCTION_BOOTSTRAP_MAIN_ACCOUNT_USERNAME: "main"
+      AUCTION_BOOTSTRAP_MAIN_ACCOUNT_PASSWORD: "main_dev_password"
+      AUCTION_BOOTSTRAP_MAIN_ACCOUNT_NICKNAME: "主账号"
       # 图片对象存储：默认使用 TOS。启动前必须复制 deploy/.env.example 为 deploy/.env 并填写配置；
       # 缺少 endpoint/region/bucket/AK/SK 时 Compose 或后端会 fail fast，不等到 upload 接口才报错。
       AUCTION_STORAGE_PROVIDER: "${AUCTION_STORAGE_PROVIDER:-tos}"

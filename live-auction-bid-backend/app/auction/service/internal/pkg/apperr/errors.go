@@ -16,6 +16,7 @@ var (
 	ErrInvalidToken       = errors.New("invalid token")
 	ErrTokenExpired       = errors.New("token expired")
 	ErrSessionExpired     = errors.New("session expired")
+	ErrAccountDisabled    = errors.New("account disabled")
 	ErrUserNotFound       = errors.New("user not found")
 	ErrNotFound           = errors.New("not found")
 )
@@ -54,6 +55,10 @@ func IsTokenExpired(err error) bool {
 
 func IsSessionExpired(err error) bool {
 	return errors.Is(err, ErrSessionExpired)
+}
+
+func IsAccountDisabled(err error) bool {
+	return errors.Is(err, ErrAccountDisabled)
 }
 
 func IsUserNotFound(err error) bool {

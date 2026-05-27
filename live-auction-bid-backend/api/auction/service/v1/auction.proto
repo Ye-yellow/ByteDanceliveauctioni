@@ -548,7 +548,7 @@ message Lot {
   // 拍品 ID。
   string id = 1;
 
-  // 直播间 ID。V1 可以固定为 demo，但契约先保留。
+  // 直播间 ID。
   string room_id = 2;
 
   // 商品标题。
@@ -640,6 +640,9 @@ message Lot {
 
   // 实时竞拍统计。
   LotStats stats = 32;
+
+  // 所属主账号 ID。后台使用该字段做业务数据隔离，观众端无需展示。
+  string main_account_id = 33;
 }
 
 // ============================================================================
@@ -667,6 +670,12 @@ message RoomSnapshot {
 
   // 服务端当前时间，Unix 毫秒。用于前端校准倒计时。
   int64 server_time_unix_ms = 6;
+
+  // 直播间展示名，来自主播/商家主账号资料。
+  string room_name = 7;
+
+  // 主播/商家展示名，来自主播/商家主账号资料。
+  string anchor_name = 8;
 }
 
 // RoomPresence 表示直播间实时连接状态。
@@ -726,6 +735,9 @@ message AuctionEvent {
 
   // 失败原因。主要用于 BID_REJECTED。
   string reason = 12;
+
+  // 所属主账号 ID。后台事件查询使用该字段做业务数据隔离，观众端无需展示。
+  string main_account_id = 13;
 }
 
 // ============================================================================
@@ -734,7 +746,7 @@ message AuctionEvent {
 
 // CreateLotRequest 表示创建拍品请求。
 message CreateLotRequest {
-  // 直播间 ID。V1 可固定为 demo。
+  // 直播间 ID。
   string room_id = 1;
 
   // 商品标题。

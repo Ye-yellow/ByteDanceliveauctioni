@@ -24,6 +24,14 @@ func (s *UserService) Register(ctx context.Context, req *v1.RegisterRequest) (*v
 	return &v1.RegisterReply{Result: okResult(ctx), User: user, Tokens: tokens}, nil
 }
 
+func (s *UserService) RegisterMerchant(ctx context.Context, req *v1.RegisterMerchantRequest) (*v1.RegisterMerchantReply, error) {
+	user, tokens, err := s.users.RegisterMerchant(ctx, req)
+	if err != nil {
+		return &v1.RegisterMerchantReply{Result: ErrorResult(ctx, err)}, nil
+	}
+	return &v1.RegisterMerchantReply{Result: okResult(ctx), User: user, Tokens: tokens}, nil
+}
+
 func (s *UserService) Login(ctx context.Context, req *v1.LoginRequest) (*v1.LoginReply, error) {
 	user, tokens, err := s.users.Login(ctx, req.GetUsername(), req.GetPassword())
 	if err != nil {
@@ -77,6 +85,14 @@ func (s *UserService) AdminUpdateUserRole(ctx context.Context, req *v1.AdminUpda
 		return &v1.AdminUpdateUserRoleReply{Result: ErrorResult(ctx, err)}, nil
 	}
 	return &v1.AdminUpdateUserRoleReply{Result: okResult(ctx), User: user}, nil
+}
+
+func (s *UserService) AdminUpdateUserStatus(ctx context.Context, req *v1.AdminUpdateUserStatusRequest) (*v1.AdminUpdateUserStatusReply, error) {
+	user, err := s.users.AdminUpdateUserStatus(ctx, req.GetUserId(), req.GetStatus())
+	if err != nil {
+		return &v1.AdminUpdateUserStatusReply{Result: ErrorResult(ctx, err)}, nil
+	}
+	return &v1.AdminUpdateUserStatusReply{Result: okResult(ctx), User: user}, nil
 }
 
 func (s *UserService) ListUsers(ctx context.Context, query user.ListUsersQuery) (user.ListUsersResult, error) {

@@ -99,6 +99,7 @@ func (s *Store) Close() error {
 
 func (s *Store) migrate(ctx context.Context) error {
 	return s.db.WithContext(ctx).AutoMigrate(
+		&AuctionRoomModel{},
 		&AuctionLotModel{},
 		&AuctionBidModel{},
 		&AuctionLotStatsModel{},

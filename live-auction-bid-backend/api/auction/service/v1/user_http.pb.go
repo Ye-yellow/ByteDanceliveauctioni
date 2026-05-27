@@ -21,18 +21,22 @@ const _ = http.SupportPackageIsVersion1
 
 const OperationUserServiceAdminCreateUser = "/auction.service.v1.UserService/AdminCreateUser"
 const OperationUserServiceAdminUpdateUserRole = "/auction.service.v1.UserService/AdminUpdateUserRole"
+const OperationUserServiceAdminUpdateUserStatus = "/auction.service.v1.UserService/AdminUpdateUserStatus"
 const OperationUserServiceGetMe = "/auction.service.v1.UserService/GetMe"
 const OperationUserServiceLogin = "/auction.service.v1.UserService/Login"
 const OperationUserServiceLogout = "/auction.service.v1.UserService/Logout"
 const OperationUserServiceRefreshToken = "/auction.service.v1.UserService/RefreshToken"
 const OperationUserServiceRegister = "/auction.service.v1.UserService/Register"
+const OperationUserServiceRegisterMerchant = "/auction.service.v1.UserService/RegisterMerchant"
 const OperationUserServiceResetPassword = "/auction.service.v1.UserService/ResetPassword"
 
 type UserServiceHTTPServer interface {
-	// AdminCreateUser 主播主账号创建团队子账号；不创建买家或新的主账号。
+	// AdminCreateUser 主账号创建团队子账号；不创建买家或新的主账号。
 	AdminCreateUser(context.Context, *AdminCreateUserRequest) (*AdminCreateUserReply, error)
-	// AdminUpdateUserRole 主播主账号修改团队子账号角色；不允许改为买家或新的主账号。
+	// AdminUpdateUserRole 主账号修改团队子账号角色；不允许改为买家或新的主账号。
 	AdminUpdateUserRole(context.Context, *AdminUpdateUserRoleRequest) (*AdminUpdateUserRoleReply, error)
+	// AdminUpdateUserStatus 主账号启用或禁用团队子账号。
+	AdminUpdateUserStatus(context.Context, *AdminUpdateUserStatusRequest) (*AdminUpdateUserStatusReply, error)
 	// GetMe 查看当前登录用户。
 	GetMe(context.Context, *GetMeRequest) (*GetMeReply, error)
 	// Login 用户名密码登录。
@@ -43,7 +47,9 @@ type UserServiceHTTPServer interface {
 	RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenReply, error)
 	// Register 公开注册买家账号。
 	Register(context.Context, *RegisterRequest) (*RegisterReply, error)
-	// ResetPassword 原型阶段：仅凭账号重置买家密码。上线前需替换为验证码或管理员鉴权。
+	// RegisterMerchant 公开注册商家/主播主账号。
+	RegisterMerchant(context.Context, *RegisterMerchantRequest) (*RegisterMerchantReply, error)
+	// ResetPassword 原型阶段：仅凭账号重置密码，方便测试和压测准备账号。
 	ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordReply, error)
 }
 
@@ -52,11 +58,13 @@ func RegisterUserServiceHTTPServer(s *http.Server, srv UserServiceHTTPServer) {
 	r.POST("/api/users/register", _UserService_Register0_HTTP_Handler(srv))
 	r.POST("/api/users/login", _UserService_Login0_HTTP_Handler(srv))
 	r.POST("/api/users/reset-password", _UserService_ResetPassword0_HTTP_Handler(srv))
+	r.POST("/api/merchants/register", _UserService_RegisterMerchant0_HTTP_Handler(srv))
 	r.POST("/api/users/refresh", _UserService_RefreshToken0_HTTP_Handler(srv))
 	r.POST("/api/users/logout", _UserService_Logout0_HTTP_Handler(srv))
 	r.GET("/api/users/me", _UserService_GetMe0_HTTP_Handler(srv))
 	r.POST("/api/admin/users", _UserService_AdminCreateUser0_HTTP_Handler(srv))
 	r.POST("/api/admin/users/{user_id}/role", _UserService_AdminUpdateUserRole0_HTTP_Handler(srv))
+	r.POST("/api/admin/users/{user_id}/status", _UserService_AdminUpdateUserStatus0_HTTP_Handler(srv))
 }
 
 func _UserService_Register0_HTTP_Handler(srv UserServiceHTTPServer) func(ctx http.Context) error {
@@ -121,6 +129,28 @@ func _UserService_ResetPassword0_HTTP_Handler(srv UserServiceHTTPServer) func(ct
 			return err
 		}
 		reply := out.(*ResetPasswordReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _UserService_RegisterMerchant0_HTTP_Handler(srv UserServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in RegisterMerchantRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationUserServiceRegisterMerchant)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.RegisterMerchant(ctx, req.(*RegisterMerchantRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*RegisterMerchantReply)
 		return ctx.Result(200, reply)
 	}
 }
@@ -235,11 +265,38 @@ func _UserService_AdminUpdateUserRole0_HTTP_Handler(srv UserServiceHTTPServer) f
 	}
 }
 
+func _UserService_AdminUpdateUserStatus0_HTTP_Handler(srv UserServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in AdminUpdateUserStatusRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationUserServiceAdminUpdateUserStatus)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.AdminUpdateUserStatus(ctx, req.(*AdminUpdateUserStatusRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AdminUpdateUserStatusReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 type UserServiceHTTPClient interface {
-	// AdminCreateUser 主播主账号创建团队子账号；不创建买家或新的主账号。
+	// AdminCreateUser 主账号创建团队子账号；不创建买家或新的主账号。
 	AdminCreateUser(ctx context.Context, req *AdminCreateUserRequest, opts ...http.CallOption) (rsp *AdminCreateUserReply, err error)
-	// AdminUpdateUserRole 主播主账号修改团队子账号角色；不允许改为买家或新的主账号。
+	// AdminUpdateUserRole 主账号修改团队子账号角色；不允许改为买家或新的主账号。
 	AdminUpdateUserRole(ctx context.Context, req *AdminUpdateUserRoleRequest, opts ...http.CallOption) (rsp *AdminUpdateUserRoleReply, err error)
+	// AdminUpdateUserStatus 主账号启用或禁用团队子账号。
+	AdminUpdateUserStatus(ctx context.Context, req *AdminUpdateUserStatusRequest, opts ...http.CallOption) (rsp *AdminUpdateUserStatusReply, err error)
 	// GetMe 查看当前登录用户。
 	GetMe(ctx context.Context, req *GetMeRequest, opts ...http.CallOption) (rsp *GetMeReply, err error)
 	// Login 用户名密码登录。
@@ -250,7 +307,9 @@ type UserServiceHTTPClient interface {
 	RefreshToken(ctx context.Context, req *RefreshTokenRequest, opts ...http.CallOption) (rsp *RefreshTokenReply, err error)
 	// Register 公开注册买家账号。
 	Register(ctx context.Context, req *RegisterRequest, opts ...http.CallOption) (rsp *RegisterReply, err error)
-	// ResetPassword 原型阶段：仅凭账号重置买家密码。上线前需替换为验证码或管理员鉴权。
+	// RegisterMerchant 公开注册商家/主播主账号。
+	RegisterMerchant(ctx context.Context, req *RegisterMerchantRequest, opts ...http.CallOption) (rsp *RegisterMerchantReply, err error)
+	// ResetPassword 原型阶段：仅凭账号重置密码，方便测试和压测准备账号。
 	ResetPassword(ctx context.Context, req *ResetPasswordRequest, opts ...http.CallOption) (rsp *ResetPasswordReply, err error)
 }
 
@@ -262,7 +321,7 @@ func NewUserServiceHTTPClient(client *http.Client) UserServiceHTTPClient {
 	return &UserServiceHTTPClientImpl{client}
 }
 
-// AdminCreateUser 主播主账号创建团队子账号；不创建买家或新的主账号。
+// AdminCreateUser 主账号创建团队子账号；不创建买家或新的主账号。
 func (c *UserServiceHTTPClientImpl) AdminCreateUser(ctx context.Context, in *AdminCreateUserRequest, opts ...http.CallOption) (*AdminCreateUserReply, error) {
 	var out AdminCreateUserReply
 	pattern := "/api/admin/users"
@@ -276,12 +335,26 @@ func (c *UserServiceHTTPClientImpl) AdminCreateUser(ctx context.Context, in *Adm
 	return &out, nil
 }
 
-// AdminUpdateUserRole 主播主账号修改团队子账号角色；不允许改为买家或新的主账号。
+// AdminUpdateUserRole 主账号修改团队子账号角色；不允许改为买家或新的主账号。
 func (c *UserServiceHTTPClientImpl) AdminUpdateUserRole(ctx context.Context, in *AdminUpdateUserRoleRequest, opts ...http.CallOption) (*AdminUpdateUserRoleReply, error) {
 	var out AdminUpdateUserRoleReply
 	pattern := "/api/admin/users/{user_id}/role"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationUserServiceAdminUpdateUserRole))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// AdminUpdateUserStatus 主账号启用或禁用团队子账号。
+func (c *UserServiceHTTPClientImpl) AdminUpdateUserStatus(ctx context.Context, in *AdminUpdateUserStatusRequest, opts ...http.CallOption) (*AdminUpdateUserStatusReply, error) {
+	var out AdminUpdateUserStatusReply
+	pattern := "/api/admin/users/{user_id}/status"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationUserServiceAdminUpdateUserStatus))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -360,7 +433,21 @@ func (c *UserServiceHTTPClientImpl) Register(ctx context.Context, in *RegisterRe
 	return &out, nil
 }
 
-// ResetPassword 原型阶段：仅凭账号重置买家密码。上线前需替换为验证码或管理员鉴权。
+// RegisterMerchant 公开注册商家/主播主账号。
+func (c *UserServiceHTTPClientImpl) RegisterMerchant(ctx context.Context, in *RegisterMerchantRequest, opts ...http.CallOption) (*RegisterMerchantReply, error) {
+	var out RegisterMerchantReply
+	pattern := "/api/merchants/register"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationUserServiceRegisterMerchant))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ResetPassword 原型阶段：仅凭账号重置密码，方便测试和压测准备账号。
 func (c *UserServiceHTTPClientImpl) ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...http.CallOption) (*ResetPasswordReply, error) {
 	var out ResetPasswordReply
 	pattern := "/api/users/reset-password"

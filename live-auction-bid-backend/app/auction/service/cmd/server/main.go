@@ -55,7 +55,7 @@ func main() {
 	assetCleanupWorker.Start(ctx)
 
 	userUsecase := userbiz.NewUsecase(store, authManager)
-	if err := bootstrapAdmin(ctx, userUsecase); err != nil {
+	if err := bootstrapMainAccount(ctx, userUsecase); err != nil {
 		log.Fatal(err)
 	}
 
@@ -114,17 +114,17 @@ func getenvDuration(key string, fallback time.Duration) time.Duration {
 	return duration
 }
 
-func bootstrapAdmin(ctx context.Context, users *userbiz.Usecase) error {
-	username := os.Getenv("AUCTION_BOOTSTRAP_ADMIN_USERNAME")
-	password := os.Getenv("AUCTION_BOOTSTRAP_ADMIN_PASSWORD")
-	nickname := os.Getenv("AUCTION_BOOTSTRAP_ADMIN_NICKNAME")
+func bootstrapMainAccount(ctx context.Context, users *userbiz.Usecase) error {
+	username := os.Getenv("AUCTION_BOOTSTRAP_MAIN_ACCOUNT_USERNAME")
+	password := os.Getenv("AUCTION_BOOTSTRAP_MAIN_ACCOUNT_PASSWORD")
+	nickname := os.Getenv("AUCTION_BOOTSTRAP_MAIN_ACCOUNT_NICKNAME")
 	if username == "" && password == "" && nickname == "" {
 		return nil
 	}
 	if username == "" || password == "" || nickname == "" {
-		return errors.New("bootstrap admin username, password and nickname must be configured together")
+		return errors.New("bootstrap main account username, password and nickname must be configured together")
 	}
-	return users.BootstrapAdmin(ctx, username, password, nickname)
+	return users.BootstrapMainAccount(ctx, username, password, nickname)
 }
 
 func newImageStorageFromEnv() (storage.StorageProvider, error) {
