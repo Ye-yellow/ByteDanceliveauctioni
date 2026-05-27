@@ -1,3 +1,9 @@
+@property --merchant-risk-sweep {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
 .studioPage:has(.merchantDashboardPage) {
   width: 100%;
   max-width: none;
@@ -126,14 +132,22 @@
   line-height: 18px;
 }
 
+.merchantRangeBar button span {
+  color: var(--studio-color-text-secondary);
+}
+
 .merchantRangeBar button.active {
-  background: var(--merchant-ink);
-  color: var(--merchant-contrast-muted);
+  background: var(--studio-color-surface);
+  color: var(--merchant-muted);
   box-shadow: var(--merchant-active-shadow);
 }
 
 .merchantRangeBar button.active b {
-  color: var(--merchant-contrast-text);
+  color: var(--merchant-ink);
+}
+
+.merchantRangeBar button.active span {
+  color: var(--studio-color-text-secondary);
 }
 
 .merchantHeroMeta {
@@ -252,9 +266,61 @@
 
 .merchantSparkline {
   width: 100%;
-  height: 30px;
+  height: 38px;
   color: currentColor;
-  opacity: .78;
+  overflow: visible;
+}
+
+.merchantSparklineGuide,
+.merchantSparklineLine {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.merchantSparklineGuide {
+  stroke: currentColor;
+  stroke-width: 1;
+  opacity: .14;
+}
+
+.merchantSparklineArea {
+  fill: currentColor;
+  opacity: 0;
+  transform: translateY(4px) scaleY(.82);
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: merchantSparklineAreaIn var(--merchant-duration-area) var(--merchant-ease-default) var(--merchant-delay-area) both;
+}
+
+.merchantSparklineLine {
+  stroke: currentColor;
+  stroke-width: 2.8;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: .9;
+  animation: merchantDrawLine 860ms var(--merchant-ease-emphasized) both;
+}
+
+.merchantSparklineHalo {
+  fill: var(--merchant-surface);
+  stroke: currentColor;
+  stroke-width: 1.5;
+  opacity: 0;
+  transform: scale(.7);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: merchantSparklineDotIn 260ms var(--merchant-ease-emphasized) 760ms both;
+}
+
+.merchantSparklineDot {
+  fill: currentColor;
+  opacity: 0;
+  transform: scale(.7);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: merchantSparklineDotIn 260ms var(--merchant-ease-emphasized) 790ms both;
 }
 
 .metric-green { color: var(--merchant-green); }
@@ -578,6 +644,9 @@
 .merchantArea {
   fill: var(--merchant-chart-gmv-bg);
   opacity: 0;
+  transform: translateY(8px);
+  transform-box: fill-box;
+  transform-origin: center bottom;
   animation: merchantAreaIn var(--merchant-duration-area) var(--merchant-ease-default) var(--merchant-delay-area) both;
 }
 
@@ -587,21 +656,28 @@
   stroke-width: 4;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-dasharray: 1200;
-  stroke-dashoffset: 1200;
-  animation: merchantDrawLine var(--merchant-duration-line) var(--merchant-ease-default) both;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: merchantDrawLine var(--merchant-duration-line) var(--merchant-ease-emphasized) 160ms both;
 }
 
 .merchantLinePoint {
   fill: var(--merchant-surface-solid);
   stroke: var(--merchant-chart-gmv);
   stroke-width: 3;
+  opacity: 0;
+  transform: scale(.55);
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: r 160ms var(--merchant-ease-default), transform 160ms var(--merchant-ease-default);
+  animation: merchantLinePointIn 260ms var(--merchant-ease-emphasized) var(--point-delay, 560ms) both;
 }
 
-.merchantTrendChart rect {
+.merchantTrendChart rect:not(.merchantHoverBand) {
+  opacity: 0;
   transform-box: fill-box;
   transform-origin: center bottom;
-  animation: merchantBarGrow var(--merchant-duration-funnel) var(--merchant-ease-emphasized) both;
+  animation: merchantBarGrow var(--merchant-duration-funnel) var(--merchant-ease-emphasized) var(--bar-delay, 0ms) both;
 }
 
 .bar-paid { fill: var(--merchant-chart-paid); }
@@ -610,6 +686,41 @@
 
 .merchantTrendChart .merchantHoverBand {
   fill: transparent;
+  animation: none;
+}
+
+.merchantViewAnimate:not(.isVisible) .merchantArea {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: none;
+}
+
+.merchantViewAnimate:not(.isVisible) .merchantLine {
+  stroke-dashoffset: 1;
+  animation: none;
+}
+
+.merchantViewAnimate:not(.isVisible) .merchantLinePoint {
+  opacity: 0;
+  transform: scale(.55);
+  animation: none;
+}
+
+.merchantViewAnimate:not(.isVisible) .merchantTrendChart rect:not(.merchantHoverBand) {
+  opacity: 0;
+  transform: scaleY(0);
+  animation: none;
+}
+
+.merchantViewAnimate:not(.isVisible) .merchantFunnelTrack span,
+.merchantViewAnimate:not(.isVisible) .merchantRankBar i,
+.merchantViewAnimate:not(.isVisible) .merchantCategoryTrack i {
+  transform: scaleX(0);
+  animation: none;
+}
+
+.merchantViewAnimate:not(.isVisible) .merchantRiskDonut::before {
+  --merchant-risk-sweep: 0deg;
   animation: none;
 }
 
@@ -697,40 +808,119 @@
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--merchant-amber), var(--merchant-rose));
+  transform-origin: left center;
+  animation: merchantFunnelIn var(--merchant-duration-funnel) var(--merchant-ease-default) var(--delay, 0ms) both;
+}
+
+.merchantCategoryPanel {
+  display: grid;
+  gap: 16px;
+}
+
+.merchantCategorySummary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.merchantCategorySummary > div {
+  padding: 14px;
+  border: 1px solid var(--merchant-line);
+  border-radius: 16px;
+  background: var(--merchant-surface-row);
+}
+
+.merchantCategorySummary span,
+.merchantCategorySummary small {
+  display: block;
+  color: var(--merchant-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.merchantCategorySummary b {
+  display: block;
+  margin: 4px 0 2px;
+  color: var(--merchant-ink);
+  font-size: 24px;
+  line-height: 30px;
+  font-variant-numeric: tabular-nums;
+}
+
+.merchantCategoryRows {
+  display: grid;
+  gap: 11px;
+}
+
+.merchantCategoryRows article {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--merchant-line);
+  animation: merchantRowIn var(--merchant-duration-row) var(--merchant-ease-default) both;
+}
+
+.merchantCategoryRows article:last-child {
+  border-bottom: 0;
+}
+
+.merchantCategoryRows article.isLeader {
+  padding: 13px 12px;
+  border: 1px solid var(--merchant-primary-border-soft);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--merchant-blue) 7%, var(--merchant-surface-row));
+}
+
+.merchantCategoryRows header,
+.merchantCategoryRows footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.merchantCategoryRows header div {
+  display: grid;
+  gap: 2px;
+}
+
+.merchantCategoryRows b {
+  color: var(--merchant-ink);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.merchantCategoryRows strong {
+  color: var(--merchant-ink);
+  font-size: 15px;
+  line-height: 22px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.merchantCategoryRows span,
+.merchantCategoryRows footer {
+  color: var(--merchant-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.merchantCategoryTrack {
+  overflow: hidden;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--merchant-subtle-bg);
+}
+
+.merchantCategoryTrack i {
+  display: block;
+  width: var(--category-width);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--merchant-blue), var(--merchant-green));
+  transform-origin: left center;
   animation: merchantFunnelIn var(--merchant-duration-funnel) var(--merchant-ease-default) both;
 }
-
-.merchantBubbleChart {
-  width: 100%;
-  min-height: 320px;
-}
-
-.merchantBubbleChart line {
-  stroke: var(--merchant-line);
-}
-
-.merchantBubbleChart text {
-  fill: var(--merchant-muted);
-  font-size: 11px;
-}
-
-.merchantBubbleChart .axisLabel {
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.bubble {
-  stroke: var(--merchant-surface-solid);
-  stroke-width: 2;
-  opacity: .76;
-  animation: merchantBubbleIn var(--merchant-duration-bubble) var(--merchant-ease-default) both;
-}
-
-.bubble-0 { fill: var(--merchant-chart-paid); }
-.bubble-1 { fill: var(--merchant-chart-gmv); }
-.bubble-2 { fill: var(--merchant-chart-pending); }
-.bubble-3 { fill: var(--merchant-chart-abnormal); }
-.bubble-4 { fill: var(--merchant-violet); }
 
 .merchantRiskPanelBody {
   display: grid;
@@ -740,39 +930,82 @@
 }
 
 .merchantRiskDonut {
+  --merchant-risk-sweep: 360deg;
   position: relative;
   display: grid;
   place-items: center;
   align-content: center;
-  width: 176px;
-  height: 176px;
+  width: 184px;
+  height: 184px;
   border-radius: 50%;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 34% 26%, color-mix(in srgb, var(--merchant-surface-solid) 92%, transparent), transparent 26%),
+    conic-gradient(color-mix(in srgb, var(--merchant-line) 82%, transparent) 0deg 360deg);
+  border: 1px solid color-mix(in srgb, var(--merchant-line) 82%, transparent);
+  box-shadow:
+    0 18px 34px color-mix(in srgb, var(--merchant-ink) 8%, transparent),
+    inset 0 2px 0 color-mix(in srgb, var(--merchant-surface-solid) 86%, transparent),
+    inset 0 -10px 18px color-mix(in srgb, var(--merchant-ink) 4.5%, transparent);
 }
 
+.merchantRiskDonut::before,
 .merchantRiskDonut::after {
   content: "";
   position: absolute;
-  inset: 28px;
   border-radius: 50%;
+  pointer-events: none;
+}
+
+.merchantRiskDonut::before {
+  inset: 14px;
+  z-index: var(--studio-z-raised);
+  background: var(--risk-gradient);
+  -webkit-mask:
+    radial-gradient(farthest-side, transparent calc(100% - 28px), black calc(100% - 27px) calc(100% - 4px), transparent calc(100% - 3px)),
+    conic-gradient(black 0 var(--merchant-risk-sweep), transparent 0);
+  -webkit-mask-composite: source-in;
+  mask:
+    radial-gradient(farthest-side, transparent calc(100% - 28px), black calc(100% - 27px) calc(100% - 4px), transparent calc(100% - 3px)),
+    conic-gradient(black 0 var(--merchant-risk-sweep), transparent 0);
+  mask-composite: intersect;
+  filter: drop-shadow(0 7px 10px color-mix(in srgb, var(--merchant-ink) 10%, transparent));
+  animation: merchantRiskDonutSweep 920ms var(--merchant-ease-emphasized) 120ms both;
+}
+
+.merchantRiskDonut::after {
+  inset: 44px;
+  z-index: var(--studio-z-sticky);
   background: var(--merchant-surface-solid);
+  border: 1px solid color-mix(in srgb, var(--merchant-surface-solid) 86%, transparent);
+  box-shadow:
+    inset 5px 7px 16px color-mix(in srgb, var(--merchant-ink) 5.5%, transparent),
+    inset -5px -5px 14px color-mix(in srgb, var(--merchant-surface-solid) 90%, transparent),
+    0 10px 22px color-mix(in srgb, var(--merchant-ink) 5%, transparent);
 }
 
 .merchantRiskDonut strong,
 .merchantRiskDonut span {
   position: relative;
-  z-index: var(--merchant-z-raised);
+  z-index: var(--studio-z-header);
 }
 
 .merchantRiskDonut strong {
-  font-size: 30px;
-  line-height: 36px;
+  margin-top: 4px;
+  color: var(--merchant-ink);
+  font-size: 34px;
+  line-height: 38px;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -.03em;
 }
 
 .merchantRiskDonut span {
+  margin-top: 2px;
   color: var(--merchant-muted);
   font-size: 12px;
-  font-weight: 800;
+  line-height: 16px;
+  font-weight: 850;
 }
 
 .merchantRiskLegend,
@@ -951,7 +1184,15 @@
 }
 
 @keyframes merchantAreaIn {
-  to { opacity: 1; }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes merchantSparklineAreaIn {
+  to { opacity: .08; transform: translateY(0) scaleY(1); }
+}
+
+@keyframes merchantSparklineDotIn {
+  to { opacity: .78; transform: scale(1); }
 }
 
 @keyframes merchantBarGrow {
@@ -959,9 +1200,14 @@
   to { transform: scaleY(1); opacity: 1; }
 }
 
-@keyframes merchantBubbleIn {
-  from { transform: scale(.72); opacity: 0; }
-  to { transform: scale(1); opacity: .76; }
+@keyframes merchantLinePointIn {
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes merchantRiskDonutSweep {
+  from { --merchant-risk-sweep: 0deg; transform: scale(.94); opacity: .55; }
+  72% { transform: scale(1.025); opacity: 1; }
+  to { --merchant-risk-sweep: 360deg; transform: scale(1); opacity: 1; }
 }
 
 @keyframes merchantRowIn {
@@ -1022,6 +1268,10 @@
   .merchantLotRanking strong,
   .merchantRankBar {
     grid-column: 2;
+  }
+
+  .merchantCategorySummary {
+    grid-template-columns: 1fr;
   }
 
   .merchantLotTableHead {
@@ -1094,11 +1344,25 @@
     scroll-behavior: auto !important;
   }
 
-  .merchantLine {
+  .merchantLine,
+  .merchantSparklineLine {
     stroke-dashoffset: 0 !important;
   }
 
-  .merchantArea {
+  .merchantArea,
+  .merchantLinePoint,
+  .merchantRiskDonut::before,
+  .merchantTrendChart rect:not(.merchantHoverBand),
+  .merchantRankBar i,
+  .merchantFunnelTrack span,
+  .merchantSparklineArea,
+  .merchantSparklineHalo,
+  .merchantSparklineDot {
     opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .merchantRiskDonut::before {
+    --merchant-risk-sweep: 360deg !important;
   }
 }

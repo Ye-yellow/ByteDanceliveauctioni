@@ -1,7 +1,7 @@
 import type { Lot, ReplyResult } from '../../../shared/api/types';
 import type { OrderStatus, PaymentStatus } from './orderStatus';
 
-export type AuctionState = 'DRAFT' | 'SCHEDULED' | 'LIVE' | 'EXTENDED' | 'SOLD' | 'CANCELLED' | 'FAILED' | (string & {});
+export type AuctionState = 'DRAFT' | 'QUEUED' | 'LIVE' | 'EXTENDED' | 'SETTLED' | 'CANCELLED' | 'FAILED' | (string & {});
 
 export type OrderSummary = {
   id: string;

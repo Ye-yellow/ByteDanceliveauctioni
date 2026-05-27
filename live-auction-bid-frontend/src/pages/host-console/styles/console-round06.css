@@ -2311,6 +2311,187 @@
   align-items: center;
 }
 
+/* Order review table: match auction history's white-row list rhythm. */
+.orderReviewTable {
+  border: 1px solid var(--studio-table-wrap-border) !important;
+  border-radius: 26px !important;
+  background: var(--studio-table-wrap-bg) !important;
+  box-shadow: var(--studio-table-wrap-shadow) !important;
+  overflow: hidden !important;
+}
+
+.orderReviewTable .studioTableTools {
+  margin: 0 12px !important;
+  padding: 4px 2px 12px !important;
+  border-bottom: 0 !important;
+  background: transparent !important;
+  color: var(--postlive-text-muted) !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+}
+
+.orderReviewTable .studioTable {
+  min-width: 1120px !important;
+  padding: 0 12px 12px !important;
+  border-collapse: separate !important;
+  border-spacing: 0 10px !important;
+  background: transparent !important;
+}
+
+.orderReviewTable .studioTable th {
+  padding: 10px 12px 6px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--postlive-text-muted) !important;
+  font-size: 12px !important;
+  font-weight: 950 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.orderReviewTable .studioTable tbody tr {
+  background: transparent !important;
+  box-shadow: var(--studio-table-row-shadow) !important;
+  transition: transform var(--studio-duration-fast) ease, box-shadow var(--studio-duration-fast) ease !important;
+}
+
+.orderReviewTable .studioTable tbody tr:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--studio-table-row-hover-shadow) !important;
+}
+
+.orderReviewTable .studioTable td {
+  padding: 14px 12px !important;
+  border-top: 1px solid var(--studio-table-row-border) !important;
+  border-bottom: 1px solid var(--studio-table-row-border) !important;
+  background: var(--studio-table-row-bg) !important;
+  color: var(--postlive-text-main) !important;
+}
+
+.orderReviewTable .studioTable td:first-child {
+  border-left: 1px solid var(--studio-table-row-border) !important;
+  border-radius: 18px 0 0 18px !important;
+}
+
+.orderReviewTable .studioTable td:last-child {
+  border-right: 1px solid var(--studio-table-row-border) !important;
+  border-radius: 0 18px 18px 0 !important;
+}
+
+.orderReviewTable .orderProductCell {
+  min-width: 245px;
+}
+
+.orderReviewTable .orderProductCell img {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+}
+
+.orderReviewTable .orderAmountCell {
+  color: var(--postlive-money-text) !important;
+  font-size: 15px;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+html body .laAdminShell .orderReviewPage .orderReviewTable {
+  border: 1px solid var(--studio-table-wrap-border) !important;
+  border-radius: 26px !important;
+  background: var(--studio-table-wrap-bg) !important;
+  box-shadow: var(--studio-table-wrap-shadow) !important;
+}
+
+html body .laAdminShell .orderReviewPage .orderReviewTable .studioTableTools {
+  margin: 0 12px !important;
+  padding: 4px 2px 12px !important;
+  border-bottom: 0 !important;
+  background: transparent !important;
+}
+
+html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable {
+  padding: 0 12px 12px !important;
+  border-spacing: 0 10px !important;
+  background: transparent !important;
+}
+
+html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable th {
+  padding: 10px 12px 6px !important;
+  border: 0 !important;
+  background: transparent !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable td {
+  padding: 14px 12px !important;
+  border-top: 1px solid var(--studio-table-row-border) !important;
+  border-bottom: 1px solid var(--studio-table-row-border) !important;
+  background: var(--studio-table-row-bg) !important;
+}
+
+html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable td:first-child {
+  border-left: 1px solid var(--studio-table-row-border) !important;
+  border-radius: 18px 0 0 18px !important;
+}
+
+html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable td:last-child {
+  border-right: 1px solid var(--studio-table-row-border) !important;
+  border-radius: 0 18px 18px 0 !important;
+}
+
+html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable thead {
+  display: none !important;
+}
+
+html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable,
+html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable tbody {
+  display: grid !important;
+  gap: 10px !important;
+}
+
+html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable tbody tr {
+  display: grid !important;
+  grid-template-columns:minmax(250px,1.28fr) minmax(104px,.56fr) minmax(186px,.92fr) minmax(120px,.66fr) minmax(88px,.48fr) minmax(108px,.58fr) minmax(96px,.52fr);
+  align-items: center !important;
+  min-height: 94px;
+  padding: 14px 16px !important;
+  border: 1px solid var(--studio-table-row-border) !important;
+  border-radius: 18px !important;
+  background: var(--studio-table-row-bg) !important;
+}
+
+html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable td,
+html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable td:first-child,
+html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable td:last-child {
+  display: grid !important;
+  gap: 4px !important;
+  min-width: 0 !important;
+  padding: 0 10px !important;
+  border: 0 !important;
+  border-left: 1px solid var(--studio-table-row-border) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable td:first-child {
+  border-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable td::before {
+  content: attr(data-label);
+  color: var(--postlive-text-muted);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1;
+}
+
+html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable td:first-child::before {
+  display: none;
+}
+
 /* Post-live page layout: full-width canvas like dashboard. */
 .laAdminShell .studioContent:has(.orderReviewPage) {
   padding-inline: clamp(24px, 2vw, 42px) !important;

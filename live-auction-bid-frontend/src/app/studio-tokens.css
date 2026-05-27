@@ -170,7 +170,7 @@
   --create-step-disabled-text: #0F3F9F;
   --create-step-disabled-bg: #EAF3FF;
   --create-step-disabled-border: #C7DDFF;
-  --create-step-primary-disabled-bg: linear-gradient(180deg, #EDF6FF, #DCECFF);
+  --create-step-primary-disabled-bg: var(--studio-color-info-bg);
   --create-step-primary-disabled-border: #ABC9FF;
   --create-toast-centered-shadow: 0 32px 90px rgba(15, 23, 42, .24), 0 10px 28px rgba(245, 158, 11, .16);
   --create-toast-centered-icon-ring: 0 0 0 7px color-mix(in srgb, currentColor 14%, transparent);
@@ -203,15 +203,15 @@
   --create-phone-thumb-count-bg: rgba(17, 19, 31, .72);
   --create-phone-title-text: #1F2433;
   --create-phone-price-tile-bg: #F7F8FC;
-  --create-phone-price-highlight-bg: linear-gradient(135deg, #FFF1F4, #FFFFFF);
+  --create-phone-price-highlight-bg: #FFF1F4;
   --create-phone-price-highlight-border: #FFE0E8;
   --create-phone-price-label-text: #7A8194;
   --create-phone-price-emphasis-text: #E11D48;
-  --create-phone-action-bg: linear-gradient(135deg, #FF3F6C, #FF7CA8 55%, #8D7CF6);
+  --create-phone-action-bg: #A98BF4;
   --create-trust-preview-shadow: 0 8px 20px rgba(37, 99, 235, .06);
   --create-trust-ready-bg: #F8FFF9;
   --create-trust-pending-bg: #FFFDF5;
-  --create-uploading-bg: linear-gradient(135deg, var(--studio-color-info-bg), var(--studio-color-surface));
+  --create-uploading-bg: var(--studio-color-info-bg);
   --create-main-image-overlay-bg: linear-gradient(180deg, transparent 32%, rgba(24, 24, 40, .72));
   --create-main-image-shadow: 0 14px 36px rgba(132, 112, 160, .12);
   --create-main-image-text-shadow: 0 2px 12px rgba(0, 0, 0, .28);
@@ -292,7 +292,7 @@
   --home-desktop-feature-icon: rgba(99, 92, 132, .54);
   --home-desktop-feature-title: rgba(55, 50, 86, .88);
   --home-desktop-feature-text: rgba(77, 72, 112, .58);
-  --home-desktop-login-bg: linear-gradient(90deg, #83C8EF, #AD95EF 48%, #EE91BA);
+  --home-desktop-login-bg: #AD95EF;
   --home-desktop-login-shadow: 0 16px 36px rgba(222, 126, 174, .24), 0 7px 20px rgba(126, 191, 234, .14);
   --home-desktop-login-icon-text: #DE75A4;
   --home-desktop-stats-bg: rgba(255, 255, 255, .58);
@@ -301,7 +301,7 @@
   --home-desktop-stats-title: rgba(55, 50, 86, .90);
   --home-desktop-stats-text: rgba(77, 72, 112, .62);
   --auth-login-text: rgba(77, 72, 112, .86);
-  --auth-login-page-bg: radial-gradient(circle at 16% 18%, rgba(126, 191, 234, .38), transparent 34%), radial-gradient(circle at 82% 24%, rgba(245, 166, 196, .42), transparent 36%), linear-gradient(135deg, #DDEFF4 0%, #F7E8EF 54%, #FFF7FB 100%);
+  --auth-login-page-bg: #F7F1FF;
   --auth-login-grid-dot-bg: radial-gradient(circle, rgba(255, 255, 255, .74) 0 1px, transparent 1.8px);
   --auth-login-orb-bg: radial-gradient(circle, rgba(245, 166, 196, .28), transparent 66%);
   --auth-particle-bg: rgba(255, 255, 255, .78);
@@ -318,7 +318,7 @@
   --auth-bid-pill-bg: rgba(255, 255, 255, .50);
   --auth-bid-pill-border: rgba(255, 255, 255, .76);
   --auth-bid-pill-shadow: 0 14px 34px rgba(132, 112, 160, .10);
-  --auth-product-icon-bg: linear-gradient(135deg, rgba(126, 191, 234, .28), rgba(245, 166, 196, .24));
+  --auth-product-icon-bg: rgba(126, 191, 234, .18);
   --auth-product-icon-text: rgba(126, 137, 190, .70);
   --auth-gift-text: rgba(245, 166, 196, .58);
   --auth-gavel-text: rgba(189, 170, 246, .25);
@@ -331,7 +331,7 @@
   --auth-shell-border: rgba(255, 255, 255, .72);
   --auth-shell-shadow: 0 36px 100px rgba(170, 128, 160, .18), inset 0 1px 0 rgba(255, 255, 255, .7);
   --auth-shell-desktop-shadow: 0 44px 120px rgba(170, 128, 160, .18), inset 0 1px 0 rgba(255, 255, 255, .7);
-  --auth-brand-panel-bg: linear-gradient(135deg, rgba(224, 245, 250, .58), rgba(255, 226, 238, .46));
+  --auth-brand-panel-bg: rgba(255, 248, 251, .66);
   --auth-brand-orb-bg: radial-gradient(circle, rgba(126, 191, 234, .22), transparent 68%);
   --auth-accent-text: rgba(126, 137, 190, .72);
   --auth-visual-gavel-text: rgba(189, 170, 246, .46);
@@ -361,7 +361,7 @@
   --auth-field-focus-shadow: inset 0 1px 0 rgba(255, 255, 255, .86), 0 0 0 4px rgba(184, 162, 244, .18), 0 12px 28px rgba(184, 162, 244, .10);
   --auth-form-option-text: rgba(77, 72, 112, .54);
   --auth-form-link-text: rgba(184, 118, 184, .70);
-  --auth-submit-bg: linear-gradient(90deg, #93D4F2, #B9A7F6 45%, #F4A6C4);
+  --auth-submit-bg: #A98BF4;
   --auth-submit-shadow: 0 16px 36px rgba(226, 140, 180, .28);
   --auth-submit-hover-shadow: 0 22px 46px rgba(226, 140, 180, .34);
   --auth-ghost-shadow: inset 0 1px 0 rgba(255, 255, 255, .72);
@@ -1350,6 +1350,96 @@ button:disabled {
   gap: 20px;
 }
 
+.laAdminShell .teamAccountPage {
+  display: grid;
+  gap: 22px;
+}
+
+.laAdminShell .teamAccountPage .laStatsGrid {
+  width: 100%;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+
+.laAdminShell .teamAccountPage .laStatsGrid > .studioMetricCard {
+  min-width: 0;
+}
+
+.laAdminShell .teamAccountPage .laGrid-1-1 {
+  gap: 22px;
+}
+
+.laAdminShell .teamAccountPage .laFormGrid {
+  gap: 16px 18px;
+}
+
+.laAdminShell .teamAccountPage .laRulePreview,
+.laAdminShell .teamAccountPage .studioState {
+  margin-top: 18px;
+}
+
+.laAdminShell .teamAccountPage .drawerActions {
+  margin-top: 20px;
+}
+
+.laAdminShell .studioPage:has(.realtimeDiagPage),
+.laAdminShell .studioPage:has(.settingsPage),
+.laAdminShell .studioPage:has(.alertsPage) {
+  width: 100%;
+  max-width: none;
+}
+
+.laAdminShell .realtimeDiagPage,
+.laAdminShell .settingsPage {
+  width: 100%;
+  gap: 22px;
+}
+
+.laAdminShell .realtimeDiagGrid {
+  gap: 22px;
+}
+
+.laAdminShell .settingsPage {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.laAdminShell .settingsPage .laSettingsHero {
+  grid-column: 1 / -1;
+}
+
+.laAdminShell .settingsPage > .studioMetricCard {
+  min-width: 0;
+}
+
+.laAdminShell .alertsPage {
+  width: 100%;
+  min-height: min(460px, calc(100vh - 220px));
+  display: grid;
+  align-content: center;
+}
+
+@media (max-width: 1280px) {
+  .laAdminShell .teamAccountPage .laStatsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .laAdminShell .settingsPage {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .laAdminShell .teamAccountPage .laStatsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .laAdminShell .settingsPage {
+    grid-template-columns: 1fr;
+  }
+}
+
 .laAdminShell .studioMetricCard {
   padding: 20px;
 }
@@ -1375,6 +1465,27 @@ button:disabled {
 
 /* Sidebar readability pass: nav should feel like a studio workbench, not tiny admin chrome. */
 .laAdminShell .studioSidebar{padding:20px 16px}.laAdminShell .studioBrand{padding:8px 8px 22px}.laAdminShell .studioBrand>span{width:44px;height:44px;border-radius:16px}.laAdminShell .studioBrand strong{font-size:15px;line-height:22px;font-weight:750}.laAdminShell .studioBrand small{font-size:13px;line-height:20px}.laAdminShell .studioNav{gap:22px}.laAdminShell .studioNavGroup p{margin:0 10px 10px;font-size:13px;line-height:20px;font-weight:650;letter-spacing:0;color:var(--studio-text-3)}.laAdminShell .studioNav a{min-height:44px;padding:10px 12px;border-radius:15px;font-size:15px;line-height:22px;font-weight:650;gap:11px}.laAdminShell .studioNav a svg{width:18px;height:18px;stroke-width:1.9}.laAdminShell .studioNav a.active{font-weight:700}.laAdminShell .studioNav a.active svg{stroke-width:2.1}@media(max-width:900px){.laAdminShell .studioNav a{font-size:14px;line-height:21px}.laAdminShell .studioNavGroup p{font-size:12px;line-height:18px}}
+
+/* Sidebar rhythm refinement: keep groups scannable while giving each nav target breathing room. */
+.laAdminShell .studioNav {
+  gap: 20px;
+}
+
+.laAdminShell .studioNavGroup {
+  display: grid;
+  gap: 7px;
+}
+
+.laAdminShell .studioNavGroup p {
+  margin: 0 12px 4px;
+}
+
+.laAdminShell .studioNav a {
+  min-height: 47px;
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: 18px;
+}
 
 /* Add-lot page redesign: product-to-auction preparation workbench. */
 .laAdminShell .studioPage:has(.auctionCreatePage){--create-workflow-surface:var(--studio-color-surface);--create-workflow-floating-bg:color-mix(in srgb,var(--studio-color-surface) 94%,transparent);--create-workflow-contrast:var(--studio-color-surface);--create-workflow-success-soft:color-mix(in srgb,var(--studio-color-success-bg) 42%,var(--studio-color-surface));--create-workflow-info-border:var(--studio-color-info-border);--create-workflow-info-bg:var(--studio-color-info-bg);--create-workflow-warning-bg:var(--studio-color-warning-soft-bg);--create-workflow-warning-border:var(--studio-color-warning-border)}
@@ -2028,6 +2139,7 @@ button:disabled {
 
 .laAdminShell .studioTopbar{
   min-width: 0;
+  grid-template-columns: minmax(220px, 1fr) auto;
 }
 
 .laAdminShell .studioSearch,
@@ -2042,7 +2154,7 @@ button:disabled {
 
 @media (max-width: 1180px){
   .laAdminShell .studioTopbar{
-    grid-template-columns: minmax(180px, 1fr) minmax(220px, 320px) auto;
+    grid-template-columns: minmax(180px, 1fr) auto;
   }
 }
 
@@ -4177,7 +4289,7 @@ button:disabled {
 }
 .laAdminShell .productLibraryStats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 .laAdminShell .productLibraryStats > div {
@@ -4207,7 +4319,7 @@ button:disabled {
 }
 .laAdminShell .productLibraryFilters {
   display: grid;
-  grid-template-columns: minmax(320px, 1.35fr) repeat(3, minmax(170px, .45fr));
+  grid-template-columns: minmax(340px, 1fr) minmax(236px, 260px) max-content;
   gap: 12px;
   align-items: center;
   min-height: 70px;
@@ -4248,6 +4360,21 @@ button:disabled {
 }
 .laAdminShell .productLibraryFilters select {
   padding: 0 14px;
+}
+.laAdminShell .productLibraryFilters .studioField {
+  min-width: 0;
+}
+.laAdminShell .productLibraryFilters .studioField > span {
+  white-space: nowrap;
+}
+.laAdminShell .productLibraryFilters .studioButton {
+  min-width: 104px;
+  height: 46px;
+  align-self: center;
+  white-space: nowrap;
+}
+.laAdminShell .productLibraryFilters .studioButton span {
+  white-space: nowrap;
 }
 .laAdminShell .productLibraryList {
   display: grid;
@@ -4385,10 +4512,191 @@ button:disabled {
   color: var(--product-surface);
   box-shadow: var(--product-primary-shadow);
 }
+.laAdminShell .productLibraryRow.isDraft {
+  opacity: .78;
+}
+.laAdminShell .productLibraryActions button:disabled {
+  cursor: not-allowed;
+  opacity: .72;
+}
+.productReuseDrawer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--studio-z-modal);
+}
+.productReuseDrawerMask {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--studio-color-text) 30%, transparent);
+  backdrop-filter: blur(10px);
+}
+.productReusePanel {
+  position: absolute;
+  inset-block: 24px;
+  inset-inline-end: 24px;
+  width: min(560px, calc(100vw - 32px));
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  gap: 16px;
+  overflow: auto;
+  padding: 22px;
+  border: 1px solid var(--clay-border);
+  border-radius: 28px;
+  background: var(--clay-surface);
+  box-shadow: var(--clay-shadow-raised);
+}
+.productReusePanel > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+.productReusePanel > header p,
+.productReusePanel > header h3,
+.productReusePanel > header span,
+.productReusePreview h4,
+.productReusePreview p {
+  margin: 0;
+}
+.productReusePanel > header p {
+  color: var(--studio-color-info-text);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.productReusePanel > header h3 {
+  margin-top: 4px;
+  color: var(--studio-color-text);
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 900;
+  letter-spacing: -.04em;
+}
+.productReusePanel > header span {
+  display: block;
+  margin-top: 6px;
+  color: var(--studio-color-text-muted);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 650;
+}
+.productReusePanel > header button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--clay-border-strong);
+  border-radius: 14px;
+  background: var(--studio-color-surface);
+  color: var(--studio-color-text-secondary);
+  box-shadow: var(--clay-shadow-soft);
+}
+.productReusePreview {
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr);
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid var(--clay-border);
+  border-radius: 22px;
+  background: var(--studio-color-surface);
+  box-shadow: var(--clay-shadow-soft);
+}
+.productReuseImage {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--clay-surface-blue);
+  color: var(--clay-primary-hover);
+}
+.productReuseImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.productReusePreview h4 {
+  margin-top: 9px;
+  color: var(--studio-color-text);
+  font-size: 19px;
+  line-height: 26px;
+  font-weight: 900;
+}
+.productReusePreview p {
+  margin-top: 6px;
+  color: var(--studio-color-text-muted);
+  font-size: 13px;
+  line-height: 20px;
+}
+.productReuseChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+.productReuseChips span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--studio-color-surface-soft);
+  color: var(--studio-color-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.productReuseForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-content: start;
+}
+.productReuseForm .studioField {
+  min-width: 0;
+}
+.productReuseForm input {
+  min-height: 44px;
+}
+.productReuseError,
+.productReuseReady {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--studio-color-neutral-border);
+  border-radius: 16px;
+  background: var(--studio-color-surface);
+  color: var(--studio-color-text-muted);
+  font-size: 13px;
+  font-weight: 750;
+}
+.productReuseError {
+  border-color: var(--studio-color-error-border);
+  background: var(--studio-color-error-soft-bg);
+  color: var(--studio-color-error-text);
+}
+.productReuseReady {
+  border-color: var(--studio-color-success-border);
+  background: var(--studio-color-success-bg);
+  color: var(--studio-color-success-text);
+}
+.productReusePanel > footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 2px;
+}
+@media (max-width: 860px) {
+  .productReusePanel { inset: 10px; width: auto; }
+  .productReusePreview,
+  .productReuseForm { grid-template-columns: minmax(0, 1fr); }
+}
 @container (max-width: 1320px) {
-  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryFilters { grid-template-columns: minmax(0, 1fr) repeat(2, minmax(140px, .45fr)); }
-  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryFilters select:last-child { display: none; }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryStats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryFilters { grid-template-columns: minmax(0, 1fr) minmax(220px, 250px) max-content; }
   .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryRow { grid-template-columns: minmax(320px, .95fr) minmax(390px, 1fr) minmax(280px, .72fr); gap: 16px; padding: 18px; }
   .laAdminShell .studioPage:has(.productLibraryPage) .productIdentity { grid-template-columns: 44px 74px minmax(0, 1fr); gap: 13px; }
   .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryNo { width: 44px; height: 32px; font-size: 12px; }
@@ -4406,7 +4714,9 @@ button:disabled {
   .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryRow,
   .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryMetrics,
   .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryActions { grid-template-columns: minmax(0, 1fr); }
-  .laAdminShell .studioPage:has(.productLibraryPage) .productLibraryFilters select:last-child { display: block; }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productReusePanel { inset: 10px; width: auto; }
+  .laAdminShell .studioPage:has(.productLibraryPage) .productReusePreview,
+  .laAdminShell .studioPage:has(.productLibraryPage) .productReuseForm { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Product library laptop fit: avoid wide table overflow after the fixed sidebar. */
@@ -5192,6 +5502,7 @@ button:disabled {
   color: var(--studio-color-info-text) !important;
   font-weight: 750 !important;
 }
+/* Add-lot media preview guard boundary. */
 
 /* Auction create stepper clarity: shallow states, dark text, centered icons. */
 .laAdminShell .auctionCreatePage .auctionCreateStepper button{
@@ -5286,4 +5597,966 @@ button:disabled {
   background: var(--studio-color-neutral-bg);
   color: var(--studio-color-text-muted);
   border-color: var(--studio-color-neutral-border);
+}
+
+/* LiveAuction Claymorphism primary theme. */
+:root {
+  --clay-bg: #F7F1FF;
+  --clay-admin-bg: #F2F6F7;
+  --clay-bg-2: #EEF9FF;
+  --clay-bg-3: #FFF3F8;
+  --clay-surface: #FFF8FB;
+  --clay-surface-blue: #EEF8FF;
+  --clay-surface-warm: #FFF5DF;
+  --clay-surface-muted: #F2ECFA;
+  --clay-ink: #342F46;
+  --clay-ink-2: #4E4863;
+  --clay-muted: #716B83;
+  --clay-primary: #A98BF4;
+  --clay-primary-hover: #9272E5;
+  --clay-sky: #8ECFF1;
+  --clay-pink: #F5A7C8;
+  --clay-peach: #FFD7A8;
+  --clay-border: rgba(255,255,255,.78);
+  --clay-border-strong: rgba(214,196,244,.78);
+  --clay-shadow-raised: 16px 20px 42px rgba(117,92,150,.16), -8px -8px 24px rgba(255,255,255,.70), inset 0 2px 0 rgba(255,255,255,.76), inset 0 -7px 16px rgba(117,92,150,.075);
+  --clay-shadow-soft: 9px 12px 26px rgba(117,92,150,.12), -6px -6px 18px rgba(255,255,255,.66), inset 0 1px 0 rgba(255,255,255,.72), inset 0 -4px 10px rgba(117,92,150,.06);
+  --clay-shadow-compact: 0 10px 24px rgba(117,92,150,.12), inset 0 1px 0 rgba(255,255,255,.70), inset 0 -4px 10px rgba(117,92,150,.06);
+  --clay-shadow-pressed: inset 6px 7px 16px rgba(117,92,150,.14), inset -5px -5px 14px rgba(255,255,255,.76);
+  --clay-focus-ring: 0 0 0 5px rgba(169,139,244,.20), inset 4px 5px 12px rgba(117,92,150,.08), inset -4px -4px 12px rgba(255,255,255,.76);
+  --clay-spring: cubic-bezier(.34,1.56,.64,1);
+
+  --studio-bg: var(--clay-bg);
+  --studio-surface: var(--clay-surface);
+  --studio-surface-soft: var(--clay-surface-blue);
+  --studio-border: var(--clay-border-strong);
+  --studio-text: var(--clay-ink);
+  --studio-text-2: var(--clay-ink-2);
+  --studio-text-3: var(--clay-muted);
+  --studio-primary: var(--clay-primary);
+  --studio-primary-hover: var(--clay-primary-hover);
+  --studio-primary-soft: #F1EAFF;
+  --studio-color-background: var(--clay-bg);
+  --studio-color-surface: var(--clay-surface);
+  --studio-color-surface-soft: var(--clay-surface-blue);
+  --studio-color-border: var(--clay-border-strong);
+  --studio-color-text: var(--clay-ink);
+  --studio-color-text-secondary: var(--clay-ink-2);
+  --studio-color-text-muted: var(--clay-muted);
+  --studio-color-primary: var(--clay-primary);
+  --studio-color-primary-hover: var(--clay-primary-hover);
+  --studio-color-primary-soft: #F1EAFF;
+  --studio-color-info: #5C8EE8;
+  --studio-color-info-text: #315FBA;
+  --studio-color-info-bg: #EAF5FF;
+  --studio-color-info-border: #C7E0FF;
+  --studio-color-purple-text: #7452D6;
+  --studio-color-purple-bg: #F0EAFF;
+  --studio-color-purple-border: #D8C9FF;
+  --studio-color-neutral: #716B83;
+  --studio-color-neutral-bg: #F2ECFA;
+  --studio-color-neutral-border: #E0D6ED;
+  --studio-radius-sm: 14px;
+  --studio-radius-md: 20px;
+  --studio-radius-lg: 26px;
+  --studio-radius-xl: 32px;
+  --studio-radius-2xl: 44px;
+  --studio-shadow-sm: var(--clay-shadow-soft);
+  --studio-shadow-md: var(--clay-shadow-raised);
+  --studio-shadow-lg: 26px 34px 86px rgba(117,92,150,.24), -14px -14px 34px rgba(255,255,255,.70), inset 0 2px 0 rgba(255,255,255,.72), inset 0 -9px 22px rgba(117,92,150,.10);
+  --studio-focus-ring: var(--clay-focus-ring);
+  --studio-field-focus-ring: var(--clay-focus-ring);
+  --studio-shell-bg: var(--clay-bg);
+  --studio-admin-bg: var(--clay-admin-bg);
+  --studio-shell-sidebar-bg: rgba(255,248,251,.76);
+  --studio-shell-sidebar-shadow: var(--clay-shadow-raised);
+  --studio-shell-brand-shadow: var(--clay-shadow-soft);
+  --studio-shell-topbar-bg: rgba(255,248,251,.74);
+  --studio-shell-topbar-shadow: var(--clay-shadow-soft);
+}
+
+body {
+  background: var(--studio-shell-bg);
+  color: var(--clay-ink);
+}
+
+.marketingPage,
+.loginPage {
+  background: var(--studio-shell-bg);
+}
+
+.laAdminShell,
+.adminShell,
+.laAdminShell.studioShell {
+  background: var(--studio-admin-bg);
+  color: var(--clay-ink);
+}
+
+.laAdminShell {
+  --clay-surface: #FFFFFF;
+  --clay-surface-blue: #F8FBFC;
+  --clay-surface-muted: #F5F7F8;
+  --clay-primary: #334155;
+  --clay-primary-hover: #1F2A37;
+  --clay-shadow-raised: 14px 18px 38px rgba(65,82,92,.12), -8px -8px 22px rgba(255,255,255,.88), inset 0 2px 0 rgba(255,255,255,.86), inset 0 -7px 16px rgba(65,82,92,.055);
+  --clay-shadow-soft: 8px 11px 24px rgba(65,82,92,.10), -6px -6px 18px rgba(255,255,255,.82), inset 0 1px 0 rgba(255,255,255,.84), inset 0 -4px 10px rgba(65,82,92,.045);
+  --clay-shadow-compact: 0 10px 24px rgba(65,82,92,.10), inset 0 1px 0 rgba(255,255,255,.82), inset 0 -4px 10px rgba(65,82,92,.045);
+  --clay-shadow-pressed: inset 8px 10px 22px color-mix(in srgb, var(--clay-primary-hover) 18%, transparent), inset -6px -6px 16px var(--studio-color-surface), 0 1px 0 var(--studio-color-surface);
+  --clay-border: rgba(222,231,234,.88);
+  --clay-border-strong: rgba(205,219,224,.92);
+  --studio-bg: var(--studio-admin-bg);
+  --studio-shell-bg: var(--studio-admin-bg);
+  --studio-primary: #334155;
+  --studio-primary-hover: #1F2A37;
+  --studio-primary-soft: #FFFFFF;
+  --studio-surface: #FFFFFF;
+  --studio-surface-soft: #F8FBFC;
+  --studio-color-primary: #334155;
+  --studio-color-primary-hover: #1F2A37;
+  --studio-color-primary-soft: #FFFFFF;
+  --studio-color-purple-bg: #FFFFFF;
+  --studio-color-purple-text: #334155;
+  --studio-color-purple-border: rgba(205,219,224,.92);
+  --studio-color-surface: #FFFFFF;
+  --studio-color-surface-soft: #F8FBFC;
+  --studio-color-background: var(--studio-admin-bg);
+  --studio-shell-sidebar-bg: #FFFFFF;
+  --studio-shell-topbar-bg: #FFFFFF;
+}
+
+.adminShell {
+  background: var(--studio-admin-bg) !important;
+}
+
+.laAdminShell.studioShell {
+  position: relative;
+  isolation: isolate;
+}
+
+.laAdminShell .studioSidebar {
+  position: sticky;
+  top: 18px;
+  z-index: 1;
+  margin: 18px 0 18px 18px;
+  height: calc(100vh - 36px);
+  border: 1px solid var(--clay-border);
+  border-radius: 34px 26px 26px 34px;
+  background: var(--studio-shell-sidebar-bg);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, .06), inset 0 1px 0 rgba(255, 255, 255, .84);
+  backdrop-filter: none;
+}
+
+.laAdminShell .studioTopbar {
+  position: sticky;
+  top: 18px;
+  z-index: var(--studio-z-header);
+  margin: 18px 18px 0 24px;
+  border: 1px solid var(--clay-border);
+  border-radius: 24px 30px 30px 24px;
+  background: var(--studio-shell-topbar-bg);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, .06), inset 0 1px 0 rgba(255, 255, 255, .84);
+  backdrop-filter: none;
+}
+
+.laAdminShell .studioContent {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  padding: 22px 24px 30px;
+}
+
+.laAdminShell .studioContent,
+.laAdminShell .studioPage,
+.laAdminShell .studioPageBody,
+.laAdminShell .postLivePage,
+.laAdminShell .orderReviewPage {
+  background: transparent !important;
+  background-image: none !important;
+}
+
+.laAdminShell .studioBrand span,
+.laAdminShell .studioAvatar,
+.laAdminShell .studioStateIcon,
+.laAdminShell .studioMetricCard > span {
+  background: var(--clay-surface-blue);
+  color: var(--clay-primary-hover);
+  box-shadow: var(--clay-shadow-compact);
+  border: 1px solid rgba(255,255,255,.64);
+}
+
+.laAdminShell .studioNav a,
+.laAdminShell .studioSearch,
+.laAdminShell .studioTopActions button,
+.laAdminShell .studioBadge,
+.laAdminShell .studioButton,
+.laAdminShell a.studioButton {
+  border-color: var(--clay-border);
+  background: rgba(255,248,251,.72);
+  box-shadow: var(--clay-shadow-soft);
+  transition: transform .2s var(--clay-spring), box-shadow .2s ease, background .2s ease, border-color .2s ease;
+}
+
+.laAdminShell .studioNav a:hover,
+.laAdminShell .studioTopActions button:hover,
+.laAdminShell .studioButton:not(:disabled):hover,
+.laAdminShell a.studioButton:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--clay-shadow-raised);
+}
+
+.laAdminShell .studioNav a:active,
+.laAdminShell .studioTopActions button:active,
+.laAdminShell .studioButton:not(:disabled):active,
+.laAdminShell a.studioButton:active {
+  transform: translateY(1px) scale(.99);
+  box-shadow: var(--clay-shadow-pressed);
+}
+
+.laAdminShell .studioNav a.active {
+  border-color: var(--clay-border-strong);
+  background: var(--studio-primary-soft);
+  color: var(--clay-ink);
+  box-shadow: var(--clay-shadow-soft);
+}
+
+.laAdminShell .studioSearch {
+  box-shadow: var(--clay-shadow-pressed);
+}
+
+.laAdminShell .studioSearch:focus-within {
+  box-shadow: var(--clay-focus-ring);
+}
+
+.laAdminShell .studioCard,
+.laAdminShell .studioMetricCard,
+.laAdminShell .studioTableWrap,
+.laAdminShell .auctionStepCard,
+.laAdminShell .mobilePreviewWrap,
+.laAdminShell .stickyMiniCard,
+.laAdminShell .auctionMgmtHeader,
+.laAdminShell .currentRoomOverview,
+.laAdminShell .auctionFocusCard,
+.laAdminShell .auctionMgmtStats > *,
+.laAdminShell .auctionMgmtEmpty,
+.laAdminShell .queueTopCard,
+.laAdminShell .queueRowCard,
+.laAdminShell .productLibraryHero,
+.laAdminShell .productCard,
+.laAdminShell .orderMetricCard,
+.laAdminShell .orderReviewPanel,
+.laAdminShell .liveControlPage .studioCard {
+  border: 1px solid var(--clay-border);
+  border-radius: var(--studio-radius-xl);
+  background: var(--clay-surface);
+  box-shadow: var(--clay-shadow-raised);
+  backdrop-filter: none;
+}
+
+.laAdminShell .studioTableWrap {
+  background: rgba(255,248,251,.78);
+}
+
+.laAdminShell .studioTable th {
+  background: rgba(242,236,250,.76);
+  color: var(--clay-muted);
+}
+
+.laAdminShell .studioTable tbody tr:hover {
+  background: rgba(241,234,255,.58);
+}
+
+.laAdminShell .studioField input,
+.laAdminShell .studioField select,
+.laAdminShell .studioField textarea,
+.laAdminShell .auctionField input,
+.laAdminShell .auctionField select,
+.laAdminShell .auctionField textarea,
+.laAdminShell .auctionFilterBar input,
+.laAdminShell .auctionFilterBar select,
+.laAdminShell .queueFilters input,
+.laAdminShell .queueFilters select {
+  border: 0;
+  border-radius: var(--studio-radius-md);
+  background: var(--clay-surface-muted);
+  color: var(--clay-ink);
+  box-shadow: var(--clay-shadow-pressed);
+}
+
+.laAdminShell .studioField input:focus,
+.laAdminShell .studioField select:focus,
+.laAdminShell .studioField textarea:focus,
+.laAdminShell .auctionField input:focus,
+.laAdminShell .auctionField select:focus,
+.laAdminShell .auctionField textarea:focus,
+.laAdminShell .auctionFilterBar input:focus,
+.laAdminShell .auctionFilterBar select:focus,
+.laAdminShell .queueFilters input:focus,
+.laAdminShell .queueFilters select:focus {
+  box-shadow: var(--clay-focus-ring);
+}
+
+.laAdminShell .studioButton-primary,
+.laAdminShell button.studioButton-primary,
+.laAdminShell a.studioButton-primary,
+.laAdminShell .primaryAction,
+.laAdminShell .loginSubmit {
+  border-color: rgba(255,255,255,.64);
+  background: var(--clay-primary);
+  color: var(--studio-color-on-accent);
+  box-shadow: 14px 18px 34px rgba(169,139,244,.24), -7px -7px 18px rgba(255,255,255,.68), inset 0 2px 0 rgba(255,255,255,.62), inset 0 -8px 16px rgba(85,63,128,.16);
+}
+
+.laAdminShell .studioButton-secondary,
+.laAdminShell button.studioButton-secondary,
+.laAdminShell a.studioButton-secondary,
+.laAdminShell .studioButton-soft,
+.laAdminShell button.studioButton-soft,
+.laAdminShell a.studioButton-soft {
+  background: rgba(255,248,251,.78);
+  color: var(--clay-ink-2);
+}
+
+.laAdminShell .studioButton-danger,
+.laAdminShell button.studioButton-danger,
+.laAdminShell a.studioButton-danger {
+  border-color: var(--studio-color-error-border);
+  background: var(--studio-color-error-bg);
+  color: var(--studio-color-error-text);
+  box-shadow: var(--clay-shadow-soft);
+}
+
+.laAdminShell .studioToast {
+  border: 1px solid var(--clay-border);
+  border-radius: 28px;
+  background: rgba(255,248,251,.92);
+  box-shadow: var(--studio-shadow-lg);
+}
+
+.laAdminShell .publishStepper button,
+.laAdminShell .auctionSegmented,
+.laAdminShell .playTemplateList button,
+.laAdminShell .ruleSimulator,
+.laAdminShell .roomHealthCard,
+.laAdminShell .fixedRoomCard,
+.laAdminShell .auctionStatusTabs,
+.laAdminShell .auctionFilterBar,
+.laAdminShell .queueFilters,
+.laAdminShell .orderFilterBar {
+  border-color: var(--clay-border);
+  background: rgba(255,248,251,.68);
+  box-shadow: var(--clay-shadow-soft);
+}
+
+.laAdminShell .phoneImage,
+.laAdminShell .merchantLiveImage,
+.laAdminShell .lotProductCell img,
+.laAdminShell .queueLotImage,
+.laAdminShell .productThumb {
+  border: 1px solid var(--clay-border);
+  box-shadow: var(--clay-shadow-soft);
+}
+
+/* Legacy clay compatibility: older home/admin classes must follow the primary style too. */
+.softHomePage {
+  background: var(--clay-bg) !important;
+  color: var(--clay-ink) !important;
+}
+
+.softHomeBackdrop {
+  background: var(--clay-bg) !important;
+}
+
+.softHomeBackdrop:after {
+  background: none !important;
+  opacity: 0 !important;
+}
+
+.heroStage .heroCard,
+.softHeroCard,
+.heroStage .statsPill,
+.softStatsBar,
+.heroStage .softFeatureGrid article,
+.softEntryButton,
+.floatBizCard,
+.floatingSoftIcon,
+.productBurstCard,
+.authFloatCard,
+.authProductCard,
+.authGiftBubble,
+.authCoin {
+  border-color: var(--clay-border) !important;
+  background: var(--clay-surface) !important;
+  background-image: none !important;
+  box-shadow: var(--clay-shadow-raised) !important;
+  backdrop-filter: none !important;
+}
+
+.heroStage .heroCard h1,
+.softHeroCard h1 {
+  background: none !important;
+  color: var(--clay-ink) !important;
+  text-shadow: none !important;
+}
+
+.softLoginButton,
+.softHeroActions .softLoginButton,
+.softHeroActions.isSingleEntry .softLoginButton,
+.softAudienceButton,
+.softBackendButton {
+  border: 1px solid var(--clay-border) !important;
+  background: var(--clay-primary) !important;
+  background-image: none !important;
+  color: var(--studio-color-on-accent) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+.softLoginButton span,
+.softAudienceButton span,
+.softBackendButton span,
+.productThumb {
+  background: var(--clay-surface-blue) !important;
+  background-image: none !important;
+  color: var(--clay-primary-hover) !important;
+}
+
+.adminShell,
+.adminShell .adminSidebar,
+.adminShell .adminHeader,
+.adminShell .adminPanel,
+.adminShell .adminStat,
+.adminShell .adminAuthCard,
+.laAdminShell .laSidebar,
+.laAdminShell .laTopBar,
+.laAdminShell .laWelcomeCard,
+.laAdminShell .laPanel,
+.laAdminShell .laStatCard,
+.laAdminShell .laTableWrap,
+.laAdminShell .laMobilePreview,
+.laAdminShell .laMobilePreview > div,
+.laAdminShell .laPriceBoard,
+.laAdminShell .laSettingsHero,
+.laAdminShell .laSettingSection,
+.laAdminShell .laRoleSummary div,
+.laAdminShell .laPermissionMatrix section,
+.laAdminShell .laMerchantFlow div,
+.laAdminShell .laMerchantProfile > div:first-child {
+  background-image: none !important;
+  backdrop-filter: none !important;
+}
+
+.adminShell .adminPanel,
+.adminShell .adminStat,
+.adminShell .adminAuthCard,
+.laAdminShell .laWelcomeCard,
+.laAdminShell .laPanel,
+.laAdminShell .laStatCard,
+.laAdminShell .laTableWrap,
+.laAdminShell .laMobilePreview,
+.laAdminShell .laSettingsHero,
+.laAdminShell .laSettingSection,
+.laAdminShell .laRoleSummary div,
+.laAdminShell .laPermissionMatrix section,
+.laAdminShell .laMerchantFlow div,
+.laAdminShell .laMerchantProfile > div:first-child {
+  border-color: var(--clay-border) !important;
+  background: var(--clay-surface) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+.adminShell .adminBrandMark,
+.adminShell .adminStatIcon,
+.adminShell .adminNavItem.active .adminNavIcon,
+.laAdminShell .laBrand > span,
+.laAdminShell .laAvatar,
+.laAdminShell .laStatCard > span,
+.laAdminShell .laSettingHead > span,
+.laAdminShell .laThumb {
+  background: var(--clay-surface-blue) !important;
+  background-image: none !important;
+  color: var(--clay-primary-hover) !important;
+  box-shadow: var(--clay-shadow-compact) !important;
+}
+
+.adminShell .primaryAction,
+.laAdminShell .laPrimaryBtn,
+.laAdminShell a.laPrimaryBtn,
+.laAdminShell button.laPrimaryBtn,
+.laAdminShell .laControlActions button,
+.laAdminShell .laWelcomeActions a,
+.laAdminShell .laMobilePreview button {
+  border-color: var(--clay-border) !important;
+  background: var(--clay-primary) !important;
+  background-image: none !important;
+  color: var(--studio-color-on-accent) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+.laAdminShell .laRulePreview span,
+.laAdminShell .laFeedback span {
+  background: var(--clay-surface-blue) !important;
+  background-image: none !important;
+  color: var(--clay-ink-2) !important;
+}
+
+/* Primary clay cleanup: retire visible legacy gradients/glass on audited routes. */
+.loginBack,
+.floatBizCard,
+.floatBizCard span,
+.auctionCountdown,
+.bidBubbleStack span,
+.miniBidBurstStack span,
+.reactionBurst span,
+.productBurstCard span {
+  background-image: none !important;
+  backdrop-filter: none !important;
+}
+
+.floatBizCard span,
+.bidBubbleStack span,
+.miniBidBurstStack span,
+.reactionBurst span,
+.productBurstCard span {
+  border: 1px solid var(--clay-border) !important;
+  background: var(--clay-surface-blue) !important;
+  color: var(--clay-ink-2) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+.auctionCountdown {
+  background: var(--clay-ink-2) !important;
+  color: var(--studio-color-on-accent) !important;
+  box-shadow: var(--clay-shadow-compact) !important;
+}
+
+.loginBack {
+  background: var(--clay-surface) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+.laAdminShell .merchantDashboardHero,
+.laAdminShell .orderReviewHero,
+.laAdminShell .controlTopBar,
+.laAdminShell .priceCommandBoard,
+.laAdminShell .controlActionDeck,
+.laAdminShell .productPanel,
+.laAdminShell .studioMetricCard,
+.laAdminShell .postLiveMetricGrid .studioMetricCard,
+.laAdminShell .liveControlStatusGrid .studioMetricCard,
+.laAdminShell .queueTopCard.health,
+.laAdminShell .productLibraryStats > div,
+.laAdminShell .productLibraryRow,
+.laAdminShell .productLibraryThumb {
+  background: var(--clay-surface) !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  border-color: var(--clay-border) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+.laAdminShell .priceCommandBoard,
+.laAdminShell .controlActionDeck {
+  box-shadow: var(--clay-shadow-raised) !important;
+}
+
+.laAdminShell .priceCommandBoard::before,
+.laAdminShell .queueTopCard::before,
+.laAdminShell .queueTopCard::after {
+  background: none !important;
+  opacity: 0 !important;
+}
+
+.laAdminShell .livePriceBig,
+.laAdminShell .liveControlPage .priceCommandBoard strong {
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  color: var(--clay-primary-hover) !important;
+}
+
+.laAdminShell .queueTopActions > a,
+.laAdminShell .queueTopActions > button,
+.laAdminShell .queuePager button,
+.laAdminShell .orderPager button,
+.laAdminShell .productLibraryActions a,
+.laAdminShell .productLibraryActions button {
+  background: rgba(255,248,251,.78) !important;
+  background-image: none !important;
+  color: var(--clay-ink-2) !important;
+  border-color: var(--clay-border) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+.laAdminShell .queueTopActions > .studioButton-primary,
+.laAdminShell .productLibraryActions .primary {
+  background: var(--clay-primary) !important;
+  background-image: none !important;
+  color: var(--studio-color-on-accent) !important;
+}
+
+.laAdminShell .productLibraryStats > div,
+.laAdminShell .queueHealthGrid span,
+.laAdminShell .priceCommandMetrics span,
+.laAdminShell .historyLotCell img,
+.laAdminShell .lotProductCell img,
+.laAdminShell .productLibraryThumb {
+  background: var(--clay-surface-blue) !important;
+  background-image: none !important;
+}
+
+/* Route chunks load after global CSS; keep the primary clay style stronger than legacy slices. */
+html body .loginPage .loginBack {
+  background: var(--clay-surface) !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+html body .softHomePage .floatBizCard,
+html body .softHomePage .floatBizCard span,
+html body .softHomePage .auctionCountdown,
+html body .softHomePage .bidBubbleStack span,
+html body .softHomePage .rippleBidChip,
+html body .softHomePage .miniBidBurstStack span,
+html body .softHomePage .reactionBurst span {
+  background-image: none !important;
+  backdrop-filter: none !important;
+}
+
+html body .softHomePage .bidBubbleStack span,
+html body .softHomePage .rippleBidChip,
+html body .softHomePage .miniBidBurstStack span,
+html body .softHomePage .reactionBurst span {
+  background: var(--clay-surface-blue) !important;
+  color: var(--clay-ink-2) !important;
+  border-color: var(--clay-border) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+html body .softHomePage .auctionCountdown {
+  background: var(--clay-ink-2) !important;
+  color: var(--studio-color-on-accent) !important;
+}
+
+html body .laAdminShell .studioButton-primary,
+html body .laAdminShell a.studioButton-primary,
+html body .laAdminShell button.studioButton-primary,
+html body .laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > .studioButton-primary,
+html body .laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > button:not(.studioButton):first-child,
+html body .laAdminShell .productLibraryActions .primary {
+  background: var(--clay-primary) !important;
+  background-image: none !important;
+  color: var(--studio-color-on-accent) !important;
+  border-color: var(--clay-border) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+html body .laAdminShell .studioButton-secondary,
+html body .laAdminShell button.studioButton-secondary,
+html body .laAdminShell a.studioButton-secondary,
+html body .laAdminShell .studioButton-soft,
+html body .laAdminShell button.studioButton-soft,
+html body .laAdminShell a.studioButton-soft,
+html body .laAdminShell .queuePager button,
+html body .laAdminShell .orderPager button,
+html body .laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > .studioButton-secondary,
+html body .laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > .studioButton-soft,
+html body .laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > button:not(.studioButton),
+html body .laAdminShell .productLibraryActions a:not(.primary),
+html body .laAdminShell .productLibraryActions button {
+  background: rgba(255,248,251,.78) !important;
+  background-image: none !important;
+  color: var(--clay-ink-2) !important;
+  border-color: var(--clay-border) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+html body .laAdminShell .merchantDashboardHero,
+html body .laAdminShell .orderReviewHero,
+html body .laAdminShell .orderReviewFilters,
+html body .laAdminShell .orderReviewTable,
+html body .laAdminShell .orderFilterBar,
+html body .laAdminShell .studioTableWrap,
+html body .laAdminShell .postLiveMetricGrid .studioMetricCard,
+html body .laAdminShell .bidMetricGrid .studioMetricCard,
+html body .laAdminShell .auctionHistoryMetrics .studioMetricCard,
+html body .laAdminShell .liveControlStatusGrid .studioMetricCard,
+html body .laAdminShell .liveControlPage .controlTopBar,
+html body .laAdminShell .liveControlPage .priceCommandBoard,
+html body .laAdminShell .liveControlPage .controlActionDeck,
+html body .laAdminShell .liveControlPage .roomLivePreview,
+html body .laAdminShell .liveControlPage .controlCard,
+html body .laAdminShell .liveControlPage .controlSideCard,
+html body .laAdminShell .liveControlPage .controlBottomCard,
+html body .laAdminShell .auctionCreatePage .auctionStepActions {
+  background: var(--clay-surface) !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  border-color: var(--clay-border) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+html body .laAdminShell .liveControlPage .priceCommandBoard,
+html body .laAdminShell .liveControlPage .controlActionDeck {
+  box-shadow: var(--clay-shadow-raised) !important;
+}
+
+html body .laAdminShell .merchantLiveImage,
+html body .laAdminShell .liveControlPage .liveFrame {
+  background: var(--clay-surface-blue) !important;
+  background-image: none !important;
+  border-color: var(--clay-border) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+html body .softHomePage .heroStage .liveAuctionFloat .auctionCountdown {
+  background: var(--clay-ink-2) !important;
+  background-image: none !important;
+  color: var(--studio-color-on-accent) !important;
+  backdrop-filter: none !important;
+}
+
+html body .softHomePage .heroStage .bidBubbleStack span,
+html body .softHomePage .heroStage .bidBubbleStack span:nth-child(1),
+html body .softHomePage .heroStage .bidBubbleStack span:nth-child(2),
+html body .softHomePage .heroStage .bidBubbleStack span:nth-child(3),
+html body .softHomePage .rippleBidChip,
+html body .softHomePage .rippleBidChip.isBidChip,
+html body .softHomePage .sideActivityChip,
+html body .softHomePage .miniBidBurstStack span,
+html body .softHomePage .productBurstCard {
+  background: var(--clay-surface-blue) !important;
+  background-image: none !important;
+  color: var(--clay-ink-2) !important;
+  border-color: var(--clay-border) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+  backdrop-filter: none !important;
+}
+
+html body .softHomePage .heroStage .bidBubbleStack span::after,
+html body .softHomePage .rippleBidChip::before,
+html body .softHomePage .rippleBidChip::after,
+html body .softHomePage .sideActivityField::before,
+html body .softHomePage .sideActivityField::after {
+  background: none !important;
+  background-image: none !important;
+  opacity: 0 !important;
+}
+
+html body .softHomePage .rippleBidChip i,
+html body .softHomePage .rippleBidChip.isBidChip i {
+  background: var(--clay-peach) !important;
+  background-image: none !important;
+  color: var(--clay-ink-2) !important;
+}
+
+html body .softHomePage .liveAuctionFloat em,
+html body .softHomePage .heroCard .softKicker em,
+html body .softHomePage .productBurstThumb {
+  background: var(--clay-surface-warm) !important;
+  background-image: none !important;
+  color: var(--clay-ink-2) !important;
+  backdrop-filter: none !important;
+}
+
+html body .laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > button:disabled,
+html body .laAdminShell .studioPage:has(.auctionMgmtPage) .queueTopCard .queueTopActions > .studioButton-secondary[disabled],
+html body .laAdminShell .studioPage:has(.auctionMgmtPage) .queuePager button,
+html body .laAdminShell .studioPage:has(.auctionMgmtPage) .queuePager button:disabled {
+  background: rgba(255,248,251,.78) !important;
+  background-image: none !important;
+  color: var(--clay-muted) !important;
+  border-color: var(--clay-border) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+/* Admin white-button policy: active/primary/selected controls stay pure white, never purple. */
+html body .laAdminShell button,
+html body .laAdminShell a.studioButton,
+html body .laAdminShell .studioButton,
+html body .laAdminShell .studioNav a,
+html body .laAdminShell .studioTopActions button,
+html body .laAdminShell .publishStepper button,
+html body .laAdminShell .auctionCreateStepper button,
+html body .laAdminShell .auctionStatusTabs button,
+html body .laAdminShell .auctionSegmented button,
+html body .laAdminShell .playTemplateList button,
+html body .laAdminShell .queueTopActions > a,
+html body .laAdminShell .queueTopActions > button,
+html body .laAdminShell .queuePager button,
+html body .laAdminShell .orderPager button,
+html body .laAdminShell .productLibraryActions a,
+html body .laAdminShell .productLibraryActions button,
+html body .laAdminShell .laPrimaryBtn,
+html body .laAdminShell .laControlActions button,
+html body .laAdminShell .laWelcomeActions a,
+html body .laAdminShell .laMobilePreview button {
+  background: #FFFFFF !important;
+  background-image: none !important;
+  color: #334155 !important;
+  border-color: var(--clay-border-strong) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+html body .laAdminShell button:hover:not(:disabled),
+html body .laAdminShell a.studioButton:hover,
+html body .laAdminShell .studioButton:hover:not(:disabled),
+html body .laAdminShell .studioNav a:hover,
+html body .laAdminShell .studioNav a.active,
+html body .laAdminShell .studioTopActions button:hover,
+html body .laAdminShell .publishStepper button.active,
+html body .laAdminShell .publishStepper button.done,
+html body .laAdminShell .auctionCreateStepper button.active,
+html body .laAdminShell .auctionCreateStepper button.done,
+html body .laAdminShell .auctionCreateStepper button.active.risk,
+html body .laAdminShell .auctionStatusTabs button.active,
+html body .laAdminShell .auctionSegmented button.active,
+html body .laAdminShell .playTemplateList button.active,
+html body .laAdminShell button[aria-selected="true"],
+html body .laAdminShell button[aria-pressed="true"],
+html body .laAdminShell .active {
+  background: #FFFFFF !important;
+  background-image: none !important;
+  color: #334155 !important;
+  border-color: var(--clay-border-strong) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+html body .laAdminShell .studioButton-primary,
+html body .laAdminShell button.studioButton-primary,
+html body .laAdminShell a.studioButton-primary,
+html body .laAdminShell .primaryAction,
+html body .laAdminShell .productLibraryActions .primary,
+html body .laAdminShell .queueTopActions > .studioButton-primary {
+  background: #FFFFFF !important;
+  background-image: none !important;
+  color: #334155 !important;
+  border-color: var(--clay-border-strong) !important;
+}
+
+/* Final admin content guard: legacy page selectors are higher specificity, so content buttons need an id-scoped override. */
+html body main.laAdminShell.studioShell #studio-content button,
+html body main.laAdminShell.studioShell #studio-content a.studioButton,
+html body main.laAdminShell.studioShell #studio-content .studioButton {
+  background: #FFFFFF !important;
+  background-image: none !important;
+  color: #334155 !important;
+  border-color: var(--clay-border-strong) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+  transition: transform var(--studio-duration-fast) var(--studio-ease-emphasized), box-shadow var(--studio-duration-fast) var(--studio-ease-standard), border-color var(--studio-duration-fast) var(--studio-ease-standard) !important;
+  touch-action: manipulation;
+}
+
+html body main.laAdminShell.studioShell #studio-content button:hover:not(:disabled),
+html body main.laAdminShell.studioShell #studio-content a.studioButton:hover,
+html body main.laAdminShell.studioShell #studio-content .studioButton:hover:not(:disabled),
+html body main.laAdminShell.studioShell #studio-content button.active,
+html body main.laAdminShell.studioShell #studio-content button[aria-selected="true"],
+html body main.laAdminShell.studioShell #studio-content button[aria-pressed="true"] {
+  background: #FFFFFF !important;
+  background-image: none !important;
+  color: #334155 !important;
+  border-color: var(--clay-border-strong) !important;
+}
+
+html body .laAdminShell button.active:not(:disabled),
+html body .laAdminShell button[aria-selected="true"]:not(:disabled),
+html body .laAdminShell button[aria-pressed="true"]:not(:disabled),
+html body main.laAdminShell.studioShell #studio-content button.active:not(:disabled),
+html body main.laAdminShell.studioShell #studio-content button[aria-selected="true"]:not(:disabled),
+html body main.laAdminShell.studioShell #studio-content button[aria-pressed="true"]:not(:disabled) {
+  transform: translateY(4px) scale(.965) !important;
+  background: #FFFFFF !important;
+  background-image: none !important;
+  color: #334155 !important;
+  border-color: var(--clay-border-strong) !important;
+  box-shadow: var(--clay-shadow-pressed) !important;
+}
+
+html body .laAdminShell button:active:not(:disabled),
+html body .laAdminShell a.studioButton:active,
+html body .laAdminShell .studioButton:active:not(:disabled),
+html body .laAdminShell .studioNav a:active,
+html body main.laAdminShell.studioShell #studio-content button:active:not(:disabled),
+html body main.laAdminShell.studioShell #studio-content a.studioButton:active,
+html body main.laAdminShell.studioShell #studio-content .studioButton:active:not(:disabled) {
+  transform: translateY(4px) scale(.965) !important;
+  background: #FFFFFF !important;
+  background-image: none !important;
+  border-color: var(--clay-border-strong) !important;
+  box-shadow: var(--clay-shadow-pressed) !important;
+}
+
+html body .laAdminShell .studioNav a.active,
+html body .laAdminShell .studioNav a.active:hover {
+  transform: translateY(2px) scale(.985) !important;
+  background: #FFFFFF !important;
+  background-image: none !important;
+  color: #334155 !important;
+  border-color: var(--clay-border-strong) !important;
+  box-shadow: inset 5px 6px 14px rgba(117, 92, 150, .12), inset -5px -5px 12px rgba(255, 255, 255, .82), 0 1px 0 rgba(255, 255, 255, .8) !important;
+}
+
+html body .laAdminShell .studioNav a.active svg {
+  color: #334155 !important;
+}
+
+html body .laAdminShell .studioTopActions {
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html body .laAdminShell .studioTopActions button,
+html body .laAdminShell .studioTopActions .studioAvatar {
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 1px solid var(--clay-border-strong) !important;
+  border-radius: 15px;
+  background: var(--studio-color-surface) !important;
+  background-image: none !important;
+  color: var(--studio-color-text-secondary) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+  display: grid;
+  place-items: center;
+}
+
+html body .laAdminShell .studioTopActions .studioAvatar {
+  color: var(--clay-primary-hover) !important;
+  font-weight: 950;
+}
+
+html body .laAdminShell .studioTopActions button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--clay-shadow-raised) !important;
+}
+
+html body .laAdminShell .studioTopActions button:active {
+  transform: translateY(3px) scale(.97);
+  box-shadow: var(--clay-shadow-pressed) !important;
+}
+
+@media (max-width: 900px) {
+  .laAdminShell .studioSidebar {
+    margin: 0;
+    height: auto;
+    border-radius: 0 0 28px 28px;
+    border-color: var(--clay-border);
+    background: var(--studio-shell-sidebar-bg);
+    box-shadow: var(--clay-shadow-raised);
+  }
+  .laAdminShell .studioTopbar {
+    margin: 12px;
+    border-radius: 24px;
+    border-color: var(--clay-border);
+    background: var(--studio-shell-topbar-bg);
+    box-shadow: var(--clay-shadow-soft);
+  }
+  .laAdminShell .studioContent {
+    padding: 14px;
+  }
 }

@@ -1,4 +1,4 @@
-# LiveAuction Admin Design System
+# LiveAuction Frontend Clay Design System
 
 This document is the source of truth for new UI work in
 `live-auction-bid-frontend`. It records the target direction for future changes;
@@ -6,10 +6,19 @@ legacy CSS can remain until the related page is touched and verified.
 
 ## Product Direction
 
-LiveAuction Admin is a real-time operations command center for a fixed live
-auction room. The interface should be dense, calm, and scannable. Operators need
-to see state, risk, queue progress, orders, and realtime health quickly without
-decorative noise competing with decisions.
+LiveAuction Frontend uses Claymorphism as its primary visual language: soft
+physical surfaces, inflated rounded forms, matte pastel color, inner bevel
+shadows, and pressable controls. The brand should feel warm, tactile, optimistic,
+and playful.
+
+The admin area is still a real-time operations command center. Use clay-lite
+there: keep the tactile material and soft press feedback, but preserve dense,
+calm, and scannable information layouts. Tables, realtime controls, queue state,
+orders, and risk signals must remain efficient to read.
+
+Admin page background is intentionally quiet: use `--studio-admin-bg`
+(`#F2F6F7`) for the shell. Reserve pastel clay surfaces for cards, controls, and
+raised panels instead of coloring the whole workspace.
 
 ## Current Architecture
 
@@ -27,15 +36,16 @@ decorative noise competing with decisions.
 
 New admin UI must prefer `src/app/studio-tokens.css`.
 
-Use the `--studio-*` family for new code. Treat `--la-*`, `--merchant-*`, and
-page-private variables as legacy or local compatibility aliases. Do not create a
-new token family for one page.
+Use the `--studio-*` family for new code, backed by the clay tokens in the same
+file. Treat `--la-*`, `--merchant-*`, and page-private variables as legacy or
+local compatibility aliases. Do not create a new token family for one page.
 
 Preferred token groups:
 
 - Color: `--studio-color-*`
 - Radius: `--studio-radius-*`
 - Shadow: `--studio-shadow-*`
+- Clay material: `--clay-*`
 - Layering: `--studio-z-*`
 - Motion: `--studio-duration-*`, `--studio-ease-*`
 
@@ -49,6 +59,16 @@ Preferred token groups:
   system without first checking the Studio primitives.
 - Keep navigation, shell, modal, drawer, toast, and table behavior stable before
   changing decorative styling.
+- Clay surfaces should use matte soft shadows and inner bevel shadows, not glassy
+  glare or harsh gradients.
+- Gradients are limited: avoid stacked radial/mesh gradients in admin, and do
+  not use three-color gradients for routine cards, fields, icons, or buttons.
+  Use the original blue/purple/pink palette as solid pastel tokens first.
+- Admin list and table pages must not increase row height or padding just to make
+  the style more playful.
+- Legacy classes such as `.la*`, `.admin*`, `.softHome*`, and `.auth*` are still
+  present. When touching them, route visual changes back to `--studio-*` /
+  `--clay-*` tokens instead of adding another page-private gradient system.
 
 ## Preferred Primitives
 
@@ -113,6 +133,7 @@ Use these names for new or touched motion work:
 | `--studio-duration-slow` | drawers, sheets, complex transitions |
 | `--studio-ease-standard` | default UI easing |
 | `--studio-ease-emphasized` | entering surfaces and larger motion |
+| `--clay-spring` | tactile hover/press movement |
 
 All nonessential animation must respect `prefers-reduced-motion`.
 
@@ -152,3 +173,4 @@ Manual checks:
 - Focus states are visible on keyboard navigation.
 - Disabled and loading states are visually distinct.
 - Status color is paired with text or icon, not color alone.
+- Buttons and clickable clay surfaces have hover lift and active pressed states.

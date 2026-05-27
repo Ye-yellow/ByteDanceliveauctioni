@@ -83,7 +83,6 @@ function normalizeLotResultReply(input: unknown): LotResultReply {
 
 function isSettlementCandidate(lot: Lot) {
   return lot.status === 'LOT_STATUS_SETTLED'
-    || lot.status === 'LOT_STATUS_SOLD'
     || Boolean(lot.settledAtUnixMs)
     || Boolean(lot.winnerUserId);
 }
@@ -126,7 +125,7 @@ export async function listSettlementOrders(roomId: string): Promise<OrderRecord[
     const result = await getLotResult(lot.id);
     return {
       lot: result.lot ?? lot,
-      auctionState: result.auctionState ?? (lot.status === 'LOT_STATUS_CANCELLED' ? 'CANCELLED' : 'SOLD'),
+      auctionState: result.auctionState ?? (lot.status === 'LOT_STATUS_CANCELLED' ? 'CANCELLED' : 'SETTLED'),
       order: result.order ?? null,
     } satisfies OrderRecord;
   }));

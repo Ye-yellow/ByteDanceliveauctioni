@@ -1,9 +1,8 @@
 import { type ComponentType, type ReactNode } from 'react';
-import { Bell, FileClock, Gavel, LayoutDashboard, ListChecks, Package, PlayCircle, Radio, ReceiptText, Settings, ShieldAlert, Users, Wifi } from 'lucide-react';
+import { Bell, FileClock, Gavel, LayoutDashboard, ListChecks, PlayCircle, Radio, ReceiptText, Settings, ShieldAlert, Users, Wifi } from 'lucide-react';
 import { AdminDashboardPage } from '../../features/auction-manage/AdminDashboardPage';
 import { AuctionHistoryPage } from '../../features/auction-manage/AuctionHistoryPage';
 import { AuctionManagementPage } from '../../features/auction-manage/AuctionManagementPage';
-import { ProductLibraryPage } from '../../features/auction-manage/ProductLibraryPage';
 import { AuctionCreatePage } from '../../features/auction-create/AuctionCreatePage';
 import { OrderManagementPage } from '../../features/order-manage/OrderManagementPage';
 import { TeamAccountsPage } from '../../features/team-accounts/TeamAccountsPage';
@@ -21,7 +20,6 @@ const navGroups: StudioNavGroupConfig[] = [
   { label: '直播筹备', items: [
     { label: '添加拍品', href: '/admin/auctions/create', icon: <PlayCircle size={17} />, match: (pathname) => pathname.includes('/auctions/create') },
     { label: '本场拍品队列', href: '/admin/auctions', icon: <Gavel size={17} />, match: (pathname) => pathname.includes('/auctions') && !pathname.includes('/auctions/create') && !pathname.includes('/auctions/history') && !pathname.includes('/control') },
-    { label: '拍品库', href: '/admin/products', icon: <Package size={17} />, match: (pathname) => pathname.includes('/products') },
   ] },
   { label: '直播后', items: [
     { label: '拍品历史', href: '/admin/auctions/history', icon: <FileClock size={17} />, match: (pathname) => pathname.includes('/auctions/history') },
@@ -46,7 +44,6 @@ function pathTitle(pathname: string) {
   if (pathname.includes('/auctions')) return '本场拍品队列';
   if (pathname.includes('/orders')) return '成交处理';
   if (pathname.includes('/bids')) return '出价明细';
-  if (pathname.includes('/products')) return '拍品库';
   if (pathname.includes('/merchants')) return '团队成员';
   if (pathname.includes('/settings')) return '工作台设置';
   if (pathname.includes('/alerts')) return '异常告警';
@@ -67,7 +64,6 @@ const consoleRoutes: ConsoleRoute[] = [
   { match: (pathname) => pathname.includes('/auctions'), Page: AuctionManagementPage },
   { match: (pathname) => pathname.includes('/orders'), Page: () => <OrderManagementPage roomId={ADMIN_ROOM.id} /> },
   { match: (pathname) => pathname.includes('/bids'), Page: BidAuditPage },
-  { match: (pathname) => pathname.includes('/products'), Page: ProductLibraryPage },
   { match: (pathname) => pathname.includes('/merchants'), Page: TeamAccountsPage },
   { match: (pathname) => pathname.includes('/settings'), Page: SettingsPage },
   { match: (pathname) => pathname.includes('/alerts'), Page: AlertsPage },
@@ -83,7 +79,7 @@ export function HostConsolePage() {
 }
 
 function SettingsPage() {
-  return <section className="laSettingsGrid">
+  return <section className="settingsPage laSettingsGrid">
     <StudioCard padding="lg" className="laSettingsHero">
       <StudioPageHeader eyebrow="System settings" title="工作台设置" description="P2 只保留后台设置的信息架构入口；涉及风控阈值、默认规则和通知配置的写接口未进入本轮。" />
     </StudioCard>
@@ -95,7 +91,7 @@ function SettingsPage() {
 }
 
 function AlertsPage() {
-  return <StudioCard title="异常告警" subtitle="Alerts" padding="lg">
+  return <StudioCard title="异常告警" subtitle="Alerts" padding="lg" className="alertsPage">
     <StudioEmptyState icon={<ShieldAlert size={34} />} title="告警列表待后端接口" description="P2 不新增 mock 告警数据。竞拍、订单和实时异常已经在对应 feature 页内用真实接口错误展示。" />
   </StudioCard>;
 }

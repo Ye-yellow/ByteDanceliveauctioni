@@ -22,38 +22,17 @@ import type {
 
 type JsonRecord = Record<string, unknown>;
 
-const lotStatusByNumber: Record<number, LotStatus> = {
-  0: 'LOT_STATUS_UNSPECIFIED',
-  1: 'LOT_STATUS_DRAFT',
-  2: 'LOT_STATUS_LIVE',
-  3: 'LOT_STATUS_SETTLED',
-  4: 'LOT_STATUS_CANCELLED',
-  5: 'LOT_STATUS_READY',
-  6: 'LOT_STATUS_QUEUED',
-  7: 'LOT_STATUS_EXTENDED',
-  8: 'LOT_STATUS_FAILED',
-};
-
 const lotStatusValues = new Set<LotStatus>([
   'LOT_STATUS_UNSPECIFIED',
   'LOT_STATUS_DRAFT',
   'LOT_STATUS_READY',
   'LOT_STATUS_QUEUED',
-  'LOT_STATUS_SCHEDULED',
   'LOT_STATUS_LIVE',
   'LOT_STATUS_EXTENDED',
   'LOT_STATUS_SETTLED',
-  'LOT_STATUS_SOLD',
   'LOT_STATUS_CANCELLED',
   'LOT_STATUS_FAILED',
 ]);
-
-const lotQueueStatusByNumber: Record<number, LotQueueStatus> = {
-  0: 'LOT_QUEUE_STATUS_UNSPECIFIED',
-  1: 'LOT_QUEUE_STATUS_NONE',
-  2: 'LOT_QUEUE_STATUS_QUEUED',
-  3: 'LOT_QUEUE_STATUS_NEXT',
-};
 
 const lotQueueStatusValues = new Set<LotQueueStatus>([
   'LOT_QUEUE_STATUS_UNSPECIFIED',
@@ -61,15 +40,6 @@ const lotQueueStatusValues = new Set<LotQueueStatus>([
   'LOT_QUEUE_STATUS_QUEUED',
   'LOT_QUEUE_STATUS_NEXT',
 ]);
-
-const trustCardTypeByNumber: Record<number, TrustCardType> = {
-  0: 'TRUST_CARD_TYPE_UNSPECIFIED',
-  1: 'TRUST_CARD_TYPE_CERTIFICATE',
-  2: 'TRUST_CARD_TYPE_FLAW',
-  3: 'TRUST_CARD_TYPE_DETAIL',
-  4: 'TRUST_CARD_TYPE_SERVICE',
-  5: 'TRUST_CARD_TYPE_PRICE_REF',
-};
 
 const trustCardTypeValues = new Set<TrustCardType>([
   'TRUST_CARD_TYPE_UNSPECIFIED',
@@ -79,16 +49,6 @@ const trustCardTypeValues = new Set<TrustCardType>([
   'TRUST_CARD_TYPE_SERVICE',
   'TRUST_CARD_TYPE_PRICE_REF',
 ]);
-
-const playbookStageByNumber: Record<number, PlaybookStage> = {
-  0: 'PLAYBOOK_STAGE_UNSPECIFIED',
-  1: 'PLAYBOOK_STAGE_WARM_UP',
-  2: 'PLAYBOOK_STAGE_TRUST_BLOCKED',
-  3: 'PLAYBOOK_STAGE_BIDDING_ACTIVE',
-  4: 'PLAYBOOK_STAGE_DUEL_READY',
-  5: 'PLAYBOOK_STAGE_DUEL_MODE',
-  6: 'PLAYBOOK_STAGE_SETTLE_READY',
-};
 
 const playbookStageValues = new Set<PlaybookStage>([
   'PLAYBOOK_STAGE_UNSPECIFIED',
@@ -100,43 +60,27 @@ const playbookStageValues = new Set<PlaybookStage>([
   'PLAYBOOK_STAGE_SETTLE_READY',
 ]);
 
-const eventTypeByNumber: Record<number, EventType> = {
-  0: 'AUCTION_EVENT_TYPE_UNSPECIFIED',
-  1: 'AUCTION_EVENT_TYPE_ROOM_SNAPSHOT',
-  2: 'AUCTION_EVENT_TYPE_LOT_CREATED',
-  3: 'AUCTION_EVENT_TYPE_LOT_STARTED',
-  4: 'AUCTION_EVENT_TYPE_LOT_UPDATED',
-  5: 'AUCTION_EVENT_TYPE_BID_ACCEPTED',
-  6: 'AUCTION_EVENT_TYPE_BID_REJECTED',
-  7: 'AUCTION_EVENT_TYPE_RANKING_UPDATED',
-  8: 'AUCTION_EVENT_TYPE_TRUST_REVEALED',
-  9: 'AUCTION_EVENT_TYPE_DUEL_STARTED',
-  10: 'AUCTION_EVENT_TYPE_DUEL_ENDED',
-  11: 'AUCTION_EVENT_TYPE_LOT_SETTLED',
-  12: 'AUCTION_EVENT_TYPE_LOT_CANCELLED',
-  13: 'AUCTION_EVENT_TYPE_LOT_QUEUED',
-  14: 'AUCTION_EVENT_TYPE_BID_OUTBID',
-  15: 'AUCTION_EVENT_TYPE_AUCTION_EXTENDED',
-  16: 'AUCTION_EVENT_TYPE_AUCTION_CLOSED',
-  17: 'AUCTION_EVENT_TYPE_ORDER_CREATED',
-  18: 'AUCTION_EVENT_TYPE_PAYMENT_SUCCESS',
-};
-
-const eventTypeAliases: Record<string, EventType> = {
-  BID_ACCEPTED: 'AUCTION_EVENT_TYPE_BID_ACCEPTED',
-  AUCTION_EXTENDED: 'AUCTION_EVENT_TYPE_AUCTION_EXTENDED',
-  AUCTION_CLOSED: 'AUCTION_EVENT_TYPE_AUCTION_CLOSED',
-  ORDER_CREATED: 'AUCTION_EVENT_TYPE_ORDER_CREATED',
-  PAYMENT_SUCCESS: 'AUCTION_EVENT_TYPE_PAYMENT_SUCCESS',
-};
-
-const userRoleByNumber: Record<number, UserRole> = {
-  0: 'USER_ROLE_UNSPECIFIED',
-  1: 'USER_ROLE_BUYER',
-  2: 'USER_ROLE_ANCHOR',
-  3: 'USER_ROLE_OPERATOR',
-  4: 'USER_ROLE_ADMIN',
-};
+const eventTypeValues = new Set<EventType>([
+  'AUCTION_EVENT_TYPE_UNSPECIFIED',
+  'AUCTION_EVENT_TYPE_ROOM_SNAPSHOT',
+  'AUCTION_EVENT_TYPE_LOT_CREATED',
+  'AUCTION_EVENT_TYPE_LOT_STARTED',
+  'AUCTION_EVENT_TYPE_LOT_UPDATED',
+  'AUCTION_EVENT_TYPE_BID_ACCEPTED',
+  'AUCTION_EVENT_TYPE_BID_REJECTED',
+  'AUCTION_EVENT_TYPE_RANKING_UPDATED',
+  'AUCTION_EVENT_TYPE_TRUST_REVEALED',
+  'AUCTION_EVENT_TYPE_DUEL_STARTED',
+  'AUCTION_EVENT_TYPE_DUEL_ENDED',
+  'AUCTION_EVENT_TYPE_LOT_SETTLED',
+  'AUCTION_EVENT_TYPE_LOT_CANCELLED',
+  'AUCTION_EVENT_TYPE_LOT_QUEUED',
+  'AUCTION_EVENT_TYPE_BID_OUTBID',
+  'AUCTION_EVENT_TYPE_AUCTION_EXTENDED',
+  'AUCTION_EVENT_TYPE_AUCTION_CLOSED',
+  'AUCTION_EVENT_TYPE_ORDER_CREATED',
+  'AUCTION_EVENT_TYPE_PAYMENT_SUCCESS',
+]);
 
 const userRoleValues = new Set<UserRole>([
   'USER_ROLE_UNSPECIFIED',
@@ -193,24 +137,13 @@ function normalizeStringArray(value: unknown, name: string) {
   return arrayValue(value, name).map((item) => String(item));
 }
 
-function normalizeEnum<T extends string>(value: unknown, name: string, byNumber: Record<number, T>, allowed: Set<T>, fallback?: T): T {
+function normalizeEnum<T extends string>(value: unknown, name: string, allowed: Set<T>, fallback?: T): T {
   if (value === undefined || value === null || value === '') {
     if (fallback !== undefined) return fallback;
     throw new Error(`response missing ${name}`);
   }
-  if (typeof value === 'number') {
-    const mapped = byNumber[value];
-    if (!mapped) throw new Error(`response ${name} has unknown enum value ${value}`);
-    return mapped;
-  }
   const text = String(value);
-  if (/^\d+$/.test(text)) {
-    const mapped = byNumber[Number(text)];
-    if (!mapped) throw new Error(`response ${name} has unknown enum value ${text}`);
-    return mapped;
-  }
-  const mappedAlias = eventTypeAliases[text] as T | undefined;
-  const normalized = mappedAlias ?? text as T;
+  const normalized = text as T;
   if (!allowed.has(normalized)) throw new Error(`response ${name} has unknown enum value ${text}`);
   return normalized;
 }
@@ -242,7 +175,7 @@ export function normalizeTrustRevealCard(input: unknown): TrustRevealCard {
   return {
     id: stringValue(requiredField(field(raw, 'id'), 'trustCard.id')),
     lotId: stringValue(field(raw, 'lotId', 'lot_id')),
-    type: normalizeEnum(field(raw, 'type'), 'trustCard.type', trustCardTypeByNumber, trustCardTypeValues, 'TRUST_CARD_TYPE_UNSPECIFIED'),
+    type: normalizeEnum(field(raw, 'type'), 'trustCard.type', trustCardTypeValues, 'TRUST_CARD_TYPE_UNSPECIFIED'),
     title: stringValue(field(raw, 'title')),
     content: stringValue(field(raw, 'content')),
     imageUrl: optionalString(field(raw, 'imageUrl', 'image_url')),
@@ -290,6 +223,14 @@ function normalizeDuelState(input: unknown): DuelState {
   };
 }
 
+function normalizeLotStats(input: unknown): Lot['stats'] {
+  const raw = input === undefined || input === null ? {} : asRecord(input, 'lot.stats');
+  return {
+    participantCount: numberValue(field(raw, 'participantCount', 'participant_count')),
+    bidCount: numberValue(field(raw, 'bidCount', 'bid_count')),
+  };
+}
+
 export function normalizeLot(input: unknown): Lot {
   const raw = asRecord(input, 'lot');
   const estimatePrice = field(raw, 'estimatePrice', 'estimate_price');
@@ -299,8 +240,8 @@ export function normalizeLot(input: unknown): Lot {
     title: stringValue(field(raw, 'title')),
     description: stringValue(field(raw, 'description')),
     imageUrl: stringValue(field(raw, 'imageUrl', 'image_url')),
-    status: normalizeEnum(field(raw, 'status'), 'lot.status', lotStatusByNumber, lotStatusValues, 'LOT_STATUS_UNSPECIFIED'),
-    queueStatus: field(raw, 'queueStatus', 'queue_status') === undefined ? undefined : normalizeEnum(field(raw, 'queueStatus', 'queue_status'), 'lot.queueStatus', lotQueueStatusByNumber, lotQueueStatusValues),
+    status: normalizeEnum(field(raw, 'status'), 'lot.status', lotStatusValues, 'LOT_STATUS_UNSPECIFIED'),
+    queueStatus: field(raw, 'queueStatus', 'queue_status') === undefined ? undefined : normalizeEnum(field(raw, 'queueStatus', 'queue_status'), 'lot.queueStatus', lotQueueStatusValues),
     queuePosition: field(raw, 'queuePosition', 'queue_position') === undefined ? undefined : numberValue(field(raw, 'queuePosition', 'queue_position')),
     rule: normalizeBidRule(field(raw, 'rule')),
     currentPrice: normalizeMoney(field(raw, 'currentPrice', 'current_price'), 'lot.currentPrice'),
@@ -316,7 +257,8 @@ export function normalizeLot(input: unknown): Lot {
     version: scalarValue(field(raw, 'version'), 0),
     trustCards: arrayValue(field(raw, 'trustCards', 'trust_cards'), 'lot.trustCards').map(normalizeTrustRevealCard),
     duelState: normalizeDuelState(field(raw, 'duelState', 'duel_state')),
-    playbookStage: normalizeEnum(field(raw, 'playbookStage', 'playbook_stage'), 'lot.playbookStage', playbookStageByNumber, playbookStageValues, 'PLAYBOOK_STAGE_UNSPECIFIED'),
+    playbookStage: normalizeEnum(field(raw, 'playbookStage', 'playbook_stage'), 'lot.playbookStage', playbookStageValues, 'PLAYBOOK_STAGE_UNSPECIFIED'),
+    stats: normalizeLotStats(field(raw, 'stats')),
     cancelReason: optionalString(field(raw, 'cancelReason', 'cancel_reason')),
     galleryImageUrls: normalizeStringArray(field(raw, 'galleryImageUrls', 'gallery_image_urls'), 'lot.galleryImageUrls'),
     category: optionalString(field(raw, 'category')),
@@ -336,7 +278,7 @@ export function normalizeRoomSnapshot(input: unknown): RoomSnapshot {
     currentLot: currentLot === undefined || currentLot === null ? undefined : normalizeLot(currentLot),
     ranking: arrayValue(field(raw, 'ranking'), 'snapshot.ranking').map(normalizeRankingItem),
     recentBids: arrayValue(field(raw, 'recentBids', 'recent_bids'), 'snapshot.recentBids').map(normalizeBid),
-    playbookStage: normalizeEnum(field(raw, 'playbookStage', 'playbook_stage'), 'snapshot.playbookStage', playbookStageByNumber, playbookStageValues, 'PLAYBOOK_STAGE_UNSPECIFIED'),
+    playbookStage: normalizeEnum(field(raw, 'playbookStage', 'playbook_stage'), 'snapshot.playbookStage', playbookStageValues, 'PLAYBOOK_STAGE_UNSPECIFIED'),
     serverTimeUnixMs: scalarValue(field(raw, 'serverTimeUnixMs', 'server_time_unix_ms'), 0),
   };
 }
@@ -363,7 +305,7 @@ export function normalizeAuctionEvent(input: unknown): AuctionEvent {
   return {
     ...raw,
     id: stringValue(field(raw, 'id')),
-    type: normalizeEnum(field(raw, 'type'), 'event.type', eventTypeByNumber, new Set(Object.values(eventTypeByNumber))),
+    type: normalizeEnum(field(raw, 'type'), 'event.type', eventTypeValues),
     roomId: stringValue(field(raw, 'roomId', 'room_id')),
     lotId: stringValue(field(raw, 'lotId', 'lot_id')),
     occurredAtUnixMs: scalarValue(field(raw, 'occurredAtUnixMs', 'occurred_at_unix_ms'), 0),
@@ -385,7 +327,7 @@ export function normalizeUser(input: unknown): User {
     id: stringValue(requiredField(field(raw, 'id'), 'user.id')),
     username: stringValue(requiredField(field(raw, 'username'), 'user.username')),
     nickname: stringValue(field(raw, 'nickname')),
-    role: normalizeEnum(field(raw, 'role'), 'user.role', userRoleByNumber, userRoleValues),
+    role: normalizeEnum(field(raw, 'role'), 'user.role', userRoleValues),
     createdAtUnixMs: scalarValue(field(raw, 'createdAtUnixMs', 'created_at_unix_ms'), 0),
     updatedAtUnixMs: scalarValue(field(raw, 'updatedAtUnixMs', 'updated_at_unix_ms'), 0),
   };

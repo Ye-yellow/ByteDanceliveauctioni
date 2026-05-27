@@ -28,6 +28,7 @@ type FormState = {
   imageUrl: string;
   mainImageAssetId?: string;
   gallery: UploadedImage[];
+  categoryMode: 'preset' | 'custom';
   category: string;
   tags: string;
   estimatePrice: number | '';
@@ -62,11 +63,29 @@ const TRUST_CARD_DEFS: Array<{ key: TrustCardKey; type: TrustCardType; title: st
   { key: 'service', type: 'TRUST_CARD_TYPE_SERVICE', title: '售后说明卡', label: '售后说明', placeholder: '退换、支付、发货、客服承诺等' },
 ];
 
+const CUSTOM_CATEGORY_VALUE = '__custom__';
+
+const CATEGORY_OPTIONS = [
+  '翡翠玉石',
+  '珠宝彩宝',
+  '黄金贵金属',
+  '腕表配饰',
+  '文玩收藏',
+  '字画艺术',
+  '陶瓷紫砂',
+  '潮玩手办',
+  '奢侈品',
+  '酒水茶叶',
+  '数码家电',
+  '服饰箱包',
+];
+
 const initialForm: FormState = {
   title: '',
   description: '',
   imageUrl: '',
   gallery: [],
+  categoryMode: 'preset',
   category: '',
   tags: '',
   estimatePrice: '',
@@ -142,6 +161,13 @@ export function AuctionCreatePage() {
   }, [previewImages.length]);
 
   const update = (patch: Partial<FormState>) => setForm((current) => ({ ...current, ...patch }));
+  const updateCategory = (value: string) => {
+    if (value === CUSTOM_CATEGORY_VALUE) {
+      update({ categoryMode: 'custom', category: '' });
+      return;
+    }
+    update({ categoryMode: 'preset', category: value });
+  };
   const updateTrustCard = (key: TrustCardKey, patch: Partial<TrustCardDraft>) => setForm((current) => ({
     ...current,
     trustCards: { ...current.trustCards, [key]: { ...current.trustCards[key], ...patch } },
@@ -294,7 +320,14 @@ export function AuctionCreatePage() {
               <h4>基础资料</h4>
               <div className="baseInfoGrid">
                 <AuctionField label="拍品名称" error={issueText(issues, '名称')} className="fieldTitle"><input value={form.title} onChange={(e) => update({ title: e.target.value })} placeholder="请输入竞拍拍品名称" /></AuctionField>
-                <AuctionField label="分类" className="fieldCategory"><input value={form.category} onChange={(e) => update({ category: e.target.value })} placeholder="珠宝 / 艺术品 / 潮玩收藏" /></AuctionField>
+                <AuctionField label="分类" error={issueText(issues, '分类')} className="fieldCategory">
+                  <select value={form.categoryMode === 'custom' ? CUSTOM_CATEGORY_VALUE : form.category} onChange={(e) => updateCategory(e.target.value)}>
+                    <option value="">请选择拍品分类</option>
+                    {CATEGORY_OPTIONS.map((category) => <option key={category} value={category}>{category}</option>)}
+                    <option value={CUSTOM_CATEGORY_VALUE}>其他</option>
+                  </select>
+                  {form.categoryMode === 'custom' ? <input value={form.category} onChange={(e) => update({ category: e.target.value })} placeholder="请输入自定义分类" /> : null}
+                </AuctionField>
                 <AuctionField label="标签" help="用逗号分隔。" className="fieldTags"><input value={form.tags} onChange={(e) => update({ tags: e.target.value })} placeholder="保真, 稀缺, 福利场" /></AuctionField>
                 <AuctionField label="参考估价（元）" className="fieldEstimate"><input type="number" value={form.estimatePrice} min={0} placeholder="可选" onChange={(e) => update({ estimatePrice: e.target.value === '' ? '' : Number(e.target.value) })} /></AuctionField>
                 <AuctionField label="库存" error={issueText(issues, '库存')} className="fieldStock"><input type="number" value={form.stock} min={1} onChange={(e) => update({ stock: Number(e.target.value) })} /></AuctionField>
@@ -343,6 +376,7 @@ export function AuctionCreatePage() {
               <h4>入队摘要</h4>
               <div><span>直播间</span><b>{ADMIN_ROOM.name}</b></div>
               <div><span>拍品</span><b>{form.title || '未填写'}</b></div>
+              <div><span>分类</span><b>{form.category.trim() || '未选择'}</b></div>
               <div><span>图片素材</span><b>{Number(Boolean(form.imageUrl)) + form.gallery.length} 张</b></div>
               <div><span>讲解卡</span><b>{trustCards.length} 张</b></div>
             </div>
@@ -449,6 +483,7 @@ function toRequest(form: FormState): CreateLotRequest {
 function validate(form: FormState): FormIssue[] {
   const issues: FormIssue[] = [];
   if (!form.title.trim()) issues.push({ level: 'error', step: 'product', text: '拍品名称必填' });
+  if (!form.category.trim()) issues.push({ level: 'error', step: 'product', text: form.categoryMode === 'custom' ? '请填写自定义分类' : '请选择拍品分类' });
   if (!form.imageUrl.trim()) issues.push({ level: 'error', step: 'product', text: '主图必须上传' });
   if (form.imageUrl && !isHTTPImageURL(form.imageUrl)) issues.push({ level: 'error', step: 'product', text: '主图必须是 TOS 返回的 http/https URL' });
   form.gallery.forEach((image, index) => {

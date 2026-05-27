@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
-  Activity,
   AlertTriangle,
   ArrowDownRight,
   ArrowUpRight,
@@ -23,7 +22,7 @@ import {
 import { getRoomSnapshot, listAdminLots } from '../auction/api/auctionApi';
 import { listAdminOrders } from '../order/api/orderApi';
 import type { OrderSummary } from '../order/model/orderTypes';
-import { isSettlementLot, lotStatusLabel, lotStatusTone } from '../../entities/auction/model/auctionStatus';
+import { isSettlementLot, lotStatusLabel, lotStatusTone, settlementOutcomeDisplay } from '../../entities/auction/model/auctionStatus';
 import { isAbnormalOrder, paymentStatusLabel, paymentStatusTone, type PaymentStatus } from '../../entities/order/model/orderStatus';
 import type { AuctionEvent, Bid, Lot, Money, RoomSnapshot } from '../../shared/api/types';
 import { resultMessage } from '../../shared/api/result';
@@ -57,12 +56,15 @@ type FunnelStep = {
 type LotPerformance = {
   lot: Lot;
   amountYuan: number;
+  amountLabel: string;
   startYuan: number;
   premiumRate: number;
   participantCount: number;
   bidCount?: number;
   paymentStatus?: PaymentStatus;
   paid: boolean;
+  statusLabel: string;
+  statusTone: StudioTone;
 };
 
 type DashboardAnalytics = {
@@ -98,9 +100,19 @@ type MetricDefinition = {
   trendValues: number[];
 };
 
+type CategoryPerformanceRow = {
+  label: string;
+  count: number;
+  paidCount: number;
+  amountYuan: number;
+  premiumSum: number;
+  participantSum: number;
+};
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_PAGE_COUNT = 5;
 const PAGE_SIZE = 100;
+const VIEW_ANIMATION_TRIGGER_RATIO = 0.72;
 
 const DONUT_SEGMENT_COLORS: Record<StudioTone, string> = {
   success: 'var(--studio-color-success)',
@@ -194,6 +206,9 @@ export function AdminDashboardPage({ roomId = ADMIN_ROOM.id }: { roomId?: string
   const remainingMs = currentLot ? Number(currentLot.endsAtUnixMs || 0) - serverNowMs : 0;
   const recentBids = useMemo(() => [...(snapshot?.recentBids ?? [])].sort((a, b) => Number(b.createdAtUnixMs || 0) - Number(a.createdAtUnixMs || 0)).slice(0, 5), [snapshot]);
   const initialLoading = loading && !lots.length && !orders.length;
+  const [chartGridRef, chartGridVisible] = useScrollReveal<HTMLElement>(VIEW_ANIMATION_TRIGGER_RATIO);
+  const [performanceGridRef, performanceGridVisible] = useScrollReveal<HTMLElement>(VIEW_ANIMATION_TRIGGER_RATIO);
+  const [riskGridRef, riskGridVisible] = useScrollReveal<HTMLElement>(VIEW_ANIMATION_TRIGGER_RATIO);
 
   return <section className="merchantDashboardPage">
     <StudioCard padding="lg" className="merchantDashboardHero">
@@ -228,11 +243,11 @@ export function AdminDashboardPage({ roomId = ADMIN_ROOM.id }: { roomId?: string
       </section>
 
       <section className="merchantTopGrid">
-        <LiveBusinessPanel currentLot={currentLot} recentBids={recentBids} remainingMs={remainingMs} participantCount={analytics.participantCount} />
+        <LiveBusinessPanel currentLot={currentLot} recentBids={recentBids} remainingMs={remainingMs} participantCount={currentLot?.stats.participantCount ?? 0} />
         <ActionChecklist analytics={analytics} />
       </section>
 
-      <section className="merchantChartGrid">
+      <section ref={chartGridRef} className={`merchantChartGrid merchantViewAnimate${chartGridVisible ? ' isVisible' : ''}`}>
         <StudioCard title="成交漏斗" subtitle="Auction funnel" className="merchantPanel merchantFunnelPanel">
           <FunnelChart steps={analytics.funnel} refreshSeq={refreshSeq} />
         </StudioCard>
@@ -241,16 +256,16 @@ export function AdminDashboardPage({ roomId = ADMIN_ROOM.id }: { roomId?: string
         </StudioCard>
       </section>
 
-      <section className="merchantPerformanceGrid">
+      <section ref={performanceGridRef} className={`merchantPerformanceGrid merchantViewAnimate${performanceGridVisible ? ' isVisible' : ''}`}>
         <StudioCard title="成交额 Top 10" subtitle="Lot ranking" className="merchantPanel">
           <LotRanking lots={analytics.topLots} />
         </StudioCard>
-        <StudioCard title="参拍人数 × 溢价率 × 成交价" subtitle="Lot performance map" className="merchantPanel">
-          <BubbleScatter lots={analytics.lotPerformance} />
+        <StudioCard title="品类表现" subtitle="Category performance" className="merchantPanel">
+          <CategoryPerformancePanel lots={analytics.lotPerformance} />
         </StudioCard>
       </section>
 
-      <section className="merchantRiskGrid">
+      <section ref={riskGridRef} className={`merchantRiskGrid merchantViewAnimate${riskGridVisible ? ' isVisible' : ''}`}>
         <StudioCard title="订单风险" subtitle="Order risk" className="merchantPanel">
           <OrderRiskPanel analytics={analytics} nowMs={nowMs} />
         </StudioCard>
@@ -315,9 +330,14 @@ function AnimatedMetricValue({ value, format }: { value: number; format: MetricF
 }
 
 function MetricSparkline({ values }: { values: number[] }) {
-  const points = getSparklinePoints(values, 96, 30);
-  return <svg className="merchantSparkline" viewBox="0 0 96 30" role="img" aria-label="迷你趋势线">
-    <polyline points={points} fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+  const geometry = getSparklineGeometry(values, 112, 38);
+  const animationKey = values.map((value) => Number(value.toFixed(3))).join('|');
+  return <svg key={animationKey} className="merchantSparkline" viewBox="0 0 112 38" role="img" aria-label="迷你趋势线" focusable="false">
+    <path className="merchantSparklineGuide" d={`M3 ${geometry.guideY.toFixed(2)}H109`} />
+    <path className="merchantSparklineArea" d={geometry.areaPath} />
+    <path className="merchantSparklineLine" d={geometry.linePath} pathLength={1} />
+    <circle className="merchantSparklineHalo" cx={geometry.lastPoint.x} cy={geometry.lastPoint.y} r="4.8" />
+    <circle className="merchantSparklineDot" cx={geometry.lastPoint.x} cy={geometry.lastPoint.y} r="2.7" />
   </svg>;
 }
 
@@ -371,7 +391,7 @@ function ActionChecklist({ analytics }: { analytics: DashboardAnalytics }) {
       label: '复盘低转化拍品',
       href: '/admin/auctions/history',
       count: analytics.lowConversionLots.length,
-      detail: '低溢价、流拍或未支付',
+      detail: '低溢价、流拍或付款超时',
       icon: <ListChecks size={18} />,
       tone: 'info' as StudioTone,
     },
@@ -434,24 +454,40 @@ function TrendChart({ buckets, refreshSeq }: { buckets: TimeBucket[]; refreshSeq
         const barWidth = Math.max(8, Math.min(18, chartWidth / Math.max(1, buckets.length) * 0.42));
         let yCursor = padding.top + chartHeight;
         const segments = [
-          { key: 'paid', value: bucket.paid },
-          { key: 'pending', value: bucket.pending },
-          { key: 'abnormal', value: bucket.abnormal },
+          { key: 'paid', label: '已支付', value: bucket.paid },
+          { key: 'pending', label: '待支付', value: bucket.pending },
+          { key: 'abnormal', label: '异常', value: bucket.abnormal },
         ];
         return <g key={bucket.label}>
-          {segments.map((segment) => {
+          {segments.map((segment, segmentIndex) => {
             const segmentHeight = (segment.value / maxValue) * chartHeight;
             yCursor -= segmentHeight;
-            return <rect key={segment.key} className={`bar-${segment.key}`} x={x - barWidth / 2} y={yCursor} width={barWidth} height={Math.max(0, segmentHeight)} rx={3}>
-              <title>{bucket.label} ${segment.key}: {formatYuan(segment.value)}</title>
+            return <rect
+              key={segment.key}
+              className={`bar-${segment.key}`}
+              x={x - barWidth / 2}
+              y={yCursor}
+              width={barWidth}
+              height={Math.max(0, segmentHeight)}
+              rx={3}
+              style={{ '--bar-delay': `${index * 70 + segmentIndex * 42}ms` } as CSSProperties}
+            >
+              <title>{bucket.label} {segment.label}: {formatYuan(segment.value)}</title>
             </rect>;
           })}
           <text x={x} y={height - 10}>{bucket.label}</text>
           <rect className="merchantHoverBand" x={x - chartWidth / Math.max(1, buckets.length) / 2} y={padding.top} width={chartWidth / Math.max(1, buckets.length)} height={chartHeight} onPointerEnter={() => setActiveIndex(index)} />
         </g>;
       })}
-      <polyline className="merchantLine" points={linePoints} />
-      {buckets.map((bucket, index) => <circle key={`${bucket.label}-point`} className="merchantLinePoint" cx={xFor(index)} cy={yFor(bucket.gmv)} r={index === activeIndex ? 5 : 3} />)}
+      <polyline className="merchantLine" points={linePoints} pathLength={1} />
+      {buckets.map((bucket, index) => <circle
+        key={`${bucket.label}-point`}
+        className="merchantLinePoint"
+        cx={xFor(index)}
+        cy={yFor(bucket.gmv)}
+        r={index === activeIndex ? 5 : 3}
+        style={{ '--point-delay': `${520 + index * 45}ms` } as CSSProperties}
+      />)}
     </svg>
     <div className="merchantChartTooltip">
       <b>{active?.label}</b>
@@ -469,38 +505,51 @@ function LotRanking({ lots }: { lots: LotPerformance[] }) {
   return <div className="merchantLotRanking">{lots.slice(0, 10).map((item, index) => <div key={item.lot.id}>
     <span>#{String(index + 1).padStart(2, '0')}</span>
     <div><b>{item.lot.title}</b><small>溢价率 {formatPercent(item.premiumRate)}</small></div>
-    <div className="merchantRankBar"><i style={{ width: `${Math.max(5, (item.amountYuan / max) * 100)}%` }} /></div>
+    <div className="merchantRankBar"><i style={{ width: `${Math.max(5, (item.amountYuan / max) * 100)}%`, '--delay': `${index * 70}ms` } as CSSProperties} /></div>
     <strong>{formatYuan(item.amountYuan)}</strong>
   </div>)}</div>;
 }
 
-function BubbleScatter({ lots }: { lots: LotPerformance[] }) {
-  const visibleLots = lots.filter((lot) => lot.amountYuan > 0).slice(0, 24);
-  if (!visibleLots.length) return <StudioEmptyState compact icon={<Activity size={28} />} title="暂无拍品表现分布" description="当前范围没有可映射的成交价。" />;
-  const width = 560;
-  const height = 320;
-  const padding = { top: 24, right: 28, bottom: 44, left: 54 };
-  const chartWidth = width - padding.left - padding.right;
-  const chartHeight = height - padding.top - padding.bottom;
-  const maxParticipants = Math.max(1, ...visibleLots.map((lot) => lot.participantCount));
-  const maxPremium = Math.max(20, ...visibleLots.map((lot) => Math.max(0, lot.premiumRate)));
-  const maxAmount = Math.max(1, ...visibleLots.map((lot) => lot.amountYuan));
-  return <svg className="merchantBubbleChart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="拍品表现气泡散点图">
-    {[0, 0.5, 1].map((tick) => <g key={tick}>
-      <line x1={padding.left} x2={width - padding.right} y1={padding.top + chartHeight * tick} y2={padding.top + chartHeight * tick} />
-      <text x={12} y={padding.top + chartHeight * tick + 4}>{formatPercent(maxPremium * (1 - tick))}</text>
-    </g>)}
-    <text className="axisLabel" x={width / 2} y={height - 8}>参拍人数</text>
-    <text className="axisLabel" x={14} y={18}>溢价率</text>
-    {visibleLots.map((item, index) => {
-      const x = padding.left + (item.participantCount / maxParticipants) * chartWidth;
-      const y = padding.top + chartHeight - (Math.max(0, item.premiumRate) / maxPremium) * chartHeight;
-      const radius = 7 + Math.sqrt(item.amountYuan / maxAmount) * 18;
-      return <circle key={item.lot.id} cx={x} cy={y} r={radius} className={`bubble bubble-${index % 5}`}>
-        <title>{item.lot.title} · 参拍 ${item.participantCount} · 溢价率 ${formatPercent(item.premiumRate)} · 成交价 ${formatYuan(item.amountYuan)}</title>
-      </circle>;
-    })}
-  </svg>;
+function CategoryPerformancePanel({ lots }: { lots: LotPerformance[] }) {
+  const rows = buildCategoryPerformance(lots).slice(0, 6);
+  if (!rows.length) return <StudioEmptyState compact icon={<BarChart3 size={28} />} title="暂无品类表现" description="当前范围没有可统计的成交品类。" />;
+  const totalAmount = rows.reduce((sum, row) => sum + row.amountYuan, 0);
+  const totalCount = rows.reduce((sum, row) => sum + row.count, 0);
+  const maxAmount = Math.max(1, ...rows.map((row) => row.amountYuan));
+  const leader = rows.reduce((best, row) => row.amountYuan > best.amountYuan ? row : best, rows[0]);
+  return <div className="merchantCategoryPanel">
+    <div className="merchantCategorySummary">
+      <div><span>主力品类</span><b>{leader.label}</b><small>{formatYuan(leader.amountYuan)} · {formatPercent(totalAmount ? leader.amountYuan / totalAmount * 100 : 0)}</small></div>
+      <div><span>覆盖品类</span><b>{rows.length.toLocaleString('zh-CN')} 类</b><small>{totalCount.toLocaleString('zh-CN')} 件成交，已支付 {rows.reduce((sum, row) => sum + row.paidCount, 0).toLocaleString('zh-CN')} 件</small></div>
+    </div>
+    <div className="merchantCategoryRows">
+      {rows.map((row) => {
+        const width = Math.max(5, row.amountYuan / maxAmount * 100);
+        const payRate = row.count ? row.paidCount / row.count * 100 : 0;
+        return <article key={row.label} className={row.label === leader.label ? 'isLeader' : ''}>
+          <header><div><b>{row.label}</b><span>{row.count} 件成交 · 平均参拍 {formatOneDecimal(row.participantSum / row.count)} 人</span></div><strong>{formatYuan(row.amountYuan)}</strong></header>
+          <div className="merchantCategoryTrack"><i style={{ '--category-width': `${width}%` } as CSSProperties} /></div>
+          <footer><span>支付率 {formatPercent(payRate)}</span><span>平均溢价 {formatPercent(row.premiumSum / row.count)}</span><span>{formatPercent(totalAmount ? row.amountYuan / totalAmount * 100 : 0)} GMV</span></footer>
+        </article>;
+      })}
+    </div>
+  </div>;
+}
+
+function buildCategoryPerformance(lots: LotPerformance[]): CategoryPerformanceRow[] {
+  const rows = new Map<string, CategoryPerformanceRow>();
+  lots.forEach((item) => {
+    if (item.amountYuan <= 0) return;
+    const label = item.lot.category?.trim() || '未分类';
+    const row = rows.get(label) ?? { label, count: 0, paidCount: 0, amountYuan: 0, premiumSum: 0, participantSum: 0 };
+    row.count += 1;
+    row.amountYuan += item.amountYuan;
+    row.premiumSum += item.premiumRate;
+    row.participantSum += item.participantCount;
+    if (item.paid) row.paidCount += 1;
+    rows.set(label, row);
+  });
+  return [...rows.values()].sort((a, b) => b.amountYuan - a.amountYuan);
 }
 
 function OrderRiskPanel({ analytics, nowMs }: { analytics: DashboardAnalytics; nowMs: number }) {
@@ -511,14 +560,14 @@ function OrderRiskPanel({ analytics, nowMs }: { analytics: DashboardAnalytics; n
     .slice(0, 5);
   const gradient = createRiskGradient(analytics.statusDistribution);
   return <div className="merchantRiskPanelBody">
-    {total ? <div className="merchantRiskDonut" style={{ background: gradient }}><strong>{total.toLocaleString('zh-CN')}</strong><span>订单</span></div> : <StudioEmptyState compact icon={<ReceiptText size={28} />} title="暂无订单分布" description="当前范围没有订单。" />}
+    {total ? <div className="merchantRiskDonut" key={`${total}-${gradient}`} style={{ '--risk-gradient': gradient } as CSSProperties} aria-label={`订单状态分布，共 ${total} 个订单`}><strong>{total.toLocaleString('zh-CN')}</strong><span>订单分布</span></div> : <StudioEmptyState compact icon={<ReceiptText size={28} />} title="暂无订单分布" description="当前范围没有订单。" />}
     <div className="merchantRiskLegend">{analytics.statusDistribution.map((item) => <div key={item.label}><StudioBadge tone={item.tone}>{item.label}</StudioBadge><b>{item.value.toLocaleString('zh-CN')}</b></div>)}</div>
     <div className="merchantCountdownList">
       <h3>待支付倒计时</h3>
       {pending.length ? pending.map((order) => {
         const leftMs = Number(order.expiresAtUnixMs || 0) - nowMs;
         return <a href="/admin/orders" key={order.id} className={leftMs <= 0 ? 'expired' : ''}>
-          <div><b>{order.lotTitle || '成交订单'}</b><span>{order.buyerNickname || order.buyerUserId || '买家'} · {formatYuan(moneyYuan(order.amount))}</span></div>
+          <div><b>{order.lotTitle || '落锤订单'}</b><span>{order.buyerNickname || order.buyerUserId || '买家'} · {formatYuan(moneyYuan(order.amount))}</span></div>
           <strong>{leftMs <= 0 ? '已超时' : formatCountdown(leftMs)}</strong>
         </a>;
       }) : <StudioEmptyState compact icon={<CheckCircle2 size={22} />} title="暂无待支付订单" description="当前范围没有需要催付的订单。" />}
@@ -533,7 +582,7 @@ function LotPerformanceTable({ lots, refreshSeq }: { lots: LotPerformance[]; ref
       <span>拍品</span>
       <span>状态</span>
       <span>起拍价</span>
-      <span>成交价</span>
+      <span>结果金额</span>
       <span>溢价率</span>
       <span>出价次数</span>
       <span>支付</span>
@@ -544,9 +593,9 @@ function LotPerformanceTable({ lots, refreshSeq }: { lots: LotPerformance[]; ref
         <span>{item.lot.imageUrl ? <img src={item.lot.imageUrl} alt={item.lot.title} /> : <ShoppingBag size={20} />}</span>
         <div><b>{item.lot.title}</b><small>{item.lot.category || '未分类'}</small></div>
       </div>
-      <div data-label="状态"><StudioBadge tone={lotStatusTone(item.lot.status)}>{lotStatusLabel(item.lot.status)}</StudioBadge></div>
+      <div data-label="状态"><StudioBadge tone={item.statusTone}>{item.statusLabel}</StudioBadge></div>
       <div data-label="起拍价">{formatYuan(item.startYuan)}</div>
-      <div data-label="成交价"><strong>{item.amountYuan > 0 ? formatYuan(item.amountYuan) : '未成交'}</strong></div>
+      <div data-label={item.amountLabel}><strong>{item.amountYuan > 0 ? formatYuan(item.amountYuan) : '未成交'}</strong></div>
       <div data-label="溢价率">{formatPercent(item.premiumRate)}</div>
       <div data-label="出价次数">{item.bidCount === undefined ? '—' : item.bidCount.toLocaleString('zh-CN')}</div>
       <div data-label="支付">{item.paymentStatus ? <StudioBadge tone={paymentStatusTone(item.paymentStatus)}>{paymentStatusLabel(item.paymentStatus)}</StudioBadge> : <StudioBadge tone="neutral">无订单</StudioBadge>}</div>
@@ -578,15 +627,15 @@ function buildDashboardAnalytics({ lots, orders, snapshot, range, nowMs }: { lot
   const paidAmountYuan = sumOrderYuan(paidOrders);
   const pendingAmountYuan = sumOrderYuan(pendingOrders);
   const abnormalAmountYuan = sumOrderYuan(abnormalOrders);
-  const gmvYuan = sumOrderYuan(rangeOrders);
+  const gmvYuan = paidAmountYuan;
   const settledLots = rangeLots.filter(isSettlementLot);
   const startedLots = rangeLots.filter(hasStartedLot);
   const withBidLots = rangeLots.filter((lot) => lotHasBid(lot, snapshot, rangeOrders));
   const paidLotIds = new Set(paidOrders.map((order) => order.lotId).filter(Boolean));
   const queuedLots = lots.filter(isQueueLot);
   const abnormalLots = lots.filter(isAbnormalLot);
-  const participantIds = getParticipantIds(rangeOrders, snapshot, rangeLots);
-  const lotPerformance = buildLotPerformance(rangeLots, rangeOrders, snapshot).sort((a, b) => b.amountYuan - a.amountYuan);
+  const participantCount = rangeLots.reduce((sum, lot) => sum + (lot.stats?.participantCount ?? 0), 0);
+  const lotPerformance = buildLotPerformance(rangeLots, rangeOrders, nowMs).sort((a, b) => b.amountYuan - a.amountYuan);
   const lowConversionLots = lotPerformance.filter((item) => item.lot.status === 'LOT_STATUS_FAILED' || item.premiumRate <= 0 || (!item.paid && isSettlementLot(item.lot)));
   const timeSeries = buildTimeSeries(range, rangeOrders, nowMs);
 
@@ -601,9 +650,9 @@ function buildDashboardAnalytics({ lots, orders, snapshot, range, nowMs }: { lot
     abnormalAmountYuan,
     gmvYuan,
     paymentRate: rangeOrders.length ? paidOrders.length / rangeOrders.length * 100 : 0,
-    dealRate: startedLots.length ? settledLots.length / startedLots.length * 100 : 0,
-    participantCount: participantIds.size,
-    averageDealYuan: rangeOrders.length ? gmvYuan / rangeOrders.length : 0,
+    dealRate: startedLots.length ? paidLotIds.size / startedLots.length * 100 : 0,
+    participantCount,
+    averageDealYuan: paidOrders.length ? paidAmountYuan / paidOrders.length : 0,
     queuedLots,
     abnormalLots,
     lowConversionLots: lowConversionLots.map((item) => item.lot),
@@ -613,8 +662,8 @@ function buildDashboardAnalytics({ lots, orders, snapshot, range, nowMs }: { lot
       { label: '已上架', value: rangeLots.filter(isListedLot).length, hint: '已进入上架或队列' },
       { label: '已开拍', value: startedLots.length, hint: '产生开拍时间' },
       { label: '有出价', value: withBidLots.length, hint: '有领先用户或最近出价' },
-      { label: '已成交', value: settledLots.length, hint: '已落锤或售出' },
-      { label: '已支付', value: paidLotIds.size, hint: '支付成功订单关联拍品' },
+      { label: '已落锤', value: settledLots.length, hint: '已进入结算的拍品' },
+      { label: '已成交', value: paidLotIds.size, hint: '支付成功订单关联拍品' },
     ],
     topLots: lotPerformance.filter((item) => item.amountYuan > 0).slice(0, 10),
     lotPerformance,
@@ -644,37 +693,30 @@ async function fetchMerchantOrders(roomId: string) {
   return roomOrders.length || !allOrders.length ? roomOrders : allOrders;
 }
 
-function buildLotPerformance(lots: Lot[], orders: OrderSummary[], snapshot: RoomSnapshot | null): LotPerformance[] {
+function buildLotPerformance(lots: Lot[], orders: OrderSummary[], nowMs: number): LotPerformance[] {
   const ordersByLot = new Map<string, OrderSummary[]>();
   orders.forEach((order) => {
     ordersByLot.set(order.lotId, [...(ordersByLot.get(order.lotId) ?? []), order]);
   });
-  const bidCounts = new Map<string, number>();
-  snapshot?.recentBids.forEach((bid) => bidCounts.set(bid.lotId, (bidCounts.get(bid.lotId) ?? 0) + 1));
   return lots.map((lot) => {
     const relatedOrders = ordersByLot.get(lot.id) ?? [];
     const paidOrder = relatedOrders.find(isPaidOrder);
     const latestOrder = paidOrder ?? relatedOrders[0];
+    const outcome = isSettlementLot(lot) ? settlementOutcomeDisplay(lot, latestOrder, nowMs) : null;
     const amountYuan = latestOrder ? moneyYuan(latestOrder.amount) : moneyYuan(isSettlementLot(lot) ? lot.finalPrice : lot.currentPrice);
     const startYuan = moneyYuan(lot.rule.startPrice);
-    const participantIds = new Set<string>();
-    relatedOrders.forEach((order) => {
-      if (order.buyerUserId) participantIds.add(order.buyerUserId);
-    });
-    if (lot.winnerUserId) participantIds.add(lot.winnerUserId);
-    if (lot.leadingUserId) participantIds.add(lot.leadingUserId);
-    snapshot?.ranking.forEach((item) => {
-      if (item.userId && item.userId === lot.leadingUserId) participantIds.add(item.userId);
-    });
     return {
       lot,
       amountYuan,
+      amountLabel: outcome?.priceLabel ?? (amountYuan > 0 ? '当前价' : '起拍价'),
       startYuan,
       premiumRate: startYuan > 0 ? (amountYuan - startYuan) / startYuan * 100 : 0,
-      participantCount: Math.max(participantIds.size, bidCounts.get(lot.id) ?? 0, latestOrder ? 1 : 0),
-      bidCount: bidCounts.has(lot.id) ? bidCounts.get(lot.id) : undefined,
+      participantCount: lot.stats?.participantCount ?? (latestOrder ? 1 : 0),
+      bidCount: lot.stats?.bidCount ?? 0,
       paymentStatus: latestOrder?.paymentStatus,
       paid: latestOrder ? isPaidOrder(latestOrder) : false,
+      statusLabel: outcome?.label ?? lotStatusLabel(lot.status),
+      statusTone: outcome?.tone ?? lotStatusTone(lot.status),
     };
   });
 }
@@ -697,10 +739,13 @@ function buildTimeSeries(range: DashboardRange, orders: OrderSummary[], nowMs: n
     const bucket = buckets.find((item) => time >= item.start && time < item.end);
     if (!bucket) return;
     const amount = moneyYuan(order.amount);
-    bucket.gmv += amount;
     bucket.orders += 1;
-    if (isPaidOrder(order)) bucket.paid += amount;
-    else if (isPendingOrder(order)) bucket.pending += amount;
+    if (isPaidOrder(order)) {
+      bucket.gmv += amount;
+      bucket.paid += amount;
+    } else if (isPendingOrder(order)) {
+      bucket.pending += amount;
+    }
     if (isAbnormalOrder(order.status, order.paymentStatus)) bucket.abnormal += amount;
   });
   return buckets;
@@ -729,24 +774,6 @@ function getRangeStartMs(range: DashboardRange, nowMs: number) {
   if (range === '7d') return nowMs - 7 * DAY_MS;
   if (range === '30d') return nowMs - 30 * DAY_MS;
   return 0;
-}
-
-function getParticipantIds(orders: OrderSummary[], snapshot: RoomSnapshot | null, lots: Lot[]) {
-  const ids = new Set<string>();
-  orders.forEach((order) => {
-    if (order.buyerUserId) ids.add(order.buyerUserId);
-  });
-  snapshot?.ranking.forEach((item) => {
-    if (item.userId) ids.add(item.userId);
-  });
-  snapshot?.recentBids.forEach((bid) => {
-    if (bid.userId) ids.add(bid.userId);
-  });
-  lots.forEach((lot) => {
-    if (lot.leadingUserId) ids.add(lot.leadingUserId);
-    if (lot.winnerUserId) ids.add(lot.winnerUserId);
-  });
-  return ids;
 }
 
 function patchSnapshot(current: RoomSnapshot | null, event: AuctionEvent): RoomSnapshot | null {
@@ -792,7 +819,7 @@ function isPendingOrder(order: OrderSummary) {
 }
 
 function hasStartedLot(lot: Lot) {
-  return Number(lot.startedAtUnixMs || 0) > 0 || ['LOT_STATUS_LIVE', 'LOT_STATUS_EXTENDED', 'LOT_STATUS_SETTLED', 'LOT_STATUS_SOLD', 'LOT_STATUS_FAILED'].includes(lot.status);
+  return Number(lot.startedAtUnixMs || 0) > 0 || ['LOT_STATUS_LIVE', 'LOT_STATUS_EXTENDED', 'LOT_STATUS_SETTLED', 'LOT_STATUS_FAILED'].includes(lot.status);
 }
 
 function isListedLot(lot: Lot) {
@@ -800,7 +827,7 @@ function isListedLot(lot: Lot) {
 }
 
 function isQueueLot(lot: Lot) {
-  return lot.status === 'LOT_STATUS_QUEUED' || lot.status === 'LOT_STATUS_SCHEDULED' || lot.status === 'LOT_STATUS_READY';
+  return lot.status === 'LOT_STATUS_QUEUED' || lot.status === 'LOT_STATUS_READY';
 }
 
 function isAbnormalLot(lot: Lot) {
@@ -808,6 +835,7 @@ function isAbnormalLot(lot: Lot) {
 }
 
 function lotHasBid(lot: Lot, snapshot: RoomSnapshot | null, orders: OrderSummary[]) {
+  if ((lot.stats?.bidCount ?? 0) > 0) return true;
   if (lot.leadingUserId || lot.winnerUserId) return true;
   if (moneyCents(lot.currentPrice) > moneyCents(lot.rule.startPrice)) return true;
   if (snapshot?.recentBids.some((bid) => bid.lotId === lot.id)) return true;
@@ -850,16 +878,48 @@ function calcDelta(values: number[]) {
   return (second - first) / Math.abs(first) * 100;
 }
 
-function getSparklinePoints(values: number[], width: number, height: number) {
+function getSparklineGeometry(values: number[], width: number, height: number) {
   const safeValues = values.length ? values : [0];
   const max = Math.max(...safeValues);
   const min = Math.min(...safeValues);
-  const range = Math.max(1, max - min);
-  return safeValues.map((value, index) => {
-    const x = safeValues.length === 1 ? width / 2 : (width / (safeValues.length - 1)) * index;
-    const y = height - ((value - min) / range) * (height - 4) - 2;
-    return `${x.toFixed(2)},${y.toFixed(2)}`;
-  }).join(' ');
+  const range = max - min;
+  const padding = { top: 5, right: 4, bottom: 7, left: 4 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const points = safeValues.map((value, index) => {
+    const x = safeValues.length === 1 ? width / 2 : padding.left + (chartWidth / (safeValues.length - 1)) * index;
+    const y = range === 0 ? padding.top + chartHeight * 0.58 : padding.top + (1 - (value - min) / range) * chartHeight;
+    return { x: Number(x.toFixed(2)), y: Number(y.toFixed(2)) };
+  });
+  const linePath = createSmoothPath(points);
+  const firstPoint = points[0];
+  const lastPoint = points[points.length - 1];
+  const baselineY = height - 4;
+  return {
+    linePath,
+    areaPath: `${linePath} L ${lastPoint.x.toFixed(2)} ${baselineY.toFixed(2)} L ${firstPoint.x.toFixed(2)} ${baselineY.toFixed(2)} Z`,
+    guideY: baselineY,
+    lastPoint,
+  };
+}
+
+function createSmoothPath(points: Array<{ x: number; y: number }>) {
+  if (points.length === 1) return `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
+  return points.reduce((path, point, index) => {
+    if (index === 0) return `M ${point.x.toFixed(2)} ${point.y.toFixed(2)}`;
+    const previous = points[index - 1];
+    const beforePrevious = points[index - 2] ?? previous;
+    const next = points[index + 1] ?? point;
+    const controlA = {
+      x: previous.x + (point.x - beforePrevious.x) / 6,
+      y: previous.y + (point.y - beforePrevious.y) / 6,
+    };
+    const controlB = {
+      x: point.x - (next.x - previous.x) / 6,
+      y: point.y - (next.y - previous.y) / 6,
+    };
+    return `${path} C ${controlA.x.toFixed(2)} ${controlA.y.toFixed(2)}, ${controlB.x.toFixed(2)} ${controlB.y.toFixed(2)}, ${point.x.toFixed(2)} ${point.y.toFixed(2)}`;
+  }, '');
 }
 
 function usePrefersReducedMotion() {
@@ -874,7 +934,7 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
-function useInView<T extends HTMLElement>() {
+function useInView<T extends HTMLElement>(threshold = 0.2, rootMargin = '0px') {
   const ref = useRef<T | null>(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
@@ -885,11 +945,69 @@ function useInView<T extends HTMLElement>() {
     }
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) setVisible(true);
-    }, { threshold: 0.2 });
+    }, { rootMargin, threshold });
     observer.observe(node);
     return () => observer.disconnect();
-  }, []);
+  }, [rootMargin, threshold]);
   return [ref, visible] as const;
+}
+
+function useScrollReveal<T extends HTMLElement>(triggerRatio = 0.72) {
+  const [node, setNode] = useState<T | null>(null);
+  const [visible, setVisible] = useState(false);
+  const ref = useCallback((nextNode: T | null) => {
+    setNode(nextNode);
+    if (!nextNode) setVisible(false);
+  }, []);
+
+  useEffect(() => {
+    if (!node || visible) return;
+
+    const scrollTarget = findScrollParent(node);
+    let animationFrame = 0;
+    let revealed = false;
+
+    const cleanup = () => {
+      scrollTarget.removeEventListener('scroll', scheduleCheck);
+      window.removeEventListener('resize', scheduleCheck);
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+    };
+
+    const revealIfReady = () => {
+      if (revealed) return;
+      const containerRect = scrollTarget === window ? { top: 0, height: window.innerHeight } : (scrollTarget as HTMLElement).getBoundingClientRect();
+      const rect = node.getBoundingClientRect();
+      const triggerY = containerRect.top + containerRect.height * triggerRatio;
+      const visibleFloor = containerRect.top + containerRect.height * 0.08;
+      if (rect.top <= triggerY && rect.bottom >= visibleFloor) {
+        revealed = true;
+        setVisible(true);
+        cleanup();
+      }
+    };
+
+    function scheduleCheck() {
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(revealIfReady);
+    }
+
+    scrollTarget.addEventListener('scroll', scheduleCheck, { passive: true });
+    window.addEventListener('resize', scheduleCheck);
+    return cleanup;
+  }, [node, triggerRatio, visible]);
+
+  return [ref, visible] as const;
+}
+
+function findScrollParent(node: HTMLElement): HTMLElement | Window {
+  let parent = node.parentElement;
+  while (parent && parent !== document.body) {
+    const style = window.getComputedStyle(parent);
+    const overflowY = `${style.overflowY} ${style.overflow}`;
+    if (/(auto|scroll|overlay)/.test(overflowY) && parent.scrollHeight > parent.clientHeight) return parent;
+    parent = parent.parentElement;
+  }
+  return window;
 }
 
 function easeOutCubic(progress: number) {
@@ -913,6 +1031,10 @@ function formatCompactYuan(value: number) {
 
 function formatPercent(value: number) {
   return `${value.toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+}
+
+function formatOneDecimal(value: number) {
+  return value.toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }
 
 function formatCountdown(ms: number) {

@@ -140,11 +140,11 @@ export interface components {
             currency: string;
         };
         /** @enum {string} */
-        LotStatus: "LOT_STATUS_UNSPECIFIED" | "LOT_STATUS_DRAFT" | "LOT_STATUS_READY" | "LOT_STATUS_QUEUED" | "LOT_STATUS_SCHEDULED" | "LOT_STATUS_LIVE" | "LOT_STATUS_EXTENDED" | "LOT_STATUS_SETTLED" | "LOT_STATUS_SOLD" | "LOT_STATUS_CANCELLED" | "LOT_STATUS_FAILED";
+        LotStatus: "LOT_STATUS_UNSPECIFIED" | "LOT_STATUS_DRAFT" | "LOT_STATUS_READY" | "LOT_STATUS_QUEUED" | "LOT_STATUS_LIVE" | "LOT_STATUS_EXTENDED" | "LOT_STATUS_SETTLED" | "LOT_STATUS_CANCELLED" | "LOT_STATUS_FAILED";
         /** @enum {string} */
         UserRole: "USER_ROLE_UNSPECIFIED" | "USER_ROLE_BUYER" | "USER_ROLE_ANCHOR" | "USER_ROLE_OPERATOR" | "USER_ROLE_ADMIN";
         /** @enum {string} */
-        AuctionState: "DRAFT" | "SCHEDULED" | "LIVE" | "EXTENDED" | "SOLD" | "CANCELLED" | "FAILED";
+        AuctionState: "DRAFT" | "QUEUED" | "LIVE" | "EXTENDED" | "SETTLED" | "CANCELLED" | "FAILED";
         /** @enum {string} */
         OrderStatus: "CREATED" | "PENDING_PAYMENT" | "PAID" | "CANCELLED" | "EXPIRED" | "REFUNDED";
         /** @enum {string} */
@@ -161,6 +161,12 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        LotStats: {
+            /** Format: int64 */
+            participantCount: number;
+            /** Format: int64 */
+            bidCount: number;
+        };
         Lot: {
             id: string;
             roomId: string;
@@ -172,6 +178,7 @@ export interface components {
             finalPrice?: components["schemas"]["Money"];
             leadingUserId?: string;
             winnerUserId?: string;
+            stats?: components["schemas"]["LotStats"];
             /** Format: int64 */
             startedAtUnixMs?: number;
             /** Format: int64 */

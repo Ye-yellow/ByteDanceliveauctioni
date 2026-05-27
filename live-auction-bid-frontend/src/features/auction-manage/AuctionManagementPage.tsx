@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Gavel, Package, Radio, RefreshCw, Search, ShieldAlert, ShieldCheck, Trophy, Wifi } from 'lucide-react';
 import { cancelLot, getRoomSnapshot, listAdminLots, settleLot, startLot, type AdminLotsQuery } from '../auction/api/auctionApi';
-import { CURRENT_LOT_STATUS_FILTERS, isLiveLot, isPreStartCancellableLot, isQueueReadyLot, isRemovedFromCurrentQueueLot, isSettlementLot, lotStatusLabel, lotStatusTone, uiStatusOfLot } from '../../entities/auction/model/auctionStatus';
+import { CURRENT_LOT_STATUS_FILTERS, isLiveLot, isPreStartCancellableLot, isQueueReadyLot, isRemovedFromCurrentQueueLot, isSettlementLot, lotStatusLabel, lotStatusTone, settlementOutcomeDisplay, uiStatusOfLot } from '../../entities/auction/model/auctionStatus';
 import type { Lot, RoomSnapshot } from '../../shared/api/types';
 import { resultMessage } from '../../shared/api/result';
 import { formatDateTimeText, formatDurationText, formatMoneyText } from '../../shared/lib/format';
@@ -150,12 +150,12 @@ export function AuctionManagementPage({ roomId = ADMIN_ROOM.id }: Props) {
     <section className="queueTopCards">
       <QueueFocusCard lot={currentLot} snapshot={snapshot} onCancel={setCancelTarget} />
       <NextLotCard lot={nextLot} disabled={Boolean(currentLot)} onStart={startAuction} />
-      <article className="queueTopCard health"><header><span><ShieldCheck size={18} />队列健康</span><StudioBadge tone={socket.status === 'connected' ? 'success' : 'warning'}>{wsState}</StudioBadge></header><div className="queueHealthGrid"><span>返回总数<b>{total}</b></span><span>本页待拍<b>{metrics.waiting}</b></span><span>本页成交<b>{metrics.settled}</b></span><span>本页异常<b>{metrics.abnormal}</b></span></div><p>当前固定直播间 {ADMIN_ROOM.name} · {ADMIN_ROOM.latency}</p></article>
+      <article className="queueTopCard health"><header><span><ShieldCheck size={18} />队列健康</span><StudioBadge tone={socket.status === 'connected' ? 'success' : 'warning'}>{wsState}</StudioBadge></header><div className="queueHealthGrid"><span>返回总数<b>{total}</b></span><span>本页待拍<b>{metrics.waiting}</b></span><span>本页落锤<b>{metrics.settled}</b></span><span>本页异常<b>{metrics.abnormal}</b></span></div><p>当前固定直播间 {ADMIN_ROOM.name} · {ADMIN_ROOM.latency}</p></article>
     </section>
     <section className="auctionMgmtStats">
       <StudioMetricCard icon={<Clock3 />} label="待开拍" value={metrics.waiting} trend="READY / QUEUED" tone="info" />
       <StudioMetricCard icon={<Radio />} label="进行中" value={metrics.live} trend="LIVE / EXTENDED" tone="success" />
-      <StudioMetricCard icon={<Trophy />} label="已成交" value={metrics.settled} trend="SETTLED / SOLD" tone="purple" />
+      <StudioMetricCard icon={<Trophy />} label="已落锤" value={metrics.settled} trend="SETTLED" tone="warning" />
       <StudioMetricCard icon={<ShieldAlert />} label="异常" value={metrics.abnormal} trend="FAILED，取消进历史" tone="danger" />
     </section>
     <StudioCard padding="md" className="queueToolbarCard">
@@ -211,21 +211,40 @@ function AuctionQueueRow({ lot, position, currentLot, snapshot, onDetail, onCanc
 
 function statusProgressText(lot: Lot, snapshot: RoomSnapshot | null) {
   if (isLiveLot(lot)) return `倒计时 ${formatAuctionLeftMs(getLotLeftMs(lot, snapshot?.serverTimeUnixMs), 'queue')}`;
-  if (isSettlementLot(lot)) return `成交时间 ${formatDateTimeText(lot.settledAtUnixMs)}`;
+  if (isSettlementLot(lot)) return `落锤时间 ${formatDateTimeText(lot.settledAtUnixMs)}`;
   if (lot.status === 'LOT_STATUS_CANCELLED') return lot.cancelReason || '已取消';
   return `状态 ${lotStatusLabel(lot.status)}`;
 }
 
 function orderStateText(lot: Lot) {
-  if (isSettlementLot(lot)) return <div className="orderState"><b>已成交</b><span>成交价 {formatMoneyText(lot.finalPrice)}</span></div>;
+  if (isSettlementLot(lot)) {
+    const outcome = settlementOutcomeDisplay(lot);
+    return <div className={`orderState ${outcome.state === 'failed' ? 'danger' : ''}`}><b>{outcome.label}</b><span>{outcome.priceLabel} {formatMoneyText(lot.finalPrice || lot.currentPrice)}</span></div>;
+  }
   if (isLiveLot(lot)) return <div className="orderState"><b>等待成交</b><span>{lot.leadingNickname || '暂无领先用户'}</span></div>;
   if (lot.status === 'LOT_STATUS_CANCELLED') return <div className="orderState danger"><b>取消原因</b><span>{lot.cancelReason || '已取消'}</span></div>;
   return <span className="mutedText">未成交</span>;
 }
 
+function drawerPersonText(lot: Lot) {
+  if (isLiveLot(lot)) return `领先用户：${lot.leadingNickname || '暂无'}`;
+  if (isSettlementLot(lot)) {
+    const outcome = settlementOutcomeDisplay(lot);
+    return `${outcome.personLabel}：${lot.winnerNickname || lot.winnerUserId || '买家未同步'}`;
+  }
+  if (lot.status === 'LOT_STATUS_CANCELLED') return `取消原因：${lot.cancelReason || '已取消'}`;
+  return '状态同步中';
+}
+
+function drawerPrimaryPrice(lot: Lot) {
+  if (isSettlementLot(lot)) return lot.finalPrice || lot.currentPrice;
+  return lot.currentPrice || lot.rule.startPrice;
+}
+
 function AuctionDetailDrawer({ lot, snapshot, onClose }: { lot: Lot; snapshot: RoomSnapshot | null; onClose: () => void }) {
   const bids = snapshot?.currentLot?.id === lot.id ? snapshot.recentBids : [];
-  return <aside className="auctionDrawer"><div className="drawerMask" onClick={onClose} /><section><header><div><p>竞拍详情</p><h3>{lot.title}</h3><span>{lot.id}</span></div><button type="button" onClick={onClose}>关闭</button></header><div className="drawerOverview"><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge><b>{formatMoneyText(lot.currentPrice)}</b><p>{lot.description || '暂无描述'}</p><span>领先用户：{lot.leadingNickname || '暂无'}</span><span>规则版本：v{lot.version || 1}</span></div><div className="ruleSnapshotGrid">{[['起拍价', formatMoneyText(lot.rule.startPrice)], ['加价幅度', formatMoneyText(lot.rule.minIncrement)], ['竞拍时长', formatDurationText(lot.rule.durationSeconds)], ['封顶价', formatMoneyText(lot.rule.capPrice)], ['延时窗口', `${lot.rule.antiSnipeWindowSeconds}s`], ['最大延时', `${lot.rule.maxExtendCount}`]].map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}</div><div className="drawerBidList">{bids.length ? bids.map((bid) => <div key={bid.id}><span>{bid.nickname || bid.userId}</span><b>{formatMoneyText(bid.amount)}</b><small>{formatDateTimeText(bid.createdAtUnixMs)} · {bid.userId === lot.leadingUserId ? '领先' : '非领先'}</small></div>) : <StudioEmptyState compact icon={<CheckCircle2 size={22} />} title="暂无实时出价" description="当前房间快照没有 recentBids。" />}</div></section></aside>;
+  const outcome = isSettlementLot(lot) ? settlementOutcomeDisplay(lot) : null;
+  return <aside className="auctionDrawer"><div className="drawerMask" onClick={onClose} /><section><header><div><p>竞拍详情</p><h3>{lot.title}</h3><span>{lot.id}</span></div><button type="button" onClick={onClose}>关闭</button></header><div className="drawerOverview"><StudioBadge tone={outcome?.tone ?? lotStatusTone(lot.status)}>{outcome?.label ?? lotStatusLabel(lot.status)}</StudioBadge><b>{formatMoneyText(drawerPrimaryPrice(lot))}</b><p>{lot.description || '暂无描述'}</p><span>{drawerPersonText(lot)}</span><span>规则版本：v{lot.version || 1}</span></div><div className="ruleSnapshotGrid">{[['起拍价', formatMoneyText(lot.rule.startPrice)], ['加价幅度', formatMoneyText(lot.rule.minIncrement)], ['竞拍时长', formatDurationText(lot.rule.durationSeconds)], ['封顶价', formatMoneyText(lot.rule.capPrice)], ['延时窗口', `${lot.rule.antiSnipeWindowSeconds}s`], ['最大延时', `${lot.rule.maxExtendCount}`]].map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}</div><div className="drawerBidList">{bids.length ? bids.map((bid) => <div key={bid.id}><span>{bid.nickname || bid.userId}</span><b>{formatMoneyText(bid.amount)}</b><small>{formatDateTimeText(bid.createdAtUnixMs)} · {bid.userId === lot.leadingUserId ? '领先' : '非领先'}</small></div>) : <StudioEmptyState compact icon={<CheckCircle2 size={22} />} title="暂无实时出价" description="当前房间快照没有 recentBids。" />}</div></section></aside>;
 }
 
 function CancelAuctionDialog({ lot, onClose, onConfirm }: { lot: Lot; onClose: () => void; onConfirm: (lot: Lot, reason: string) => Promise<void> }) {

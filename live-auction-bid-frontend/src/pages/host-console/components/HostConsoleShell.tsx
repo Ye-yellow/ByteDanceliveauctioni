@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { Bell, Search, Wifi } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { currentAuth } from '../../../features/auth/api/authApi';
 
 type HostRoomSummary = { name: string; latency: string };
@@ -36,7 +36,7 @@ export function HostConsoleShell({ children, navGroups, currentHostRoom, current
 
 function StudioSidebar({ navGroups }: { navGroups: StudioNavGroupConfig[] }) {
   return <aside className="laSidebar studioSidebar">
-    <a href="/home" className="laBrand studioBrand"><span>竞</span><div><strong>LiveAuction Studio</strong><small>直播间竞拍工作台</small></div></a>
+    <a href="/home" className="laBrand studioBrand"><div><strong>LiveAuction Studio</strong><small>直播间竞拍工作台</small></div></a>
     <nav className="laNav studioNav">{navGroups.map((group) => <StudioNavGroup key={group.label} group={group} />)}</nav>
   </aside>;
 }
@@ -55,13 +55,11 @@ function StudioTopbar({ title }: { title: string; currentHostRoom: HostRoomSumma
   const avatarText = user?.nickname?.slice(0, 1) || user?.username?.slice(0, 1) || '主';
   return <header className="laTopBar studioTopbar">
     <div className="studioTopbarTitle"><h1>{title}</h1></div>
-    <label className="laSearch studioSearch"><Search size={16} /><input placeholder="搜索拍品 / 订单 / 出价记录" /></label>
-    <div className="laTopActions studioTopActions"><WebSocketStatus /><button type="button" aria-label="通知"><Bell size={16} /></button><span className="laAvatar studioAvatar">{avatarText}</span></div>
+    <div className="laTopActions studioTopActions">
+      <button className="studioTopActionButton" type="button" aria-label="通知"><Bell size={16} /></button>
+      <button className="laAvatar studioAvatar studioAvatarButton" type="button" aria-label="当前用户">{avatarText}</button>
+    </div>
   </header>;
-}
-
-function WebSocketStatus() {
-  return <span className="laWsStatus"><Wifi size={15} /> 经营数据在线</span>;
 }
 
 function StudioContent({ children }: { title: string; currentHostRoom: HostRoomSummary; children: ReactNode }) {

@@ -93,7 +93,7 @@ export function LiveControlPage({ roomId = ADMIN_ROOM.id }: { roomId?: string })
     <section className="auctionMgmtStats liveControlStatusGrid">
       <StudioMetricCard icon={<Wifi />} label="WebSocket" value={wsState} trend={`重连 ${socket.reconnectCount} 次`} tone={socket.status === 'connected' ? 'success' : 'warning'} />
       <StudioMetricCard icon={<Radio />} label="当前竞拍" value={lot?.id || '无 LIVE'} trend={lot?.title || '等待开拍'} tone={lot ? 'success' : 'warning'} />
-      <StudioMetricCard icon={<Trophy />} label="排行榜" value={snapshot?.ranking?.length || 0} trend="来自 snapshot" tone="info" />
+      <StudioMetricCard icon={<Trophy />} label="参与 / 出价" value={lot ? `${lot.stats.participantCount} / ${lot.stats.bidCount}` : 0} trend="来自 lot.stats" tone="info" />
       <StudioMetricCard icon={<Clock3 />} label="服务器偏移" value={snapshot?.serverTimeUnixMs ? `${getServerOffsetMs(snapshot.serverTimeUnixMs)}ms` : '待同步'} trend="倒计时以服务端时间校正" tone="purple" />
     </section>
     {!lot ? <PreparedStage nextLot={nextLot} onSync={() => void syncRoom()} /> : <div className="controlRoomGrid">

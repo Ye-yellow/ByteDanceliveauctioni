@@ -46,6 +46,27 @@ export function paymentStatusTone(status?: string | null): StudioTone {
   return paymentStatusMeta[status || '']?.tone ?? 'neutral';
 }
 
+export function isOrderPaidStatus(status?: string | null, paymentStatus?: string | null) {
+  return String(status || '').toUpperCase() === 'PAID'
+    || String(paymentStatus || '').toUpperCase() === 'SUCCESS';
+}
+
+export function orderPaymentExpired(expiresAtUnixMs?: number | string | null, nowMs = Date.now()) {
+  const expiresAt = Number(expiresAtUnixMs || 0);
+  return Number.isFinite(expiresAt) && expiresAt > 0 && expiresAt <= nowMs;
+}
+
+export function isOrderClosedStatus(status?: string | null, paymentStatus?: string | null, expiresAtUnixMs?: number | string | null, nowMs = Date.now()) {
+  if (isOrderPaidStatus(status, paymentStatus)) return false;
+  return orderPaymentExpired(expiresAtUnixMs, nowMs)
+    || ['CANCELLED', 'EXPIRED', 'REFUNDED'].includes(String(status || '').toUpperCase())
+    || ['FAILED', 'CLOSED'].includes(String(paymentStatus || '').toUpperCase());
+}
+
+export function isOrderPayingStatus(status?: string | null, paymentStatus?: string | null, expiresAtUnixMs?: number | string | null, nowMs = Date.now()) {
+  return !isOrderPaidStatus(status, paymentStatus) && !isOrderClosedStatus(status, paymentStatus, expiresAtUnixMs, nowMs);
+}
+
 export function isAbnormalOrder(status?: string | null, paymentStatus?: string | null) {
   return ['CANCELLED', 'EXPIRED', 'REFUNDED'].includes(String(status || ''))
     || ['FAILED', 'CLOSED'].includes(String(paymentStatus || ''));
