@@ -6560,3 +6560,226 @@ html body .laAdminShell .studioTopActions button:active {
     padding: 14px;
   }
 }
+
+/* Local home/login visual sync: homepage loads after styles.css, so keep this override here. */
+html body .softHomePage,
+html body .loginPage.adminOnlyLogin {
+  --page-shared-soft-bg:
+    radial-gradient(circle at 19% 22%, rgba(145, 213, 236, .42), transparent 34%),
+    radial-gradient(circle at 80% 18%, rgba(255, 174, 199, .42), transparent 35%),
+    radial-gradient(circle at 50% 46%, rgba(255, 255, 255, .34), transparent 28%),
+    linear-gradient(135deg, #DCEFF5 0%, #F6DDE8 56%, #FACDD9 100%);
+  --page-shared-soft-overlay:
+    radial-gradient(circle at 50% 48%, rgba(255, 255, 255, .34), rgba(255, 255, 255, .12) 24%, transparent 43%);
+  --page-white-clay-shadow:
+    -5px -5px 12px rgba(255, 255, 255, .34),
+    8px 10px 20px rgba(121, 139, 158, .18),
+    inset -2px -2px 6px rgba(255, 255, 255, .34),
+    inset 2px 2px 6px rgba(134, 153, 174, .08);
+  --page-white-clay-soft:
+    -3px -3px 8px rgba(255, 255, 255, .34),
+    5px 6px 12px rgba(121, 139, 158, .16),
+    inset -2px -2px 4px rgba(255, 255, 255, .30),
+    inset 2px 2px 4px rgba(134, 153, 174, .08);
+  background: var(--page-shared-soft-bg) !important;
+}
+
+html body .softHomePage .softHomeBackdrop {
+  background: var(--page-shared-soft-bg) !important;
+  filter: saturate(1) brightness(.98) !important;
+}
+
+html body .softHomePage .softHomeBackdrop::after,
+html body .loginPage.adminOnlyLogin::before {
+  display: block !important;
+  opacity: .42 !important;
+  background: var(--page-shared-soft-overlay) !important;
+  background-size: auto !important;
+  mask-image: none !important;
+}
+
+html body .softHomePage .heroStage .heroCard,
+html body .softHomePage .softHeroCard {
+  background: #FFFFFF !important;
+  background-image: none !important;
+  border-color: rgba(255, 255, 255, .62) !important;
+  box-shadow: var(--page-white-clay-shadow) !important;
+  backdrop-filter: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  animation: none !important;
+}
+
+html body .softHomePage .heroStage .heroCard::after,
+html body .softHomePage .softHeroCard::after {
+  background: none !important;
+  border-color: rgba(134, 153, 174, .08) !important;
+  box-shadow: none !important;
+}
+
+html body .softHomePage .heroStage .softFeatureGrid article {
+  border-radius: 28px !important;
+  background: #FFFFFF !important;
+  background-image: none !important;
+  box-shadow: var(--page-white-clay-soft) !important;
+}
+
+html body .softHomePage .heroStage .softHeroActions.isSingleEntry .softLoginButton,
+html body .softHomePage .heroStage .softLoginButton,
+html body .softHomePage .softLoginButton {
+  background: #FFFFFF !important;
+  background-image: none !important;
+  color: #34445D !important;
+  text-shadow: none !important;
+  box-shadow: var(--page-white-clay-soft) !important;
+}
+
+html body .softHomePage .heroStage .softHeroActions.isSingleEntry .softLoginButton span,
+html body .softHomePage .heroStage .softLoginButton span,
+html body .softHomePage .softLoginButton span {
+  background: #FFFFFF !important;
+  background-image: none !important;
+  color: #5F7FA5 !important;
+  box-shadow:
+    inset 3px 3px 8px rgba(122, 142, 164, .14),
+    inset -3px -3px 8px rgba(255, 255, 255, .54) !important;
+}
+
+html body .softHomePage .heroStage .softHeroActions.isSingleEntry .softLoginButton:hover,
+html body .softHomePage .heroStage .softLoginButton:hover,
+html body .softHomePage .softLoginButton:hover {
+  transform: translateY(-3px) !important;
+  box-shadow:
+    -5px -5px 14px rgba(255, 255, 255, .48),
+    8px 9px 20px rgba(121, 139, 158, .22),
+    inset -2px -2px 6px rgba(255, 255, 255, .38),
+    inset 2px 2px 6px rgba(134, 153, 174, .10) !important;
+}
+
+html body .softHomePage .heroStage .softHeroActions.isSingleEntry .softLoginButton:active,
+html body .softHomePage .heroStage .softLoginButton:active,
+html body .softHomePage .softLoginButton:active {
+  transform: translateY(0) scale(.99) !important;
+  box-shadow:
+    -2px -2px 8px rgba(255, 255, 255, .34),
+    2px 3px 9px rgba(121, 139, 158, .16),
+    inset -3px -3px 7px rgba(255, 255, 255, .26),
+    inset 3px 3px 7px rgba(134, 153, 174, .13) !important;
+}
+
+html body .loginPage.adminOnlyLogin .authShell {
+  box-shadow: var(--page-white-clay-shadow) !important;
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+html body .loginPage.adminOnlyLogin .authShell::before {
+  inset: -18px !important;
+  background: rgba(255, 255, 255, .18) !important;
+  backdrop-filter: none !important;
+  box-shadow:
+    -4px -4px 10px rgba(255, 255, 255, .28),
+    8px 10px 20px rgba(121, 139, 158, .14),
+    inset -2px -2px 5px rgba(255, 255, 255, .24),
+    inset 2px 2px 5px rgba(134, 153, 174, .06) !important;
+}
+
+html body .loginPage.adminOnlyLogin .authShell::after {
+  box-shadow:
+    inset -2px -2px 5px rgba(255, 255, 255, .30),
+    inset 2px 2px 5px rgba(134, 153, 174, .06) !important;
+}
+
+html body .loginPage.adminOnlyLogin .authModeIndicator {
+  grid-template-columns: 1fr !important;
+}
+
+html body .loginPage.adminOnlyLogin .authModeIndicator button {
+  cursor: default !important;
+}
+
+html body .loginPage.adminOnlyLogin .authInlineActions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+}
+
+html body .loginPage.adminOnlyLogin .authTextButton {
+  border: 0 !important;
+  background: transparent !important;
+  color: #111827 !important;
+  padding: 0 !important;
+  font-weight: 850 !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+html body .loginPage.adminOnlyLogin .authTextButton:hover {
+  color: #000000 !important;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-register,
+html body .loginPage.adminOnlyLogin .authFormPanel-reset {
+  padding-top: 32px !important;
+  padding-bottom: 28px !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-register .loginEyebrow,
+html body .loginPage.adminOnlyLogin .authFormPanel-reset .loginEyebrow {
+  margin-bottom: 8px !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-register h2,
+html body .loginPage.adminOnlyLogin .authFormPanel-reset h2 {
+  font-size: 44px !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-register .loginSubcopy,
+html body .loginPage.adminOnlyLogin .authFormPanel-reset .loginSubcopy {
+  margin: 10px 0 18px !important;
+  line-height: 1.5 !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-register .loginTabs,
+html body .loginPage.adminOnlyLogin .authFormPanel-reset .loginTabs {
+  min-height: 48px !important;
+  margin-bottom: 12px !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-register .loginField,
+html body .loginPage.adminOnlyLogin .authFormPanel-reset .loginField {
+  gap: 7px !important;
+  margin: 10px 0 !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-register .loginField div,
+html body .loginPage.adminOnlyLogin .authFormPanel-reset .loginField div {
+  height: 52px !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-register .authFormOptions,
+html body .loginPage.adminOnlyLogin .authFormPanel-reset .authFormOptions {
+  margin: 9px 0 2px !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-register .loginSubmit,
+html body .loginPage.adminOnlyLogin .authFormPanel-reset .loginSubmit {
+  min-height: 54px !important;
+  margin-top: 12px !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-register .loginHint,
+html body .loginPage.adminOnlyLogin .authFormPanel-reset .loginHint {
+  margin-top: 10px !important;
+  font-size: 12px !important;
+}
+
+@media (max-width: 900px) {
+  html body .loginPage.adminOnlyLogin .authInlineActions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

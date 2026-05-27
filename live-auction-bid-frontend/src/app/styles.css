@@ -1304,3 +1304,686 @@ html,body,#root{height:100%}.softHomePage{height:100vh!important;min-height:100v
     font-size: 15px !important;
   }
 }
+
+/* Local clay redesign draft: one tactile macaron clay object. */
+.loginPage.adminOnlyLogin{
+  --login-clay-ink: #372f4a;
+  --login-clay-muted: #6c617e;
+  --login-clay-purple-light: #e4c1f9;
+  --login-clay-purple-main: #d4a5f3;
+  --login-clay-purple-deep: #9d74dc;
+  --login-clay-pink-light: #ffc8dd;
+  --login-clay-pink-main: #ffb3d9;
+  --login-clay-blue-light: #cae9ff;
+  --login-clay-blue-main: #a2d2ff;
+  --login-clay-yellow-light: #fff4bd;
+  --login-clay-shell: linear-gradient(145deg, #fff8fc 0%, #f4e8ff 48%, #edf8ff 100%);
+  --login-clay-raised:
+    -8px -8px 24px rgba(255,255,255,.82),
+    10px 14px 30px rgba(196,142,232,.24),
+    inset -4px -4px 10px rgba(255,255,255,.48),
+    inset 4px 4px 10px rgba(196,142,232,.18);
+  --login-clay-raised-strong:
+    -12px -12px 32px rgba(255,255,255,.88),
+    16px 20px 44px rgba(196,142,232,.30),
+    inset -5px -5px 12px rgba(255,255,255,.54),
+    inset 5px 5px 12px rgba(196,142,232,.20);
+  --login-clay-soft:
+    -5px -5px 15px rgba(255,255,255,.74),
+    6px 8px 18px rgba(196,142,232,.20),
+    inset -2px -2px 6px rgba(255,255,255,.42),
+    inset 2px 2px 6px rgba(196,142,232,.16);
+  --login-clay-inset:
+    inset 4px 4px 12px rgba(196,142,232,.24),
+    inset -4px -4px 12px rgba(255,255,255,.72);
+  --login-clay-pressed:
+    -3px -3px 10px rgba(255,255,255,.66),
+    3px 4px 12px rgba(196,142,232,.20),
+    inset -4px -4px 10px rgba(255,255,255,.32),
+    inset 4px 4px 10px rgba(196,142,232,.28);
+  min-height: 100dvh !important;
+  padding: 28px !important;
+  background:
+    radial-gradient(circle at 10% 12%, rgba(255,200,221,.54) 0 15%, transparent 32%),
+    radial-gradient(circle at 84% 16%, rgba(202,233,255,.62) 0 18%, transparent 38%),
+    radial-gradient(circle at 23% 88%, rgba(228,193,249,.52) 0 20%, transparent 42%),
+    linear-gradient(145deg, #fff7fb 0%, #f8f2ff 50%, #eef9ff 100%) !important;
+}
+.loginPage.adminOnlyLogin:before{
+  display: block !important;
+  opacity: .34 !important;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.72) 0 2px, transparent 2px),
+    radial-gradient(circle, rgba(212,165,243,.16) 0 1px, transparent 1px) !important;
+  background-size: 46px 46px, 28px 28px !important;
+  mask-image: none !important;
+}
+.loginPage.adminOnlyLogin:after{
+  opacity: .76 !important;
+  right: -13vw !important;
+  top: -18vh !important;
+  width: 52vw !important;
+  height: 52vw !important;
+  background: radial-gradient(circle, rgba(255,179,217,.42), rgba(202,233,255,.18) 48%, transparent 68%) !important;
+  filter: blur(38px) !important;
+}
+.loginPage.adminOnlyLogin .authShell{
+  width: min(1160px, calc(100vw - 84px)) !important;
+  min-height: 650px !important;
+  grid-template-columns: minmax(0, .96fr) minmax(430px, 1fr) !important;
+  padding: 18px !important;
+  border: 0 !important;
+  border-radius: 58px !important;
+  background: var(--login-clay-shell) !important;
+  box-shadow: var(--login-clay-raised-strong) !important;
+  overflow: hidden !important;
+}
+.loginPage.adminOnlyLogin .authShell:before{
+  content: "" !important;
+  position: absolute !important;
+  inset: 12px !important;
+  border-radius: 46px !important;
+  pointer-events: none !important;
+  box-shadow:
+    inset -5px -5px 13px rgba(255,255,255,.44),
+    inset 5px 5px 13px rgba(196,142,232,.10) !important;
+  z-index: 0 !important;
+}
+.loginPage.adminOnlyLogin .authBrandPanel,
+.loginPage.adminOnlyLogin .authFormPanel{
+  z-index: 1 !important;
+  min-height: 614px !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.loginPage.adminOnlyLogin .authBrandPanel{
+  border-radius: 44px 0 0 44px !important;
+  padding: 50px 58px !important;
+  background:
+    radial-gradient(circle at 9% 92%, rgba(212,165,243,.50) 0 0, transparent 35%),
+    radial-gradient(circle at 82% 18%, rgba(255,200,221,.26) 0 0, transparent 30%),
+    linear-gradient(145deg, rgba(255,248,252,.92), rgba(245,232,255,.74) 54%, rgba(239,249,255,.76)) !important;
+}
+.loginPage.adminOnlyLogin .authFormPanel{
+  border-radius: 0 44px 44px 0 !important;
+  padding: 50px 62px !important;
+  background:
+    radial-gradient(circle at 92% 88%, rgba(255,200,221,.20) 0 0, transparent 30%),
+    linear-gradient(145deg, rgba(255,252,254,.94), rgba(255,246,251,.84)) !important;
+}
+.loginPage.adminOnlyLogin .authKicker,
+.loginPage.adminOnlyLogin .loginEyebrow{
+  color: #7b59d5 !important;
+  text-shadow: 0 2px 0 rgba(255,255,255,.72) !important;
+}
+.loginPage.adminOnlyLogin .authBrandPanel h1,
+.loginPage.adminOnlyLogin .authFormPanel h2{
+  color: var(--login-clay-ink) !important;
+  letter-spacing: -.035em !important;
+  text-shadow:
+    0 2px 0 rgba(255,255,255,.74),
+    0 10px 22px rgba(117,92,150,.16) !important;
+}
+.loginPage.adminOnlyLogin .authBrandLead,
+.loginPage.adminOnlyLogin .loginSubcopy,
+.loginPage.adminOnlyLogin .loginHint{
+  color: var(--login-clay-muted) !important;
+}
+.loginPage.adminOnlyLogin .authBrandScene{
+  min-height: 205px !important;
+}
+.loginPage.adminOnlyLogin .authVisualGavel{
+  color: rgba(157,116,220,.38) !important;
+  filter: drop-shadow(8px 10px 16px rgba(196,142,232,.24)) !important;
+}
+.loginPage.adminOnlyLogin .authVisualProduct,
+.loginPage.adminOnlyLogin .authProductCard{
+  border: 0 !important;
+  border-radius: 34px !important;
+  background: linear-gradient(145deg, rgba(255,248,252,.96), rgba(228,193,249,.44)) !important;
+  box-shadow: var(--login-clay-soft) !important;
+}
+.loginPage.adminOnlyLogin .authVisualBid,
+.loginPage.adminOnlyLogin .authBidStack span{
+  border: 0 !important;
+  border-radius: 22px !important;
+  background: linear-gradient(145deg, #ffffff, rgba(255,200,221,.56)) !important;
+  box-shadow: var(--login-clay-soft) !important;
+  color: #66547a !important;
+}
+.loginPage.adminOnlyLogin .authCapabilityGrid span{
+  min-height: 68px !important;
+  border: 0 !important;
+  border-radius: 28px !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(255,200,221,.22)) !important;
+  box-shadow: var(--login-clay-soft) !important;
+  color: var(--login-clay-ink) !important;
+  transition: transform .28s cubic-bezier(.34,1.56,.64,1), box-shadow .28s ease !important;
+}
+.loginPage.adminOnlyLogin .authCapabilityGrid span:hover{
+  transform: translateY(-3px) !important;
+  box-shadow:
+    -7px -7px 18px rgba(255,255,255,.82),
+    8px 10px 22px rgba(196,142,232,.25),
+    inset -2px -2px 6px rgba(255,255,255,.45),
+    inset 2px 2px 6px rgba(196,142,232,.16) !important;
+}
+.loginPage.adminOnlyLogin .loginTabs{
+  min-height: 58px !important;
+  padding: 7px !important;
+  border: 0 !important;
+  border-radius: 28px !important;
+  background: linear-gradient(145deg, #efe5f7, #e7d7f1) !important;
+  box-shadow: var(--login-clay-inset) !important;
+}
+.loginPage.adminOnlyLogin .loginTabs button{
+  border-radius: 22px !important;
+  color: #6a5d78 !important;
+  transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease, background .25s ease !important;
+}
+.loginPage.adminOnlyLogin .loginTabs button.active{
+  background: linear-gradient(145deg, #ffffff, #fff1f7) !important;
+  color: #087a73 !important;
+  box-shadow: var(--login-clay-soft) !important;
+}
+.loginPage.adminOnlyLogin .loginField div{
+  height: 64px !important;
+  border: 0 !important;
+  border-radius: 28px !important;
+  background: linear-gradient(145deg, #f0e5f5, #e8d8f0) !important;
+  box-shadow: var(--login-clay-inset) !important;
+  color: #927fab !important;
+}
+.loginPage.adminOnlyLogin .loginField div:focus-within{
+  background: linear-gradient(145deg, #f8edf8, #efe2f5) !important;
+  box-shadow:
+    inset 5px 5px 14px rgba(196,142,232,.30),
+    inset -5px -5px 14px rgba(255,255,255,.78),
+    0 0 0 5px rgba(212,165,243,.22) !important;
+}
+.loginPage.adminOnlyLogin .loginField input::placeholder{
+  color: rgba(108,97,126,.54) !important;
+}
+.loginPage.adminOnlyLogin .passwordToggle{
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  color: #8c66dd !important;
+  transition: transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s ease !important;
+}
+.loginPage.adminOnlyLogin .passwordToggle:hover{
+  transform: translateY(-1px) !important;
+  background: linear-gradient(145deg, #ffffff, #f4e8ff) !important;
+  box-shadow: var(--login-clay-soft) !important;
+}
+.loginPage.adminOnlyLogin .authFormOptions input[type="checkbox"]{
+  appearance: none !important;
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 7px !important;
+  background: linear-gradient(145deg, #ffc8dd, #ffafcc) !important;
+  box-shadow:
+    -2px -2px 6px rgba(255,255,255,.70),
+    2px 2px 6px rgba(255,175,204,.32),
+    inset -1px -1px 3px rgba(255,255,255,.35),
+    inset 1px 1px 3px rgba(255,143,179,.30) !important;
+  display: inline-grid !important;
+  place-items: center !important;
+}
+.loginPage.adminOnlyLogin .authFormOptions input[type="checkbox"]:checked:after{
+  content: "" !important;
+  width: 8px !important;
+  height: 5px !important;
+  border-left: 2px solid #fff !important;
+  border-bottom: 2px solid #fff !important;
+  transform: rotate(-45deg) translateY(-1px) !important;
+}
+.loginPage.adminOnlyLogin .loginSubmit,
+.loginPage.adminOnlyLogin .authPrimaryLink{
+  min-height: 68px !important;
+  border-radius: 32px !important;
+  background: linear-gradient(145deg, #d4a5f3, #9d74dc) !important;
+  color: #ffffff !important;
+  text-shadow: 1px 1px 2px rgba(73,52,116,.20) !important;
+  box-shadow:
+    -6px -6px 16px rgba(255,255,255,.72),
+    7px 9px 20px rgba(157,116,220,.38),
+    inset -3px -3px 7px rgba(255,255,255,.28),
+    inset 3px 3px 7px rgba(112,76,170,.30) !important;
+  transition: transform .30s cubic-bezier(.34,1.56,.64,1), box-shadow .30s ease, filter .30s ease !important;
+}
+.loginPage.adminOnlyLogin .loginSubmit:not(:disabled):hover,
+.loginPage.adminOnlyLogin .authPrimaryLink:hover{
+  transform: translateY(-4px) scale(1.01) !important;
+  box-shadow:
+    -8px -8px 22px rgba(255,255,255,.82),
+    9px 12px 26px rgba(157,116,220,.46),
+    inset -3px -3px 7px rgba(255,255,255,.30),
+    inset 3px 3px 7px rgba(112,76,170,.30) !important;
+}
+.loginPage.adminOnlyLogin .loginSubmit:not(:disabled):active,
+.loginPage.adminOnlyLogin .authPrimaryLink:active,
+.loginPage.adminOnlyLogin .loginGhost:active,
+.loginPage.adminOnlyLogin .loginBack:active{
+  transform: translateY(0) scale(.985) !important;
+  box-shadow: var(--login-clay-pressed) !important;
+}
+.loginPage.adminOnlyLogin .loginSubmit:disabled{
+  opacity: .66 !important;
+  filter: saturate(.82) !important;
+}
+.loginPage.adminOnlyLogin .loginBack,
+.loginPage.adminOnlyLogin .loginGhost{
+  border: 0 !important;
+  border-radius: 28px !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.94), rgba(255,200,221,.28)) !important;
+  box-shadow: var(--login-clay-soft) !important;
+}
+
+/* Local reference-aligned draft: restrained white clay login. */
+.loginPage.adminOnlyLogin{
+  --login-white-clay-bg: var(--home-desktop-backdrop-bg);
+  --login-white-clay-card: #ffffff;
+  --login-white-clay-panel: #f7f9fc;
+  --login-white-clay-ink: #34445d;
+  --login-white-clay-muted: #74829a;
+  --login-white-clay-blue: #9dccf4;
+  --login-white-clay-pink: #ffa7ca;
+  --login-white-clay-green: #b8e3c8;
+  --login-white-clay-shadow:
+    -8px -8px 20px rgba(255,255,255,.46),
+    12px 14px 30px rgba(121,139,158,.22),
+    inset -4px -4px 10px rgba(255,255,255,.42),
+    inset 4px 4px 10px rgba(134,153,174,.10);
+  --login-white-clay-soft:
+    -4px -4px 11px rgba(255,255,255,.46),
+    6px 7px 15px rgba(121,139,158,.20),
+    inset -2px -2px 5px rgba(255,255,255,.38),
+    inset 2px 2px 5px rgba(134,153,174,.08);
+  --login-white-clay-inset:
+    inset 4px 4px 10px rgba(122,142,164,.18),
+    inset -4px -4px 10px rgba(255,255,255,.56);
+  background:
+    linear-gradient(135deg, rgba(220,231,236,.18), rgba(226,217,226,.18)),
+    var(--login-white-clay-bg) !important;
+  color: var(--login-white-clay-ink) !important;
+}
+.loginPage.adminOnlyLogin:after{
+  display: none !important;
+}
+.loginPage.adminOnlyLogin:before{
+  display: block !important;
+  opacity: .24 !important;
+  background: var(--home-desktop-backdrop-overlay-bg) !important;
+  background-size: auto !important;
+  mask-image: none !important;
+}
+.loginPage.adminOnlyLogin .authParticleField{
+  display: block !important;
+  opacity: .18 !important;
+}
+.loginPage.adminOnlyLogin .authParticleField i{
+  background: rgba(255,255,255,.92) !important;
+  box-shadow: 5px 6px 14px rgba(121,139,158,.14) !important;
+}
+.loginPage.adminOnlyLogin .authFloatLayer{
+  display: block !important;
+  z-index: 1 !important;
+}
+.loginPage.adminOnlyLogin .loginBack{
+  border: 0 !important;
+  border-radius: 28px !important;
+  background: var(--login-white-clay-card) !important;
+  color: var(--login-white-clay-ink) !important;
+  box-shadow: var(--login-white-clay-soft) !important;
+}
+.loginPage.adminOnlyLogin .authShell{
+  width: min(1120px, calc(100vw - 140px)) !important;
+  aspect-ratio: 4 / 3 !important;
+  min-height: 0 !important;
+  padding: 16px !important;
+  border: 0 !important;
+  border-radius: 42px !important;
+  background: var(--login-white-clay-card) !important;
+  box-shadow: var(--login-white-clay-shadow) !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+  z-index: 2 !important;
+}
+.loginPage.adminOnlyLogin .authShell:before{
+  content: "" !important;
+  position: absolute !important;
+  inset: -28px !important;
+  border-radius: 64px !important;
+  background: rgba(255,255,255,.28) !important;
+  pointer-events: none !important;
+  box-shadow:
+    -8px -8px 20px rgba(255,255,255,.36),
+    14px 18px 34px rgba(121,139,158,.17),
+    inset -5px -5px 12px rgba(255,255,255,.30),
+    inset 5px 5px 12px rgba(134,153,174,.08) !important;
+  backdrop-filter: blur(14px) saturate(1.02) !important;
+  z-index: -1 !important;
+}
+.loginPage.adminOnlyLogin .authShell:after{
+  content: "" !important;
+  position: absolute !important;
+  inset: 12px !important;
+  border-radius: 34px !important;
+  pointer-events: none !important;
+  box-shadow:
+    inset -3px -3px 8px rgba(255,255,255,.42),
+    inset 3px 3px 8px rgba(134,153,174,.08) !important;
+  z-index: 0 !important;
+}
+.loginPage.adminOnlyLogin .authBrandPanel,
+.loginPage.adminOnlyLogin .authFormPanel{
+  min-height: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  z-index: 1 !important;
+}
+.loginPage.adminOnlyLogin .authBrandPanel{
+  padding: 46px 50px !important;
+  border-radius: 32px 0 0 32px !important;
+}
+.loginPage.adminOnlyLogin .authBrandPanel:before{
+  width: 260px !important;
+  height: 260px !important;
+  left: -86px !important;
+  bottom: -104px !important;
+  background: rgba(157,204,244,.34) !important;
+}
+.loginPage.adminOnlyLogin .authFormPanel{
+  padding: 46px 54px !important;
+  border-radius: 0 32px 32px 0 !important;
+}
+.loginPage.adminOnlyLogin .authKicker,
+.loginPage.adminOnlyLogin .loginEyebrow{
+  color: #5f7fa5 !important;
+  text-shadow: none !important;
+}
+.loginPage.adminOnlyLogin .authBrandPanel h1,
+.loginPage.adminOnlyLogin .authFormPanel h2{
+  color: var(--login-white-clay-ink) !important;
+  text-shadow: none !important;
+  letter-spacing: -.035em !important;
+}
+.loginPage.adminOnlyLogin .authBrandLead,
+.loginPage.adminOnlyLogin .loginSubcopy,
+.loginPage.adminOnlyLogin .loginHint,
+.loginPage.adminOnlyLogin .loginField span,
+.loginPage.adminOnlyLogin .authFormOptions{
+  color: var(--login-white-clay-muted) !important;
+}
+.loginPage.adminOnlyLogin .authBrandScene{
+  min-height: 180px !important;
+}
+.loginPage.adminOnlyLogin .authVisualGavel{
+  color: rgba(157,204,244,.62) !important;
+  filter: drop-shadow(7px 8px 10px rgba(121,139,158,.18)) !important;
+}
+.loginPage.adminOnlyLogin .authVisualProduct,
+.loginPage.adminOnlyLogin .authVisualBid,
+.loginPage.adminOnlyLogin .authCapabilityGrid span,
+.loginPage.adminOnlyLogin .authFloatCard,
+.loginPage.adminOnlyLogin .authProductCard,
+.loginPage.adminOnlyLogin .authGiftBubble,
+.loginPage.adminOnlyLogin .authCoin,
+.loginPage.adminOnlyLogin .authBidStack span{
+  border: 0 !important;
+  background: var(--login-white-clay-card) !important;
+  color: var(--login-white-clay-ink) !important;
+  box-shadow: var(--login-white-clay-soft) !important;
+  backdrop-filter: none !important;
+}
+.loginPage.adminOnlyLogin .authVisualProduct,
+.loginPage.adminOnlyLogin .authProductCard{
+  border-radius: 28px !important;
+}
+.loginPage.adminOnlyLogin .authLiveCard{
+  left: 12px !important;
+  top: 15.5% !important;
+  opacity: .72 !important;
+  transform: rotate(-7deg) !important;
+}
+.loginPage.adminOnlyLogin .authLiveCard span{
+  background: #ffd8e8 !important;
+  color: #6d4c5f !important;
+}
+.loginPage.adminOnlyLogin .authBidStack{
+  left: 34px !important;
+  top: 66% !important;
+  opacity: .72 !important;
+  transform: rotate(6deg) !important;
+}
+.loginPage.adminOnlyLogin .authArtCard{
+  right: 14px !important;
+  top: 13.5% !important;
+  opacity: .70 !important;
+  transform: rotate(7deg) !important;
+}
+.loginPage.adminOnlyLogin .authBagCard{
+  right: 18px !important;
+  top: 61% !important;
+  opacity: .68 !important;
+  transform: rotate(-6deg) !important;
+}
+.loginPage.adminOnlyLogin .authGiftBubble{
+  right: 78px !important;
+  bottom: 7.5% !important;
+  opacity: .64 !important;
+  color: var(--login-white-clay-pink) !important;
+}
+.loginPage.adminOnlyLogin .authCoin{
+  opacity: .58 !important;
+  color: var(--login-white-clay-blue) !important;
+}
+.loginPage.adminOnlyLogin .coinA{
+  left: 128px !important;
+  top: 20% !important;
+}
+.loginPage.adminOnlyLogin .coinB{
+  right: 126px !important;
+  top: 31% !important;
+}
+.loginPage.adminOnlyLogin .authGavelSketch{
+  left: 78px !important;
+  top: 73% !important;
+  color: rgba(157,204,244,.55) !important;
+  opacity: .62 !important;
+}
+.loginPage.adminOnlyLogin .authVisualProduct svg,
+.loginPage.adminOnlyLogin .authProductCard i{
+  color: var(--login-white-clay-blue) !important;
+}
+.loginPage.adminOnlyLogin .authCapabilityGrid span{
+  min-height: 58px !important;
+  border-radius: 24px !important;
+}
+.loginPage.adminOnlyLogin .loginTabs{
+  min-height: 54px !important;
+  padding: 6px !important;
+  border: 0 !important;
+  border-radius: 27px !important;
+  background: #e7edf4 !important;
+  box-shadow: var(--login-white-clay-inset) !important;
+}
+.loginPage.adminOnlyLogin .loginTabs button{
+  border-radius: 22px !important;
+  color: var(--login-white-clay-muted) !important;
+}
+.loginPage.adminOnlyLogin .loginTabs button.active{
+  background: var(--login-white-clay-card) !important;
+  color: #2f6d91 !important;
+  box-shadow: var(--login-white-clay-soft) !important;
+}
+.loginPage.adminOnlyLogin .loginField div{
+  height: 58px !important;
+  border: 0 !important;
+  border-radius: 24px !important;
+  background: #e8eef5 !important;
+  color: var(--login-white-clay-muted) !important;
+  box-shadow: var(--login-white-clay-inset) !important;
+}
+.loginPage.adminOnlyLogin .loginField div:focus-within{
+  background: #eef4fa !important;
+  box-shadow:
+    inset 5px 5px 12px rgba(122,142,164,.20),
+    inset -5px -5px 12px rgba(255,255,255,.82),
+    0 0 0 4px rgba(157,204,244,.28) !important;
+}
+.loginPage.adminOnlyLogin .loginField input{
+  color: var(--login-white-clay-ink) !important;
+}
+.loginPage.adminOnlyLogin .passwordToggle:hover{
+  background: var(--login-white-clay-card) !important;
+  box-shadow: var(--login-white-clay-soft) !important;
+}
+.loginPage.adminOnlyLogin .authFormOptions input[type="checkbox"]{
+  appearance: none !important;
+  width: 17px !important;
+  height: 17px !important;
+  border-radius: 7px !important;
+  background: var(--login-white-clay-card) !important;
+  box-shadow: var(--login-white-clay-soft) !important;
+  display: inline-grid !important;
+  place-items: center !important;
+}
+.loginPage.adminOnlyLogin .authFormOptions input[type="checkbox"]:checked{
+  background: var(--login-white-clay-pink) !important;
+}
+.loginPage.adminOnlyLogin .authFormOptions input[type="checkbox"]:checked:after{
+  content: "" !important;
+  width: 8px !important;
+  height: 5px !important;
+  border-left: 2px solid #fff !important;
+  border-bottom: 2px solid #fff !important;
+  transform: rotate(-45deg) translateY(-1px) !important;
+}
+.loginPage.adminOnlyLogin .loginSubmit,
+.loginPage.adminOnlyLogin .authPrimaryLink{
+  min-height: 58px !important;
+  border-radius: 28px !important;
+  background: var(--login-white-clay-card) !important;
+  color: var(--login-white-clay-ink) !important;
+  text-shadow: none !important;
+  box-shadow: var(--login-white-clay-soft) !important;
+  transition: transform .24s cubic-bezier(.34,1.56,.64,1), box-shadow .24s ease !important;
+}
+.loginPage.adminOnlyLogin .loginSubmit:not(:disabled):hover,
+.loginPage.adminOnlyLogin .authPrimaryLink:hover{
+  transform: translateY(-3px) !important;
+  box-shadow:
+    -5px -5px 14px rgba(255,255,255,.50),
+    8px 9px 20px rgba(121,139,158,.24),
+    inset -2px -2px 6px rgba(255,255,255,.40),
+    inset 2px 2px 6px rgba(134,153,174,.10) !important;
+}
+.loginPage.adminOnlyLogin .loginSubmit:not(:disabled):active,
+.loginPage.adminOnlyLogin .authPrimaryLink:active,
+.loginPage.adminOnlyLogin .loginGhost:active,
+.loginPage.adminOnlyLogin .loginBack:active{
+  transform: translateY(0) scale(.99) !important;
+  box-shadow:
+    -2px -2px 8px rgba(255,255,255,.38),
+    2px 3px 9px rgba(121,139,158,.18),
+    inset -3px -3px 7px rgba(255,255,255,.28),
+    inset 3px 3px 7px rgba(134,153,174,.14) !important;
+}
+.loginPage.adminOnlyLogin .loginSubmit:disabled{
+  opacity: .72 !important;
+}
+@media (max-width:900px){
+  .loginPage.adminOnlyLogin .authShell{
+    width: min(100%, 520px) !important;
+    padding: 12px !important;
+    border-radius: 36px !important;
+  }
+  .loginPage.adminOnlyLogin .authFormPanel{
+    background: transparent !important;
+    padding: 30px 24px !important;
+    border-radius: 28px !important;
+  }
+}
+
+/* Local home/login sync: shared backdrop with white clay surfaces. */
+.softHomePage,
+.loginPage.adminOnlyLogin{
+  --page-shared-soft-bg:
+    radial-gradient(circle at 19% 22%, rgba(145,213,236,.42), transparent 34%),
+    radial-gradient(circle at 80% 18%, rgba(255,174,199,.42), transparent 35%),
+    radial-gradient(circle at 50% 46%, rgba(255,255,255,.34), transparent 28%),
+    linear-gradient(135deg, #dceff5 0%, #f6dde8 56%, #facdd9 100%);
+  --page-shared-soft-overlay:
+    radial-gradient(circle at 50% 48%, rgba(255,255,255,.34), rgba(255,255,255,.12) 24%, transparent 43%);
+  --page-white-clay-shadow:
+    -8px -8px 20px rgba(255,255,255,.42),
+    12px 14px 30px rgba(121,139,158,.20),
+    inset -4px -4px 10px rgba(255,255,255,.38),
+    inset 4px 4px 10px rgba(134,153,174,.09);
+  --page-white-clay-soft:
+    -4px -4px 11px rgba(255,255,255,.42),
+    6px 7px 15px rgba(121,139,158,.18),
+    inset -2px -2px 5px rgba(255,255,255,.34),
+    inset 2px 2px 5px rgba(134,153,174,.08);
+  background: var(--page-shared-soft-bg) !important;
+}
+.softHomeBackdrop{
+  background: var(--page-shared-soft-bg) !important;
+  filter: saturate(1) brightness(.98) !important;
+}
+.softHomeBackdrop:after,
+.loginPage.adminOnlyLogin:before{
+  display: block !important;
+  opacity: .42 !important;
+  background: var(--page-shared-soft-overlay) !important;
+  background-size: auto !important;
+  mask-image: none !important;
+}
+.heroStage .heroCard,
+.softHeroCard{
+  background: #ffffff !important;
+  border-color: rgba(255,255,255,.62) !important;
+  box-shadow: var(--page-white-clay-shadow) !important;
+  backdrop-filter: none !important;
+}
+.heroStage .heroCard:after,
+.softHeroCard:after{
+  border-color: rgba(134,153,174,.08) !important;
+}
+.softFeatureGrid article{
+  border-radius: 28px !important;
+  background: #ffffff !important;
+  box-shadow: var(--page-white-clay-soft) !important;
+}
+.softLoginButton{
+  background: #ffffff !important;
+  color: #34445d !important;
+  text-shadow: none !important;
+  box-shadow: var(--page-white-clay-soft) !important;
+}
+.softLoginButton span{
+  background: #ffffff !important;
+  color: #5f7fa5 !important;
+  box-shadow:
+    inset 3px 3px 8px rgba(122,142,164,.14),
+    inset -3px -3px 8px rgba(255,255,255,.54) !important;
+}
+.softLoginButton:hover{
+  transform: translateY(-3px) !important;
+  box-shadow:
+    -5px -5px 14px rgba(255,255,255,.48),
+    8px 9px 20px rgba(121,139,158,.22),
+    inset -2px -2px 6px rgba(255,255,255,.38),
+    inset 2px 2px 6px rgba(134,153,174,.10) !important;
+}
+.softLoginButton:active{
+  transform: translateY(0) scale(.99) !important;
+  box-shadow:
+    -2px -2px 8px rgba(255,255,255,.34),
+    2px 3px 9px rgba(121,139,158,.16),
+    inset -3px -3px 7px rgba(255,255,255,.26),
+    inset 3px 3px 7px rgba(134,153,174,.13) !important;
+}

@@ -91,6 +91,7 @@ export function LoginPage({ embedded = false }: { embedded?: boolean; title?: st
 
   const currentUser = currentAuth().user;
   const current = canAccessBackoffice(currentUser) ? currentUser : null;
+  const needsConfirmPassword = mode === 'register' || mode === 'reset';
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -107,6 +108,7 @@ export function LoginPage({ embedded = false }: { embedded?: boolean; title?: st
     setMessage('');
     try {
       if (mode === 'register') {
+        if (password !== confirmPassword) throw new Error('两次输入的密码不一致');
         await registerMerchant(username.trim(), password);
       } else if (mode === 'reset') {
         if (password !== confirmPassword) throw new Error('两次输入的新密码不一致');
@@ -125,6 +127,13 @@ export function LoginPage({ embedded = false }: { embedded?: boolean; title?: st
     } finally {
       setBusy(false);
     }
+  };
+
+  const switchMode = (nextMode: 'login' | 'register' | 'reset') => {
+    setMode(nextMode);
+    setConfirmPassword('');
+    setError('');
+    setMessage('');
   };
 
   const switchAccount = async () => {
@@ -171,7 +180,7 @@ export function LoginPage({ embedded = false }: { embedded?: boolean; title?: st
           </div>
         </aside>
 
-        <article className="loginCard adminLoginCard authFormPanel">
+        <article className={`loginCard adminLoginCard authFormPanel authFormPanel-${current ? 'signed' : mode}`}>
           {current ? (
             <div className="authSignedInState">
               <p className="loginEyebrow"><ShieldCheck size={14} /> ByteDance LiveAuction</p>
@@ -196,9 +205,8 @@ export function LoginPage({ embedded = false }: { embedded?: boolean; title?: st
               </p>
 
               {mode !== 'reset' ? (
-                <nav className="loginTabs" aria-label="账号入口">
-                  <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setError(''); setMessage(''); }}>账号登录</button>
-                  <button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => { setMode('register'); setError(''); setMessage(''); }}>注册主账号</button>
+                <nav className="loginTabs authModeIndicator" aria-label="当前账号入口">
+                  <button type="button" className="active" tabIndex={-1} aria-current="page">{mode === 'register' ? '注册主账号' : '账号登录'}</button>
                 </nav>
               ) : null}
 
@@ -214,29 +222,34 @@ export function LoginPage({ embedded = false }: { embedded?: boolean; title?: st
                   <button type="button" className="passwordToggle" onClick={() => setShowPassword((x) => !x)} aria-label={showPassword ? '隐藏密码' : '显示密码'}>{showPassword ? <EyeOff size={15} /> : <Eye size={15} />}</button>
                 </div>
               </label>
-              {mode === 'reset' ? (
+              {needsConfirmPassword ? (
                 <label className="loginField">
-                  <span>确认新密码</span>
+                  <span>{mode === 'register' ? '确认密码' : '确认新密码'}</span>
                   <div>
                     <LockKeyhole size={16} />
-                    <input value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="再次输入新密码" type={showPassword ? 'text' : 'password'} autoComplete="new-password" />
+                    <input value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={mode === 'register' ? '再次输入密码' : '再次输入新密码'} type={showPassword ? 'text' : 'password'} autoComplete="new-password" />
                   </div>
                 </label>
               ) : null}
 
               <div className="authFormOptions">
                 {mode === 'reset' ? (
-                  <button type="button" className="authTextButton" onClick={() => { setMode('login'); setError(''); setMessage(''); }}>返回登录</button>
+                  <button type="button" className="authTextButton" onClick={() => switchMode('login')}>返回登录</button>
                 ) : (
                   <label><input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} /> 记住我</label>
                 )}
-                {mode !== 'reset' ? <button type="button" className="authTextButton" onClick={() => { setMode('reset'); setError(''); setMessage(''); }}>忘记密码</button> : null}
+                {mode !== 'reset' ? (
+                  <div className="authInlineActions">
+                    <button type="button" className="authTextButton" onClick={() => switchMode('reset')}>忘记密码</button>
+                    <button type="button" className="authTextButton" onClick={() => switchMode(mode === 'register' ? 'login' : 'register')}>{mode === 'register' ? '账号登录' : '注册主账号'}</button>
+                  </div>
+                ) : null}
               </div>
 
               {error && <p className="loginError">{error}</p>}
               {message && <p className="loginSuccess">{message}</p>}
 
-              <button className="loginSubmit" disabled={busy || !username.trim() || !password || (mode === 'reset' && !confirmPassword)} onClick={submit}>
+              <button className="loginSubmit" disabled={busy || !username.trim() || !password || (needsConfirmPassword && !confirmPassword)} onClick={submit}>
                 {mode === 'register' ? <UserPlus size={17} /> : mode === 'reset' ? <LockKeyhole size={17} /> : <LogIn size={17} />} {busy ? '处理中...' : mode === 'register' ? '创建主账号并进入' : mode === 'reset' ? '重置密码' : '进入 LiveAuction 工作台'}
               </button>
 
