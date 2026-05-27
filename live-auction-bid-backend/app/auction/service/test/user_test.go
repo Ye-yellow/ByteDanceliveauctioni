@@ -90,6 +90,20 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 		t.Fatalf("expected logged out refresh token to fail, got %v", err)
 	}
 
+	if err := uc.BootstrapMainAccount(ctx, "main", "mainpass123", "主账号"); err != nil {
+		t.Fatalf("bootstrap main account failed: %v", err)
+	}
+	resetBootstrapMain, err := uc.ResetPassword(ctx, "main", "newmainpass123")
+	if err != nil {
+		t.Fatalf("reset bootstrap main account password failed: %v", err)
+	}
+	if resetBootstrapMain.GetUsername() != "main" {
+		t.Fatalf("reset bootstrap main account mismatch: %+v", resetBootstrapMain)
+	}
+	if _, _, err := uc.Login(ctx, "main", "newmainpass123"); err != nil {
+		t.Fatalf("login with reset bootstrap main account password failed: %v", err)
+	}
+
 	mainAccount, mainTokens, err := uc.RegisterMerchant(ctx, &v1.RegisterMerchantRequest{
 		Username: "merchant_a",
 		Password: "merchantpass123",

@@ -74,11 +74,17 @@ func (uc *Usecase) Login(ctx context.Context, username, password string) (*v1.Us
 
 func (uc *Usecase) ResetPassword(ctx context.Context, username, password string) (*v1.User, error) {
 	username = normalizeUsername(username)
-	if len(username) < 6 || len(username) > 64 {
-		return nil, fmt.Errorf("%w: username must be 6-64 characters", apperr.ErrInvalidArgument)
+	if len(username) < 3 || len(username) > 64 {
+		return nil, fmt.Errorf("%w: username must be 3-64 characters", apperr.ErrInvalidArgument)
 	}
 	if len(password) < 8 || len(password) > 128 {
 		return nil, fmt.Errorf("%w: password must be 8-128 characters", apperr.ErrInvalidArgument)
+	}
+	for _, r := range username {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_' || r == '-' {
+			continue
+		}
+		return nil, fmt.Errorf("%w: username may contain lowercase letters, digits, underscore, and hyphen", apperr.ErrInvalidArgument)
 	}
 	_, _, err := uc.repo.FindUserByUsername(ctx, username)
 	if err != nil {
