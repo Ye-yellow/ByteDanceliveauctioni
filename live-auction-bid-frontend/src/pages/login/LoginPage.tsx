@@ -2,18 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
-  ClipboardList,
-  Coins,
   Eye,
   EyeOff,
-  Gavel,
   LockKeyhole,
   LogIn,
-  Package,
-  Radio,
   ShieldCheck,
-  ShoppingBag,
-  Sparkles,
   UserPlus,
   UserRound,
 } from 'lucide-react';
@@ -30,57 +23,10 @@ function nextPath(fallback = '/host') {
   return next;
 }
 
-const capabilityItems = [
-  { icon: <Package size={16} />, label: '拍品准备' },
-  { icon: <Gavel size={16} />, label: '竞拍玩法' },
-  { icon: <ClipboardList size={16} />, label: '成交处理' },
-];
-
-function LoginParticleField() {
-  return (
-    <div className="authParticleField" aria-hidden="true">
-      {Array.from({ length: 64 }).map((_, index) => (
-        <i key={index} style={{ '--i': index } as React.CSSProperties} />
-      ))}
-    </div>
-  );
-}
-
-function AuctionDecorations() {
-  return (
-    <div className="authFloatLayer" aria-hidden="true">
-      <div className="authFloatCard authLiveCard">
-        <small>LIVE AUCTION</small>
-        <strong>竞拍中</strong>
-        <span>00:20</span>
-      </div>
-      <div className="authBidStack">
-        <span>Bid +¥50</span>
-        <span>Bid +¥100</span>
-        <span>Bid +¥200</span>
-      </div>
-      <div className="authProductCard authArtCard">
-        <i><Sparkles size={22} /></i>
-        <strong>Art Print</strong>
-        <span>当前价 ¥199</span>
-      </div>
-      <div className="authProductCard authBagCard">
-        <i><ShoppingBag size={24} /></i>
-        <strong>Designer Bag</strong>
-        <span>出价 ¥2,880</span>
-      </div>
-      <div className="authGiftBubble"><ShoppingBag size={34} /></div>
-      <div className="authGavelSketch"><Gavel size={112} /></div>
-      <div className="authCoin coinA"><Coins size={16} /></div>
-      <div className="authCoin coinB"><Coins size={14} /></div>
-    </div>
-  );
-}
-
 export function LoginPage({ embedded = false }: { embedded?: boolean; title?: string }) {
   const redirectTo = useMemo(() => nextPath('/host'), []);
   const [mode, setMode] = useState<'login' | 'register' | 'reset'>('login');
-  const [username, setUsername] = useState('main');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
@@ -141,36 +87,9 @@ export function LoginPage({ embedded = false }: { embedded?: boolean; title?: st
 
   return (
     <main className={embedded ? 'loginPage adminOnlyLogin embedded' : 'loginPage adminOnlyLogin'}>
-      <LoginParticleField />
-      <AuctionDecorations />
       {!embedded && <a className="loginBack" href="/home"><ArrowLeft size={16} /> 返回首页</a>}
 
       <section className="loginCenter authShell" aria-label="ByteDance LiveAuction 登录入口">
-        <aside className="authBrandPanel">
-          <div>
-            <p className="authKicker"><Radio size={14} /> LIVEAUCTION STUDIO</p>
-            <h1>直播间竞拍工作台</h1>
-            <p className="authBrandLead">拍品准备、竞拍玩法、直播间中控台、成交处理，从这里开始。</p>
-          </div>
-
-          <div className="authBrandScene" aria-hidden="true">
-            <div className="authVisualGavel"><Gavel size={88} /></div>
-            <div className="authVisualProduct">
-              <ShoppingBag size={34} />
-              <strong>Premium Lot</strong>
-              <span>¥ 1,280</span>
-            </div>
-            <div className="authVisualBid bidOne">Bid +¥50</div>
-            <div className="authVisualBid bidTwo">Bid +¥100</div>
-          </div>
-
-          <div className="authCapabilityGrid" aria-label="核心能力">
-            {capabilityItems.map((item) => (
-              <span key={item.label}>{item.icon}{item.label}</span>
-            ))}
-          </div>
-        </aside>
-
         <article className="loginCard adminLoginCard authFormPanel">
           {current ? (
             <div className="authSignedInState">

@@ -1296,3 +1296,131 @@ html,body,#root{height:100%}.softHomePage{height:100vh!important;min-height:100v
     font-size: 15px !important;
   }
 }
+
+/* Final admin login layout: one white rounded card. */
+.loginPage.adminOnlyLogin{
+  min-height: 100vh !important;
+  padding: 76px 18px 32px !important;
+  background: #fff !important;
+}
+.loginPage.adminOnlyLogin:before,
+.loginPage.adminOnlyLogin:after,
+.loginPage.adminOnlyLogin .authParticleField,
+.loginPage.adminOnlyLogin .authFloatLayer,
+.loginPage.adminOnlyLogin .authBrandPanel{
+  display: none !important;
+}
+.loginPage.adminOnlyLogin .loginBack{
+  background: #fff !important;
+  border: 1px solid #e5e7eb !important;
+  color: #111827 !important;
+  box-shadow: 0 8px 22px rgba(15,23,42,.08) !important;
+}
+.loginPage.adminOnlyLogin .authShell{
+  width: min(100%, 500px) !important;
+  min-height: auto !important;
+  display: block !important;
+  grid-template-columns: 1fr !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  overflow: visible !important;
+}
+.loginPage.adminOnlyLogin .authFormPanel{
+  width: 100% !important;
+  min-height: auto !important;
+  box-sizing: border-box !important;
+  padding: 42px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 28px !important;
+  background: #fff !important;
+  box-shadow: 0 24px 70px rgba(15,23,42,.10) !important;
+  overflow: hidden !important;
+}
+.loginPage.adminOnlyLogin .authKicker,
+.loginPage.adminOnlyLogin .loginEyebrow{
+  color: #4f46e5 !important;
+}
+.loginPage.adminOnlyLogin .authFormPanel h2{
+  color: #111827 !important;
+  letter-spacing: 0 !important;
+}
+.loginPage.adminOnlyLogin .loginSubcopy,
+.loginPage.adminOnlyLogin .loginHint,
+.loginPage.adminOnlyLogin .loginField span,
+.loginPage.adminOnlyLogin .authFormOptions{
+  color: #6b7280 !important;
+}
+.loginPage.adminOnlyLogin .loginTabs{
+  background: #f3f4f6 !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: none !important;
+}
+.loginPage.adminOnlyLogin .loginTabs button.active{
+  background: #fff !important;
+  color: #111827 !important;
+  box-shadow: 0 6px 16px rgba(15,23,42,.08) !important;
+}
+.loginPage.adminOnlyLogin .loginField div{
+  height: 54px !important;
+  border: 1px solid #dfe3ea !important;
+  border-radius: 15px !important;
+  background: #fff !important;
+  color: #6b7280 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+.loginPage.adminOnlyLogin .loginField div:focus-within{
+  border-color: #111827 !important;
+  background: #fff !important;
+  box-shadow: 0 0 0 4px rgba(17,24,39,.08) !important;
+  transform: none !important;
+}
+.loginPage.adminOnlyLogin .loginField input{
+  color: #111827 !important;
+}
+.loginPage.adminOnlyLogin .passwordToggle{
+  color: #4b5563 !important;
+}
+.loginPage.adminOnlyLogin .authTextButton,
+.loginPage.adminOnlyLogin .authFormOptions a{
+  color: #4f46e5 !important;
+}
+.loginPage.adminOnlyLogin .loginSubmit,
+.loginPage.adminOnlyLogin .authPrimaryLink{
+  min-height: 54px !important;
+  border-radius: 15px !important;
+  background: #111827 !important;
+  color: #fff !important;
+  text-shadow: none !important;
+  box-shadow: 0 12px 28px rgba(17,24,39,.16) !important;
+}
+.loginPage.adminOnlyLogin .loginSubmit:not(:disabled):hover,
+.loginPage.adminOnlyLogin .authPrimaryLink:hover{
+  transform: translateY(-1px) !important;
+  box-shadow: 0 16px 34px rgba(17,24,39,.18) !important;
+  filter: none !important;
+}
+.loginPage.adminOnlyLogin .loginGhost{
+  border: 1px solid #e5e7eb !important;
+  border-radius: 15px !important;
+  background: #fff !important;
+  color: #111827 !important;
+  box-shadow: none !important;
+}
+@media (max-width:520px){
+  .loginPage.adminOnlyLogin{
+    padding: 70px 14px 24px !important;
+  }
+  .loginPage.adminOnlyLogin .authFormPanel{
+    padding: 30px 22px !important;
+    border-radius: 24px !important;
+  }
+  .loginPage.adminOnlyLogin .authFormPanel h2{
+    font-size: 30px !important;
+  }
+}
