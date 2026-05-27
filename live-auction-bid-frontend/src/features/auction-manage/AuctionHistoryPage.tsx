@@ -280,7 +280,9 @@ function DetailMetric({ label, value, wide = false }: { label: string; value: Re
 }
 
 function resultPrice(lot: Lot) {
-  return isSettlementLot(lot) ? lot.finalPrice : lot.currentPrice;
+  if (isSettlementLot(lot) && moneyAmount(lot.finalPrice) > 0) return lot.finalPrice;
+  if (moneyAmount(lot.currentPrice) > 0) return lot.currentPrice;
+  return lot.rule.startPrice;
 }
 
 function moneyAmount(value?: { amount?: number | string | null } | null) {

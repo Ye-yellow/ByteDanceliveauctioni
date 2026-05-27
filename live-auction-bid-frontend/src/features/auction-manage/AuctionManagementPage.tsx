@@ -219,7 +219,7 @@ function statusProgressText(lot: Lot, snapshot: RoomSnapshot | null) {
 function orderStateText(lot: Lot) {
   if (isSettlementLot(lot)) {
     const outcome = settlementOutcomeDisplay(lot);
-    return <div className={`orderState ${outcome.state === 'failed' ? 'danger' : ''}`}><b>{outcome.label}</b><span>{outcome.priceLabel} {formatMoneyText(lot.finalPrice || lot.currentPrice)}</span></div>;
+    return <div className={`orderState ${outcome.state === 'failed' ? 'danger' : ''}`}><b>{outcome.label}</b><span>{outcome.priceLabel} {formatMoneyText(lotResultMoney(lot))}</span></div>;
   }
   if (isLiveLot(lot)) return <div className="orderState"><b>等待成交</b><span>{lot.leadingNickname || '暂无领先用户'}</span></div>;
   if (lot.status === 'LOT_STATUS_CANCELLED') return <div className="orderState danger"><b>取消原因</b><span>{lot.cancelReason || '已取消'}</span></div>;
@@ -237,8 +237,13 @@ function drawerPersonText(lot: Lot) {
 }
 
 function drawerPrimaryPrice(lot: Lot) {
-  if (isSettlementLot(lot)) return lot.finalPrice || lot.currentPrice;
-  return lot.currentPrice || lot.rule.startPrice;
+  return lotResultMoney(lot);
+}
+
+function lotResultMoney(lot: Lot) {
+  if (isSettlementLot(lot) && Number(lot.finalPrice?.amount || 0) > 0) return lot.finalPrice;
+  if (Number(lot.currentPrice?.amount || 0) > 0) return lot.currentPrice;
+  return lot.rule.startPrice;
 }
 
 function AuctionDetailDrawer({ lot, snapshot, onClose }: { lot: Lot; snapshot: RoomSnapshot | null; onClose: () => void }) {

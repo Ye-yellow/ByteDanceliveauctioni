@@ -703,7 +703,7 @@ function buildLotPerformance(lots: Lot[], orders: OrderSummary[], nowMs: number)
     const paidOrder = relatedOrders.find(isPaidOrder);
     const latestOrder = paidOrder ?? relatedOrders[0];
     const outcome = isSettlementLot(lot) ? settlementOutcomeDisplay(lot, latestOrder, nowMs) : null;
-    const amountYuan = latestOrder ? moneyYuan(latestOrder.amount) : moneyYuan(isSettlementLot(lot) ? lot.finalPrice : lot.currentPrice);
+    const amountYuan = latestOrder ? moneyYuan(latestOrder.amount) : moneyYuan(lotResultMoney(lot));
     const startYuan = moneyYuan(lot.rule.startPrice);
     return {
       lot,
@@ -749,6 +749,12 @@ function buildTimeSeries(range: DashboardRange, orders: OrderSummary[], nowMs: n
     if (isAbnormalOrder(order.status, order.paymentStatus)) bucket.abnormal += amount;
   });
   return buckets;
+}
+
+function lotResultMoney(lot: Lot) {
+  if (isSettlementLot(lot) && moneyCents(lot.finalPrice) > 0) return lot.finalPrice;
+  if (moneyCents(lot.currentPrice) > 0) return lot.currentPrice;
+  return lot.rule.startPrice;
 }
 
 function filterOrdersByRange(orders: OrderSummary[], range: DashboardRange, startMs: number) {
