@@ -45,7 +45,11 @@ export function deriveLotDisplayState(
 
   if (options.paymentKnownPaid || isOrderPaid(order)) return 'finished';
   if (isOrderFailed(order, nowMs)) return 'failed';
-  if (lot.status === LOT_STATUS.CANCELLED || lot.status === LOT_STATUS.FAILED || lot.cancelledAtUnixMs) return 'failed';
+  if (
+    lot.status === LOT_STATUS.CANCELLED ||
+    lot.status === LOT_STATUS.FAILED ||
+    Number(lot.cancelledAtUnixMs || 0) > 0
+  ) return 'failed';
 
   if (lotHasLockedResult(lot)) {
     if (!lotHasBid(lot)) return 'failed';

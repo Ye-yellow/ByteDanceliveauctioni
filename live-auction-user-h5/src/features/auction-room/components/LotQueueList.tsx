@@ -67,9 +67,11 @@ function lotSortScore(lot: Lot, order: OrderSummary | null, paymentKnownPaid: bo
   const displayState = deriveLotDisplayState(lot, { order, paymentKnownPaid, nowMs });
   if (displayState === 'live') return 0;
   if (lot.status === LOT_STATUS.LIVE || lot.status === LOT_STATUS.EXTENDED) return 0;
-  if (lot.queueStatus === LOT_QUEUE_STATUS.NEXT) return 1;
-  if (lot.queueStatus === LOT_QUEUE_STATUS.QUEUED || lot.status === LOT_STATUS.QUEUED) return 2;
-  if (lot.status === LOT_STATUS.READY) return 3;
+  if (displayState === 'upcoming') {
+    if (lot.queueStatus === LOT_QUEUE_STATUS.NEXT) return 1;
+    if (lot.queueStatus === LOT_QUEUE_STATUS.QUEUED || lot.status === LOT_STATUS.QUEUED) return 2;
+    return 3;
+  }
   if (displayState === 'pendingPayment') return 4;
   if (displayState === 'finished') return 5;
   if (displayState === 'failed') return 6;
