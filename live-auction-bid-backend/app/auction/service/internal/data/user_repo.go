@@ -56,13 +56,15 @@ func (s *Store) FindUserByUsername(ctx context.Context, username string) (*v1.Us
 func (s *Store) ListUsers(ctx context.Context, query user.ListUsersQuery) (user.ListUsersResult, error) {
 	query.Page, query.PageSize = normalizeUserPagination(query.Page, query.PageSize)
 	db := s.db.WithContext(ctx).Model(&AuctionUserModel{})
+	if query.MainAccountID != "" {
+		db = db.Where("main_account_id = ?", query.MainAccountID)
+	}
 	if query.Role != v1.UserRole_USER_ROLE_UNSPECIFIED {
 		db = db.Where("role = ?", int32(query.Role))
 	} else {
 		db = db.Where("role IN ?", []int32{
 			int32(v1.UserRole_USER_ROLE_ANCHOR),
 			int32(v1.UserRole_USER_ROLE_OPERATOR),
-			int32(v1.UserRole_USER_ROLE_ADMIN),
 		})
 	}
 	if keyword := strings.TrimSpace(query.Keyword); keyword != "" {
@@ -89,19 +91,37 @@ func (s *Store) ListUsers(ctx context.Context, query user.ListUsersQuery) (user.
 	return user.ListUsersResult{Users: users, Total: total, Page: query.Page, PageSize: query.PageSize}, nil
 }
 
-func (s *Store) UpdateUserRole(ctx context.Context, userID string, role v1.UserRole, updatedAtUnixMs int64) (*v1.User, error) {
+func (s *Store) UpdateUserRole(ctx context.Context, userID string, mainAccountID string, role v1.UserRole, updatedAtUnixMs int64) (*v1.User, error) {
 	if userID == "" {
 		return nil, errors.New("user id is required")
 	}
 	result := s.db.WithContext(ctx).
 		Model(&AuctionUserModel{}).
-		Where("id = ?", userID).
+		Where("id = ? AND main_account_id = ?", userID, mainAccountID).
 		Updates(map[string]any{"role": int32(role), "updated_at_unix_ms": updatedAtUnixMs})
 	if result.Error != nil {
 		return nil, result.Error
 	}
 	if result.RowsAffected == 0 {
-		return nil, apperr.ErrUserNotFound
+		return nil, apperr.ErrPermissionDenied
+	}
+	user, _, err := s.FindUserByID(ctx, userID)
+	return user, err
+}
+
+func (s *Store) UpdateUserStatus(ctx context.Context, userID string, mainAccountID string, status v1.UserStatus, updatedAtUnixMs int64) (*v1.User, error) {
+	if userID == "" {
+		return nil, errors.New("user id is required")
+	}
+	result := s.db.WithContext(ctx).
+		Model(&AuctionUserModel{}).
+		Where("id = ? AND main_account_id = ?", userID, mainAccountID).
+		Updates(map[string]any{"status": int32(status), "updated_at_unix_ms": updatedAtUnixMs})
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, apperr.ErrPermissionDenied
 	}
 	user, _, err := s.FindUserByID(ctx, userID)
 	return user, err
@@ -175,6 +195,9 @@ func userToModel(user *v1.User, passwordHash string) *AuctionUserModel {
 		Nickname:        user.Nickname,
 		PasswordHash:    passwordHash,
 		Role:            int32(user.Role),
+		MainAccountID:   user.MainAccountId,
+		CreatedByUserID: user.CreatedByUserId,
+		Status:          int32(user.Status),
 		CreatedAtUnixMs: user.CreatedAtUnixMs,
 		UpdatedAtUnixMs: user.UpdatedAtUnixMs,
 	}
@@ -186,6 +209,9 @@ func modelToUser(model *AuctionUserModel) *v1.User {
 		Username:        model.Username,
 		Nickname:        model.Nickname,
 		Role:            v1.UserRole(model.Role),
+		MainAccountId:   model.MainAccountID,
+		CreatedByUserId: model.CreatedByUserID,
+		Status:          v1.UserStatus(model.Status),
 		CreatedAtUnixMs: model.CreatedAtUnixMs,
 		UpdatedAtUnixMs: model.UpdatedAtUnixMs,
 	}

@@ -17,6 +17,7 @@ const (
 	ResultCodeSessionExpired     int32 = 401004
 	ResultCodeInvalidCredentials int32 = 401005
 	ResultCodeForbidden          int32 = 403001
+	ResultCodeAccountDisabled    int32 = 403002
 	ResultCodeLotVersionConflict int32 = 409001
 	ResultCodeUsernameTaken      int32 = 409002
 	ResultCodeUserNotFound       int32 = 404001
@@ -59,6 +60,9 @@ func ErrorResult(ctx context.Context, err error) *v1.ReplyResult {
 	}
 	if apperr.IsPermissionDenied(err) {
 		return &v1.ReplyResult{Code: ResultCodeForbidden, Message: "permission denied", TraceId: traceID}
+	}
+	if apperr.IsAccountDisabled(err) {
+		return &v1.ReplyResult{Code: ResultCodeAccountDisabled, Message: "account disabled", TraceId: traceID}
 	}
 	if apperr.IsUsernameTaken(err) {
 		return &v1.ReplyResult{Code: ResultCodeUsernameTaken, Message: "username already exists", TraceId: traceID}

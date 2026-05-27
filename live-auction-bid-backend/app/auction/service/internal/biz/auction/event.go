@@ -16,6 +16,7 @@ func newAuctionEvent(typ v1.AuctionEventType, lot *v1.Lot) v1.AuctionEvent {
 		Type:             typ,
 		RoomId:           lot.RoomId,
 		LotId:            lot.Id,
+		MainAccountId:    lot.GetMainAccountId(),
 		OccurredAtUnixMs: clock.NowMs(),
 		Lot:              proto.Clone(lot).(*v1.Lot),
 	}

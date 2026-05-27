@@ -75,15 +75,18 @@ func WithNow(now func() time.Time) Option {
 }
 
 type Claims struct {
-	UserID    string      `json:"sub"`
-	Username  string      `json:"username"`
-	Nickname  string      `json:"nickname"`
-	Role      v1.UserRole `json:"-"`
-	RoleName  string      `json:"role"`
-	TokenType string      `json:"typ"`
-	Issuer    string      `json:"iss"`
-	IssuedAt  int64       `json:"iat"`
-	ExpiresAt int64       `json:"exp"`
+	UserID        string        `json:"sub"`
+	Username      string        `json:"username"`
+	Nickname      string        `json:"nickname"`
+	Role          v1.UserRole   `json:"-"`
+	RoleName      string        `json:"role"`
+	MainAccountID string        `json:"main_account_id,omitempty"`
+	Status        v1.UserStatus `json:"-"`
+	StatusName    string        `json:"status"`
+	TokenType     string        `json:"typ"`
+	Issuer        string        `json:"iss"`
+	IssuedAt      int64         `json:"iat"`
+	ExpiresAt     int64         `json:"exp"`
 }
 
 type TokenPair struct {
@@ -180,6 +183,11 @@ func (m *Manager) ParseAccessToken(token string) (*Claims, error) {
 		return nil, apperr.ErrInvalidToken
 	}
 	claims.Role = role
+	status, ok := StatusFromName(claims.StatusName)
+	if !ok {
+		return nil, apperr.ErrInvalidToken
+	}
+	claims.Status = status
 	return &claims, nil
 }
 
@@ -228,14 +236,16 @@ func (m *Manager) AuthContextFromBearer(authorization string) AuthContext {
 
 func (m *Manager) signAccessToken(user *v1.User, issuedAt, expiresAt time.Time) (string, error) {
 	claims := Claims{
-		UserID:    user.GetId(),
-		Username:  user.GetUsername(),
-		Nickname:  user.GetNickname(),
-		RoleName:  RoleName(user.GetRole()),
-		TokenType: "access",
-		Issuer:    m.issuer,
-		IssuedAt:  issuedAt.Unix(),
-		ExpiresAt: expiresAt.Unix(),
+		UserID:        user.GetId(),
+		Username:      user.GetUsername(),
+		Nickname:      user.GetNickname(),
+		RoleName:      RoleName(user.GetRole()),
+		MainAccountID: user.GetMainAccountId(),
+		StatusName:    StatusName(effectiveStatus(user.GetStatus())),
+		TokenType:     "access",
+		Issuer:        m.issuer,
+		IssuedAt:      issuedAt.Unix(),
+		ExpiresAt:     expiresAt.Unix(),
 	}
 	header := map[string]string{"alg": "HS256", "typ": "JWT"}
 	headerJSON, err := json.Marshal(header)
@@ -316,6 +326,9 @@ func RequireUser(ctx context.Context) (*Claims, error) {
 		switch authCtx.TokenStatus {
 		case TokenStatusValid:
 			if authCtx.Claims != nil {
+				if effectiveStatus(authCtx.Claims.Status) == v1.UserStatus_USER_STATUS_DISABLED {
+					return nil, apperr.ErrAccountDisabled
+				}
 				return authCtx.Claims, nil
 			}
 			return nil, apperr.ErrInvalidToken
@@ -330,6 +343,9 @@ func RequireUser(ctx context.Context) (*Claims, error) {
 	claims, ok := ClaimsFromContext(ctx)
 	if !ok {
 		return nil, apperr.ErrUnauthenticated
+	}
+	if effectiveStatus(claims.Status) == v1.UserStatus_USER_STATUS_DISABLED {
+		return nil, apperr.ErrAccountDisabled
 	}
 	return claims, nil
 }
@@ -347,6 +363,19 @@ func RequireRole(ctx context.Context, roles ...v1.UserRole) (*Claims, error) {
 	return nil, apperr.ErrPermissionDenied
 }
 
+func EffectiveMainAccountID(claims *Claims) string {
+	if claims == nil {
+		return ""
+	}
+	if strings.TrimSpace(claims.MainAccountID) != "" {
+		return strings.TrimSpace(claims.MainAccountID)
+	}
+	if claims.Role == v1.UserRole_USER_ROLE_MAIN_ACCOUNT {
+		return strings.TrimSpace(claims.UserID)
+	}
+	return ""
+}
+
 func RoleName(role v1.UserRole) string {
 	switch role {
 	case v1.UserRole_USER_ROLE_BUYER:
@@ -355,8 +384,8 @@ func RoleName(role v1.UserRole) string {
 		return "anchor"
 	case v1.UserRole_USER_ROLE_OPERATOR:
 		return "operator"
-	case v1.UserRole_USER_ROLE_ADMIN:
-		return "admin"
+	case v1.UserRole_USER_ROLE_MAIN_ACCOUNT:
+		return "main_account"
 	default:
 		return "unspecified"
 	}
@@ -370,11 +399,42 @@ func RoleFromName(name string) (v1.UserRole, bool) {
 		return v1.UserRole_USER_ROLE_ANCHOR, true
 	case "operator":
 		return v1.UserRole_USER_ROLE_OPERATOR, true
-	case "admin":
-		return v1.UserRole_USER_ROLE_ADMIN, true
+	case "main_account":
+		return v1.UserRole_USER_ROLE_MAIN_ACCOUNT, true
 	default:
 		return v1.UserRole_USER_ROLE_UNSPECIFIED, false
 	}
+}
+
+func StatusName(status v1.UserStatus) string {
+	switch status {
+	case v1.UserStatus_USER_STATUS_ACTIVE:
+		return "active"
+	case v1.UserStatus_USER_STATUS_DISABLED:
+		return "disabled"
+	default:
+		return "unspecified"
+	}
+}
+
+func StatusFromName(name string) (v1.UserStatus, bool) {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "", "active":
+		return v1.UserStatus_USER_STATUS_ACTIVE, true
+	case "disabled":
+		return v1.UserStatus_USER_STATUS_DISABLED, true
+	case "unspecified":
+		return v1.UserStatus_USER_STATUS_UNSPECIFIED, true
+	default:
+		return v1.UserStatus_USER_STATUS_UNSPECIFIED, false
+	}
+}
+
+func effectiveStatus(status v1.UserStatus) v1.UserStatus {
+	if status == v1.UserStatus_USER_STATUS_UNSPECIFIED {
+		return v1.UserStatus_USER_STATUS_ACTIVE
+	}
+	return status
 }
 
 func bearerAuthorization(ctx context.Context) string {

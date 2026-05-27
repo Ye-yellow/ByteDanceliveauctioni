@@ -24,6 +24,7 @@ import (
 type AuctionUsecase struct {
 	mu          sync.Mutex
 	lots        LotRepository
+	rooms       RoomRepository
 	expiredLots ExpiredLotRepository
 	bids        BidRepository
 	runtime     AuctionRuntime
@@ -47,8 +48,97 @@ const (
 	paymentSuccessPublicReason = "payment_success"
 )
 
+func (uc *AuctionUsecase) EnsureDefaultRoom(ctx context.Context, mainAccountID, createdByUserID string) (*Room, error) {
+	if uc.rooms == nil {
+		return nil, errors.New("room repository is required")
+	}
+	mainAccountID = strings.TrimSpace(mainAccountID)
+	if mainAccountID == "" {
+		return nil, fmt.Errorf("%w: main account id is required", apperr.ErrPermissionDenied)
+	}
+	return uc.rooms.EnsureDefaultRoom(ctx, mainAccountID, strings.TrimSpace(createdByUserID), clock.NowMs())
+}
+
+func (uc *AuctionUsecase) ListRooms(ctx context.Context, query RoomQuery) ([]Room, error) {
+	if uc.rooms == nil {
+		return nil, errors.New("room repository is required")
+	}
+	return uc.rooms.ListRooms(ctx, query)
+}
+
+func (uc *AuctionUsecase) ValidateRoomInMainAccount(ctx context.Context, roomID, mainAccountID string) error {
+	return uc.ensureRoomInMainAccount(ctx, roomID, mainAccountID)
+}
+
+func (uc *AuctionUsecase) ensureRoomInMainAccount(ctx context.Context, roomID, mainAccountID string) error {
+	if uc.rooms == nil {
+		return errors.New("room repository is required")
+	}
+	roomID = strings.TrimSpace(roomID)
+	mainAccountID = strings.TrimSpace(mainAccountID)
+	if roomID == "" {
+		return fmt.Errorf("%w: room id is required", apperr.ErrInvalidArgument)
+	}
+	if mainAccountID == "" {
+		return fmt.Errorf("%w: main account id is required", apperr.ErrPermissionDenied)
+	}
+	room, found, err := uc.rooms.FindRoomByID(ctx, roomID)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return apperr.ErrNotFound
+	}
+	if room.MainAccountID != mainAccountID {
+		return apperr.ErrPermissionDenied
+	}
+	if room.Status != "" && room.Status != RoomStatusActive {
+		return fmt.Errorf("%w: room is disabled", apperr.ErrInvalidArgument)
+	}
+	return nil
+}
+
+func (uc *AuctionUsecase) ensureActiveRoom(ctx context.Context, roomID string) error {
+	_, err := uc.findActiveRoom(ctx, roomID)
+	return err
+}
+
+func (uc *AuctionUsecase) findActiveRoom(ctx context.Context, roomID string) (*Room, error) {
+	if uc.rooms == nil {
+		return nil, errors.New("room repository is required")
+	}
+	roomID = strings.TrimSpace(roomID)
+	if roomID == "" {
+		return nil, fmt.Errorf("%w: room id is required", apperr.ErrInvalidArgument)
+	}
+	room, found, err := uc.rooms.FindRoomByID(ctx, roomID)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, apperr.ErrNotFound
+	}
+	if room.Status != "" && room.Status != RoomStatusActive {
+		return nil, apperr.ErrNotFound
+	}
+	return room, nil
+}
+
+func ensureLotMainAccount(lot *v1.Lot, mainAccountID string) error {
+	if lot == nil {
+		return apperr.ErrNotFound
+	}
+	if strings.TrimSpace(mainAccountID) == "" || lot.GetMainAccountId() != strings.TrimSpace(mainAccountID) {
+		return apperr.ErrPermissionDenied
+	}
+	return nil
+}
+
 func NewAuctionUsecase(lots LotRepository, bids BidRepository, eventStore EventRepository, events EventPublisher) *AuctionUsecase {
 	uc := &AuctionUsecase{lots: lots, bids: bids, eventsStore: eventStore, events: events}
+	if repo, ok := lots.(RoomRepository); ok {
+		uc.rooms = repo
+	}
 	if repo, ok := lots.(ExpiredLotRepository); ok {
 		uc.expiredLots = repo
 	}
@@ -108,12 +198,22 @@ func (uc *AuctionUsecase) CloseExpiredLots(ctx context.Context, nowMs int64, lim
 	return summary, nil
 }
 
-func (uc *AuctionUsecase) CreateLot(ctx context.Context, req *v1.CreateLotRequest, ownerUserID string) (*v1.Lot, error) {
+func (uc *AuctionUsecase) CreateLot(ctx context.Context, req *v1.CreateLotRequest, mainAccountID, ownerUserID string) (*v1.Lot, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
 	lot, err := NewLotFromRequest(idgen.New("lot"), req)
 	if err != nil {
+		return nil, err
+	}
+	lot.MainAccountId = strings.TrimSpace(mainAccountID)
+	if lot.RoomId == "" {
+		room, err := uc.EnsureDefaultRoom(ctx, lot.MainAccountId, ownerUserID)
+		if err != nil {
+			return nil, err
+		}
+		lot.RoomId = room.ID
+	} else if err := uc.ensureRoomInMainAccount(ctx, lot.RoomId, lot.MainAccountId); err != nil {
 		return nil, err
 	}
 	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CREATED, lot)
@@ -126,12 +226,22 @@ func (uc *AuctionUsecase) CreateLot(ctx context.Context, req *v1.CreateLotReques
 	return proto.Clone(lot).(*v1.Lot), nil
 }
 
-func (uc *AuctionUsecase) CreateLotDraft(ctx context.Context, req *v1.CreateLotRequest, ownerUserID string) (*v1.Lot, error) {
+func (uc *AuctionUsecase) CreateLotDraft(ctx context.Context, req *v1.CreateLotRequest, mainAccountID, ownerUserID string) (*v1.Lot, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
 	lot, err := NewLotDraftFromRequest(idgen.New("lot"), req, false)
 	if err != nil {
+		return nil, err
+	}
+	lot.MainAccountId = strings.TrimSpace(mainAccountID)
+	if lot.RoomId == "" {
+		room, err := uc.EnsureDefaultRoom(ctx, lot.MainAccountId, ownerUserID)
+		if err != nil {
+			return nil, err
+		}
+		lot.RoomId = room.ID
+	} else if err := uc.ensureRoomInMainAccount(ctx, lot.RoomId, lot.MainAccountId); err != nil {
 		return nil, err
 	}
 	if err := uc.lots.Create(ctx, lot, ownerUserID, nil); err != nil {
@@ -140,8 +250,7 @@ func (uc *AuctionUsecase) CreateLotDraft(ctx context.Context, req *v1.CreateLotR
 	return proto.Clone(lot).(*v1.Lot), nil
 }
 
-func (uc *AuctionUsecase) PatchLotDraft(ctx context.Context, req *v1.PatchLotDraftRequest, ownerUserID string) (*v1.Lot, error) {
-	_ = ownerUserID
+func (uc *AuctionUsecase) PatchLotDraft(ctx context.Context, req *v1.PatchLotDraftRequest, mainAccountID, ownerUserID string) (*v1.Lot, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
@@ -155,8 +264,21 @@ func (uc *AuctionUsecase) PatchLotDraft(ctx context.Context, req *v1.PatchLotDra
 	if err != nil {
 		return nil, err
 	}
+	if err := ensureLotMainAccount(lot, mainAccountID); err != nil {
+		return nil, err
+	}
 	expectedVersion := lot.Version
 	if err := ApplyDraftPatch(lot, req); err != nil {
+		return nil, err
+	}
+	lot.MainAccountId = strings.TrimSpace(mainAccountID)
+	if lot.RoomId == "" {
+		room, err := uc.EnsureDefaultRoom(ctx, mainAccountID, ownerUserID)
+		if err != nil {
+			return nil, err
+		}
+		lot.RoomId = room.ID
+	} else if err := uc.ensureRoomInMainAccount(ctx, lot.RoomId, mainAccountID); err != nil {
 		return nil, err
 	}
 	if err := uc.lots.Save(ctx, lot, expectedVersion, nil); err != nil {
@@ -168,7 +290,7 @@ func (uc *AuctionUsecase) PatchLotDraft(ctx context.Context, req *v1.PatchLotDra
 	return proto.Clone(lot).(*v1.Lot), nil
 }
 
-func (uc *AuctionUsecase) QueueLot(ctx context.Context, lotID, ownerUserID string) (*v1.Lot, int32, error) {
+func (uc *AuctionUsecase) QueueLot(ctx context.Context, lotID, mainAccountID, ownerUserID string) (*v1.Lot, int32, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
@@ -179,13 +301,16 @@ func (uc *AuctionUsecase) QueueLot(ctx context.Context, lotID, ownerUserID strin
 	if err != nil {
 		return nil, 0, err
 	}
+	if err := ensureLotMainAccount(lot, mainAccountID); err != nil {
+		return nil, 0, err
+	}
 	if lot.GetRoomId() == "" {
 		return nil, 0, errors.New("room id is required")
 	}
 	expectedVersion := lot.Version
 	queuePosition := lot.GetQueuePosition()
 	if lot.GetQueueStatus() != v1.LotQueueStatus_LOT_QUEUE_STATUS_QUEUED || queuePosition <= 0 {
-		queuePosition, err = uc.nextQueuePosition(ctx, lot.GetRoomId())
+		queuePosition, err = uc.nextQueuePosition(ctx, lot.GetRoomId(), mainAccountID)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -206,7 +331,8 @@ func (uc *AuctionUsecase) QueueLot(ctx context.Context, lotID, ownerUserID strin
 	return proto.Clone(lot).(*v1.Lot), lot.GetQueuePosition(), nil
 }
 
-func (uc *AuctionUsecase) nextQueuePosition(ctx context.Context, roomID string) (int32, error) {
+func (uc *AuctionUsecase) nextQueuePosition(ctx context.Context, roomID, mainAccountID string) (int32, error) {
+	_ = mainAccountID
 	lots, err := uc.lots.List(ctx, roomID, 0)
 	if err != nil {
 		return 0, err
@@ -226,12 +352,19 @@ func (uc *AuctionUsecase) GetLot(ctx context.Context, lotID string) (*v1.Lot, er
 	if lotID == "" {
 		return nil, fmt.Errorf("%w: lot id is required", apperr.ErrInvalidArgument)
 	}
-	return uc.lots.FindByID(ctx, lotID)
+	lot, err := uc.lots.FindByID(ctx, lotID)
+	if err != nil {
+		return nil, err
+	}
+	if err := uc.ensureActiveRoom(ctx, lot.GetRoomId()); err != nil {
+		return nil, err
+	}
+	return lot, nil
 }
 
 func (uc *AuctionUsecase) ListLots(ctx context.Context, roomID string, status v1.LotStatus) ([]*v1.Lot, error) {
-	if roomID == "" {
-		return nil, errors.New("room id is required")
+	if err := uc.ensureActiveRoom(ctx, roomID); err != nil {
+		return nil, err
 	}
 	return uc.lots.List(ctx, roomID, status)
 }
@@ -239,6 +372,10 @@ func (uc *AuctionUsecase) ListLots(ctx context.Context, roomID string, status v1
 func (uc *AuctionUsecase) ListLotsByQuery(ctx context.Context, query LotQuery) (LotList, error) {
 	query.Page, query.PageSize = NormalizePagination(query.Page, query.PageSize)
 	query.View = strings.ToLower(strings.TrimSpace(query.View))
+	query.MainAccountID = strings.TrimSpace(query.MainAccountID)
+	if query.MainAccountID == "" {
+		return LotList{}, fmt.Errorf("%w: main account id is required", apperr.ErrPermissionDenied)
+	}
 	switch query.View {
 	case "", "all", "current", "history", "library":
 	default:
@@ -247,7 +384,7 @@ func (uc *AuctionUsecase) ListLotsByQuery(ctx context.Context, query LotQuery) (
 	return uc.lots.ListLots(ctx, query)
 }
 
-func (uc *AuctionUsecase) StartLot(ctx context.Context, lotID string) (*v1.Lot, error) {
+func (uc *AuctionUsecase) StartLot(ctx context.Context, lotID, mainAccountID string) (*v1.Lot, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
@@ -257,6 +394,9 @@ func (uc *AuctionUsecase) StartLot(ctx context.Context, lotID string) (*v1.Lot, 
 
 	lot, err := uc.lots.FindByID(ctx, lotID)
 	if err != nil {
+		return nil, err
+	}
+	if err := ensureLotMainAccount(lot, mainAccountID); err != nil {
 		return nil, err
 	}
 	expectedVersion := lot.Version
@@ -567,7 +707,7 @@ func (uc *AuctionUsecase) replayBidByIdempotencyKey(ctx context.Context, lotID, 
 	return proto.Clone(lot).(*v1.Lot), &old, BuildRanking(bids), true, nil
 }
 
-func (uc *AuctionUsecase) RevealTrustCard(ctx context.Context, lotID, cardID, operatorID string) (*v1.Lot, *v1.TrustRevealCard, error) {
+func (uc *AuctionUsecase) RevealTrustCard(ctx context.Context, lotID, mainAccountID, cardID, operatorID string) (*v1.Lot, *v1.TrustRevealCard, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
@@ -580,6 +720,9 @@ func (uc *AuctionUsecase) RevealTrustCard(ctx context.Context, lotID, cardID, op
 
 	lot, err := uc.lots.FindByID(ctx, lotID)
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := ensureLotMainAccount(lot, mainAccountID); err != nil {
 		return nil, nil, err
 	}
 	expectedVersion := lot.Version
@@ -606,7 +749,7 @@ func (uc *AuctionUsecase) RevealTrustCard(ctx context.Context, lotID, cardID, op
 	return proto.Clone(lot).(*v1.Lot), card, nil
 }
 
-func (uc *AuctionUsecase) StartDuel(ctx context.Context, lotID, operatorID, userAID, userBID string) (*v1.Lot, *v1.DuelState, error) {
+func (uc *AuctionUsecase) StartDuel(ctx context.Context, lotID, mainAccountID, operatorID, userAID, userBID string) (*v1.Lot, *v1.DuelState, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
@@ -616,6 +759,9 @@ func (uc *AuctionUsecase) StartDuel(ctx context.Context, lotID, operatorID, user
 
 	lot, err := uc.lots.FindByID(ctx, lotID)
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := ensureLotMainAccount(lot, mainAccountID); err != nil {
 		return nil, nil, err
 	}
 	expectedVersion := lot.Version
@@ -642,7 +788,7 @@ func (uc *AuctionUsecase) StartDuel(ctx context.Context, lotID, operatorID, user
 	return proto.Clone(lot).(*v1.Lot), lot.DuelState, nil
 }
 
-func (uc *AuctionUsecase) SettleLot(ctx context.Context, lotID, operatorID string) (*v1.Lot, error) {
+func (uc *AuctionUsecase) SettleLot(ctx context.Context, lotID, mainAccountID, operatorID string) (*v1.Lot, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
@@ -652,6 +798,9 @@ func (uc *AuctionUsecase) SettleLot(ctx context.Context, lotID, operatorID strin
 
 	lot, err := uc.lots.FindByID(ctx, lotID)
 	if err != nil {
+		return nil, err
+	}
+	if err := ensureLotMainAccount(lot, mainAccountID); err != nil {
 		return nil, err
 	}
 	expectedVersion := lot.Version
@@ -765,6 +914,9 @@ func (uc *AuctionUsecase) GetLotResult(ctx context.Context, lotID string, viewer
 	}
 	lot, err := uc.lots.FindByID(ctx, lotID)
 	if err != nil {
+		return nil, err
+	}
+	if err := uc.ensureActiveRoom(ctx, lot.GetRoomId()); err != nil {
 		return nil, err
 	}
 	result := &LotResult{Lot: LotForViewer(lot, viewer), AuctionState: AuctionStateOf(lot)}
@@ -910,7 +1062,7 @@ func (uc *AuctionUsecase) replayPayment(ctx context.Context, orderID string, pay
 	return &PaymentResult{Order: order.Summary(), Payment: payment.Summary(), Paid: payment.Status == PaymentStatusSuccess}, nil
 }
 
-func (uc *AuctionUsecase) CancelLot(ctx context.Context, lotID, operatorID, reason string) (*v1.Lot, error) {
+func (uc *AuctionUsecase) CancelLot(ctx context.Context, lotID, mainAccountID, operatorID, reason string) (*v1.Lot, error) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 
@@ -920,6 +1072,9 @@ func (uc *AuctionUsecase) CancelLot(ctx context.Context, lotID, operatorID, reas
 
 	lot, err := uc.lots.FindByID(ctx, lotID)
 	if err != nil {
+		return nil, err
+	}
+	if err := ensureLotMainAccount(lot, mainAccountID); err != nil {
 		return nil, err
 	}
 	expectedVersion := lot.Version
@@ -972,8 +1127,9 @@ func (uc *AuctionUsecase) syncRuntimeLot(ctx context.Context, lot *v1.Lot) error
 }
 
 func (uc *AuctionUsecase) Snapshot(ctx context.Context, roomID string) (*v1.RoomSnapshot, error) {
-	if roomID == "" {
-		return nil, errors.New("room id is required")
+	room, err := uc.findActiveRoom(ctx, roomID)
+	if err != nil {
+		return nil, err
 	}
 
 	lots, err := uc.lots.List(ctx, roomID, 0)
@@ -990,6 +1146,8 @@ func (uc *AuctionUsecase) Snapshot(ctx context.Context, roomID string) (*v1.Room
 
 	snapshot := &v1.RoomSnapshot{
 		RoomId:           roomID,
+		RoomName:         room.Name,
+		AnchorName:       room.Name,
 		PlaybookStage:    v1.PlaybookStage_PLAYBOOK_STAGE_WARM_UP,
 		ServerTimeUnixMs: clock.NowMs(),
 	}
@@ -997,7 +1155,13 @@ func (uc *AuctionUsecase) Snapshot(ctx context.Context, roomID string) (*v1.Room
 		return snapshot, nil
 	}
 	if uc.runtime != nil {
-		return uc.runtime.SnapshotRuntime(ctx, current)
+		runtimeSnapshot, err := uc.runtime.SnapshotRuntime(ctx, current)
+		if err != nil {
+			return nil, err
+		}
+		runtimeSnapshot.RoomName = room.Name
+		runtimeSnapshot.AnchorName = room.Name
+		return runtimeSnapshot, nil
 	}
 
 	bids, err := uc.bids.ListByLot(ctx, current.Id)

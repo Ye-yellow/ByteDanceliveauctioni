@@ -48,6 +48,26 @@ type listLotsHTTPResponse struct {
 	Size   int               `json:"pageSize"`
 }
 
+type listRoomsHTTPResponse struct {
+	Result *v1.ReplyResult `json:"result"`
+	Rooms  []auction.Room  `json:"rooms"`
+}
+
+type publicRoomHTTPResponse struct {
+	ID              string             `json:"id"`
+	Name            string             `json:"name"`
+	Platform        string             `json:"platform,omitempty"`
+	PlatformRoomID  string             `json:"platformRoomId,omitempty"`
+	Status          auction.RoomStatus `json:"status,omitempty"`
+	CreatedAtUnixMs int64              `json:"createdAtUnixMs,omitempty"`
+	UpdatedAtUnixMs int64              `json:"updatedAtUnixMs,omitempty"`
+}
+
+type listPublicRoomsHTTPResponse struct {
+	Result *v1.ReplyResult          `json:"result"`
+	Rooms  []publicRoomHTTPResponse `json:"rooms"`
+}
+
 type listUsersHTTPResponse struct {
 	Result *v1.ReplyResult   `json:"result"`
 	Users  []json.RawMessage `json:"users"`
@@ -165,6 +185,27 @@ func registerDomainHTTP(srv *httptransport.Server, service *appsvc.AuctionServic
 		}
 		return ctx.Result(200, out)
 	})
+	r.GET("/api/admin/rooms", func(ctx httptransport.Context) error {
+		h := ctx.Middleware(func(ctx context.Context, req any) (any, error) {
+			rooms, err := service.ListAdminRooms(ctx)
+			if err != nil {
+				return listRoomsHTTPResponse{Result: appsvc.ErrorResult(ctx, err), Rooms: []auction.Room{}}, nil
+			}
+			return listRoomsHTTPResponse{Result: appsvc.OKResult(ctx), Rooms: rooms}, nil
+		})
+		out, err := h(ctx, nil)
+		if err != nil {
+			return ctx.Result(200, listRoomsHTTPResponse{Result: appsvc.ErrorResult(ctx, err), Rooms: []auction.Room{}})
+		}
+		return ctx.Result(200, out)
+	})
+	r.GET("/api/rooms", func(ctx httptransport.Context) error {
+		rooms, err := service.ListPublicRooms(ctx)
+		if err != nil {
+			return ctx.Result(200, listPublicRoomsHTTPResponse{Result: appsvc.ErrorResult(ctx, err), Rooms: []publicRoomHTTPResponse{}})
+		}
+		return ctx.Result(200, listPublicRoomsHTTPResponse{Result: appsvc.OKResult(ctx), Rooms: publicRoomsHTTP(rooms)})
+	})
 	r.GET("/api/admin/users", func(ctx httptransport.Context) error {
 		query := userQueryFromHTTP(ctx)
 		h := ctx.Middleware(func(ctx context.Context, req any) (any, error) {
@@ -199,6 +240,22 @@ func registerDomainHTTP(srv *httptransport.Server, service *appsvc.AuctionServic
 		}
 		return ctx.Result(200, out)
 	})
+}
+
+func publicRoomsHTTP(rooms []auction.Room) []publicRoomHTTPResponse {
+	out := make([]publicRoomHTTPResponse, 0, len(rooms))
+	for _, room := range rooms {
+		out = append(out, publicRoomHTTPResponse{
+			ID:              room.ID,
+			Name:            room.Name,
+			Platform:        room.Platform,
+			PlatformRoomID:  room.PlatformRoomID,
+			Status:          room.Status,
+			CreatedAtUnixMs: room.CreatedAtUnixMs,
+			UpdatedAtUnixMs: room.UpdatedAtUnixMs,
+		})
+	}
+	return out
 }
 
 func orderQueryFromHTTP(ctx httptransport.Context) auction.OrderQuery {

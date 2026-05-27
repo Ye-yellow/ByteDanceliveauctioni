@@ -25,7 +25,7 @@ func TestAuctionServiceRequiresAuthForOperationsAndUsesTokenBidder(t *testing.T)
 		t.Fatalf("expected unauthenticated create lot, got %+v", unauthCreate.GetResult())
 	}
 
-	anchorCtx := auth.WithClaims(ctx, &auth.Claims{UserID: "anchor1", Username: "anchor1", Nickname: "主播", Role: v1.UserRole_USER_ROLE_ANCHOR})
+	anchorCtx := auth.WithClaims(ctx, &auth.Claims{UserID: "anchor1", Username: "anchor1", Nickname: "主播", Role: v1.UserRole_USER_ROLE_ANCHOR, MainAccountID: testMainAccountID})
 	create, err := svc.CreateLot(anchorCtx, validCreateLotRequest("auth-room"))
 	if err != nil || create.GetResult().GetCode() != appsvc.ResultCodeOK {
 		t.Fatalf("authorized create lot failed: reply=%+v err=%v", create, err)
@@ -57,7 +57,7 @@ func TestAuctionServiceRequiresAuthForOperationsAndUsesTokenBidder(t *testing.T)
 		t.Fatalf("missing idempotency key must return invalid argument, got %+v", missingIdemBid)
 	}
 
-	operatorCtx := auth.WithClaims(ctx, &auth.Claims{UserID: "op1", Username: "op1", Nickname: "运营", Role: v1.UserRole_USER_ROLE_OPERATOR})
+	operatorCtx := auth.WithClaims(ctx, &auth.Claims{UserID: "op1", Username: "op1", Nickname: "运营", Role: v1.UserRole_USER_ROLE_OPERATOR, MainAccountID: testMainAccountID})
 	opBid, err := svc.PlaceBid(operatorCtx, &v1.PlaceBidRequest{
 		LotId:  create.GetLot().GetId(),
 		Amount: &v1.Money{Amount: 12000, Currency: "CNY"},
@@ -86,7 +86,7 @@ func TestGetLotResultOrderVisibility(t *testing.T) {
 	svc := appsvc.NewAuctionService(uc)
 	ctx := context.Background()
 
-	anchorCtx := auth.WithClaims(ctx, &auth.Claims{UserID: "anchor1", Username: "anchor1", Nickname: "主播", Role: v1.UserRole_USER_ROLE_ANCHOR})
+	anchorCtx := auth.WithClaims(ctx, &auth.Claims{UserID: "anchor1", Username: "anchor1", Nickname: "主播", Role: v1.UserRole_USER_ROLE_ANCHOR, MainAccountID: testMainAccountID})
 	create, err := svc.CreateLot(anchorCtx, validCreateLotRequest("result-visibility-room"))
 	if err != nil || create.GetResult().GetCode() != appsvc.ResultCodeOK {
 		t.Fatalf("create lot failed: reply=%+v err=%v", create, err)
@@ -132,9 +132,9 @@ func TestGetLotResultOrderVisibility(t *testing.T) {
 		t.Fatalf("winning buyer should see own full order: %+v", winnerResult.Order)
 	}
 	for _, claims := range []*auth.Claims{
-		{UserID: "anchor1", Username: "anchor1", Nickname: "主播", Role: v1.UserRole_USER_ROLE_ANCHOR},
-		{UserID: "op1", Username: "op1", Nickname: "运营", Role: v1.UserRole_USER_ROLE_OPERATOR},
-		{UserID: "admin1", Username: "admin1", Nickname: "管理员", Role: v1.UserRole_USER_ROLE_ADMIN},
+		{UserID: "anchor1", Username: "anchor1", Nickname: "主播", Role: v1.UserRole_USER_ROLE_ANCHOR, MainAccountID: testMainAccountID},
+		{UserID: "op1", Username: "op1", Nickname: "运营", Role: v1.UserRole_USER_ROLE_OPERATOR, MainAccountID: testMainAccountID},
+		{UserID: testMainAccountID, Username: "admin1", Nickname: "管理员", Role: v1.UserRole_USER_ROLE_MAIN_ACCOUNT, MainAccountID: testMainAccountID},
 	} {
 		result, err := svc.GetLotResult(auth.WithClaims(ctx, claims), lotID)
 		if err != nil {
@@ -152,7 +152,7 @@ func TestBuyerFacingAuctionViewsRedactOtherBuyerIdentity(t *testing.T) {
 	svc := appsvc.NewAuctionService(uc)
 	ctx := context.Background()
 
-	anchorCtx := auth.WithClaims(ctx, &auth.Claims{UserID: "anchor1", Username: "anchor1", Nickname: "主播", Role: v1.UserRole_USER_ROLE_ANCHOR})
+	anchorCtx := auth.WithClaims(ctx, &auth.Claims{UserID: "anchor1", Username: "anchor1", Nickname: "主播", Role: v1.UserRole_USER_ROLE_ANCHOR, MainAccountID: testMainAccountID})
 	create, err := svc.CreateLot(anchorCtx, validCreateLotRequest("buyer-privacy-room"))
 	if err != nil || create.GetResult().GetCode() != appsvc.ResultCodeOK {
 		t.Fatalf("create lot failed: reply=%+v err=%v", create, err)
@@ -200,9 +200,9 @@ func TestP2QueryPermissionsAndBuyerIsolation(t *testing.T) {
 	svc := appsvc.NewAuctionService(uc)
 	ctx := context.Background()
 
-	anchorCtx := auth.WithClaims(ctx, &auth.Claims{UserID: "anchor1", Username: "anchor1", Nickname: "主播", Role: v1.UserRole_USER_ROLE_ANCHOR})
-	adminCtx := auth.WithClaims(ctx, &auth.Claims{UserID: "admin1", Username: "admin1", Nickname: "管理员", Role: v1.UserRole_USER_ROLE_ADMIN})
-	operatorCtx := auth.WithClaims(ctx, &auth.Claims{UserID: "op1", Username: "op1", Nickname: "运营", Role: v1.UserRole_USER_ROLE_OPERATOR})
+	anchorCtx := auth.WithClaims(ctx, &auth.Claims{UserID: "anchor1", Username: "anchor1", Nickname: "主播", Role: v1.UserRole_USER_ROLE_ANCHOR, MainAccountID: testMainAccountID})
+	adminCtx := auth.WithClaims(ctx, &auth.Claims{UserID: testMainAccountID, Username: "admin1", Nickname: "管理员", Role: v1.UserRole_USER_ROLE_MAIN_ACCOUNT, MainAccountID: testMainAccountID})
+	operatorCtx := auth.WithClaims(ctx, &auth.Claims{UserID: "op1", Username: "op1", Nickname: "运营", Role: v1.UserRole_USER_ROLE_OPERATOR, MainAccountID: testMainAccountID})
 	buyer1Ctx := auth.WithClaims(ctx, &auth.Claims{UserID: "buyer1", Username: "buyer1", Nickname: "买家一号", Role: v1.UserRole_USER_ROLE_BUYER})
 	buyer2Ctx := auth.WithClaims(ctx, &auth.Claims{UserID: "buyer2", Username: "buyer2", Nickname: "买家二号", Role: v1.UserRole_USER_ROLE_BUYER})
 
@@ -233,7 +233,7 @@ func TestP2QueryPermissionsAndBuyerIsolation(t *testing.T) {
 	for _, allowedCtx := range []context.Context{anchorCtx, operatorCtx, adminCtx} {
 		orders, err := svc.ListOrders(allowedCtx, auction.OrderQuery{Page: 1, PageSize: 10})
 		if err != nil || orders.Total != 2 || len(orders.Orders) != 2 {
-			t.Fatalf("admin role should list all orders: orders=%+v err=%v", orders, err)
+			t.Fatalf("backoffice role should list all orders: orders=%+v err=%v", orders, err)
 		}
 	}
 	if _, err := svc.ListOrders(buyer1Ctx, auction.OrderQuery{}); !apperr.IsPermissionDenied(err) {

@@ -27,6 +27,7 @@ func (s *Store) Create(ctx context.Context, lot *v1.Lot, ownerUserID string, eve
 		}
 		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&AuctionLotStatsModel{
 			LotID:           lot.Id,
+			MainAccountID:   lot.GetMainAccountId(),
 			RoomID:          lot.RoomId,
 			UpdatedAtUnixMs: 0,
 		}).Error; err != nil {
@@ -155,6 +156,9 @@ func (s *Store) List(ctx context.Context, roomID string, status v1.LotStatus) ([
 func (s *Store) ListLots(ctx context.Context, query auction.LotQuery) (auction.LotList, error) {
 	query.Page, query.PageSize = auction.NormalizePagination(query.Page, query.PageSize)
 	db := s.db.WithContext(ctx).Model(&AuctionLotModel{})
+	if query.MainAccountID != "" {
+		db = db.Where("main_account_id = ?", query.MainAccountID)
+	}
 	if query.RoomID != "" {
 		db = db.Where("room_id = ?", query.RoomID)
 	}
@@ -328,6 +332,7 @@ func lotToModel(lot *v1.Lot) (*AuctionLotModel, error) {
 	}
 	return &AuctionLotModel{
 		ID:                     lot.Id,
+		MainAccountID:          lot.GetMainAccountId(),
 		RoomID:                 lot.RoomId,
 		Title:                  lot.Title,
 		Description:            lot.Description,
@@ -384,6 +389,7 @@ func modelToLot(model *AuctionLotModel) (*v1.Lot, error) {
 	}
 	lot.QueueStatus = normalizeQueueStatus(v1.LotQueueStatus(model.QueueStatus))
 	lot.QueuePosition = model.QueuePosition
+	lot.MainAccountId = model.MainAccountID
 	if model.CapPriceAmount != nil {
 		lot.Rule.CapPrice = &v1.Money{Amount: *model.CapPriceAmount, Currency: model.CapPriceCurrency}
 	} else {

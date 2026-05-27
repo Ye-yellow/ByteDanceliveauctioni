@@ -34,7 +34,7 @@ func (s *Store) CommitAcceptedBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, 
 	if expectedLotVersion <= 0 {
 		return errors.New("lot expected version is required")
 	}
-	bidModel, err := bidToModel(bid, idempotencyKey)
+	bidModel, err := bidToModel(bid, idempotencyKey, lot.GetMainAccountId())
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (s *Store) ProjectRuntimeBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, 
 	if lot == nil {
 		return errors.New("lot is required")
 	}
-	bidModel, err := bidToModel(bid, idempotencyKey)
+	bidModel, err := bidToModel(bid, idempotencyKey, lot.GetMainAccountId())
 	if err != nil {
 		return err
 	}
@@ -164,6 +164,7 @@ func projectStatsForInsertedBid(ctx context.Context, tx *gorm.DB, bid v1.Bid, lo
 	participant := AuctionLotParticipantModel{
 		LotID:            bid.LotId,
 		UserID:           bid.UserId,
+		MainAccountID:    lot.GetMainAccountId(),
 		RoomID:           lot.RoomId,
 		FirstBidID:       bid.Id,
 		FirstBidAtUnixMs: bid.CreatedAtUnixMs,
@@ -178,6 +179,7 @@ func projectStatsForInsertedBid(ctx context.Context, tx *gorm.DB, bid v1.Bid, lo
 	}
 	stats := AuctionLotStatsModel{
 		LotID:           bid.LotId,
+		MainAccountID:   lot.GetMainAccountId(),
 		RoomID:          lot.RoomId,
 		UpdatedAtUnixMs: bid.CreatedAtUnixMs,
 	}
@@ -189,6 +191,7 @@ func projectStatsForInsertedBid(ctx context.Context, tx *gorm.DB, bid v1.Bid, lo
 		Where("lot_id = ?", bid.LotId).
 		Updates(map[string]any{
 			"room_id":             lot.RoomId,
+			"main_account_id":     lot.GetMainAccountId(),
 			"bid_count":           gorm.Expr("bid_count + ?", 1),
 			"participant_count":   gorm.Expr("participant_count + ?", participantDelta),
 			"last_bid_id":         bid.Id,
@@ -211,13 +214,14 @@ func createEventModelsIgnoringDuplicates(ctx context.Context, tx *gorm.DB, event
 	return nil
 }
 
-func bidToModel(bid v1.Bid, idempotencyKey string) (*AuctionBidModel, error) {
+func bidToModel(bid v1.Bid, idempotencyKey string, mainAccountID string) (*AuctionBidModel, error) {
 	payload, err := protojson.Marshal(&bid)
 	if err != nil {
 		return nil, err
 	}
 	return &AuctionBidModel{
 		ID:              bid.Id,
+		MainAccountID:   mainAccountID,
 		LotID:           bid.LotId,
 		UserID:          bid.UserId,
 		Nickname:        bid.Nickname,

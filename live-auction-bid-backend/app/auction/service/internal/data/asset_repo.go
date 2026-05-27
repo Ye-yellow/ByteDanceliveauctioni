@@ -16,6 +16,7 @@ const (
 
 type AssetFile struct {
 	ID               string
+	MainAccountID    string
 	OwnerUserID      string
 	RoomID           string
 	BizType          string
@@ -49,6 +50,7 @@ func (s *Store) SaveAssetFile(ctx context.Context, asset AssetFile) error {
 	}
 	model := AssetFileModel{
 		ID:               asset.ID,
+		MainAccountID:    asset.MainAccountID,
 		OwnerUserID:      asset.OwnerUserID,
 		RoomID:           asset.RoomID,
 		BizType:          asset.BizType,
@@ -174,6 +176,7 @@ func (s *Store) MarkAssetDeletedByID(ctx context.Context, assetID string) error 
 func assetFileFromModel(model *AssetFileModel) *AssetFile {
 	return &AssetFile{
 		ID:               model.ID,
+		MainAccountID:    model.MainAccountID,
 		OwnerUserID:      model.OwnerUserID,
 		RoomID:           model.RoomID,
 		BizType:          model.BizType,

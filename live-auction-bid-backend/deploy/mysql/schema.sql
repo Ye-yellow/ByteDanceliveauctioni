@@ -1,8 +1,27 @@
 -- Reference schema for the GORM AutoMigrate production path.
 -- Runtime migrations are owned by app/auction/service/internal/data/models.go.
 
+CREATE TABLE IF NOT EXISTS auction_rooms (
+  id VARCHAR(64) PRIMARY KEY,
+  main_account_id VARCHAR(64) NOT NULL,
+  name VARCHAR(128) NOT NULL,
+  platform VARCHAR(32) NOT NULL DEFAULT 'douyin',
+  platform_room_id VARCHAR(128) NOT NULL DEFAULT '',
+  status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
+  created_by_user_id VARCHAR(64) NOT NULL DEFAULT '',
+  created_at_unix_ms BIGINT NOT NULL,
+  updated_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
+  UNIQUE KEY uidx_room_main_account (main_account_id),
+  INDEX idx_room_main_status (main_account_id, status),
+  INDEX idx_room_created_by (created_by_user_id),
+  INDEX idx_platform_room (platform_room_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS auction_lots (
   id VARCHAR(64) PRIMARY KEY,
+  main_account_id VARCHAR(64) NOT NULL,
   room_id VARCHAR(64) NOT NULL,
   title VARCHAR(255) NOT NULL,
   description TEXT NOT NULL,
@@ -38,6 +57,9 @@ CREATE TABLE IF NOT EXISTS auction_lots (
   payload JSON NOT NULL,
   created_at DATETIME(3) NULL,
   updated_at DATETIME(3) NULL,
+  INDEX idx_lot_main_room_status (main_account_id, room_id, status),
+  INDEX idx_lot_main_room_queue (main_account_id, room_id, queue_status, queue_position),
+  INDEX idx_lot_main_updated (main_account_id, updated_at),
   INDEX idx_room_status (room_id, status),
   INDEX idx_room_queue (room_id, queue_status, queue_position),
   INDEX idx_room_updated (room_id, updated_at),
@@ -46,6 +68,7 @@ CREATE TABLE IF NOT EXISTS auction_lots (
 
 CREATE TABLE IF NOT EXISTS auction_bids (
   id VARCHAR(64) PRIMARY KEY,
+  main_account_id VARCHAR(64) NOT NULL,
   lot_id VARCHAR(64) NOT NULL,
   user_id VARCHAR(64) NOT NULL,
   nickname VARCHAR(128) NOT NULL,
@@ -55,14 +78,45 @@ CREATE TABLE IF NOT EXISTS auction_bids (
   created_at_unix_ms BIGINT NOT NULL,
   payload JSON NOT NULL,
   created_at DATETIME(3) NULL,
+  INDEX idx_bid_main_lot_created (main_account_id, lot_id, created_at_unix_ms),
   INDEX idx_lot_created (lot_id, created_at_unix_ms),
   INDEX idx_lot_amount (lot_id, amount),
   INDEX idx_lot_user (lot_id, user_id),
   UNIQUE INDEX idx_lot_user_idem (lot_id, user_id, idempotency_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS auction_lot_stats (
+  lot_id VARCHAR(64) PRIMARY KEY,
+  main_account_id VARCHAR(64) NOT NULL,
+  room_id VARCHAR(64) NOT NULL,
+  bid_count BIGINT NOT NULL DEFAULT 0,
+  participant_count BIGINT NOT NULL DEFAULT 0,
+  last_bid_id VARCHAR(64) NOT NULL DEFAULT '',
+  last_bid_at_unix_ms BIGINT NOT NULL DEFAULT 0,
+  projected_version BIGINT NOT NULL DEFAULT 0,
+  updated_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
+  INDEX idx_lot_stats_room (room_id),
+  INDEX idx_lot_stats_main_room (main_account_id, room_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS auction_lot_participants (
+  lot_id VARCHAR(64) NOT NULL,
+  user_id VARCHAR(64) NOT NULL,
+  main_account_id VARCHAR(64) NOT NULL,
+  room_id VARCHAR(64) NOT NULL,
+  first_bid_id VARCHAR(64) NOT NULL,
+  first_bid_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  PRIMARY KEY (lot_id, user_id),
+  INDEX idx_lot_participants_room (room_id),
+  INDEX idx_lot_participants_main_room (main_account_id, room_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS auction_events (
   id VARCHAR(64) PRIMARY KEY,
+  main_account_id VARCHAR(64) NOT NULL,
   room_id VARCHAR(64) NOT NULL,
   lot_id VARCHAR(64) NOT NULL DEFAULT '',
   type INT NOT NULL,
@@ -73,6 +127,7 @@ CREATE TABLE IF NOT EXISTS auction_events (
   streamed_at_unix_ms BIGINT NOT NULL DEFAULT 0,
   last_stream_error VARCHAR(512) NOT NULL DEFAULT '',
   created_at DATETIME(3) NULL,
+  INDEX idx_event_main_room_occurred (main_account_id, room_id, occurred_at_unix_ms),
   INDEX idx_room_occurred (room_id, occurred_at_unix_ms),
   INDEX idx_lot_occurred (lot_id, occurred_at_unix_ms),
   INDEX idx_type_occurred (type, occurred_at_unix_ms),
@@ -81,6 +136,7 @@ CREATE TABLE IF NOT EXISTS auction_events (
 
 CREATE TABLE IF NOT EXISTS auction_orders (
   id VARCHAR(64) PRIMARY KEY,
+  main_account_id VARCHAR(64) NOT NULL,
   lot_id VARCHAR(64) NOT NULL,
   room_id VARCHAR(64) NOT NULL,
   lot_title VARCHAR(255) NOT NULL,
@@ -101,6 +157,8 @@ CREATE TABLE IF NOT EXISTS auction_orders (
   created_at DATETIME(3) NULL,
   updated_at DATETIME(3) NULL,
   UNIQUE INDEX uk_lot_order (lot_id),
+  INDEX idx_order_main_room_created (main_account_id, room_id, created_at_unix_ms),
+  INDEX idx_order_main_status (main_account_id, status),
   INDEX idx_order_room_created (room_id, created_at_unix_ms),
   INDEX idx_order_buyer_status (buyer_user_id, status),
   INDEX idx_order_payment_status (payment_status),
@@ -109,6 +167,7 @@ CREATE TABLE IF NOT EXISTS auction_orders (
 
 CREATE TABLE IF NOT EXISTS auction_payments (
   id VARCHAR(64) PRIMARY KEY,
+  main_account_id VARCHAR(64) NOT NULL,
   order_id VARCHAR(64) NOT NULL,
   lot_id VARCHAR(64) NOT NULL,
   buyer_user_id VARCHAR(64) NOT NULL,
@@ -122,6 +181,7 @@ CREATE TABLE IF NOT EXISTS auction_payments (
   payload JSON NOT NULL,
   created_at DATETIME(3) NULL,
   updated_at DATETIME(3) NULL,
+  INDEX idx_payment_main_created (main_account_id, created_at_unix_ms),
   INDEX idx_payment_order (order_id),
   INDEX idx_payment_lot (lot_id),
   INDEX idx_payment_buyer (buyer_user_id),
@@ -136,12 +196,18 @@ CREATE TABLE IF NOT EXISTS auction_users (
   nickname VARCHAR(128) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   role INT NOT NULL,
+  main_account_id VARCHAR(64) NOT NULL DEFAULT '',
+  created_by_user_id VARCHAR(64) NOT NULL DEFAULT '',
+  status INT NOT NULL DEFAULT 1,
   created_at_unix_ms BIGINT NOT NULL,
   updated_at_unix_ms BIGINT NOT NULL,
   created_at DATETIME(3) NULL,
   updated_at DATETIME(3) NULL,
   UNIQUE INDEX idx_username (username),
-  INDEX idx_role (role)
+  INDEX idx_role (role),
+  INDEX idx_user_main_role (main_account_id, role, status),
+  INDEX idx_user_created_by (created_by_user_id),
+  INDEX idx_user_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS auction_user_sessions (
@@ -161,6 +227,7 @@ CREATE TABLE IF NOT EXISTS auction_user_sessions (
 
 CREATE TABLE IF NOT EXISTS asset_files (
   id VARCHAR(64) PRIMARY KEY,
+  main_account_id VARCHAR(64) NOT NULL DEFAULT '',
   owner_user_id VARCHAR(64) NOT NULL,
   room_id VARCHAR(64) NOT NULL DEFAULT '',
   biz_type VARCHAR(64) NOT NULL,
@@ -179,6 +246,7 @@ CREATE TABLE IF NOT EXISTS asset_files (
   expires_at_unix_ms BIGINT NOT NULL DEFAULT 0,
   created_at DATETIME(3) NULL,
   updated_at DATETIME(3) NULL,
+  INDEX idx_asset_main_room (main_account_id, room_id),
   INDEX idx_asset_owner (owner_user_id),
   INDEX idx_asset_room (room_id),
   INDEX idx_asset_biz_type (biz_type),

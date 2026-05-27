@@ -17,6 +17,12 @@ type LotRepository interface {
 	ListLots(ctx context.Context, query LotQuery) (LotList, error)
 }
 
+type RoomRepository interface {
+	EnsureDefaultRoom(ctx context.Context, mainAccountID, createdByUserID string, nowMs int64) (*Room, error)
+	ListRooms(ctx context.Context, query RoomQuery) ([]Room, error)
+	FindRoomByID(ctx context.Context, roomID string) (*Room, bool, error)
+}
+
 type ExpiredLotRepository interface {
 	ListExpiredOpen(ctx context.Context, nowMs int64, limit int) ([]*v1.Lot, error)
 }

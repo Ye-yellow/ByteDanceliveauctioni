@@ -43,8 +43,33 @@ const (
 
 const OrderPaymentWindowMs int64 = 30 * 60 * 1000
 
+type RoomStatus string
+
+const (
+	RoomStatusActive   RoomStatus = "ACTIVE"
+	RoomStatusDisabled RoomStatus = "DISABLED"
+)
+
+type Room struct {
+	ID              string     `json:"id"`
+	MainAccountID   string     `json:"mainAccountId"`
+	Name            string     `json:"name"`
+	Platform        string     `json:"platform"`
+	PlatformRoomID  string     `json:"platformRoomId,omitempty"`
+	Status          RoomStatus `json:"status"`
+	CreatedByUserID string     `json:"createdByUserId,omitempty"`
+	CreatedAtUnixMs int64      `json:"createdAtUnixMs"`
+	UpdatedAtUnixMs int64      `json:"updatedAtUnixMs"`
+}
+
+type RoomQuery struct {
+	MainAccountID string `json:"mainAccountId,omitempty"`
+	PublicOnly    bool   `json:"publicOnly,omitempty"`
+}
+
 type Order struct {
 	ID              string        `json:"id"`
+	MainAccountID   string        `json:"mainAccountId"`
 	LotID           string        `json:"lotId"`
 	RoomID          string        `json:"roomId"`
 	LotTitle        string        `json:"lotTitle"`
@@ -65,6 +90,7 @@ type Order struct {
 
 type Payment struct {
 	ID              string        `json:"id"`
+	MainAccountID   string        `json:"mainAccountId"`
 	OrderID         string        `json:"orderId"`
 	LotID           string        `json:"lotId"`
 	BuyerUserID     string        `json:"buyerUserId"`
@@ -79,6 +105,7 @@ type Payment struct {
 
 type OrderSummary struct {
 	ID              string        `json:"id"`
+	MainAccountID   string        `json:"mainAccountId"`
 	LotID           string        `json:"lotId"`
 	RoomID          string        `json:"roomId"`
 	LotTitle        string        `json:"lotTitle"`
@@ -108,6 +135,7 @@ type PaymentSummary struct {
 type OrderQuery struct {
 	Page          int           `json:"page"`
 	PageSize      int           `json:"pageSize"`
+	MainAccountID string        `json:"mainAccountId,omitempty"`
 	Status        OrderStatus   `json:"status,omitempty"`
 	PaymentStatus PaymentStatus `json:"paymentStatus,omitempty"`
 	LotID         string        `json:"lotId,omitempty"`
@@ -123,12 +151,13 @@ type OrderList struct {
 }
 
 type LotQuery struct {
-	Page     int          `json:"page"`
-	PageSize int          `json:"pageSize"`
-	Status   v1.LotStatus `json:"status,omitempty"`
-	View     string       `json:"view,omitempty"`
-	Keyword  string       `json:"keyword,omitempty"`
-	RoomID   string       `json:"roomId,omitempty"`
+	Page          int          `json:"page"`
+	PageSize      int          `json:"pageSize"`
+	MainAccountID string       `json:"mainAccountId,omitempty"`
+	Status        v1.LotStatus `json:"status,omitempty"`
+	View          string       `json:"view,omitempty"`
+	Keyword       string       `json:"keyword,omitempty"`
+	RoomID        string       `json:"roomId,omitempty"`
 }
 
 type LotList struct {
@@ -139,9 +168,10 @@ type LotList struct {
 }
 
 type RoomEventQuery struct {
-	RoomID    string `json:"roomId"`
-	PageSize  int    `json:"pageSize"`
-	PageToken string `json:"pageToken,omitempty"`
+	RoomID        string `json:"roomId"`
+	MainAccountID string `json:"mainAccountId,omitempty"`
+	PageSize      int    `json:"pageSize"`
+	PageToken     string `json:"pageToken,omitempty"`
 }
 
 type RoomEventList struct {
@@ -185,8 +215,9 @@ type LotResult struct {
 }
 
 type LotResultViewer struct {
-	UserID string
-	Role   v1.UserRole
+	UserID        string
+	MainAccountID string
+	Role          v1.UserRole
 }
 
 func (v LotResultViewer) CanViewOrder(order *Order) bool {
@@ -194,8 +225,8 @@ func (v LotResultViewer) CanViewOrder(order *Order) bool {
 		return false
 	}
 	switch v.Role {
-	case v1.UserRole_USER_ROLE_ADMIN, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR:
-		return true
+	case v1.UserRole_USER_ROLE_MAIN_ACCOUNT, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR:
+		return v.MainAccountID != "" && v.MainAccountID == order.MainAccountID
 	case v1.UserRole_USER_ROLE_BUYER:
 		return v.UserID != "" && v.UserID == order.BuyerUserID
 	default:
@@ -280,6 +311,7 @@ func NewOrderFromSettledLot(id string, lot *v1.Lot, nowMs int64) (*Order, error)
 	}
 	return &Order{
 		ID:              id,
+		MainAccountID:   lot.GetMainAccountId(),
 		LotID:           lot.Id,
 		RoomID:          lot.RoomId,
 		LotTitle:        lot.Title,
@@ -308,6 +340,7 @@ func (o Order) Summary() OrderSummary {
 	status, paymentStatus := o.effectiveStatus(clock.NowMs())
 	return OrderSummary{
 		ID:              o.ID,
+		MainAccountID:   o.MainAccountID,
 		LotID:           o.LotID,
 		RoomID:          o.RoomID,
 		LotTitle:        o.LotTitle,
@@ -343,6 +376,7 @@ func NewPayment(id string, order Order, idempotencyKey string, amount int64, cur
 	}
 	return &Payment{
 		ID:              id,
+		MainAccountID:   order.MainAccountID,
 		OrderID:         order.ID,
 		LotID:           order.LotID,
 		BuyerUserID:     order.BuyerUserID,

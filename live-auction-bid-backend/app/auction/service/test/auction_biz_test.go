@@ -513,7 +513,7 @@ func TestListLotsByQueryViewsRespectPageBoundaries(t *testing.T) {
 	createLotWithStatus("lot_cancelled", v1.LotStatus_LOT_STATUS_CANCELLED)
 	createLotWithStatus("lot_failed", v1.LotStatus_LOT_STATUS_FAILED)
 
-	library, err := uc.ListLotsByQuery(ctx, auction.LotQuery{RoomID: "room_views", View: "library", Page: 1, PageSize: 20})
+	library, err := uc.ListLotsByQuery(ctx, auction.LotQuery{MainAccountID: testMainAccountID, RoomID: "room_views", View: "library", Page: 1, PageSize: 20})
 	if err != nil {
 		t.Fatalf("list library failed: %v", err)
 	}
@@ -521,7 +521,7 @@ func TestListLotsByQueryViewsRespectPageBoundaries(t *testing.T) {
 		t.Fatalf("library should only include draft/ready, got total=%d lots=%v", library.Total, testLotIDs(library.Lots))
 	}
 
-	current, err := uc.ListLotsByQuery(ctx, auction.LotQuery{RoomID: "room_views", View: "current", Page: 1, PageSize: 20})
+	current, err := uc.ListLotsByQuery(ctx, auction.LotQuery{MainAccountID: testMainAccountID, RoomID: "room_views", View: "current", Page: 1, PageSize: 20})
 	if err != nil {
 		t.Fatalf("list current failed: %v", err)
 	}
@@ -529,7 +529,7 @@ func TestListLotsByQueryViewsRespectPageBoundaries(t *testing.T) {
 		t.Fatalf("current should exclude terminal records, got total=%d lots=%v", current.Total, testLotIDs(current.Lots))
 	}
 
-	history, err := uc.ListLotsByQuery(ctx, auction.LotQuery{RoomID: "room_views", View: "history", Page: 1, PageSize: 20})
+	history, err := uc.ListLotsByQuery(ctx, auction.LotQuery{MainAccountID: testMainAccountID, RoomID: "room_views", View: "history", Page: 1, PageSize: 20})
 	if err != nil {
 		t.Fatalf("list history failed: %v", err)
 	}
@@ -537,7 +537,7 @@ func TestListLotsByQueryViewsRespectPageBoundaries(t *testing.T) {
 		t.Fatalf("history should include settled/cancelled/failed, got total=%d lots=%v", history.Total, testLotIDs(history.Lots))
 	}
 
-	cancelledInLibrary, err := uc.ListLotsByQuery(ctx, auction.LotQuery{RoomID: "room_views", View: "library", Status: v1.LotStatus_LOT_STATUS_CANCELLED, Page: 1, PageSize: 20})
+	cancelledInLibrary, err := uc.ListLotsByQuery(ctx, auction.LotQuery{MainAccountID: testMainAccountID, RoomID: "room_views", View: "library", Status: v1.LotStatus_LOT_STATUS_CANCELLED, Page: 1, PageSize: 20})
 	if err != nil {
 		t.Fatalf("list cancelled in library failed: %v", err)
 	}
@@ -545,8 +545,44 @@ func TestListLotsByQueryViewsRespectPageBoundaries(t *testing.T) {
 		t.Fatalf("cancelled lots must not leak into library view, got total=%d", cancelledInLibrary.Total)
 	}
 
-	if _, err := uc.ListLotsByQuery(ctx, auction.LotQuery{RoomID: "room_views", View: "unknown"}); err == nil || !strings.Contains(err.Error(), "unsupported lot list view") {
+	if _, err := uc.ListLotsByQuery(ctx, auction.LotQuery{MainAccountID: testMainAccountID, RoomID: "room_views", View: "unknown"}); err == nil || !strings.Contains(err.Error(), "unsupported lot list view") {
 		t.Fatalf("invalid view should failfast, got %v", err)
+	}
+}
+
+func TestPublicLotReadsRequireActiveRoom(t *testing.T) {
+	store := newTestStore()
+	store.strictRooms = true
+	uc := auction.NewAuctionUsecase(store, store, store, nil)
+	ctx := context.Background()
+	lot, err := auction.NewLotFromRequest("lot_orphan_room", &v1.CreateLotRequest{
+		RoomId:   "orphan-room",
+		Title:    "孤儿房间拍品",
+		ImageUrl: "https://example.com/orphan.jpg",
+		Rule: &v1.BidRule{
+			StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
+			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+			DurationSeconds:        300,
+			AntiSnipeWindowSeconds: 15,
+			AntiSnipeExtendSeconds: 15,
+			MaxExtendCount:         3,
+		},
+	})
+	if err != nil {
+		t.Fatalf("create lot failed: %v", err)
+	}
+	if err := store.Create(ctx, lot, "owner", nil); err != nil {
+		t.Fatalf("store lot failed: %v", err)
+	}
+
+	if _, err := uc.ListLots(ctx, "orphan-room", 0); !apperr.IsNotFound(err) {
+		t.Fatalf("public list should reject orphan room, got %v", err)
+	}
+	if _, err := uc.Snapshot(ctx, "orphan-room"); !apperr.IsNotFound(err) {
+		t.Fatalf("snapshot should reject orphan room, got %v", err)
+	}
+	if _, err := uc.GetLot(ctx, "lot_orphan_room"); !apperr.IsNotFound(err) {
+		t.Fatalf("get lot should reject orphan room, got %v", err)
 	}
 }
 
@@ -575,11 +611,11 @@ func TestPlaceBidRejectsMissingUserInsteadOfDefaulting(t *testing.T) {
 			AntiSnipeExtendSeconds: 15,
 			MaxExtendCount:         3,
 		},
-	}, "test-owner")
+	}, testMainAccountID, "test-owner")
 	if err != nil {
 		t.Fatalf("create lot failed: %v", err)
 	}
-	if _, err := uc.StartLot(ctx, lot.Id); err != nil {
+	if _, err := uc.StartLot(ctx, lot.Id, testMainAccountID); err != nil {
 		t.Fatalf("start lot failed: %v", err)
 	}
 
@@ -609,11 +645,11 @@ func TestPlaceBidStatsOnlyCountAcceptedBidsAndUniqueParticipants(t *testing.T) {
 			AntiSnipeExtendSeconds: 15,
 			MaxExtendCount:         3,
 		},
-	}, "test-owner")
+	}, testMainAccountID, "test-owner")
 	if err != nil {
 		t.Fatalf("create lot failed: %v", err)
 	}
-	if _, err := uc.StartLot(ctx, lot.Id); err != nil {
+	if _, err := uc.StartLot(ctx, lot.Id, testMainAccountID); err != nil {
 		t.Fatalf("start lot failed: %v", err)
 	}
 	if _, bid, _, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{LotId: lot.Id, Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, IdempotencyKey: "stats-1"}, "u1", "用户1"); err != nil || bid == nil {
@@ -744,6 +780,8 @@ func TestCommitAcceptedBidRejectsStaleLotWithoutAppendingBid(t *testing.T) {
 type testStore struct {
 	mu                         sync.RWMutex
 	lots                       map[string]*v1.Lot
+	rooms                      map[string]auction.Room
+	strictRooms                bool
 	bidsByLot                  map[string][]v1.Bid
 	idemByScope                map[string]v1.Bid
 	ordersByID                 map[string]auction.Order
@@ -756,9 +794,12 @@ type testStore struct {
 	beforePaymentCommitFailure func(s *testStore, payment auction.Payment, order auction.Order, events []v1.AuctionEvent)
 }
 
+const testMainAccountID = "main-test"
+
 func newTestStore() *testStore {
 	return &testStore{
 		lots:            make(map[string]*v1.Lot),
+		rooms:           make(map[string]auction.Room),
 		bidsByLot:       make(map[string][]v1.Bid),
 		idemByScope:     make(map[string]v1.Bid),
 		ordersByID:      make(map[string]auction.Order),
@@ -767,9 +808,68 @@ func newTestStore() *testStore {
 	}
 }
 
+func (s *testStore) EnsureDefaultRoom(ctx context.Context, mainAccountID, createdByUserID string, nowMs int64) (*auction.Room, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, room := range s.rooms {
+		if room.MainAccountID == mainAccountID && room.Status == auction.RoomStatusActive {
+			return cloneTestRoom(room), nil
+		}
+	}
+	room := auction.Room{
+		ID:              "room_default_" + mainAccountID,
+		MainAccountID:   mainAccountID,
+		Name:            "默认直播间",
+		Platform:        "douyin",
+		Status:          auction.RoomStatusActive,
+		CreatedByUserID: createdByUserID,
+		CreatedAtUnixMs: nowMs,
+		UpdatedAtUnixMs: nowMs,
+	}
+	s.rooms[room.ID] = room
+	return cloneTestRoom(room), nil
+}
+
+func (s *testStore) ListRooms(ctx context.Context, query auction.RoomQuery) ([]auction.Room, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	rooms := make([]auction.Room, 0, len(s.rooms))
+	for _, room := range s.rooms {
+		if query.MainAccountID != "" && room.MainAccountID != query.MainAccountID {
+			continue
+		}
+		if query.PublicOnly && room.Status != auction.RoomStatusActive {
+			continue
+		}
+		rooms = append(rooms, room)
+	}
+	sort.Slice(rooms, func(i, j int) bool { return rooms[i].ID < rooms[j].ID })
+	return rooms, nil
+}
+
+func (s *testStore) FindRoomByID(ctx context.Context, roomID string) (*auction.Room, bool, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if room, ok := s.rooms[roomID]; ok {
+		return cloneTestRoom(room), true, nil
+	}
+	if s.strictRooms {
+		return nil, false, nil
+	}
+	return &auction.Room{ID: roomID, MainAccountID: testMainAccountID, Name: "测试直播间", Platform: "douyin", Status: auction.RoomStatusActive}, true, nil
+}
+
+func cloneTestRoom(room auction.Room) *auction.Room {
+	next := room
+	return &next
+}
+
 func (s *testStore) Create(ctx context.Context, lot *v1.Lot, ownerUserID string, events []v1.AuctionEvent) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if lot.MainAccountId == "" {
+		lot.MainAccountId = testMainAccountID
+	}
 	s.lots[lot.Id] = proto.Clone(lot).(*v1.Lot)
 	s.events = append(s.events, events...)
 	return nil
@@ -831,6 +931,9 @@ func (s *testStore) ListLots(ctx context.Context, query auction.LotQuery) (aucti
 	lots := make([]*v1.Lot, 0, len(s.lots))
 	keyword := strings.ToLower(strings.TrimSpace(query.Keyword))
 	for _, lot := range s.lots {
+		if query.MainAccountID != "" && lot.MainAccountId != query.MainAccountID {
+			continue
+		}
 		if query.RoomID != "" && lot.RoomId != query.RoomID {
 			continue
 		}
@@ -1013,6 +1116,9 @@ func (s *testStore) ListOrders(ctx context.Context, query auction.OrderQuery) (a
 	orders := make([]auction.OrderSummary, 0, len(s.ordersByID))
 	buyer := strings.ToLower(strings.TrimSpace(query.Buyer))
 	for _, order := range s.ordersByID {
+		if query.MainAccountID != "" && order.MainAccountID != query.MainAccountID {
+			continue
+		}
 		if query.BuyerUserID != "" && order.BuyerUserID != query.BuyerUserID {
 			continue
 		}
@@ -1105,6 +1211,9 @@ func (s *testStore) ListRoomEvents(ctx context.Context, query auction.RoomEventQ
 	}
 	events := make([]v1.AuctionEvent, 0, len(s.events))
 	for _, event := range s.events {
+		if query.MainAccountID != "" && event.MainAccountId != query.MainAccountID {
+			continue
+		}
 		if event.RoomId == query.RoomID {
 			events = append(events, event)
 		}
@@ -1246,14 +1355,14 @@ func TestAuctionUsecaseCoreClosurePublishesEventsAndSnapshot(t *testing.T) {
 			MaxExtendCount:         3,
 		},
 		TrustCards: []*v1.TrustRevealCard{{Title: "证书", Content: "可复检"}},
-	}, "test-owner")
+	}, testMainAccountID, "test-owner")
 	if err != nil {
 		t.Fatalf("create lot failed: %v", err)
 	}
 	if len(lot.TrustCards) != 1 || lot.TrustCards[0].Id == "" || lot.TrustCards[0].LotId != lot.Id {
 		t.Fatalf("trust card should be normalized on create: %+v", lot.TrustCards)
 	}
-	if _, err := uc.StartLot(ctx, lot.Id); err != nil {
+	if _, err := uc.StartLot(ctx, lot.Id, testMainAccountID); err != nil {
 		t.Fatalf("start lot failed: %v", err)
 	}
 	if _, _, _, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
@@ -1289,13 +1398,13 @@ func TestAuctionUsecaseCoreClosurePublishesEventsAndSnapshot(t *testing.T) {
 	}, "u2", "用户2"); err != nil {
 		t.Fatalf("third bid failed: %v", err)
 	}
-	if _, card, err := uc.RevealTrustCard(ctx, lot.Id, lot.TrustCards[0].Id, "op"); err != nil || card == nil || !card.Revealed {
+	if _, card, err := uc.RevealTrustCard(ctx, lot.Id, testMainAccountID, lot.TrustCards[0].Id, "op"); err != nil || card == nil || !card.Revealed {
 		t.Fatalf("reveal trust card failed: card=%+v err=%v", card, err)
 	}
-	if lotAfterDuel, duel, err := uc.StartDuel(ctx, lot.Id, "op", "u2", "u1"); err != nil || duel == nil || !duel.Active || duel.UserAId != "u2" || duel.UserBId != "u1" || lotAfterDuel.PlaybookStage != v1.PlaybookStage_PLAYBOOK_STAGE_DUEL_MODE {
+	if lotAfterDuel, duel, err := uc.StartDuel(ctx, lot.Id, testMainAccountID, "op", "u2", "u1"); err != nil || duel == nil || !duel.Active || duel.UserAId != "u2" || duel.UserBId != "u1" || lotAfterDuel.PlaybookStage != v1.PlaybookStage_PLAYBOOK_STAGE_DUEL_MODE {
 		t.Fatalf("start duel failed: lot=%+v duel=%+v err=%v", lotAfterDuel, duel, err)
 	}
-	settled, err := uc.SettleLot(ctx, lot.Id, "op")
+	settled, err := uc.SettleLot(ctx, lot.Id, testMainAccountID, "op")
 	if err != nil {
 		t.Fatalf("settle failed: %v", err)
 	}
@@ -1349,11 +1458,11 @@ func TestPlaceBidReplaysIdempotentBidAfterConcurrentCommitConflict(t *testing.T)
 			AntiSnipeExtendSeconds: 15,
 			MaxExtendCount:         3,
 		},
-	}, "test-owner")
+	}, testMainAccountID, "test-owner")
 	if err != nil {
 		t.Fatalf("create lot failed: %v", err)
 	}
-	if _, err := uc.StartLot(ctx, lot.Id); err != nil {
+	if _, err := uc.StartLot(ctx, lot.Id, testMainAccountID); err != nil {
 		t.Fatalf("start lot failed: %v", err)
 	}
 
@@ -1409,15 +1518,15 @@ func TestAuctionUsecaseCancelLotPersistsAndPublishesEvent(t *testing.T) {
 			AntiSnipeExtendSeconds: 15,
 			MaxExtendCount:         3,
 		},
-	}, "test-owner")
+	}, testMainAccountID, "test-owner")
 	if err != nil {
 		t.Fatalf("create lot failed: %v", err)
 	}
-	queued, _, err := uc.QueueLot(ctx, lot.Id, "test-owner")
+	queued, _, err := uc.QueueLot(ctx, lot.Id, testMainAccountID, "test-owner")
 	if err != nil {
 		t.Fatalf("queue lot failed: %v", err)
 	}
-	cancelled, err := uc.CancelLot(ctx, queued.Id, "op", "未开拍误操作")
+	cancelled, err := uc.CancelLot(ctx, queued.Id, testMainAccountID, "op", "未开拍误操作")
 	if err != nil {
 		t.Fatalf("cancel lot failed: %v", err)
 	}
@@ -1453,11 +1562,11 @@ func TestPlaceBidAntiSnipeExtensionPersistsLotUpdatedEvent(t *testing.T) {
 			AntiSnipeExtendSeconds: 15,
 			MaxExtendCount:         3,
 		},
-	}, "test-owner")
+	}, testMainAccountID, "test-owner")
 	if err != nil {
 		t.Fatalf("create lot failed: %v", err)
 	}
-	started, err := uc.StartLot(ctx, lot.Id)
+	started, err := uc.StartLot(ctx, lot.Id, testMainAccountID)
 	if err != nil {
 		t.Fatalf("start lot failed: %v", err)
 	}
@@ -1492,11 +1601,11 @@ func TestCapPriceCreatesOrderAndMockPaymentIsIdempotent(t *testing.T) {
 			AntiSnipeExtendSeconds: 15,
 			MaxExtendCount:         3,
 		},
-	}, "test-owner")
+	}, testMainAccountID, "test-owner")
 	if err != nil {
 		t.Fatalf("create lot failed: %v", err)
 	}
-	if _, err := uc.StartLot(ctx, lot.Id); err != nil {
+	if _, err := uc.StartLot(ctx, lot.Id, testMainAccountID); err != nil {
 		t.Fatalf("start lot failed: %v", err)
 	}
 	settled, bid, _, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
@@ -1576,11 +1685,11 @@ func TestMockPayOrderRejectsExpiredPendingOrder(t *testing.T) {
 	uc := auction.NewAuctionUsecase(store, store, store, nil)
 	ctx := context.Background()
 
-	lot, err := uc.CreateLot(ctx, validCreateLotRequest("room_expired_pay"), "test-owner")
+	lot, err := uc.CreateLot(ctx, validCreateLotRequest("room_expired_pay"), testMainAccountID, "test-owner")
 	if err != nil {
 		t.Fatalf("create lot failed: %v", err)
 	}
-	if _, err := uc.StartLot(ctx, lot.Id); err != nil {
+	if _, err := uc.StartLot(ctx, lot.Id, testMainAccountID); err != nil {
 		t.Fatalf("start lot failed: %v", err)
 	}
 	if _, bid, _, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
@@ -1588,7 +1697,7 @@ func TestMockPayOrderRejectsExpiredPendingOrder(t *testing.T) {
 	}, "buyer1", "买家一号"); err != nil || bid == nil {
 		t.Fatalf("place bid failed: bid=%+v err=%v", bid, err)
 	}
-	if _, err := uc.SettleLot(ctx, lot.Id, "op"); err != nil {
+	if _, err := uc.SettleLot(ctx, lot.Id, testMainAccountID, "op"); err != nil {
 		t.Fatalf("settle lot failed: %v", err)
 	}
 
@@ -1632,11 +1741,11 @@ func TestMockPayOrderReplaysPaymentAfterConcurrentCommitConflict(t *testing.T) {
 			AntiSnipeExtendSeconds: 15,
 			MaxExtendCount:         3,
 		},
-	}, "test-owner")
+	}, testMainAccountID, "test-owner")
 	if err != nil {
 		t.Fatalf("create lot failed: %v", err)
 	}
-	if _, err := uc.StartLot(ctx, lot.Id); err != nil {
+	if _, err := uc.StartLot(ctx, lot.Id, testMainAccountID); err != nil {
 		t.Fatalf("start lot failed: %v", err)
 	}
 	if _, bid, _, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
@@ -1687,11 +1796,11 @@ func TestCloseExpiredLotsSettlesLeadingBidCreatesOrderAndIsIdempotent(t *testing
 			AntiSnipeExtendSeconds: 15,
 			MaxExtendCount:         3,
 		},
-	}, "test-owner")
+	}, testMainAccountID, "test-owner")
 	if err != nil {
 		t.Fatalf("create lot failed: %v", err)
 	}
-	if _, err := uc.StartLot(ctx, lot.Id); err != nil {
+	if _, err := uc.StartLot(ctx, lot.Id, testMainAccountID); err != nil {
 		t.Fatalf("start lot failed: %v", err)
 	}
 	if _, bid, _, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{LotId: lot.Id, Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, IdempotencyKey: "bid-auto-close-1"}, "buyer1", "买家一号"); err != nil || bid == nil {
@@ -1749,11 +1858,11 @@ func TestCloseExpiredLotsWithoutBidMarksFailedWithoutOrder(t *testing.T) {
 			AntiSnipeExtendSeconds: 15,
 			MaxExtendCount:         3,
 		},
-	}, "test-owner")
+	}, testMainAccountID, "test-owner")
 	if err != nil {
 		t.Fatalf("create lot failed: %v", err)
 	}
-	if _, err := uc.StartLot(ctx, lot.Id); err != nil {
+	if _, err := uc.StartLot(ctx, lot.Id, testMainAccountID); err != nil {
 		t.Fatalf("start lot failed: %v", err)
 	}
 	forceLotEndsAt(t, store, ctx, lot.Id, 1000)

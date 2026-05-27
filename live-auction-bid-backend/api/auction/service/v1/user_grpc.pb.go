@@ -19,14 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion8
 
 const (
-	UserService_Register_FullMethodName            = "/auction.service.v1.UserService/Register"
-	UserService_Login_FullMethodName               = "/auction.service.v1.UserService/Login"
-	UserService_ResetPassword_FullMethodName       = "/auction.service.v1.UserService/ResetPassword"
-	UserService_RefreshToken_FullMethodName        = "/auction.service.v1.UserService/RefreshToken"
-	UserService_Logout_FullMethodName              = "/auction.service.v1.UserService/Logout"
-	UserService_GetMe_FullMethodName               = "/auction.service.v1.UserService/GetMe"
-	UserService_AdminCreateUser_FullMethodName     = "/auction.service.v1.UserService/AdminCreateUser"
-	UserService_AdminUpdateUserRole_FullMethodName = "/auction.service.v1.UserService/AdminUpdateUserRole"
+	UserService_Register_FullMethodName              = "/auction.service.v1.UserService/Register"
+	UserService_Login_FullMethodName                 = "/auction.service.v1.UserService/Login"
+	UserService_ResetPassword_FullMethodName         = "/auction.service.v1.UserService/ResetPassword"
+	UserService_RegisterMerchant_FullMethodName      = "/auction.service.v1.UserService/RegisterMerchant"
+	UserService_RefreshToken_FullMethodName          = "/auction.service.v1.UserService/RefreshToken"
+	UserService_Logout_FullMethodName                = "/auction.service.v1.UserService/Logout"
+	UserService_GetMe_FullMethodName                 = "/auction.service.v1.UserService/GetMe"
+	UserService_AdminCreateUser_FullMethodName       = "/auction.service.v1.UserService/AdminCreateUser"
+	UserService_AdminUpdateUserRole_FullMethodName   = "/auction.service.v1.UserService/AdminUpdateUserRole"
+	UserService_AdminUpdateUserStatus_FullMethodName = "/auction.service.v1.UserService/AdminUpdateUserStatus"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -39,18 +41,22 @@ type UserServiceClient interface {
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterReply, error)
 	// 用户名密码登录。
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginReply, error)
-	// 原型阶段：仅凭账号重置买家密码。上线前需替换为验证码或管理员鉴权。
+	// 原型阶段：仅凭账号重置密码，方便测试和压测准备账号。
 	ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*ResetPasswordReply, error)
+	// 公开注册商家/主播主账号。
+	RegisterMerchant(ctx context.Context, in *RegisterMerchantRequest, opts ...grpc.CallOption) (*RegisterMerchantReply, error)
 	// 刷新 access token，并轮换 refresh token。
 	RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*RefreshTokenReply, error)
 	// 登出当前 refresh session。
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutReply, error)
 	// 查看当前登录用户。
 	GetMe(ctx context.Context, in *GetMeRequest, opts ...grpc.CallOption) (*GetMeReply, error)
-	// 主播主账号创建团队子账号；不创建买家或新的主账号。
+	// 主账号创建团队子账号；不创建买家或新的主账号。
 	AdminCreateUser(ctx context.Context, in *AdminCreateUserRequest, opts ...grpc.CallOption) (*AdminCreateUserReply, error)
-	// 主播主账号修改团队子账号角色；不允许改为买家或新的主账号。
+	// 主账号修改团队子账号角色；不允许改为买家或新的主账号。
 	AdminUpdateUserRole(ctx context.Context, in *AdminUpdateUserRoleRequest, opts ...grpc.CallOption) (*AdminUpdateUserRoleReply, error)
+	// 主账号启用或禁用团队子账号。
+	AdminUpdateUserStatus(ctx context.Context, in *AdminUpdateUserStatusRequest, opts ...grpc.CallOption) (*AdminUpdateUserStatusReply, error)
 }
 
 type userServiceClient struct {
@@ -85,6 +91,16 @@ func (c *userServiceClient) ResetPassword(ctx context.Context, in *ResetPassword
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ResetPasswordReply)
 	err := c.cc.Invoke(ctx, UserService_ResetPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) RegisterMerchant(ctx context.Context, in *RegisterMerchantRequest, opts ...grpc.CallOption) (*RegisterMerchantReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RegisterMerchantReply)
+	err := c.cc.Invoke(ctx, UserService_RegisterMerchant_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -141,6 +157,16 @@ func (c *userServiceClient) AdminUpdateUserRole(ctx context.Context, in *AdminUp
 	return out, nil
 }
 
+func (c *userServiceClient) AdminUpdateUserStatus(ctx context.Context, in *AdminUpdateUserStatusRequest, opts ...grpc.CallOption) (*AdminUpdateUserStatusReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdminUpdateUserStatusReply)
+	err := c.cc.Invoke(ctx, UserService_AdminUpdateUserStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility
@@ -151,18 +177,22 @@ type UserServiceServer interface {
 	Register(context.Context, *RegisterRequest) (*RegisterReply, error)
 	// 用户名密码登录。
 	Login(context.Context, *LoginRequest) (*LoginReply, error)
-	// 原型阶段：仅凭账号重置买家密码。上线前需替换为验证码或管理员鉴权。
+	// 原型阶段：仅凭账号重置密码，方便测试和压测准备账号。
 	ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordReply, error)
+	// 公开注册商家/主播主账号。
+	RegisterMerchant(context.Context, *RegisterMerchantRequest) (*RegisterMerchantReply, error)
 	// 刷新 access token，并轮换 refresh token。
 	RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenReply, error)
 	// 登出当前 refresh session。
 	Logout(context.Context, *LogoutRequest) (*LogoutReply, error)
 	// 查看当前登录用户。
 	GetMe(context.Context, *GetMeRequest) (*GetMeReply, error)
-	// 主播主账号创建团队子账号；不创建买家或新的主账号。
+	// 主账号创建团队子账号；不创建买家或新的主账号。
 	AdminCreateUser(context.Context, *AdminCreateUserRequest) (*AdminCreateUserReply, error)
-	// 主播主账号修改团队子账号角色；不允许改为买家或新的主账号。
+	// 主账号修改团队子账号角色；不允许改为买家或新的主账号。
 	AdminUpdateUserRole(context.Context, *AdminUpdateUserRoleRequest) (*AdminUpdateUserRoleReply, error)
+	// 主账号启用或禁用团队子账号。
+	AdminUpdateUserStatus(context.Context, *AdminUpdateUserStatusRequest) (*AdminUpdateUserStatusReply, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -179,6 +209,9 @@ func (UnimplementedUserServiceServer) Login(context.Context, *LoginRequest) (*Lo
 func (UnimplementedUserServiceServer) ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ResetPassword not implemented")
 }
+func (UnimplementedUserServiceServer) RegisterMerchant(context.Context, *RegisterMerchantRequest) (*RegisterMerchantReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterMerchant not implemented")
+}
 func (UnimplementedUserServiceServer) RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RefreshToken not implemented")
 }
@@ -193,6 +226,9 @@ func (UnimplementedUserServiceServer) AdminCreateUser(context.Context, *AdminCre
 }
 func (UnimplementedUserServiceServer) AdminUpdateUserRole(context.Context, *AdminUpdateUserRoleRequest) (*AdminUpdateUserRoleReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AdminUpdateUserRole not implemented")
+}
+func (UnimplementedUserServiceServer) AdminUpdateUserStatus(context.Context, *AdminUpdateUserStatusRequest) (*AdminUpdateUserStatusReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminUpdateUserStatus not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 
@@ -257,6 +293,24 @@ func _UserService_ResetPassword_Handler(srv interface{}, ctx context.Context, de
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServiceServer).ResetPassword(ctx, req.(*ResetPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_RegisterMerchant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterMerchantRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).RegisterMerchant(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_RegisterMerchant_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).RegisterMerchant(ctx, req.(*RegisterMerchantRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -351,6 +405,24 @@ func _UserService_AdminUpdateUserRole_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_AdminUpdateUserStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminUpdateUserStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).AdminUpdateUserStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_AdminUpdateUserStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).AdminUpdateUserStatus(ctx, req.(*AdminUpdateUserStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -371,6 +443,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_ResetPassword_Handler,
 		},
 		{
+			MethodName: "RegisterMerchant",
+			Handler:    _UserService_RegisterMerchant_Handler,
+		},
+		{
 			MethodName: "RefreshToken",
 			Handler:    _UserService_RefreshToken_Handler,
 		},
@@ -389,6 +465,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AdminUpdateUserRole",
 			Handler:    _UserService_AdminUpdateUserRole_Handler,
+		},
+		{
+			MethodName: "AdminUpdateUserStatus",
+			Handler:    _UserService_AdminUpdateUserStatus_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -47,8 +47,6 @@ type uploadImageResponse struct {
 	TraceID          string           `json:"traceId,omitempty"`
 	ServerTimeUnixMs int64            `json:"serverTimeUnixMs"`
 	Data             *uploadImageData `json:"data,omitempty"`
-	// Asset is kept temporarily for old clients. New clients should read data.asset.
-	Asset *uploadedAsset `json:"asset,omitempty"`
 }
 
 type uploadImageData struct {
@@ -160,6 +158,7 @@ func (h *uploadHandler) handleImageUpload(w http.ResponseWriter, r *http.Request
 	logUploadInfo("upload_image.storage_put", requestID, "provider", stored.Provider, "bucket", stored.Bucket, "object_key", stored.ObjectKey, "duration_ms", time.Since(startedAt).Milliseconds())
 	asset := data.AssetFile{
 		ID:              assetID,
+		MainAccountID:   auth.EffectiveMainAccountID(claims),
 		OwnerUserID:     claims.UserID,
 		RoomID:          strings.TrimSpace(r.FormValue("roomId")),
 		BizType:         bizType,
@@ -189,7 +188,6 @@ func (h *uploadHandler) handleImageUpload(w http.ResponseWriter, r *http.Request
 		TraceID:          result.GetTraceId(),
 		ServerTimeUnixMs: time.Now().UnixMilli(),
 		Data:             &uploadImageData{Asset: responseAsset},
-		Asset:            responseAsset,
 	})
 	logUploadInfo("upload_image.success", requestID, "asset_id", asset.ID, "image_url", asset.PublicURL, "size_bytes", asset.SizeBytes, "mime_type", asset.MimeType, "duration_ms", time.Since(startedAt).Milliseconds())
 }
@@ -251,7 +249,7 @@ func (h *uploadHandler) authenticate(ctx context.Context, r *http.Request) (cont
 		value = r.Header.Get("authorization")
 	}
 	ctx = h.auth.WithAuthContextFromBearer(ctx, value)
-	claims, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_ADMIN)
+	claims, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_MAIN_ACCOUNT)
 	if err != nil {
 		return ctx, nil, err
 	}
