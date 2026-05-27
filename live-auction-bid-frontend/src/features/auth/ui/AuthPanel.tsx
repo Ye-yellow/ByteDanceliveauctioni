@@ -25,7 +25,7 @@ function roleLabel(role?: UserRole) {
 export function AuthPanel({ onUserChange }: Props) {
   const [user, setUser] = useState<User | null>(() => currentAuth().user);
   const [username, setUsername] = useState('main');
-  const [password, setPassword] = useState('main_dev_password');
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -78,7 +78,7 @@ export function AuthPanel({ onUserChange }: Props) {
           <div className="bidRow">
             <button disabled={busy || !username.trim() || !password} onClick={submit}>{busy ? '处理中...' : '登录后台'}</button>
           </div>
-          <p className="meta">本地默认：main / main_dev_password。创建、开拍、揭示、Duel、落锤需要主账号、主播或运营权限。</p>
+          <p className="meta">使用服务器初始化的主账号密码登录。创建、开拍、揭示、Duel、落锤需要主账号、主播或运营权限。</p>
         </>
       )}
       {error && <p className="formError">{error}</p>}

@@ -81,7 +81,7 @@ export function LoginPage({ embedded = false }: { embedded?: boolean; title?: st
   const redirectTo = useMemo(() => nextPath('/host'), []);
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('main');
-  const [password, setPassword] = useState('main_dev_password');
+  const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -207,7 +207,7 @@ export function LoginPage({ embedded = false }: { embedded?: boolean; title?: st
                 {mode === 'register' ? <UserPlus size={17} /> : <LogIn size={17} />} {busy ? '处理中...' : mode === 'register' ? '创建主账号并进入' : '进入 LiveAuction 工作台'}
               </button>
 
-              <p className="loginHint">测试账号：main / main_dev_password。也可以直接注册主账号；买家账号只在 H5 端使用。</p>
+              <p className="loginHint">主账号密码来自服务器部署配置；也可以直接注册新的主播 / 商家主账号。买家账号只在 H5 端使用。</p>
             </>
           )}
         </article>
