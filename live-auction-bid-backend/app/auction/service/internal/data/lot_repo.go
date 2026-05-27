@@ -7,6 +7,7 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
@@ -22,6 +23,13 @@ func (s *Store) Create(ctx context.Context, lot *v1.Lot, ownerUserID string, eve
 	}
 	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(model).Error; err != nil {
+			return err
+		}
+		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&AuctionLotStatsModel{
+			LotID:           lot.Id,
+			RoomID:          lot.RoomId,
+			UpdatedAtUnixMs: 0,
+		}).Error; err != nil {
 			return err
 		}
 		if err := attachAssetFilesByURL(tx, ownerUserID, lot.Id, lotAssetURLs(lot)); err != nil {
@@ -99,7 +107,14 @@ func (s *Store) FindByID(ctx context.Context, lotID string) (*v1.Lot, error) {
 		}
 		return nil, err
 	}
-	return modelToLot(&model)
+	lot, err := modelToLot(&model)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.attachStats(ctx, []*v1.Lot{lot}); err != nil {
+		return nil, err
+	}
+	return lot, nil
 }
 
 func (s *Store) List(ctx context.Context, roomID string, status v1.LotStatus) ([]*v1.Lot, error) {
@@ -130,6 +145,9 @@ func (s *Store) List(ctx context.Context, roomID string, status v1.LotStatus) ([
 			return nil, err
 		}
 		lots = append(lots, lot)
+	}
+	if err := s.attachStats(ctx, lots); err != nil {
+		return nil, err
 	}
 	return lots, nil
 }
@@ -176,7 +194,47 @@ func (s *Store) ListLots(ctx context.Context, query auction.LotQuery) (auction.L
 		}
 		lots = append(lots, lot)
 	}
+	if err := s.attachStats(ctx, lots); err != nil {
+		return auction.LotList{}, err
+	}
 	return auction.LotList{Lots: lots, Total: total, Page: query.Page, PageSize: query.PageSize}, nil
+}
+
+func (s *Store) attachStats(ctx context.Context, lots []*v1.Lot) error {
+	if len(lots) == 0 {
+		return nil
+	}
+	lotIDs := make([]string, 0, len(lots))
+	for _, lot := range lots {
+		if lot != nil && lot.Id != "" {
+			lotIDs = append(lotIDs, lot.Id)
+		}
+	}
+	if len(lotIDs) == 0 {
+		return nil
+	}
+	var models []AuctionLotStatsModel
+	if err := s.db.WithContext(ctx).Where("lot_id IN ?", lotIDs).Find(&models).Error; err != nil {
+		return err
+	}
+	byLotID := make(map[string]*v1.LotStats, len(models))
+	for i := range models {
+		byLotID[models[i].LotID] = &v1.LotStats{
+			ParticipantCount: models[i].ParticipantCount,
+			BidCount:         models[i].BidCount,
+		}
+	}
+	for _, lot := range lots {
+		if lot == nil {
+			continue
+		}
+		if stats := byLotID[lot.Id]; stats != nil {
+			lot.Stats = stats
+		} else {
+			lot.Stats = &v1.LotStats{}
+		}
+	}
+	return nil
 }
 
 func lotStatusesForView(view string) []int32 {
@@ -186,14 +244,12 @@ func lotStatusesForView(view string) []int32 {
 			int32(v1.LotStatus_LOT_STATUS_DRAFT),
 			int32(v1.LotStatus_LOT_STATUS_READY),
 			int32(v1.LotStatus_LOT_STATUS_QUEUED),
-			int32(v1.LotStatus_LOT_STATUS_SCHEDULED),
 			int32(v1.LotStatus_LOT_STATUS_LIVE),
 			int32(v1.LotStatus_LOT_STATUS_EXTENDED),
 		}
 	case "history":
 		return []int32{
 			int32(v1.LotStatus_LOT_STATUS_SETTLED),
-			int32(v1.LotStatus_LOT_STATUS_SOLD),
 			int32(v1.LotStatus_LOT_STATUS_CANCELLED),
 			int32(v1.LotStatus_LOT_STATUS_FAILED),
 		}
@@ -230,6 +286,9 @@ func (s *Store) ListExpiredOpen(ctx context.Context, nowMs int64, limit int) ([]
 			return nil, err
 		}
 		lots = append(lots, lot)
+	}
+	if err := s.attachStats(ctx, lots); err != nil {
+		return nil, err
 	}
 	return lots, nil
 }

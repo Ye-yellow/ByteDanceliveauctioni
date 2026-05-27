@@ -110,7 +110,7 @@ func TestGetLotResultOrderVisibility(t *testing.T) {
 	if publicResult.Order != nil {
 		t.Fatalf("anonymous viewer must not see full order: %+v", publicResult.Order)
 	}
-	if publicResult.Lot.GetFinalPrice().GetAmount() != 11000 || publicResult.Lot.GetWinnerUserId() != "" || publicResult.Lot.GetWinnerNickname() != "买家***" {
+	if publicResult.Lot.GetFinalPrice().GetAmount() != 11000 || publicResult.Lot.GetWinnerUserId() != "" || publicResult.Lot.GetWinnerNickname() != "买***" {
 		t.Fatalf("anonymous viewer should see final price and masked winner nickname only, lot=%+v", publicResult.Lot)
 	}
 	otherBuyerCtx := auth.WithClaims(ctx, &auth.Claims{UserID: "buyer2", Username: "buyer2", Nickname: "买家二号", Role: v1.UserRole_USER_ROLE_BUYER})
@@ -121,7 +121,7 @@ func TestGetLotResultOrderVisibility(t *testing.T) {
 	if otherBuyerResult.Order != nil {
 		t.Fatalf("non-winning buyer must not see order id/payment id/buyer id: %+v", otherBuyerResult.Order)
 	}
-	if otherBuyerResult.Lot.GetFinalPrice().GetAmount() != 11000 || otherBuyerResult.Lot.GetWinnerUserId() != "" || otherBuyerResult.Lot.GetWinnerNickname() != "买家***" {
+	if otherBuyerResult.Lot.GetFinalPrice().GetAmount() != 11000 || otherBuyerResult.Lot.GetWinnerUserId() != "" || otherBuyerResult.Lot.GetWinnerNickname() != "买***" {
 		t.Fatalf("non-winning buyer should see final price and masked winner nickname only, lot=%+v", otherBuyerResult.Lot)
 	}
 	winnerResult, err := svc.GetLotResult(winnerCtx, lotID)
@@ -184,11 +184,11 @@ func TestBuyerFacingAuctionViewsRedactOtherBuyerIdentity(t *testing.T) {
 	if err != nil || publicSnapshot.GetResult().GetCode() != appsvc.ResultCodeOK {
 		t.Fatalf("public snapshot failed: reply=%+v err=%v", publicSnapshot, err)
 	}
-	if publicSnapshot.GetSnapshot().GetCurrentLot().GetLeadingUserId() != "" || publicSnapshot.GetSnapshot().GetCurrentLot().GetLeadingNickname() != "买家***" {
+	if publicSnapshot.GetSnapshot().GetCurrentLot().GetLeadingUserId() != "" || publicSnapshot.GetSnapshot().GetCurrentLot().GetLeadingNickname() != "买***" {
 		t.Fatalf("public snapshot should mask leading buyer: %+v", publicSnapshot.GetSnapshot().GetCurrentLot())
 	}
 	for _, item := range publicSnapshot.GetSnapshot().GetRanking() {
-		if item.GetUserId() != "" || item.GetNickname() != "买家***" {
+		if item.GetUserId() != "" || item.GetNickname() != "买***" {
 			t.Fatalf("public snapshot should mask ranking identity: %+v", publicSnapshot.GetSnapshot().GetRanking())
 		}
 	}

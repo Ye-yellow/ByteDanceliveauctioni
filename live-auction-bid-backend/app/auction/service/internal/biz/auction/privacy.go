@@ -1,11 +1,11 @@
 package auction
 
 import (
+	"strings"
+
 	"google.golang.org/protobuf/proto"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 )
-
-const maskedBuyerNickname = "买家***"
 
 func (v LotResultViewer) CanViewPrivateAuctionData() bool {
 	switch v.Role {
@@ -24,10 +24,16 @@ func (v LotResultViewer) CanViewBuyerIdentity(userID string) bool {
 }
 
 func MaskBuyerNickname(nickname string) string {
-	if nickname == "" {
+	value := strings.TrimSpace(nickname)
+	if value == "" {
 		return ""
 	}
-	return maskedBuyerNickname
+	for _, char := range value {
+		if char != '*' {
+			return string(char) + "***"
+		}
+	}
+	return "***"
 }
 
 func LotForViewer(lot *v1.Lot, viewer LotResultViewer) *v1.Lot {

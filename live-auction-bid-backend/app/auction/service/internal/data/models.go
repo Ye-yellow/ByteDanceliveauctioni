@@ -58,6 +58,32 @@ type AuctionBidModel struct {
 
 func (AuctionBidModel) TableName() string { return "auction_bids" }
 
+type AuctionLotStatsModel struct {
+	LotID            string `gorm:"column:lot_id;type:varchar(64);primaryKey"`
+	RoomID           string `gorm:"column:room_id;type:varchar(64);not null;index:idx_lot_stats_room"`
+	BidCount         int64  `gorm:"column:bid_count;not null;default:0"`
+	ParticipantCount int64  `gorm:"column:participant_count;not null;default:0"`
+	LastBidID        string `gorm:"column:last_bid_id;type:varchar(64);not null;default:''"`
+	LastBidAtUnixMs  int64  `gorm:"column:last_bid_at_unix_ms;not null;default:0"`
+	ProjectedVersion int64  `gorm:"column:projected_version;not null;default:0"`
+	UpdatedAtUnixMs  int64  `gorm:"column:updated_at_unix_ms;not null"`
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
+func (AuctionLotStatsModel) TableName() string { return "auction_lot_stats" }
+
+type AuctionLotParticipantModel struct {
+	LotID            string `gorm:"column:lot_id;type:varchar(64);primaryKey"`
+	UserID           string `gorm:"column:user_id;type:varchar(64);primaryKey"`
+	RoomID           string `gorm:"column:room_id;type:varchar(64);not null;index:idx_lot_participants_room"`
+	FirstBidID       string `gorm:"column:first_bid_id;type:varchar(64);not null"`
+	FirstBidAtUnixMs int64  `gorm:"column:first_bid_at_unix_ms;not null"`
+	CreatedAt        time.Time
+}
+
+func (AuctionLotParticipantModel) TableName() string { return "auction_lot_participants" }
+
 type AuctionEventModel struct {
 	ID               string `gorm:"column:id;type:varchar(64);primaryKey"`
 	RoomID           string `gorm:"column:room_id;type:varchar(64);not null;index:idx_room_occurred,priority:1"`

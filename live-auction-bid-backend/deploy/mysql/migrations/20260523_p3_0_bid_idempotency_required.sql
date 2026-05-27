@@ -1,6 +1,5 @@
 -- P3-0 demo readiness migration.
--- Existing legacy bid rows without an idempotency key are backfilled with a
--- deterministic per-row key before making auction_bids.idempotency_key NOT NULL.
+-- The current schema requires auction_bids.idempotency_key for every bid.
 
 DROP PROCEDURE IF EXISTS migrate_20260523_p3_0_bid_idem_required;
 
@@ -13,10 +12,6 @@ BEGIN
     WHERE table_schema = DATABASE()
       AND table_name = 'auction_bids'
   ) THEN
-    UPDATE auction_bids
-    SET idempotency_key = CONCAT('__legacy__:', id)
-    WHERE idempotency_key IS NULL OR idempotency_key = '';
-
     ALTER TABLE auction_bids MODIFY COLUMN idempotency_key VARCHAR(128) NOT NULL;
 
     IF NOT EXISTS (

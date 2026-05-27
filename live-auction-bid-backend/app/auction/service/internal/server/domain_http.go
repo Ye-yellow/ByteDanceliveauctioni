@@ -2,11 +2,14 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 
 	httptransport "github.com/go-kratos/kratos/v2/transport/http"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
@@ -16,7 +19,7 @@ import (
 
 type lotResultHTTPResponse struct {
 	Result       *v1.ReplyResult       `json:"result"`
-	Lot          *v1.Lot               `json:"lot,omitempty"`
+	Lot          json.RawMessage       `json:"lot,omitempty"`
 	AuctionState auction.AuctionState  `json:"auctionState,omitempty"`
 	Order        *auction.OrderSummary `json:"order,omitempty"`
 }
@@ -38,19 +41,19 @@ type listBidRecordsHTTPResponse struct {
 }
 
 type listLotsHTTPResponse struct {
-	Result *v1.ReplyResult `json:"result"`
-	Lots   []*v1.Lot       `json:"lots"`
-	Total  int64           `json:"total"`
-	Page   int             `json:"page"`
-	Size   int             `json:"pageSize"`
+	Result *v1.ReplyResult   `json:"result"`
+	Lots   []json.RawMessage `json:"lots"`
+	Total  int64             `json:"total"`
+	Page   int               `json:"page"`
+	Size   int               `json:"pageSize"`
 }
 
 type listUsersHTTPResponse struct {
-	Result *v1.ReplyResult `json:"result"`
-	Users  []*v1.User      `json:"users"`
-	Total  int64           `json:"total"`
-	Page   int             `json:"page"`
-	Size   int             `json:"pageSize"`
+	Result *v1.ReplyResult   `json:"result"`
+	Users  []json.RawMessage `json:"users"`
+	Total  int64             `json:"total"`
+	Page   int               `json:"page"`
+	Size   int               `json:"pageSize"`
 }
 
 type mockPayHTTPResponse struct {
@@ -58,6 +61,31 @@ type mockPayHTTPResponse struct {
 	Order   *auction.OrderSummary   `json:"order,omitempty"`
 	Payment *auction.PaymentSummary `json:"payment,omitempty"`
 	Paid    bool                    `json:"paid"`
+}
+
+var domainProtoJSONMarshal = protojson.MarshalOptions{
+	EmitUnpopulated: true,
+	UseEnumNumbers:  false,
+	UseProtoNames:   false,
+}
+
+func protoJSONRaw(message proto.Message) json.RawMessage {
+	if message == nil {
+		return nil
+	}
+	payload, err := domainProtoJSONMarshal.Marshal(message)
+	if err != nil {
+		return nil
+	}
+	return json.RawMessage(payload)
+}
+
+func protoJSONRawSlice[T proto.Message](messages []T) []json.RawMessage {
+	out := make([]json.RawMessage, 0, len(messages))
+	for _, message := range messages {
+		out = append(out, protoJSONRaw(message))
+	}
+	return out
 }
 
 func registerDomainHTTP(srv *httptransport.Server, service *appsvc.AuctionService, users *appsvc.UserService) {
@@ -69,7 +97,7 @@ func registerDomainHTTP(srv *httptransport.Server, service *appsvc.AuctionServic
 			if err != nil {
 				return lotResultHTTPResponse{Result: appsvc.ErrorResult(ctx, err)}, nil
 			}
-			return lotResultHTTPResponse{Result: appsvc.OKResult(ctx), Lot: result.Lot, AuctionState: result.AuctionState, Order: result.Order}, nil
+			return lotResultHTTPResponse{Result: appsvc.OKResult(ctx), Lot: protoJSONRaw(result.Lot), AuctionState: result.AuctionState, Order: result.Order}, nil
 		})
 		out, err := h(ctx, nil)
 		if err != nil {
@@ -127,13 +155,13 @@ func registerDomainHTTP(srv *httptransport.Server, service *appsvc.AuctionServic
 		h := ctx.Middleware(func(ctx context.Context, req any) (any, error) {
 			lots, err := service.ListAdminLots(ctx, query)
 			if err != nil {
-				return listLotsHTTPResponse{Result: appsvc.ErrorResult(ctx, err), Lots: []*v1.Lot{}}, nil
+				return listLotsHTTPResponse{Result: appsvc.ErrorResult(ctx, err), Lots: []json.RawMessage{}}, nil
 			}
-			return listLotsHTTPResponse{Result: appsvc.OKResult(ctx), Lots: lots.Lots, Total: lots.Total, Page: lots.Page, Size: lots.PageSize}, nil
+			return listLotsHTTPResponse{Result: appsvc.OKResult(ctx), Lots: protoJSONRawSlice(lots.Lots), Total: lots.Total, Page: lots.Page, Size: lots.PageSize}, nil
 		})
 		out, err := h(ctx, nil)
 		if err != nil {
-			return ctx.Result(200, listLotsHTTPResponse{Result: appsvc.ErrorResult(ctx, err), Lots: []*v1.Lot{}})
+			return ctx.Result(200, listLotsHTTPResponse{Result: appsvc.ErrorResult(ctx, err), Lots: []json.RawMessage{}})
 		}
 		return ctx.Result(200, out)
 	})
@@ -142,13 +170,13 @@ func registerDomainHTTP(srv *httptransport.Server, service *appsvc.AuctionServic
 		h := ctx.Middleware(func(ctx context.Context, req any) (any, error) {
 			list, err := users.ListUsers(ctx, query)
 			if err != nil {
-				return listUsersHTTPResponse{Result: appsvc.ErrorResult(ctx, err), Users: []*v1.User{}}, nil
+				return listUsersHTTPResponse{Result: appsvc.ErrorResult(ctx, err), Users: []json.RawMessage{}}, nil
 			}
-			return listUsersHTTPResponse{Result: appsvc.OKResult(ctx), Users: list.Users, Total: list.Total, Page: list.Page, Size: list.PageSize}, nil
+			return listUsersHTTPResponse{Result: appsvc.OKResult(ctx), Users: protoJSONRawSlice(list.Users), Total: list.Total, Page: list.Page, Size: list.PageSize}, nil
 		})
 		out, err := h(ctx, nil)
 		if err != nil {
-			return ctx.Result(200, listUsersHTTPResponse{Result: appsvc.ErrorResult(ctx, err), Users: []*v1.User{}})
+			return ctx.Result(200, listUsersHTTPResponse{Result: appsvc.ErrorResult(ctx, err), Users: []json.RawMessage{}})
 		}
 		return ctx.Result(200, out)
 	})
@@ -226,24 +254,11 @@ func lotStatusFromString(value string) v1.LotStatus {
 	if value == "" {
 		return v1.LotStatus_LOT_STATUS_UNSPECIFIED
 	}
-	if numeric, err := strconv.Atoi(value); err == nil {
-		return v1.LotStatus(numeric)
+	next, ok := v1.LotStatus_value[value]
+	if !ok {
+		return v1.LotStatus_LOT_STATUS_UNSPECIFIED
 	}
-	key := strings.ToUpper(value)
-	if !strings.HasPrefix(key, "LOT_STATUS_") {
-		key = "LOT_STATUS_" + key
-	}
-	switch key {
-	case "LOT_STATUS_SCHEDULED":
-		return v1.LotStatus_LOT_STATUS_SCHEDULED
-	case "LOT_STATUS_EXTENDED":
-		return v1.LotStatus_LOT_STATUS_EXTENDED
-	case "LOT_STATUS_SOLD":
-		return v1.LotStatus_LOT_STATUS_SOLD
-	case "LOT_STATUS_FAILED":
-		return v1.LotStatus_LOT_STATUS_FAILED
-	}
-	return v1.LotStatus(v1.LotStatus_value[key])
+	return v1.LotStatus(next)
 }
 
 func userRoleFromString(value string) v1.UserRole {
@@ -251,12 +266,9 @@ func userRoleFromString(value string) v1.UserRole {
 	if value == "" {
 		return v1.UserRole_USER_ROLE_UNSPECIFIED
 	}
-	if numeric, err := strconv.Atoi(value); err == nil {
-		return v1.UserRole(numeric)
+	next, ok := v1.UserRole_value[value]
+	if !ok {
+		return v1.UserRole_USER_ROLE_UNSPECIFIED
 	}
-	key := strings.ToUpper(value)
-	if !strings.HasPrefix(key, "USER_ROLE_") {
-		key = "USER_ROLE_" + key
-	}
-	return v1.UserRole(v1.UserRole_value[key])
+	return v1.UserRole(next)
 }

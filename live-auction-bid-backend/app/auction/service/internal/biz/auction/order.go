@@ -5,16 +5,17 @@ import (
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
+	"live-auction-bid/backend/app/auction/service/internal/pkg/clock"
 )
 
 type AuctionState string
 
 const (
 	AuctionStateDraft     AuctionState = "DRAFT"
-	AuctionStateScheduled AuctionState = "SCHEDULED"
+	AuctionStateQueued    AuctionState = "QUEUED"
 	AuctionStateLive      AuctionState = "LIVE"
 	AuctionStateExtended  AuctionState = "EXTENDED"
-	AuctionStateSold      AuctionState = "SOLD"
+	AuctionStateSettled   AuctionState = "SETTLED"
 	AuctionStateCancelled AuctionState = "CANCELLED"
 	AuctionStateFailed    AuctionState = "FAILED"
 )
@@ -39,6 +40,8 @@ const (
 	PaymentStatusFailed     PaymentStatus = "FAILED"
 	PaymentStatusClosed     PaymentStatus = "CLOSED"
 )
+
+const OrderPaymentWindowMs int64 = 30 * 60 * 1000
 
 type Order struct {
 	ID              string        `json:"id"`
@@ -157,7 +160,7 @@ type BidRecord struct {
 	Amount          int64        `json:"amount"`
 	Currency        string       `json:"currency"`
 	CreatedAtUnixMs int64        `json:"createdAtUnixMs"`
-	LotStatus       v1.LotStatus `json:"lotStatus"`
+	LotStatus       string       `json:"lotStatus"`
 	AuctionState    AuctionState `json:"auctionState"`
 	Won             bool         `json:"won"`
 }
@@ -220,7 +223,7 @@ func AuctionStateOf(lot *v1.Lot) AuctionState {
 	case v1.LotStatus_LOT_STATUS_DRAFT, v1.LotStatus_LOT_STATUS_READY:
 		return AuctionStateDraft
 	case v1.LotStatus_LOT_STATUS_QUEUED:
-		return AuctionStateScheduled
+		return AuctionStateQueued
 	case v1.LotStatus_LOT_STATUS_LIVE:
 		if lot.GetDuelState().GetExtendCount() > 0 {
 			return AuctionStateExtended
@@ -229,7 +232,7 @@ func AuctionStateOf(lot *v1.Lot) AuctionState {
 	case v1.LotStatus_LOT_STATUS_EXTENDED:
 		return AuctionStateExtended
 	case v1.LotStatus_LOT_STATUS_SETTLED:
-		return AuctionStateSold
+		return AuctionStateSettled
 	case v1.LotStatus_LOT_STATUS_CANCELLED:
 		return AuctionStateCancelled
 	case v1.LotStatus_LOT_STATUS_FAILED:
@@ -289,12 +292,20 @@ func NewOrderFromSettledLot(id string, lot *v1.Lot, nowMs int64) (*Order, error)
 		Currency:        price.GetCurrency(),
 		CreatedAtUnixMs: nowMs,
 		UpdatedAtUnixMs: nowMs,
-		ExpiresAtUnixMs: nowMs + 15*60*1000,
+		ExpiresAtUnixMs: nowMs + OrderPaymentWindowMs,
 		Version:         1,
 	}, nil
 }
 
+func (o Order) effectiveStatus(nowMs int64) (OrderStatus, PaymentStatus) {
+	if o.Status == OrderStatusPendingPayment && o.ExpiresAtUnixMs > 0 && o.ExpiresAtUnixMs <= nowMs {
+		return OrderStatusExpired, PaymentStatusClosed
+	}
+	return o.Status, o.PaymentStatus
+}
+
 func (o Order) Summary() OrderSummary {
+	status, paymentStatus := o.effectiveStatus(clock.NowMs())
 	return OrderSummary{
 		ID:              o.ID,
 		LotID:           o.LotID,
@@ -302,8 +313,8 @@ func (o Order) Summary() OrderSummary {
 		LotTitle:        o.LotTitle,
 		LotImageURL:     o.LotImageURL,
 		BuyerUserID:     o.BuyerUserID,
-		Status:          o.Status,
-		PaymentStatus:   o.PaymentStatus,
+		Status:          status,
+		PaymentStatus:   paymentStatus,
 		PaymentID:       o.PaymentID,
 		Amount:          o.Amount,
 		Currency:        o.Currency,

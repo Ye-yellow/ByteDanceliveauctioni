@@ -55,6 +55,7 @@ func NewLotDraftFromRequest(id string, req *v1.CreateLotRequest, requireComplete
 		CurrentPrice:     currentPrice,
 		FinalPrice:       &v1.Money{Currency: currentPrice.GetCurrency()},
 		Version:          1,
+		Stats:            &v1.LotStats{},
 		TrustCards:       trustCards,
 		DuelState:        &v1.DuelState{},
 		PlaybookStage:    v1.PlaybookStage_PLAYBOOK_STAGE_WARM_UP,

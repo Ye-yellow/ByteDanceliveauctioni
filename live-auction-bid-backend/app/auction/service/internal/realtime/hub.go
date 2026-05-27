@@ -15,6 +15,7 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/pkg/requestctx"
 
 	"github.com/gorilla/websocket"
+	"google.golang.org/protobuf/encoding/protojson"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 )
 
@@ -24,6 +25,11 @@ const (
 	pongTimeout          = 60 * time.Second
 	connectionSendBuffer = 32
 )
+
+var eventJSONMarshal = protojson.MarshalOptions{
+	UseEnumNumbers: false,
+	UseProtoNames:  false,
+}
 
 type SnapshotProvider interface {
 	Snapshot(ctx context.Context, roomID string) (*v1.RoomSnapshot, error)
@@ -295,7 +301,11 @@ func (c *connection) writePump() {
 			}
 			_ = c.conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 			event = c.eventForDelivery(event)
-			if err := c.conn.WriteJSON(event); err != nil {
+			payload, err := eventJSONMarshal.Marshal(&event)
+			if err != nil {
+				return
+			}
+			if err := c.conn.WriteMessage(websocket.TextMessage, payload); err != nil {
 				return
 			}
 		case <-ticker.C:

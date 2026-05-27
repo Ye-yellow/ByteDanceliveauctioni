@@ -231,14 +231,21 @@ message Money {
   string currency = 2;
 }
 
+// LotStats 表示拍品的实时竞拍统计。
+message LotStats {
+  // 参拍人数，按 user_id 去重。
+  int64 participant_count = 1;
+
+  // 被系统接受的有效出价总次数。领先者重复出价等拒绝请求不计入。
+  int64 bid_count = 2;
+}
+
 // ============================================================================
 // 枚举定义
 // ============================================================================
 
 // LotStatus 表示拍品生命周期状态。
 enum LotStatus {
-  option allow_alias = true;
-
   // 未指定。仅作为 proto3 默认值，不应作为业务状态使用。
   LOT_STATUS_UNSPECIFIED = 0;
 
@@ -251,9 +258,6 @@ enum LotStatus {
   // 已加入本场队列，等待队列页/中控台开拍。
   LOT_STATUS_QUEUED = 6;
 
-  // 已排期开拍。兼容 P1/P2 HTTP DTO 语义，等价于 LOT_STATUS_QUEUED。
-  LOT_STATUS_SCHEDULED = 6;
-
   // 竞拍中。观众可以出价，系统会广播价格和排名变化。
   LOT_STATUS_LIVE = 2;
 
@@ -262,9 +266,6 @@ enum LotStatus {
 
   // 已落锤成交。当前价、赢家、成交时间被锁定。
   LOT_STATUS_SETTLED = 3;
-
-  // 已售出。兼容 P1/P2 HTTP DTO 语义，等价于 LOT_STATUS_SETTLED。
-  LOT_STATUS_SOLD = 3;
 
   // 已取消。用于异常下架或主播主动取消。
   LOT_STATUS_CANCELLED = 4;
@@ -636,6 +637,9 @@ message Lot {
 
   // 参拍保证金。观众首次参与该拍品出价前需要确认。
   Money deposit_amount = 31;
+
+  // 实时竞拍统计。
+  LotStats stats = 32;
 }
 
 // ============================================================================

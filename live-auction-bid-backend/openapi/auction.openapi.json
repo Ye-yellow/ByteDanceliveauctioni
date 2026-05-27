@@ -282,11 +282,9 @@
           "LOT_STATUS_DRAFT",
           "LOT_STATUS_READY",
           "LOT_STATUS_QUEUED",
-          "LOT_STATUS_SCHEDULED",
           "LOT_STATUS_LIVE",
           "LOT_STATUS_EXTENDED",
           "LOT_STATUS_SETTLED",
-          "LOT_STATUS_SOLD",
           "LOT_STATUS_CANCELLED",
           "LOT_STATUS_FAILED"
         ]
@@ -303,7 +301,7 @@
       },
       "AuctionState": {
         "type": "string",
-        "enum": ["DRAFT", "SCHEDULED", "LIVE", "EXTENDED", "SOLD", "CANCELLED", "FAILED"]
+        "enum": ["DRAFT", "QUEUED", "LIVE", "EXTENDED", "SETTLED", "CANCELLED", "FAILED"]
       },
       "OrderStatus": {
         "type": "string",
@@ -326,6 +324,15 @@
           "updatedAtUnixMs": { "type": "integer", "format": "int64" }
         }
       },
+      "LotStats": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["participantCount", "bidCount"],
+        "properties": {
+          "participantCount": { "type": "integer", "format": "int64" },
+          "bidCount": { "type": "integer", "format": "int64" }
+        }
+      },
       "Lot": {
         "type": "object",
         "additionalProperties": true,
@@ -341,6 +348,7 @@
           "finalPrice": { "$ref": "#/components/schemas/Money" },
           "leadingUserId": { "type": "string" },
           "winnerUserId": { "type": "string" },
+          "stats": { "$ref": "#/components/schemas/LotStats" },
           "startedAtUnixMs": { "type": "integer", "format": "int64" },
           "endsAtUnixMs": { "type": "integer", "format": "int64" },
           "settledAtUnixMs": { "type": "integer", "format": "int64" },

@@ -31,6 +31,29 @@ type BidRepository interface {
 	CacheIdempotencyKey(ctx context.Context, lotID, userID, key string, bid v1.Bid)
 }
 
+type RuntimeBidResult struct {
+	Lot               *v1.Lot
+	Bid               *v1.Bid
+	Ranking           []*v1.RankingItem
+	RecentBids        []*v1.Bid
+	PreviousLeaderID  string
+	EndsBeforeBid     int64
+	ExtendCountBefore int32
+	Replayed          bool
+}
+
+type AuctionRuntime interface {
+	HydrateLotRuntime(ctx context.Context, lot *v1.Lot) error
+	SyncLotRuntime(ctx context.Context, lot *v1.Lot) error
+	PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceBidRequest, bidderID, nickname, bidID string, nowMs int64) (RuntimeBidResult, error)
+	SnapshotRuntime(ctx context.Context, current *v1.Lot) (*v1.RoomSnapshot, error)
+	RankingRuntime(ctx context.Context, lotID string, limit int64) ([]*v1.RankingItem, error)
+}
+
+type RuntimeProjectionRepository interface {
+	ProjectRuntimeBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, idempotencyKey string, order *Order, events []v1.AuctionEvent) error
+}
+
 type OrderRepository interface {
 	CreateOrderForSettledLot(ctx context.Context, order Order, lot *v1.Lot, expectedLotVersion int64, events []v1.AuctionEvent) error
 	FindOrderByID(ctx context.Context, orderID string) (*Order, error)

@@ -7,6 +7,7 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
@@ -63,6 +64,9 @@ func (s *Store) CommitAcceptedBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, 
 		if err := tx.Create(bidModel).Error; err != nil {
 			return err
 		}
+		if err := projectStatsForInsertedBid(ctx, tx, bid, lot); err != nil {
+			return err
+		}
 		if orderModel != nil {
 			if err := tx.Create(orderModel).Error; err != nil {
 				return err
@@ -73,6 +77,138 @@ func (s *Store) CommitAcceptedBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, 
 		return err
 	}
 	return s.streamEvents(ctx, events)
+}
+
+func (s *Store) ProjectRuntimeBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, idempotencyKey string, order *auction.Order, events []v1.AuctionEvent) error {
+	if bid.Id == "" {
+		return errors.New("bid id is required")
+	}
+	if bid.LotId == "" {
+		return errors.New("lot id is required")
+	}
+	if bid.UserId == "" {
+		return errors.New("user id is required")
+	}
+	if bid.GetAmount() == nil || bid.GetAmount().GetCurrency() == "" {
+		return errors.New("bid amount and currency are required")
+	}
+	if lot == nil {
+		return errors.New("lot is required")
+	}
+	bidModel, err := bidToModel(bid, idempotencyKey)
+	if err != nil {
+		return err
+	}
+	lotModel, err := lotToModel(lot)
+	if err != nil {
+		return err
+	}
+	var orderModel *AuctionOrderModel
+	if order != nil {
+		orderModel, err = orderToModel(*order)
+		if err != nil {
+			return err
+		}
+	}
+	projected := false
+	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		lotUpdate := tx.Model(&AuctionLotModel{}).
+			Where("id = ? AND version < ?", lot.Id, lot.Version).
+			Select("*").
+			Omit("created_at").
+			Updates(lotModel)
+		if lotUpdate.Error != nil {
+			return lotUpdate.Error
+		}
+		if lotUpdate.RowsAffected == 0 {
+			var existing int64
+			if err := tx.Model(&AuctionLotModel{}).Where("id = ?", lot.Id).Count(&existing).Error; err != nil {
+				return err
+			}
+			if existing == 0 {
+				return apperr.ErrNotFound
+			}
+		}
+
+		bidCreate := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(bidModel)
+		if bidCreate.Error != nil {
+			return bidCreate.Error
+		}
+		if bidCreate.RowsAffected > 0 {
+			projected = true
+			if err := projectStatsForInsertedBid(ctx, tx, bid, lot); err != nil {
+				return err
+			}
+		} else {
+			return nil
+		}
+		if orderModel != nil {
+			if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(orderModel).Error; err != nil {
+				return err
+			}
+		}
+		return createEventModelsIgnoringDuplicates(ctx, tx, events)
+	}); err != nil {
+		return err
+	}
+	if !projected {
+		return nil
+	}
+	return s.streamEvents(ctx, events)
+}
+
+func projectStatsForInsertedBid(ctx context.Context, tx *gorm.DB, bid v1.Bid, lot *v1.Lot) error {
+	if lot == nil {
+		return errors.New("lot is required")
+	}
+	participant := AuctionLotParticipantModel{
+		LotID:            bid.LotId,
+		UserID:           bid.UserId,
+		RoomID:           lot.RoomId,
+		FirstBidID:       bid.Id,
+		FirstBidAtUnixMs: bid.CreatedAtUnixMs,
+	}
+	participantCreate := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&participant)
+	if participantCreate.Error != nil {
+		return participantCreate.Error
+	}
+	participantDelta := int64(0)
+	if participantCreate.RowsAffected > 0 {
+		participantDelta = 1
+	}
+	stats := AuctionLotStatsModel{
+		LotID:           bid.LotId,
+		RoomID:          lot.RoomId,
+		UpdatedAtUnixMs: bid.CreatedAtUnixMs,
+	}
+	if err := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&stats).Error; err != nil {
+		return err
+	}
+	return tx.WithContext(ctx).
+		Model(&AuctionLotStatsModel{}).
+		Where("lot_id = ?", bid.LotId).
+		Updates(map[string]any{
+			"room_id":             lot.RoomId,
+			"bid_count":           gorm.Expr("bid_count + ?", 1),
+			"participant_count":   gorm.Expr("participant_count + ?", participantDelta),
+			"last_bid_id":         bid.Id,
+			"last_bid_at_unix_ms": bid.CreatedAtUnixMs,
+			"projected_version":   gorm.Expr("GREATEST(projected_version, ?)", lot.Version),
+			"updated_at_unix_ms":  bid.CreatedAtUnixMs,
+		}).Error
+}
+
+func createEventModelsIgnoringDuplicates(ctx context.Context, tx *gorm.DB, events []v1.AuctionEvent) error {
+	for _, event := range events {
+		model, err := eventToModel(event)
+		if err != nil {
+			return err
+		}
+		if err := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(model).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func bidToModel(bid v1.Bid, idempotencyKey string) (*AuctionBidModel, error) {
@@ -177,7 +313,7 @@ func (s *Store) ListBidRecordsByBuyer(ctx context.Context, buyerUserID string, q
 			record.RoomID = lot.RoomId
 			record.LotTitle = lot.Title
 			record.LotImageURL = lot.ImageUrl
-			record.LotStatus = lot.Status
+			record.LotStatus = lot.Status.String()
 			record.AuctionState = auction.AuctionStateOf(lot)
 			record.Won = lot.WinnerUserId != "" && lot.WinnerUserId == buyerUserID
 		}
