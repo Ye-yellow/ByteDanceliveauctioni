@@ -59,7 +59,8 @@ export function lotStatusTone(status?: string): StudioTone {
 }
 
 export function uiStatusOfLot(lot: Pick<Lot, 'status' | 'queueStatus' | 'playbookStage'>): AuctionUiStatus {
-  if (lot.status === 'LOT_STATUS_QUEUED' || lot.queueStatus === 'LOT_QUEUE_STATUS_QUEUED') return '待开拍';
+  if (lot.status === 'LOT_STATUS_QUEUED') return '待开拍';
+  if (lot.status === 'LOT_STATUS_READY' && lot.queueStatus === 'LOT_QUEUE_STATUS_QUEUED') return '待开拍';
   if (lot.status === 'LOT_STATUS_DRAFT' && lot.playbookStage === 'PLAYBOOK_STAGE_WARM_UP') return '草稿';
   return lotStatusMeta[lot.status]?.ui ?? '准备中';
 }
