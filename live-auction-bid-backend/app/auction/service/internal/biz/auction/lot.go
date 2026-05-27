@@ -235,6 +235,11 @@ func QueueLot(lot *v1.Lot, queuePosition int32) error {
 	return nil
 }
 
+func clearQueueState(lot *v1.Lot) {
+	lot.QueueStatus = v1.LotQueueStatus_LOT_QUEUE_STATUS_NONE
+	lot.QueuePosition = 0
+}
+
 func cloneRule(rule *v1.BidRule) *v1.BidRule {
 	if rule == nil {
 		return nil
@@ -360,6 +365,7 @@ func StartLot(lot *v1.Lot, nowMs int64) error {
 		return fmt.Errorf("%w: only draft or queued lot can be started, current status: %s", apperr.ErrInvalidArgument, lot.Status)
 	}
 	lot.Status = v1.LotStatus_LOT_STATUS_LIVE
+	clearQueueState(lot)
 	lot.StartedAtUnixMs = nowMs
 	lot.EndsAtUnixMs = nowMs + int64(lot.GetRule().GetDurationSeconds())*1000
 	lot.CurrentPrice = lot.GetRule().GetStartPrice()
@@ -406,6 +412,7 @@ func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 		}
 		if bid.GetAmount().GetAmount() >= lot.GetRule().GetCapPrice().GetAmount() {
 			lot.Status = v1.LotStatus_LOT_STATUS_SETTLED
+			clearQueueState(lot)
 			lot.SettledAtUnixMs = nowMs
 			lot.WinnerUserId = bid.UserId
 			lot.WinnerNickname = bid.Nickname
@@ -535,6 +542,7 @@ func SettleLot(lot *v1.Lot, nowMs int64) error {
 		return fmt.Errorf("%w: lot has no accepted bid to settle", apperr.ErrInvalidArgument)
 	}
 	lot.Status = v1.LotStatus_LOT_STATUS_SETTLED
+	clearQueueState(lot)
 	lot.SettledAtUnixMs = nowMs
 	lot.WinnerUserId = lot.LeadingUserId
 	lot.WinnerNickname = lot.LeadingNickname
@@ -558,8 +566,7 @@ func CancelLot(lot *v1.Lot, reason string, nowMs int64) error {
 		return fmt.Errorf("%w: cancel reason is required", apperr.ErrInvalidArgument)
 	}
 	lot.Status = v1.LotStatus_LOT_STATUS_CANCELLED
-	lot.QueueStatus = v1.LotQueueStatus_LOT_QUEUE_STATUS_NONE
-	lot.QueuePosition = 0
+	clearQueueState(lot)
 	lot.CancelReason = reason
 	lot.CancelledAtUnixMs = nowMs
 	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_UNSPECIFIED
@@ -590,6 +597,7 @@ func FailExpiredLot(lot *v1.Lot, reason string, nowMs int64) error {
 		return fmt.Errorf("%w: fail reason is required", apperr.ErrInvalidArgument)
 	}
 	lot.Status = v1.LotStatus_LOT_STATUS_FAILED
+	clearQueueState(lot)
 	lot.CancelReason = reason
 	lot.CancelledAtUnixMs = nowMs
 	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_SETTLE_READY

@@ -72,6 +72,54 @@ func TestLotStateMachine(t *testing.T) {
 	}
 }
 
+func TestLotLifecycleClearsQueueState(t *testing.T) {
+	queuedLot := func(id string) *v1.Lot {
+		t.Helper()
+		lot, err := auction.NewLotFromRequest(id, &v1.CreateLotRequest{
+			RoomId:   "demo",
+			Title:    "队列拍品",
+			ImageUrl: "https://example.com/lot.jpg",
+			Rule: &v1.BidRule{
+				StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
+				MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+				DurationSeconds:        300,
+				AntiSnipeWindowSeconds: 15,
+				AntiSnipeExtendSeconds: 15,
+				MaxExtendCount:         3,
+			},
+		})
+		if err != nil {
+			t.Fatalf("create lot failed: %v", err)
+		}
+		if err := auction.QueueLot(lot, 3); err != nil {
+			t.Fatalf("queue lot failed: %v", err)
+		}
+		return lot
+	}
+
+	started := queuedLot("lot_queue_start")
+	if err := auction.StartLot(started, 1000); err != nil {
+		t.Fatalf("start queued lot failed: %v", err)
+	}
+	if started.QueueStatus != v1.LotQueueStatus_LOT_QUEUE_STATUS_NONE || started.QueuePosition != 0 {
+		t.Fatalf("started lot should leave queue: %+v", started)
+	}
+
+	settled := queuedLot("lot_queue_settle")
+	if err := auction.StartLot(settled, 1000); err != nil {
+		t.Fatalf("start queued lot failed: %v", err)
+	}
+	if err := auction.AcceptBid(settled, v1.Bid{UserId: "u1", Nickname: "用户1", Amount: &v1.Money{Amount: 11000, Currency: "CNY"}}, 2000); err != nil {
+		t.Fatalf("accept bid failed: %v", err)
+	}
+	if err := auction.SettleLot(settled, 3000); err != nil {
+		t.Fatalf("settle lot failed: %v", err)
+	}
+	if settled.QueueStatus != v1.LotQueueStatus_LOT_QUEUE_STATUS_NONE || settled.QueuePosition != 0 {
+		t.Fatalf("settled lot should not remain in queue: %+v", settled)
+	}
+}
+
 func TestCancelLotStateMachineAllowsPreStartAndRejectsLive(t *testing.T) {
 	lot, err := auction.NewLotFromRequest("lot_cancel", &v1.CreateLotRequest{
 		RoomId:   "demo",
