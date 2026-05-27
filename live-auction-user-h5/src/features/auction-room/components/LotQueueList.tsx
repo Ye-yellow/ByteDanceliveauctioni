@@ -1,4 +1,4 @@
-import { LOT_QUEUE_STATUS, LOT_STATUS, type Lot, type OrderSummary } from '../../../shared/api/types';
+import { LOT_STATUS, type Lot, type OrderSummary } from '../../../shared/api/types';
 import { formatMoney, moneyNumber } from '../../../shared/lib/money';
 import { deriveLotDisplayState, lotHasBid, lotHasLockedResult, lotIsDisplayable, orderForLot, type LotDisplayState } from '../model/lotDisplayState';
 
@@ -68,8 +68,7 @@ function lotSortScore(lot: Lot, order: OrderSummary | null, paymentKnownPaid: bo
   if (displayState === 'live') return 0;
   if (lot.status === LOT_STATUS.LIVE || lot.status === LOT_STATUS.EXTENDED) return 0;
   if (displayState === 'upcoming') {
-    if (lot.queueStatus === LOT_QUEUE_STATUS.NEXT) return 1;
-    if (lot.queueStatus === LOT_QUEUE_STATUS.QUEUED || lot.status === LOT_STATUS.QUEUED) return 2;
+    if (lot.status === LOT_STATUS.QUEUED) return 2;
     return 3;
   }
   if (displayState === 'pendingPayment') return 4;

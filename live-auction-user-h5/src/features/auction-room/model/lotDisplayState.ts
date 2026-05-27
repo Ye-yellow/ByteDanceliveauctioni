@@ -1,6 +1,6 @@
 import { isBiddableLotStatus } from '../../../entities/auction/model/status';
 import { isOrderFailed, isOrderPaid, isOrderPaying, ORDER_PAYMENT_WINDOW_MS } from '../../../entities/order/model/privacy';
-import { LOT_QUEUE_STATUS, LOT_STATUS, type Lot, type OrderSummary } from '../../../shared/api/types';
+import { LOT_STATUS, type Lot, type OrderSummary } from '../../../shared/api/types';
 import { moneyNumber } from '../../../shared/lib/money';
 
 export type LotDisplayState = 'upcoming' | 'live' | 'pendingPayment' | 'finished' | 'failed' | 'syncing';
@@ -40,6 +40,7 @@ export function deriveLotDisplayState(
 ): LotDisplayState {
   const nowMs = options.nowMs ?? Date.now();
   const order = options.order || null;
+  const hasOrder = Boolean(order?.id);
 
   if (isBiddableLotStatus(lot.status)) return 'live';
 
@@ -53,6 +54,7 @@ export function deriveLotDisplayState(
 
   if (lotHasLockedResult(lot)) {
     if (!lotHasBid(lot)) return 'failed';
+    if (!hasOrder) return 'finished';
     if (isOrderPaying(order, nowMs)) return 'pendingPayment';
     return lotPaymentWindowPassed(lot, nowMs) ? 'failed' : 'pendingPayment';
   }
@@ -60,8 +62,6 @@ export function deriveLotDisplayState(
   if (lotEndsAtPassed(lot, nowMs)) return lotHasBid(lot) ? 'pendingPayment' : 'failed';
 
   if (
-    lot.queueStatus === LOT_QUEUE_STATUS.NEXT ||
-    lot.queueStatus === LOT_QUEUE_STATUS.QUEUED ||
     lot.status === LOT_STATUS.READY ||
     lot.status === LOT_STATUS.QUEUED
   ) {
