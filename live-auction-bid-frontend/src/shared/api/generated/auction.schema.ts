@@ -11,7 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List orders for admin roles */
+        /** List orders for backoffice roles */
         get: operations["listAdminOrders"];
         put?: never;
         post?: never;
@@ -28,7 +28,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List lots for admin roles */
+        /** List lots for backoffice roles */
         get: operations["listAdminLots"];
         put?: never;
         post?: never;
@@ -45,7 +45,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List users for admin role */
+        /** List team users for current main account */
         get: operations["listAdminUsers"];
         put?: never;
         post?: never;
@@ -142,7 +142,9 @@ export interface components {
         /** @enum {string} */
         LotStatus: "LOT_STATUS_UNSPECIFIED" | "LOT_STATUS_DRAFT" | "LOT_STATUS_READY" | "LOT_STATUS_QUEUED" | "LOT_STATUS_LIVE" | "LOT_STATUS_EXTENDED" | "LOT_STATUS_SETTLED" | "LOT_STATUS_CANCELLED" | "LOT_STATUS_FAILED";
         /** @enum {string} */
-        UserRole: "USER_ROLE_UNSPECIFIED" | "USER_ROLE_BUYER" | "USER_ROLE_ANCHOR" | "USER_ROLE_OPERATOR" | "USER_ROLE_ADMIN";
+        UserRole: "USER_ROLE_UNSPECIFIED" | "USER_ROLE_BUYER" | "USER_ROLE_ANCHOR" | "USER_ROLE_OPERATOR" | "USER_ROLE_MAIN_ACCOUNT";
+        /** @enum {string} */
+        UserStatus: "USER_STATUS_UNSPECIFIED" | "USER_STATUS_ACTIVE" | "USER_STATUS_DISABLED";
         /** @enum {string} */
         AuctionState: "DRAFT" | "QUEUED" | "LIVE" | "EXTENDED" | "SETTLED" | "CANCELLED" | "FAILED";
         /** @enum {string} */
@@ -154,6 +156,9 @@ export interface components {
             username: string;
             nickname: string;
             role: components["schemas"]["UserRole"];
+            mainAccountId: string;
+            createdByUserId: string;
+            status: components["schemas"]["UserStatus"];
             /** Format: int64 */
             createdAtUnixMs?: number;
             /** Format: int64 */

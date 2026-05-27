@@ -1,12 +1,12 @@
 import { Suspense, lazy, type ReactNode } from 'react';
 import { AuthSessionProvider, ProtectedRoute } from '../shared/auth/AuthSessionProvider';
-import { ADMIN_ACCESS_ROLES } from '../shared/api/types';
+import { BACKOFFICE_ACCESS_ROLES } from '../shared/api/types';
 
 const HomePage = lazy(() => import('../pages/home/HomePage').then((module) => ({ default: module.HomePage })));
 const LoginPage = lazy(() => import('../pages/login/LoginPage').then((module) => ({ default: module.LoginPage })));
 const HostConsolePage = lazy(() => import('../pages/host-console/HostConsolePage').then((module) => ({ default: module.HostConsolePage })));
 
-function isAdminPath(pathname: string) {
+function isBackofficePath(pathname: string) {
   return pathname.startsWith('/host') || pathname.startsWith('/admin');
 }
 
@@ -14,7 +14,7 @@ export function App() {
   const { pathname } = location;
 
   if (pathname.startsWith('/login')) return <AuthSessionProvider><RouteSuspense><LoginPage /></RouteSuspense></AuthSessionProvider>;
-  if (isAdminPath(pathname)) return <AuthSessionProvider><RouteSuspense><ProtectedRoute requiredRoles={ADMIN_ACCESS_ROLES}><HostConsolePage /></ProtectedRoute></RouteSuspense></AuthSessionProvider>;
+  if (isBackofficePath(pathname)) return <AuthSessionProvider><RouteSuspense><ProtectedRoute requiredRoles={BACKOFFICE_ACCESS_ROLES}><HostConsolePage /></ProtectedRoute></RouteSuspense></AuthSessionProvider>;
 
   return <AuthSessionProvider><RouteSuspense><HomePage /></RouteSuspense></AuthSessionProvider>;
 }

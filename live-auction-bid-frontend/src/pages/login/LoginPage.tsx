@@ -14,11 +14,12 @@ import {
   ShieldCheck,
   ShoppingBag,
   Sparkles,
+  UserPlus,
   UserRound,
 } from 'lucide-react';
-import { currentAuth, login, logout } from '../../features/auth/api/authApi';
+import { currentAuth, login, logout, registerMerchant } from '../../features/auth/api/authApi';
 import { resultMessage } from '../../shared/api/result';
-import { ADMIN_ACCESS_ROLES } from '../../shared/api/types';
+import { canAccessBackoffice } from '../../shared/api/types';
 import { clearExpiredMessage, readExpiredMessage } from '../../shared/auth/authStorage';
 
 function nextPath(fallback = '/host') {
@@ -78,15 +79,16 @@ function AuctionDecorations() {
 
 export function LoginPage({ embedded = false }: { embedded?: boolean; title?: string }) {
   const redirectTo = useMemo(() => nextPath('/host'), []);
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin_dev_password');
+  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [username, setUsername] = useState('main');
+  const [password, setPassword] = useState('main_dev_password');
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
   const currentUser = currentAuth().user;
-  const current = currentUser && ADMIN_ACCESS_ROLES.includes(currentUser.role) ? currentUser : null;
+  const current = canAccessBackoffice(currentUser) ? currentUser : null;
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -101,7 +103,11 @@ export function LoginPage({ embedded = false }: { embedded?: boolean; title?: st
     setBusy(true);
     setError('');
     try {
-      await login(username.trim(), password);
+      if (mode === 'register') {
+        await registerMerchant(username.trim(), password);
+      } else {
+        await login(username.trim(), password);
+      }
       location.href = redirectTo;
     } catch (e) {
       setError(resultMessage(e));
@@ -169,18 +175,23 @@ export function LoginPage({ embedded = false }: { embedded?: boolean; title?: st
           ) : (
             <>
               <p className="loginEyebrow"><ShieldCheck size={14} /> ByteDance LiveAuction</p>
-              <h2>进入工作台</h2>
-              <p className="loginSubcopy">使用主播主账号或团队子账号登录；账号所属主播空间和岗位权限由系统自动识别。</p>
+              <h2>{mode === 'register' ? '注册主账号' : '进入工作台'}</h2>
+              <p className="loginSubcopy">{mode === 'register' ? '每个主播或商家注册一个主账号；主账号登录后再创建自己的团队子账号。' : '使用主账号或团队子账号登录；账号所属主播 / 商家空间和岗位权限由系统自动识别。'}</p>
+
+              <nav className="loginTabs" aria-label="账号入口">
+                <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setError(''); }}>账号登录</button>
+                <button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => { setMode('register'); setError(''); }}>注册主账号</button>
+              </nav>
 
               <label className="loginField">
                 <span>账号 / 邮箱 / 手机号</span>
-                <div><UserRound size={16} /><input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="请输入主播团队账号" autoComplete="username" /></div>
+                <div><UserRound size={16} /><input value={username} onChange={(e) => setUsername(e.target.value)} placeholder={mode === 'register' ? '请输入主账号' : '请输入团队账号'} autoComplete="username" /></div>
               </label>
               <label className="loginField">
                 <span>密码</span>
                 <div>
                   <LockKeyhole size={16} />
-                  <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="请输入密码" type={showPassword ? 'text' : 'password'} autoComplete="current-password" />
+                  <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="请输入密码" type={showPassword ? 'text' : 'password'} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} />
                   <button type="button" className="passwordToggle" onClick={() => setShowPassword((x) => !x)} aria-label={showPassword ? '隐藏密码' : '显示密码'}>{showPassword ? <EyeOff size={15} /> : <Eye size={15} />}</button>
                 </div>
               </label>
@@ -193,10 +204,10 @@ export function LoginPage({ embedded = false }: { embedded?: boolean; title?: st
               {error && <p className="loginError">{error}</p>}
 
               <button className="loginSubmit" disabled={busy || !username.trim() || !password} onClick={submit}>
-                <LogIn size={17} /> {busy ? '登录中...' : `进入 LiveAuction 工作台`}
+                {mode === 'register' ? <UserPlus size={17} /> : <LogIn size={17} />} {busy ? '处理中...' : mode === 'register' ? '创建主账号并进入' : '进入 LiveAuction 工作台'}
               </button>
 
-              <p className="loginHint">测试账号：admin / admin_dev_password。登录后按账号绑定权限进入后台。</p>
+              <p className="loginHint">测试账号：main / main_dev_password。也可以直接注册主账号；买家账号只在 H5 端使用。</p>
             </>
           )}
         </article>

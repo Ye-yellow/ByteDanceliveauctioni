@@ -2,7 +2,7 @@ import { apiRequest } from '../../../shared/api/httpClient';
 import { normalizeUser } from '../../../shared/api/normalizers';
 import { toQueryString } from '../../../shared/api/query';
 import { assertOkResult } from '../../../shared/api/result';
-import type { ReplyResult, User, UserRole } from '../../../shared/api/types';
+import type { ReplyResult, User, UserRole, UserStatus } from '../../../shared/api/types';
 
 export type AdminUsersQuery = {
   page?: number;
@@ -32,7 +32,7 @@ type AdminUsersReply = {
 };
 
 function requireUser(reply: AdminUserReply) {
-  if (!reply.user) throw new Error('admin user response missing user');
+  if (!reply.user) throw new Error('team user response missing user');
   return normalizeUser(reply.user);
 }
 
@@ -82,5 +82,14 @@ export async function adminUpdateUserRole(userId: string, role: UserRole) {
     method: 'POST',
     body: { userId, role },
     operation: 'admin-update-user-role',
+  })));
+}
+
+export async function adminUpdateUserStatus(userId: string, status: UserStatus) {
+  return requireUser(assertOkResult(await apiRequest<AdminUserReply>({
+    path: `/api/admin/users/${encodeURIComponent(userId)}/status`,
+    method: 'POST',
+    body: { userId, status },
+    operation: 'admin-update-user-status',
   })));
 }

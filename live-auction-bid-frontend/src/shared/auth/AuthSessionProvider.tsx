@@ -16,7 +16,7 @@ function currentPath() {
   return `${location.pathname}${location.search}${location.hash}`;
 }
 
-function isAdminPath(pathname = location.pathname) {
+function isBackofficePath(pathname = location.pathname) {
   return pathname.startsWith('/host') || pathname.startsWith('/admin');
 }
 
@@ -38,7 +38,7 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const sync = () => setSession(authSession.current());
     const onExpired = () => {
-      if (isAdminPath() || location.pathname.startsWith('/login')) redirectToLogin(true);
+      if (isBackofficePath() || location.pathname.startsWith('/login')) redirectToLogin(true);
     };
     window.addEventListener('auth-state-change', sync);
     window.addEventListener('storage', sync);
