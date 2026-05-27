@@ -13,12 +13,6 @@ export const RESULT_CODE = {
   INTERNAL_ERROR: 500000,
 } as const;
 
-export const LEGACY_RESULT_CODE = {
-  UNAUTHENTICATED: RESULT_CODE.LOGIN_REQUIRED,
-  INVALID_TOKEN: RESULT_CODE.TOKEN_INVALID,
-  PERMISSION_DENIED: RESULT_CODE.FORBIDDEN,
-} as const;
-
 export type ResultCode = (typeof RESULT_CODE)[keyof typeof RESULT_CODE] | number;
 
 export type ReplyResult = {
@@ -40,11 +34,9 @@ export const LOT_STATUS = {
   DRAFT: 'LOT_STATUS_DRAFT',
   READY: 'LOT_STATUS_READY',
   QUEUED: 'LOT_STATUS_QUEUED',
-  SCHEDULED: 'LOT_STATUS_SCHEDULED',
   LIVE: 'LOT_STATUS_LIVE',
   EXTENDED: 'LOT_STATUS_EXTENDED',
   SETTLED: 'LOT_STATUS_SETTLED',
-  SOLD: 'LOT_STATUS_SOLD',
   CANCELLED: 'LOT_STATUS_CANCELLED',
   FAILED: 'LOT_STATUS_FAILED',
 } as const;
@@ -84,7 +76,7 @@ export const AUCTION_EVENT_TYPE = {
   SERVER_HEARTBEAT: 'SERVER_HEARTBEAT',
 } as const;
 
-export type AuctionEventType = (typeof AUCTION_EVENT_TYPE)[keyof typeof AUCTION_EVENT_TYPE] | string;
+export type AuctionEventType = (typeof AUCTION_EVENT_TYPE)[keyof typeof AUCTION_EVENT_TYPE];
 
 export const USER_ROLE = {
   UNSPECIFIED: 'USER_ROLE_UNSPECIFIED',
@@ -94,7 +86,7 @@ export const USER_ROLE = {
   ADMIN: 'USER_ROLE_ADMIN',
 } as const;
 
-export type UserRole = (typeof USER_ROLE)[keyof typeof USER_ROLE] | number;
+export type UserRole = (typeof USER_ROLE)[keyof typeof USER_ROLE];
 
 export type User = {
   id: string;
@@ -122,6 +114,11 @@ export type BidRule = {
   maxExtendCount?: number;
 };
 
+export type LotStats = {
+  participantCount: number;
+  bidCount: number;
+};
+
 export type Lot = {
   id: string;
   roomId: string;
@@ -135,8 +132,7 @@ export type Lot = {
   winnerUserId?: string;
   winnerNickname?: string;
   finalPrice?: Money;
-  participantCount?: number;
-  bidCount?: number;
+  stats: LotStats;
   startedAtUnixMs?: number | string;
   endsAtUnixMs?: number | string;
   settledAtUnixMs?: number | string;
@@ -287,6 +283,7 @@ export type AuctionRoomState = {
   activeOrder?: OrderSummary;
   orders: OrderSummary[];
   payment?: PaymentSummary;
+  paidLotIds: Record<string, boolean>;
 };
 
 export type PlaceBidRequest = {

@@ -54,7 +54,7 @@ export function MockPayModal({
           订单号 <b>{order.id}</b>
         </p>
         <p>
-          订单金额 <b>{formatMoney(order.amount)}</b>
+          订单金额 <b className="scrollAmount inlineAmount" title={formatMoney(order.amount)}>{formatMoney(order.amount)}</b>
         </p>
         <div className="payMethods">
           {['模拟余额', '模拟银行卡'].map((item) => (

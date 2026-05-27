@@ -249,8 +249,8 @@ export function useLiveRoomController(roomId: string) {
     setBidError('');
     void reload().catch(() => undefined);
     void refreshRoomLots().catch(() => undefined);
-    if (tab === 'mine') void refreshOrders(DEFAULT_ACTIVITY_QUERY).catch(() => undefined);
-  }, [refreshOrders, refreshRoomLots, reload]);
+    if (user || tab === 'mine') void refreshOrders(DEFAULT_ACTIVITY_QUERY).catch(() => undefined);
+  }, [refreshOrders, refreshRoomLots, reload, user]);
 
   const openBuyerAuthPanel = useCallback(() => {
     setAuthFormMode('login');
@@ -416,6 +416,7 @@ export function useLiveRoomController(roomId: string) {
       openAuctionPanel,
       closeAuctionPanel: () => setAuctionPanelOpen(false),
       setAuctionPanelTab,
+      showNotice: pushNotice,
       refreshRoomLots,
       refreshOrders: () => refreshOrders(DEFAULT_ACTIVITY_QUERY),
       setPayOrder,

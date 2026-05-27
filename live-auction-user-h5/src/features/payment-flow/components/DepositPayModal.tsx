@@ -20,7 +20,7 @@ export function DepositPayModal({
         <p className="depositLotName">{lot.title}</p>
         <section className="depositAmount" aria-label="保证金金额">
           <span>保证金</span>
-          <b>{formatLotDeposit(lot)}</b>
+          <b className="scrollAmount" title={formatLotDeposit(lot)}>{formatLotDeposit(lot)}</b>
         </section>
         <p className="depositNote">首次参与该拍品竞价前需确认保证金，拍品付款后退回。</p>
         <button className="resultPrimaryButton" type="button" onClick={onConfirm}>

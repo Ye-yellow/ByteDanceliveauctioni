@@ -1,3 +1,4 @@
+import { maskPublicBuyerName } from '../../../entities/order/model/privacy';
 import type { RankingItem } from '../../../shared/api/types';
 import { formatMoney, moneyNumber } from '../../../shared/lib/money';
 
@@ -17,12 +18,18 @@ export function RankingBoard({ ranking, meId }: { ranking: RankingItem[]; meId: 
           <div key={item.userId || `${item.nickname}-${item.rank}-${index}`} className={`rankRow ${item.userId === meId ? 'me' : ''}`}>
             <span>#{item.rank}</span>
             <div>
-              <b>{item.nickname || (item.userId === meId ? '我' : '买家***')}</b>
+              <b>{item.userId === meId ? item.nickname || '我' : maskPublicBuyerName(item.nickname || item.userId)}</b>
               <small>
-                {item.rank === 1 ? '当前第一' : `差距 ${formatMoney(Math.max(0, topAmount - moneyNumber(item.amount)))}`}
+                {item.rank === 1 ? '当前第一' : (
+                  <>
+                    差距 <span className="scrollAmount inlineAmount" title={formatMoney(Math.max(0, topAmount - moneyNumber(item.amount)))}>
+                      {formatMoney(Math.max(0, topAmount - moneyNumber(item.amount)))}
+                    </span>
+                  </>
+                )}
               </small>
             </div>
-            <strong>{formatMoney(item.amount)}</strong>
+            <strong className="scrollAmount" title={formatMoney(item.amount)}>{formatMoney(item.amount)}</strong>
           </div>
         ))
       ) : (

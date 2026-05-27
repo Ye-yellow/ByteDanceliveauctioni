@@ -1719,6 +1719,7 @@
 }
 
 .priceGrid div {
+  min-width: 0;
   border-radius: 16px;
   background: var(--live-drawer-section-bg);
   padding: 10px;
@@ -1732,8 +1733,40 @@
 
 .priceGrid b {
   display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   margin-top: 4px;
   font-size: 16px;
+}
+
+.scrollAmount {
+  display: inline-block;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  user-select: text;
+  cursor: grab;
+  overscroll-behavior-inline: contain;
+}
+
+.scrollAmount.inlineAmount {
+  max-width: min(12ch, 100%);
+  vertical-align: bottom;
+}
+
+.scrollAmount::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollAmount:active {
+  cursor: grabbing;
 }
 
 .dangerText {
@@ -1797,6 +1830,12 @@
   font-weight: 900;
   outline: 0;
   color: var(--text-main);
+}
+
+.bidAmountRow input::-webkit-outer-spin-button,
+.bidAmountRow input::-webkit-inner-spin-button {
+  margin: 0;
+  appearance: none;
 }
 
 .buyerAuthPanel input {
@@ -1917,7 +1956,7 @@
 
 .rankRow {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-columns: 42px minmax(0, 1fr) minmax(76px, 104px);
   gap: 8px;
   align-items: center;
   border-radius: 16px;
@@ -1950,6 +1989,8 @@
 }
 
 .rankRow strong {
+  min-width: 0;
+  text-align: right;
   font-size: 15px;
 }
 
@@ -1959,7 +2000,7 @@
   margin-top: 8px;
   padding: 9px;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) minmax(76px, 104px);
   gap: 3px;
 }
 
@@ -1968,6 +2009,8 @@
 }
 
 .feedCard b {
+  min-width: 0;
+  text-align: right;
   color: var(--live-color-primary);
 }
 
@@ -2057,6 +2100,502 @@
   font-weight: 900;
 }
 
+/* Douyin-style auction sheet: queue-first lots and focused bid panel. */
+.auctionDrawer {
+  position: relative;
+  height: min(78%, 760px);
+  border-radius: 26px 26px 0 0;
+  background: #fff;
+}
+
+.auctionDrawerHeader {
+  padding: 14px 16px 8px;
+  background: linear-gradient(180deg, rgba(255, 240, 246, 0.95), rgba(255, 255, 255, 0.96));
+}
+
+.auctionDrawerHeader span {
+  color: #ff2f5f;
+}
+
+.auctionDrawerHeader h2 {
+  font-size: 19px;
+  font-weight: 950;
+}
+
+.drawerTabs {
+  display: flex;
+  gap: 10px;
+  padding: 0 16px 12px;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.drawerTabs button {
+  min-height: 38px;
+  grid-template-rows: 1fr;
+  grid-auto-flow: column;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 999px;
+  background: #f5f5f7;
+  color: #5b5f6d;
+  padding: 0 14px;
+}
+
+.drawerTabs button.active {
+  background: #111319;
+  color: #fff;
+}
+
+.drawerTabs button.active b::after {
+  display: none;
+}
+
+.drawerTabIcon {
+  width: 18px;
+  height: 18px;
+}
+
+.drawerContent {
+  padding: 0 12px 14px;
+}
+
+.currentAuctionPanel {
+  display: grid;
+  gap: 10px;
+}
+
+.queuePanel .drawerSectionHeader {
+  margin: 2px 4px 10px;
+}
+
+.queuePanel .drawerSectionHeader b {
+  font-size: 18px;
+}
+
+.queueList {
+  gap: 9px;
+}
+
+.queueLot {
+  grid-template-columns: 108px minmax(0, 1fr) 92px;
+  min-height: 118px;
+  border: 1px solid rgba(17, 19, 25, 0.05);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.queueLot.active {
+  outline: 0;
+  background: linear-gradient(90deg, #fff4f7 0, #fff 70%);
+  border-color: rgba(255, 47, 95, 0.18);
+}
+
+.queueLot.selected {
+  box-shadow: 0 10px 26px rgba(255, 47, 95, 0.12);
+}
+
+.queueLotMedia {
+  position: relative;
+}
+
+.queueLotMedia > span {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  min-width: 28px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px 0 14px 0;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.queueLot img,
+.queueLotFallback {
+  width: 108px;
+  height: 98px;
+  border-radius: 15px;
+}
+
+.queueLotStatus {
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  min-height: 20px;
+  align-items: center;
+  border-radius: 4px;
+  padding: 0 6px;
+  color: #ff2f5f;
+  background: #ffe8ef;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.queueLot.isLive .queueLotStatus {
+  color: #fff;
+  background: #ff2f5f;
+}
+
+.queueLot.isPendingPayment .queueLotStatus {
+  color: #8b4b00;
+  background: #fff0cf;
+}
+
+.queueLot.isFinished .queueLotStatus {
+  color: #347357;
+  background: #ddf7ec;
+}
+
+.queueLot.isFailed .queueLotStatus {
+  color: #8d919c;
+  background: #f0f1f4;
+}
+
+.queueLot h3 {
+  margin: 7px 0 8px;
+  font-size: 15px;
+  line-height: 1.35;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.queueLot p {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+  color: #ff2f5f;
+  font-size: 20px;
+  font-weight: 950;
+}
+
+.queueLot p em {
+  flex: 0 0 auto;
+  color: #ff2f5f;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.queueLot p .scrollAmount {
+  flex: 1 1 auto;
+}
+
+.queueLot.isPendingPayment p,
+.queueLot.isPendingPayment p em {
+  color: #d97800;
+}
+
+.queueLot.isFinished p,
+.queueLot.isFailed p,
+.queueLot.isFinished p em,
+.queueLot.isFailed p em {
+  color: #9ca0aa;
+}
+
+.queueLot aside {
+  align-self: end;
+}
+
+.queueLot aside button {
+  min-width: 86px;
+  height: 38px;
+  border: 0;
+  border-radius: 4px;
+  background: #ff2f5f;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.queueLot aside button:disabled {
+  background: #ff9aad;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.liveAuctionTelemetry {
+  display: grid;
+  gap: 10px;
+}
+
+.liveBidSheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: calc(var(--live-z-sheet) + 1);
+  max-height: min(78%, 640px);
+  overflow: auto;
+  padding: 18px 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+  border-radius: 24px 24px 0 0;
+  background: #fff;
+  box-shadow: 0 -18px 44px rgba(17, 19, 25, 0.22);
+}
+
+.bidSheetClose {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: #f1f2f5;
+  color: #5d6370;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.liveBidSheet .lotCard,
+.liveBidSheet .bidPanel {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.liveBidSheet .lotCard {
+  display: grid;
+  gap: 12px;
+  border-radius: 0;
+}
+
+.lotCountdownBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding-right: 34px;
+  color: #111319;
+  font-weight: 950;
+}
+
+.lotCountdownBar:before,
+.lotCountdownBar:after {
+  content: "";
+  width: 22px;
+  height: 2px;
+  border-radius: 999px;
+  background: #ffc03d;
+}
+
+.lotCountdownBar span {
+  font-size: 16px;
+}
+
+.lotCountdownBar b {
+  display: inline-flex;
+  min-width: 34px;
+  justify-content: center;
+  border-radius: 7px;
+  background: #ff8a13;
+  color: #fff;
+  padding: 3px 6px;
+  font-size: 15px;
+}
+
+.lotHeroCard {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px;
+  border-radius: 18px;
+  background: linear-gradient(110deg, #fff7fa 0, #f1f8ff 100%);
+}
+
+.liveBidSheet .lotMedia {
+  height: 112px;
+  border-radius: 15px;
+}
+
+.liveBidSheet .lotInfo {
+  margin-top: 0;
+  align-self: center;
+}
+
+.liveBidSheet .statusPill {
+  color: #ff2f5f;
+  background: #ffe6ee;
+}
+
+.liveBidSheet .lotInfo h1 {
+  margin: 8px 0 12px;
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.liveBidSheet .lotInfo p {
+  width: max-content;
+  max-width: 100%;
+  border-radius: 999px;
+  background: #fff;
+  color: #ff2f5f;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.liveBidSheet .priceGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #e9ebf0;
+}
+
+.liveBidSheet .priceGrid div {
+  border-radius: 0;
+  background: #fff;
+  padding: 10px 8px;
+}
+
+.liveBidSheet .priceGrid span,
+.liveBidSheet .timeHint {
+  color: #9a9ea8;
+}
+
+.liveBidSheet .priceGrid b {
+  font-size: 14px;
+}
+
+.liveBidSheet .timeHint {
+  margin-top: -4px;
+  font-size: 11px;
+  text-align: center;
+}
+
+.liveBidSheet .bidPanel {
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.bidDeltaPill {
+  justify-self: center;
+  margin: 0 0 -2px;
+  border-radius: 5px;
+  background: #ffe1ea;
+  color: #ff2f5f;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.bidDeltaPill.muted {
+  background: #f2f3f6;
+  color: #8c909b;
+}
+
+.bidDeltaPill.warning {
+  background: #fff1d6;
+  color: #c66b00;
+}
+
+.liveBidSheet .bidAmountRow {
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  gap: 14px;
+}
+
+.liveBidSheet .bidAmountRow button {
+  height: 42px;
+  border-radius: 2px;
+  background: #f0f1f4;
+  color: #7d828c;
+  font-size: 24px;
+}
+
+.liveBidSheet .bidAmountControl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "amount currency"
+    "hint hint";
+  align-items: center;
+  justify-items: stretch;
+  column-gap: 4px;
+  row-gap: 2px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0;
+  background: transparent;
+}
+
+.liveBidSheet .bidAmountControl i {
+  grid-area: currency;
+  justify-self: start;
+  transform: translateY(-7px);
+  color: #111319;
+  font-style: normal;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.liveBidSheet .bidAmountControl input {
+  grid-area: amount;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 54px;
+  box-sizing: border-box;
+  padding: 0;
+  text-align: right;
+  color: #111319;
+  font-size: 44px;
+  line-height: 1;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+}
+
+.liveBidSheet .bidAmountControl.amountCompact input {
+  font-size: 36px;
+}
+
+.liveBidSheet .bidAmountControl.amountTiny input {
+  font-size: 30px;
+}
+
+.liveBidSheet .bidAmountControl.amountTiny i {
+  font-size: 16px;
+}
+
+.liveBidSheet .bidAmountControl span {
+  grid-area: hint;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: #a0a4ad;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.liveBidSheet .bidButton {
+  min-height: 54px;
+  margin-top: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff6f81 0, #ff2f5f 58%, #ff244f 100%);
+  font-size: 17px;
+  box-shadow: 0 14px 26px rgba(255, 47, 95, 0.24);
+}
+
+.liveBidSheet .bidButton:disabled {
+  background: #ff9aad;
+  opacity: 0.76;
+  box-shadow: none;
+}
+
 .miniOrderList {
   display: grid;
   gap: 9px;
@@ -2064,7 +2603,7 @@
 
 .miniOrder {
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr) auto;
+  grid-template-columns: 58px minmax(0, 1fr) minmax(82px, 108px);
   gap: 10px;
   align-items: center;
   border-radius: 18px;
@@ -2100,6 +2639,7 @@
 }
 
 .miniOrder aside {
+  min-width: 0;
   text-align: right;
 }
 
@@ -2263,7 +2803,7 @@
 
 .resultDeposit {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) minmax(72px, 112px);
   align-items: center;
   gap: 12px;
   border-radius: 18px;
@@ -2285,6 +2825,7 @@
 }
 
 .resultDeposit small {
+  text-align: right;
   color: var(--live-color-text-muted);
   font-size: 12px;
   font-weight: 900;
@@ -2716,7 +3257,7 @@
 
 .orderCard {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr) auto;
+  grid-template-columns: 72px minmax(0, 1fr) minmax(86px, 112px);
   gap: 10px;
   align-items: center;
   border: 0;
@@ -2759,6 +3300,7 @@
 }
 
 .orderCard aside {
+  min-width: 0;
   text-align: right;
 }
 

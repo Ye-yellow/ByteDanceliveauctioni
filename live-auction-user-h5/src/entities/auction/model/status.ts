@@ -5,7 +5,7 @@ export function isBiddableLotStatus(status?: LotStatus): boolean {
 }
 
 export function isClosedLotStatus(status?: LotStatus): boolean {
-  return status === LOT_STATUS.SETTLED || status === LOT_STATUS.SOLD;
+  return status === LOT_STATUS.SETTLED;
 }
 
 export function isSettlementEventType(type: AuctionEventType): boolean {

@@ -1,10 +1,15 @@
+import { useMemo, useState } from 'react';
+import { isBiddableLotStatus } from '../../../entities/auction/model/status';
+import { orderStatusLabel } from '../../../entities/order/model/privacy';
 import { LOT_STATUS, type OrderSummary } from '../../../shared/api/types';
 import { formatMoney } from '../../../shared/lib/money';
-import { formatEventTime } from '../../../shared/lib/time';
+import { formatEventTime, getServerNowMs } from '../../../shared/lib/time';
 import { BidPanel } from '../../bid-panel/components/BidPanel';
 import type { AuctionPanelTab, LiveRoomController } from '../hooks/useLiveRoomController';
 import { BuyerAuthPanel } from './BuyerAuthPanel';
 import { CurrentLotCard } from './CurrentLotCard';
+import { LotQueueList } from './LotQueueList';
+import { deriveLotDisplayState, orderForLot } from '../model/lotDisplayState';
 import { RankingBoard } from './RankingBoard';
 import { RecentBidFeed } from './RecentBidFeed';
 
@@ -82,55 +87,123 @@ function MiniOrder({ order }: { order: OrderSummary }) {
         <span>{formatEventTime(order.createdAtUnixMs)}</span>
       </div>
       <aside>
-        <strong>{formatMoney(order.amount)}</strong>
-        <small>{order.paymentStatus || order.status || '待同步'}</small>
+        <strong className="scrollAmount" title={formatMoney(order.amount)}>{formatMoney(order.amount)}</strong>
+        <small>{orderStatusLabel(order)}</small>
       </aside>
     </article>
   );
 }
 
+function unavailableReasonForLot(
+  lot: NonNullable<LiveRoomController['currentLot']>,
+  currentLot: LiveRoomController['currentLot'],
+  orders: OrderSummary[],
+  paidLotIds: Record<string, boolean>,
+  nowMs?: number,
+): string {
+  const displayState = deriveLotDisplayState(lot, {
+    order: orderForLot(orders, lot),
+    paymentKnownPaid: Boolean(paidLotIds[lot.id]),
+    nowMs,
+  });
+
+  if (displayState === 'pendingPayment') return '这件拍品已落锤，正在等待竞得者付款';
+  if (displayState === 'failed') return '这件拍品未成交，已结束';
+  if (displayState === 'finished') return '这件拍品已结束';
+  if (!currentLot || lot.id !== currentLot.id) return '这件还未开拍，先看看本场安排';
+  if (!isBiddableLotStatus(lot.status)) return '当前拍品状态不可出价';
+  return '';
+}
+
 function CurrentAuctionPanel({ controller }: { controller: LiveRoomController }) {
   const {
     room,
+    auctionPanel,
     loading,
     error,
     currentLot,
     ranking,
     meId,
-    bidError,
     isBidPending,
     accountRoleMessage,
     showBuyerAuth,
     buyerAuth,
     actions,
   } = controller;
-  const leadingBidDisabledReason = currentLot?.leadingUserId && currentLot.leadingUserId === meId
-    ? '你已领先，等待其他买家出价后再加价'
+  const [sheetLotId, setSheetLotId] = useState('');
+  const displayNowMs = getServerNowMs(room.serverTimeUnixMs, room.serverTimeReceivedAtUnixMs);
+  const lots = useMemo(() => {
+    if (auctionPanel.lots.length) {
+      if (currentLot && !auctionPanel.lots.some((lot) => lot.id === currentLot.id)) return [currentLot, ...auctionPanel.lots];
+      if (currentLot) return auctionPanel.lots.map((lot) => lot.id === currentLot.id ? currentLot : lot);
+      return auctionPanel.lots;
+    }
+    return currentLot ? [currentLot] : [];
+  }, [auctionPanel.lots, currentLot]);
+  const sheetLot = lots.find((lot) => lot.id === sheetLotId) || null;
+  const sheetIsCurrent = Boolean(sheetLot && currentLot && sheetLot.id === currentLot.id);
+  const sheetDisplayState = sheetLot ? deriveLotDisplayState(sheetLot, {
+    order: orderForLot(room.orders, sheetLot),
+    paymentKnownPaid: Boolean(room.paidLotIds[sheetLot.id]),
+    nowMs: displayNowMs,
+  }) : undefined;
+  const leadingBidDisabledReason = sheetIsCurrent && currentLot?.leadingUserId && currentLot.leadingUserId === meId
+    ? '当前您已是最高价'
     : '';
+  const unavailableReason = sheetLot && (!sheetIsCurrent || !isBiddableLotStatus(sheetLot.status))
+    ? unavailableReasonForLot(sheetLot, currentLot, room.orders, room.paidLotIds, displayNowMs)
+    : '';
+  const bidDisabledReason = leadingBidDisabledReason || unavailableReason;
 
   return (
     <section className="currentAuctionPanel">
       {accountRoleMessage ? <section className="emptyState error">{accountRoleMessage}</section> : null}
-      {showBuyerAuth ? <BuyerAuthPanel auth={buyerAuth} /> : null}
       {loading ? <section className="drawerEmpty">正在进入直播间...</section> : null}
       {error ? <section className="emptyState error">{error}</section> : null}
-      {!loading && !currentLot ? <section className="drawerEmpty">当前暂无竞拍，等待主播开拍</section> : null}
-      {currentLot ? (
-        <CurrentLotCard
-          lot={currentLot}
-          serverTimeUnixMs={room.serverTimeUnixMs}
-          serverTimeReceivedAtUnixMs={room.serverTimeReceivedAtUnixMs}
-        />
+      <LotQueueList
+        lots={lots}
+        currentLotId={currentLot?.id}
+        selectedLotId={sheetLot?.id || currentLot?.id}
+        loading={auctionPanel.loading}
+        error={auctionPanel.error}
+        onRefresh={() => void actions.refreshRoomLots().catch(() => undefined)}
+        onSelectLot={(lot) => setSheetLotId(lot.id)}
+        onPrimaryAction={(lot) => setSheetLotId(lot.id)}
+        orders={room.orders}
+        paidLotIds={room.paidLotIds}
+        nowMs={displayNowMs}
+      />
+
+      {sheetLot ? (
+        <section className="liveBidSheet" aria-label="出价面板">
+          <button type="button" className="bidSheetClose" onClick={() => setSheetLotId('')} aria-label="收起出价面板">×</button>
+          <CurrentLotCard
+            lot={sheetLot}
+            serverTimeUnixMs={room.serverTimeUnixMs}
+            serverTimeReceivedAtUnixMs={room.serverTimeReceivedAtUnixMs}
+            displayState={sheetDisplayState}
+          />
+          {showBuyerAuth ? (
+            <BuyerAuthPanel auth={buyerAuth} />
+          ) : (
+            <BidPanel
+              lot={sheetLot}
+              loading={isBidPending}
+              disabledReason={bidDisabledReason}
+              onBid={actions.submitBid}
+              onTip={actions.showNotice}
+            />
+          )}
+        </section>
       ) : null}
 
+      {!loading && !currentLot && !lots.length ? <section className="drawerEmpty">当前暂无竞拍，等待主播开拍</section> : null}
+
       {currentLot ? (
-        <BidPanel
-          lot={currentLot}
-          loading={isBidPending}
-          error={bidError}
-          disabledReason={leadingBidDisabledReason}
-          onBid={actions.submitBid}
-        />
+        <section className="liveAuctionTelemetry">
+          <RankingBoard ranking={ranking} meId={meId} />
+          <RecentBidFeed bids={room.recentBids} meId={meId} />
+        </section>
       ) : null}
 
       {room.localOptimistic.pendingBid ? (
@@ -139,8 +212,6 @@ function CurrentAuctionPanel({ controller }: { controller: LiveRoomController })
         </p>
       ) : null}
 
-      <RankingBoard ranking={ranking} meId={meId} />
-      <RecentBidFeed bids={room.recentBids} meId={meId} />
       {currentLot?.status === LOT_STATUS.CANCELLED ? <div className="cancelBanner">本场竞拍已异常取消</div> : null}
     </section>
   );

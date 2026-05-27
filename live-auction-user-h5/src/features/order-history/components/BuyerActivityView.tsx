@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode, type TouchEvent } from 'react';
-import { canPayOrder, orderStatusLabel, orderStatusTone } from '../../../entities/order/model/privacy';
+import { canPayOrder, orderPaymentStatusLabel, orderStatusLabel, orderStatusTone } from '../../../entities/order/model/privacy';
 import type { BidRecord, OrderSummary } from '../../../shared/api/types';
 import { formatMoney } from '../../../shared/lib/money';
 import { formatEventTime } from '../../../shared/lib/time';
@@ -179,7 +179,7 @@ function OrderList({
             <p>{formatEventTime(order.createdAtUnixMs)}</p>
           </div>
           <aside>
-            <b>{formatMoney(order.amount)}</b>
+            <b className="scrollAmount" title={formatMoney(order.amount)}>{formatMoney(order.amount)}</b>
             <span className={orderStatusTone(order)}>{orderStatusLabel(order)}</span>
             {canPayOrder(order) ? (
               <button
@@ -239,13 +239,13 @@ function OrderDetailModal({
         </header>
         <section className="orderDetailAmount" aria-label="订单金额">
           <span>订单金额</span>
-          <strong>{formatMoney(order.amount)}</strong>
+          <strong className="scrollAmount" title={formatMoney(order.amount)}>{formatMoney(order.amount)}</strong>
         </section>
         <section className="orderDetailRows" aria-label="订单信息">
           <span>订单状态</span>
-          <b>{order.status || '待同步'}</b>
+          <b>{orderStatusLabel(order)}</b>
           <span>支付状态</span>
-          <b>{order.paymentStatus || '待同步'}</b>
+          <b>{orderPaymentStatusLabel(order)}</b>
           <span>拍品编号</span>
           <b>{order.lotId || '未同步'}</b>
           <span>创建时间</span>
@@ -281,7 +281,7 @@ function BidRecordList({ bids, loading, error }: { bids: BidRecord[]; loading: b
             <p>{bid.auctionState || bid.lotStatus || '状态同步中'}</p>
           </div>
           <aside>
-            <b>{formatMoney(bid.amount)}</b>
+            <b className="scrollAmount" title={formatMoney(bid.amount)}>{formatMoney(bid.amount)}</b>
             <span className={bid.won ? 'success' : ''}>{bid.won ? '已中标' : '已出价'}</span>
           </aside>
         </article>

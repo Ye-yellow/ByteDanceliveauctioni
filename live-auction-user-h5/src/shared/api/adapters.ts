@@ -43,6 +43,15 @@ function numberValue(value: unknown, fallback = 0): number {
   return Number.isFinite(next) ? next : fallback;
 }
 
+const userRoleValues = new Set<UserRole>(Object.values(USER_ROLE));
+const lotStatusValues = new Set<LotStatus>(Object.values(LOT_STATUS));
+const lotQueueStatusValues = new Set<LotQueueStatus>(Object.values(LOT_QUEUE_STATUS));
+const auctionEventTypeValues = new Set<AuctionEventType>(Object.values(AUCTION_EVENT_TYPE));
+
+function normalizeEnum<T extends string>(value: unknown, values: Set<T>, fallback: T): T {
+  return typeof value === 'string' && values.has(value as T) ? value as T : fallback;
+}
+
 export function normalizeMoney(value: MoneyInput): Money {
   if (value && typeof value === 'object' && 'amount' in value) {
     const money = value as Money;
@@ -82,69 +91,15 @@ export function normalizeUser(input: unknown): User {
 }
 
 function normalizeUserRole(value: unknown): UserRole {
-  if (typeof value === 'string') {
-    if (value.startsWith('USER_ROLE_')) return value as UserRole;
-    const numericString = Number(value);
-    if (!Number.isFinite(numericString)) return USER_ROLE.UNSPECIFIED;
-    value = numericString;
-  }
-
-  const numeric: Record<number, UserRole> = {
-    0: USER_ROLE.UNSPECIFIED,
-    1: USER_ROLE.BUYER,
-    2: USER_ROLE.ANCHOR,
-    3: USER_ROLE.OPERATOR,
-    4: USER_ROLE.ADMIN,
-  };
-
-  return numeric[numberValue(value, -1)] ?? USER_ROLE.UNSPECIFIED;
+  return normalizeEnum(value, userRoleValues, USER_ROLE.UNSPECIFIED);
 }
 
 export function normalizeLotStatus(value: unknown): LotStatus {
-  if (typeof value === 'string') {
-    if (value.startsWith('LOT_STATUS_')) return value as LotStatus;
-    if (value === 'LIVE') return LOT_STATUS.LIVE;
-    if (value === 'SETTLED') return LOT_STATUS.SETTLED;
-    if (value === 'CANCELLED') return LOT_STATUS.CANCELLED;
-    if (value === 'READY') return LOT_STATUS.READY;
-    if (value === 'QUEUED') return LOT_STATUS.QUEUED;
-    if (value === 'SCHEDULED') return LOT_STATUS.SCHEDULED;
-    if (value === 'EXTENDED') return LOT_STATUS.EXTENDED;
-    if (value === 'SOLD') return LOT_STATUS.SOLD;
-    if (value === 'FAILED') return LOT_STATUS.FAILED;
-    if (value === 'DRAFT') return LOT_STATUS.DRAFT;
-  }
-
-  const numeric: Record<number, LotStatus> = {
-    1: LOT_STATUS.DRAFT,
-    2: LOT_STATUS.LIVE,
-    3: LOT_STATUS.SETTLED,
-    4: LOT_STATUS.CANCELLED,
-    5: LOT_STATUS.READY,
-    6: LOT_STATUS.QUEUED,
-    7: LOT_STATUS.EXTENDED,
-    8: LOT_STATUS.FAILED,
-  };
-
-  return numeric[numberValue(value)] ?? LOT_STATUS.UNSPECIFIED;
+  return normalizeEnum(value, lotStatusValues, LOT_STATUS.UNSPECIFIED);
 }
 
 function normalizeLotQueueStatus(value: unknown): LotQueueStatus {
-  if (typeof value === 'string') {
-    if (value.startsWith('LOT_QUEUE_STATUS_')) return value as LotQueueStatus;
-    if (value === 'NONE') return LOT_QUEUE_STATUS.NONE;
-    if (value === 'QUEUED') return LOT_QUEUE_STATUS.QUEUED;
-    if (value === 'NEXT') return LOT_QUEUE_STATUS.NEXT;
-  }
-
-  const numeric: Record<number, LotQueueStatus> = {
-    0: LOT_QUEUE_STATUS.UNSPECIFIED,
-    1: LOT_QUEUE_STATUS.NONE,
-    2: LOT_QUEUE_STATUS.QUEUED,
-    3: LOT_QUEUE_STATUS.NEXT,
-  };
-
-  return numeric[numberValue(value)] ?? LOT_QUEUE_STATUS.UNSPECIFIED;
+  return normalizeEnum(value, lotQueueStatusValues, LOT_QUEUE_STATUS.UNSPECIFIED);
 }
 
 function normalizeBidRule(input: unknown): BidRule {
@@ -157,6 +112,14 @@ function normalizeBidRule(input: unknown): BidRule {
     antiSnipeWindowSeconds: numberValue(pick(raw, 'antiSnipeWindowSeconds', 'anti_snipe_window_seconds')),
     antiSnipeExtendSeconds: numberValue(pick(raw, 'antiSnipeExtendSeconds', 'anti_snipe_extend_seconds')),
     maxExtendCount: numberValue(pick(raw, 'maxExtendCount', 'max_extend_count')),
+  };
+}
+
+function normalizeLotStats(input: unknown): Lot['stats'] {
+  const raw = asRecord(input);
+  return {
+    participantCount: numberValue(pick(raw, 'participantCount', 'participant_count')),
+    bidCount: numberValue(pick(raw, 'bidCount', 'bid_count')),
   };
 }
 
@@ -175,8 +138,7 @@ export function normalizeLot(input: unknown): Lot {
     winnerUserId: stringValue(pick(raw, 'winnerUserId', 'winner_user_id')),
     winnerNickname: stringValue(pick(raw, 'winnerNickname', 'winner_nickname')),
     finalPrice: pick(raw, 'finalPrice', 'final_price') ? normalizeMoney(pick(raw, 'finalPrice', 'final_price')) : undefined,
-    participantCount: numberValue(pick(raw, 'participantCount', 'participant_count')),
-    bidCount: numberValue(pick(raw, 'bidCount', 'bid_count')),
+    stats: normalizeLotStats(pick(raw, 'stats')),
     startedAtUnixMs: pick(raw, 'startedAtUnixMs', 'started_at_unix_ms'),
     endsAtUnixMs: pick(raw, 'endsAtUnixMs', 'ends_at_unix_ms'),
     settledAtUnixMs: pick(raw, 'settledAtUnixMs', 'settled_at_unix_ms'),
@@ -234,74 +196,7 @@ export function normalizeRoomSnapshot(input: unknown, fallbackRoomId = ''): Room
 }
 
 function normalizeEventType(value: unknown): AuctionEventType {
-  if (typeof value === 'string') {
-    const key = value.trim().toUpperCase();
-    const aliases: Record<string, AuctionEventType> = {
-      HEARTBEAT: AUCTION_EVENT_TYPE.SERVER_HEARTBEAT,
-      SERVER_HEARTBEAT: AUCTION_EVENT_TYPE.SERVER_HEARTBEAT,
-      AUCTION_EVENT_TYPE_SERVER_HEARTBEAT: AUCTION_EVENT_TYPE.SERVER_HEARTBEAT,
-      ROOM_SNAPSHOT: AUCTION_EVENT_TYPE.ROOM_SNAPSHOT,
-      AUCTION_EVENT_TYPE_ROOM_SNAPSHOT: AUCTION_EVENT_TYPE.ROOM_SNAPSHOT,
-      LOT_CREATED: AUCTION_EVENT_TYPE.LOT_CREATED,
-      AUCTION_EVENT_TYPE_LOT_CREATED: AUCTION_EVENT_TYPE.LOT_CREATED,
-      LOT_STARTED: AUCTION_EVENT_TYPE.LOT_STARTED,
-      AUCTION_EVENT_TYPE_LOT_STARTED: AUCTION_EVENT_TYPE.LOT_STARTED,
-      LOT_UPDATED: AUCTION_EVENT_TYPE.LOT_UPDATED,
-      AUCTION_EVENT_TYPE_LOT_UPDATED: AUCTION_EVENT_TYPE.LOT_UPDATED,
-      BID_ACCEPTED: AUCTION_EVENT_TYPE.BID_ACCEPTED,
-      AUCTION_EVENT_TYPE_BID_ACCEPTED: AUCTION_EVENT_TYPE.BID_ACCEPTED,
-      BID_REJECTED: AUCTION_EVENT_TYPE.BID_REJECTED,
-      AUCTION_EVENT_TYPE_BID_REJECTED: AUCTION_EVENT_TYPE.BID_REJECTED,
-      RANKING_UPDATED: AUCTION_EVENT_TYPE.RANKING_UPDATED,
-      AUCTION_EVENT_TYPE_RANKING_UPDATED: AUCTION_EVENT_TYPE.RANKING_UPDATED,
-      TRUST_REVEALED: AUCTION_EVENT_TYPE.TRUST_REVEALED,
-      AUCTION_EVENT_TYPE_TRUST_REVEALED: AUCTION_EVENT_TYPE.TRUST_REVEALED,
-      DUEL_STARTED: AUCTION_EVENT_TYPE.DUEL_STARTED,
-      AUCTION_EVENT_TYPE_DUEL_STARTED: AUCTION_EVENT_TYPE.DUEL_STARTED,
-      DUEL_ENDED: AUCTION_EVENT_TYPE.DUEL_ENDED,
-      AUCTION_EVENT_TYPE_DUEL_ENDED: AUCTION_EVENT_TYPE.DUEL_ENDED,
-      LOT_SETTLED: AUCTION_EVENT_TYPE.LOT_SETTLED,
-      AUCTION_EVENT_TYPE_LOT_SETTLED: AUCTION_EVENT_TYPE.LOT_SETTLED,
-      LOT_CANCELLED: AUCTION_EVENT_TYPE.LOT_CANCELLED,
-      AUCTION_EVENT_TYPE_LOT_CANCELLED: AUCTION_EVENT_TYPE.LOT_CANCELLED,
-      LOT_QUEUED: AUCTION_EVENT_TYPE.LOT_QUEUED,
-      AUCTION_EVENT_TYPE_LOT_QUEUED: AUCTION_EVENT_TYPE.LOT_QUEUED,
-      BID_OUTBID: AUCTION_EVENT_TYPE.BID_OUTBID,
-      AUCTION_EVENT_TYPE_BID_OUTBID: AUCTION_EVENT_TYPE.BID_OUTBID,
-      AUCTION_EXTENDED: AUCTION_EVENT_TYPE.AUCTION_EXTENDED,
-      AUCTION_EVENT_TYPE_AUCTION_EXTENDED: AUCTION_EVENT_TYPE.AUCTION_EXTENDED,
-      AUCTION_CLOSED: AUCTION_EVENT_TYPE.AUCTION_CLOSED,
-      AUCTION_EVENT_TYPE_AUCTION_CLOSED: AUCTION_EVENT_TYPE.AUCTION_CLOSED,
-      ORDER_CREATED: AUCTION_EVENT_TYPE.ORDER_CREATED,
-      AUCTION_EVENT_TYPE_ORDER_CREATED: AUCTION_EVENT_TYPE.ORDER_CREATED,
-      PAYMENT_SUCCESS: AUCTION_EVENT_TYPE.PAYMENT_SUCCESS,
-      AUCTION_EVENT_TYPE_PAYMENT_SUCCESS: AUCTION_EVENT_TYPE.PAYMENT_SUCCESS,
-    };
-    return aliases[key] ?? AUCTION_EVENT_TYPE.UNSPECIFIED;
-  }
-
-  const numeric: Record<number, AuctionEventType> = {
-    1: AUCTION_EVENT_TYPE.ROOM_SNAPSHOT,
-    2: AUCTION_EVENT_TYPE.LOT_CREATED,
-    3: AUCTION_EVENT_TYPE.LOT_STARTED,
-    4: AUCTION_EVENT_TYPE.LOT_UPDATED,
-    5: AUCTION_EVENT_TYPE.BID_ACCEPTED,
-    6: AUCTION_EVENT_TYPE.BID_REJECTED,
-    7: AUCTION_EVENT_TYPE.RANKING_UPDATED,
-    8: AUCTION_EVENT_TYPE.TRUST_REVEALED,
-    9: AUCTION_EVENT_TYPE.DUEL_STARTED,
-    10: AUCTION_EVENT_TYPE.DUEL_ENDED,
-    11: AUCTION_EVENT_TYPE.LOT_SETTLED,
-    12: AUCTION_EVENT_TYPE.LOT_CANCELLED,
-    13: AUCTION_EVENT_TYPE.LOT_QUEUED,
-    14: AUCTION_EVENT_TYPE.BID_OUTBID,
-    15: AUCTION_EVENT_TYPE.AUCTION_EXTENDED,
-    16: AUCTION_EVENT_TYPE.AUCTION_CLOSED,
-    17: AUCTION_EVENT_TYPE.ORDER_CREATED,
-    18: AUCTION_EVENT_TYPE.PAYMENT_SUCCESS,
-  };
-
-  return numeric[numberValue(value)] ?? AUCTION_EVENT_TYPE.UNSPECIFIED;
+  return normalizeEnum(value, auctionEventTypeValues, AUCTION_EVENT_TYPE.UNSPECIFIED);
 }
 
 export function normalizeOrder(input: unknown): OrderSummary | undefined {

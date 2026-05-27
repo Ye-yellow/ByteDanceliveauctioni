@@ -1,20 +1,12 @@
 import { useEffect, useState } from 'react';
 import { formatLotDeposit } from '../../../entities/auction/model/deposit';
-import { canPayOrder } from '../../../entities/order/model/privacy';
+import { canPayOrder, isOrderFailed, maskPublicBuyerName, ORDER_PAYMENT_WINDOW_MS, orderStatusLabel } from '../../../entities/order/model/privacy';
 import type { Lot, OrderSummary } from '../../../shared/api/types';
 import { formatMoney } from '../../../shared/lib/money';
 
-const PAYMENT_WINDOW_MS = 30 * 60 * 1000;
-
 function paymentStatusLabel(order?: OrderSummary | null): string {
   if (!order) return '订单生成中';
-  if (order.paymentStatus === 'SUCCESS' || order.status === 'PAID') return '已支付';
-  if (order.paymentStatus === 'PROCESSING') return '支付处理中';
-  if (order.paymentStatus === 'FAILED') return '支付失败';
-  if (order.paymentStatus === 'CLOSED') return '支付已关闭';
-  if (order.status === 'CANCELLED') return '订单已取消';
-  if (order.status === 'EXPIRED') return '订单已过期';
-  return '待支付';
+  return orderStatusLabel(order);
 }
 
 function winnerButtonLabel(order: OrderSummary | null | undefined, canPay: boolean): string {
@@ -30,22 +22,12 @@ function canStartPayment(order?: OrderSummary | null): boolean {
   return !['CANCELLED', 'EXPIRED', 'REFUNDED'].includes(status) && paymentStatus !== 'CLOSED';
 }
 
-function maskNickname(nickname?: string): string {
-  const value = nickname?.trim();
-  if (!value) return '中标买家';
-  if (value.includes('*')) return value;
-  const chars = Array.from(value);
-  if (chars.length <= 1) return `${chars[0]}*`;
-  if (chars.length === 2) return `${chars[0]}*`;
-  return `${chars[0]}${'*'.repeat(Math.min(3, chars.length - 2))}${chars[chars.length - 1]}`;
-}
-
 function avatarText(label: string): string {
-  return Array.from(label.replace(/\*/g, ''))[0] || '买';
+  return Array.from(label.replace(/\*/g, ''))[0] || '中';
 }
 
 function roundsText(lot: Lot): string {
-  const rounds = Number(lot.bidCount || 0);
+  const rounds = Number(lot.stats?.bidCount || 0);
   if (!Number.isFinite(rounds) || rounds <= 0) return '经过多轮激烈竞拍成功拍下';
   return `经过 ${rounds} 轮激烈竞拍成功拍下`;
 }
@@ -63,7 +45,7 @@ function paymentLeftMs(order: OrderSummary | null | undefined, lot: Lot, nowMs: 
   if (Number.isFinite(expires) && expires > 0) return Math.max(0, expires - nowMs);
 
   const start = fallbackPaymentStart(order, lot) || fallbackStartAt;
-  return Math.max(0, start + PAYMENT_WINDOW_MS - nowMs);
+  return Math.max(0, start + ORDER_PAYMENT_WINDOW_MS - nowMs);
 }
 
 function formatCountdown(leftMs: number): string {
@@ -97,18 +79,24 @@ export function ResultModal({
   onNext: () => void;
   onClose: () => void;
 }) {
-  const won = Boolean(order) || (Boolean(meId) && lot.winnerUserId === meId);
-  const canPay = won && canStartPayment(order);
+  const hasWinningClaim = Boolean(order) || (Boolean(meId) && lot.winnerUserId === meId);
   const finalAmount = order?.amount || lot.finalPrice || lot.currentPrice;
   const timerKey = `${lot.id}:${order?.id || 'pending'}`;
   const [paymentTimer, setPaymentTimer] = useState(() => createPaymentTimer(timerKey, order, lot));
   const fallbackStartAt = paymentTimer.key === timerKey ? paymentTimer.fallbackStartAt : fallbackPaymentStart(order, lot) || paymentTimer.nowMs;
   const nowMs = paymentTimer.nowMs;
   const payLeftMs = paymentLeftMs(order, lot, nowMs, fallbackStartAt);
-  const maskedWinnerNickname = maskNickname(lot.winnerNickname || order?.buyerNickname);
+  const failedClaim = hasWinningClaim && (Boolean(order && isOrderFailed(order, nowMs)) || (!order && payLeftMs <= 0));
+  const won = hasWinningClaim && !failedClaim;
+  const canPay = won && canStartPayment(order);
+  const maskedWinnerNickname = maskPublicBuyerName(lot.winnerNickname || order?.buyerNickname, '中标者');
+  const resultProfileLabel = failedClaim ? '竞拍未成交' : '竞拍成功者';
+  const resultProfileText = failedClaim ? '付款超时' : maskedWinnerNickname;
+  const resultStory = failedClaim ? '已落锤但未在时限内完成付款' : roundsText(lot);
+  const finalPriceLabel = failedClaim ? '落锤价' : '最终价';
 
   useEffect(() => {
-    if (!won) return undefined;
+    if (!hasWinningClaim) return undefined;
 
     const timer = window.setInterval(() => {
       setPaymentTimer((current) => {
@@ -119,7 +107,7 @@ export function ResultModal({
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [lot, order, timerKey, won]);
+  }, [hasWinningClaim, lot, order, timerKey]);
 
   return (
     <div className="modalMask resultModalMask">
@@ -137,7 +125,7 @@ export function ResultModal({
             <section className="resultDeposit" aria-label="保证金">
               <span>保证金</span>
               <b>拍品付款后退回</b>
-              <small>{formatLotDeposit(lot)}</small>
+              <small className="scrollAmount" title={formatLotDeposit(lot)}>{formatLotDeposit(lot)}</small>
             </section>
             <button
               className="resultPrimaryButton"
@@ -165,16 +153,16 @@ export function ResultModal({
             <div className="resultWinnerProfile">
               <div className="resultWinnerAvatar">{avatarText(maskedWinnerNickname)}</div>
               <div>
-                <span>竞拍成功者</span>
-                <b>{maskedWinnerNickname}</b>
+                <span>{resultProfileLabel}</span>
+                <b>{resultProfileText}</b>
               </div>
             </div>
             <p className="resultLoserStory">
-              {roundsText(lot)}
+              {resultStory}
             </p>
-            <section className="resultFinalPrice" aria-label="最终成交价">
-              <span>最终价</span>
-              <strong>{formatMoney(finalAmount)}</strong>
+            <section className="resultFinalPrice" aria-label="结果价格">
+              <span>{finalPriceLabel}</span>
+              <strong className="scrollAmount" title={formatMoney(finalAmount)}>{formatMoney(finalAmount)}</strong>
             </section>
             <button className="resultPrimaryButton" type="button" onClick={onNext}>
               继续看直播

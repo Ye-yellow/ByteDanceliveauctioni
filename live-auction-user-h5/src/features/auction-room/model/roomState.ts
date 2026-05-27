@@ -36,6 +36,7 @@ export function createInitialAuctionRoomState(roomId: string): AuctionRoomState 
     recentBids: [],
     serverTimeUnixMs: 0,
     orders: [],
+    paidLotIds: {},
   };
 }
 
@@ -48,6 +49,18 @@ function mergeRecentBid(recentBids: BidEvent[], bid?: BidEvent): BidEvent[] {
 function mergeOrder(orders: OrderSummary[], order?: OrderSummary): OrderSummary[] {
   if (!order) return orders;
   return [order, ...orders.filter((item) => item.id !== order.id)];
+}
+
+function orderIsPaid(order?: OrderSummary): boolean {
+  return order?.status === 'PAID' || order?.paymentStatus === 'SUCCESS';
+}
+
+function mergePaidLotIds(current: Record<string, boolean>, orders: OrderSummary[]): Record<string, boolean> {
+  const next = { ...current };
+  for (const order of orders) {
+    if (order.lotId && orderIsPaid(order)) next[order.lotId] = true;
+  }
+  return next;
 }
 
 function eventServerTime(event: AuctionSocketEvent): number | string | undefined {
@@ -126,6 +139,15 @@ function applyPublicEvent(state: AuctionRoomState, event: AuctionSocketEvent): A
     };
   }
 
+  if (event.type === AUCTION_EVENT_TYPE.PAYMENT_SUCCESS) {
+    const lotId = event.lot?.id || event.lotId || '';
+    return {
+      ...base,
+      ...withLot(base, event.lot),
+      paidLotIds: lotId ? { ...base.paidLotIds, [lotId]: true } : base.paidLotIds,
+    };
+  }
+
   if (event.type === AUCTION_EVENT_TYPE.RANKING_UPDATED) {
     return {
       ...base,
@@ -154,11 +176,13 @@ export function auctionRoomReducer(state: AuctionRoomState, action: AuctionRoomA
   if (action.type === 'snapshotReceived') return snapshotToState(state, action.snapshot, 'snapshot');
   if (action.type === 'eventReceived') return applyPublicEvent(state, action.event);
   if (action.type === 'lotResultLoaded') {
+    const orders = mergeOrder(state.orders, action.result.order);
     return {
       ...state,
       currentLot: action.result.lot || state.currentLot,
       activeOrder: action.result.order || state.activeOrder,
-      orders: mergeOrder(state.orders, action.result.order),
+      orders,
+      paidLotIds: mergePaidLotIds(state.paidLotIds, orders),
     };
   }
   if (action.type === 'localBidStarted') {
@@ -203,11 +227,13 @@ export function auctionRoomReducer(state: AuctionRoomState, action: AuctionRoomA
     };
   }
   if (action.type === 'localPaymentSettled') {
+    const orders = mergeOrder(state.orders, action.order);
     return {
       ...state,
       activeOrder: action.order || state.activeOrder,
       payment: action.payment || state.payment,
-      orders: mergeOrder(state.orders, action.order),
+      orders,
+      paidLotIds: mergePaidLotIds(state.paidLotIds, orders),
       localOptimistic: {
         ...state.localOptimistic,
         pendingPayment: undefined,
@@ -224,6 +250,7 @@ export function auctionRoomReducer(state: AuctionRoomState, action: AuctionRoomA
       ...state,
       orders: action.orders,
       activeOrder: currentLotOrder || existingOrder || action.orders[0],
+      paidLotIds: mergePaidLotIds(state.paidLotIds, action.orders),
     };
   }
   return state;

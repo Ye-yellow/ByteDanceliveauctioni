@@ -15,8 +15,8 @@ export function amountFromMajor(value: number): number {
 }
 
 export function formatMoney(value?: MoneyInput): string {
-  return `¥${moneyMajorNumber(value).toLocaleString('zh-CN', {
+  return `${moneyMajorNumber(value).toLocaleString('zh-CN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })}`;
+  })}元`;
 }
