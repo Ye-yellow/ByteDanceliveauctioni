@@ -4,7 +4,6 @@ import { createDraftLot, deleteUploadedImage, patchDraftLot, queueLot, uploadIma
 import type { CreateLotRequest, Money, TrustCardType, UploadedAsset } from '../../shared/api/types';
 import { resultMessage } from '../../shared/api/result';
 import { formatMoneyText } from '../../shared/lib/format';
-import { ADMIN_ROOM } from '../../shared/config/studio';
 import { StudioButton, StudioCard, StudioField, StudioPageHeader, StudioToastViewport, useStudioToast } from '../../pages/host-console/components/studio-ui';
 
 type UploadedImage = {
@@ -107,7 +106,12 @@ const initialForm: FormState = {
   },
 };
 
-export function AuctionCreatePage() {
+type AuctionCreatePageProps = {
+  roomId: string;
+  roomName?: string;
+};
+
+export function AuctionCreatePage({ roomId, roomName = roomId }: AuctionCreatePageProps) {
   const [form, setForm] = useState<FormState>(initialForm);
   const [activeStep, setActiveStep] = useState<StepKey>('product');
   const [previewImageIndex, setPreviewImageIndex] = useState(0);
@@ -185,7 +189,7 @@ export function AuctionCreatePage() {
     }
     setUploading((current) => ({ ...current, [uploadKey]: true }));
     try {
-      const asset = await uploadImage(file, { roomId: ADMIN_ROOM.id, bizType: target === 'main' ? 'lot_image' : target === 'gallery' ? 'lot_gallery' : 'trust_card' });
+      const asset = await uploadImage(file, { roomId, bizType: target === 'main' ? 'lot_image' : target === 'gallery' ? 'lot_gallery' : 'trust_card' });
       if (target === 'main') {
         if (form.mainImageAssetId) void deleteUploadedImage(form.mainImageAssetId, { silent: true });
         update({ imageUrl: asset.imageUrl, mainImageAssetId: asset.id });
@@ -252,8 +256,8 @@ export function AuctionCreatePage() {
     setSubmitting(true);
     setError('');
     try {
-      const draft = await createDraftLot({ roomId: ADMIN_ROOM.id });
-      const saved = await patchDraftLot(draft.id, toRequest(form));
+      const draft = await createDraftLot({ roomId });
+      const saved = await patchDraftLot(draft.id, toRequest(form, roomId));
       const queued = await queueLot(saved.id);
       showToast({ tone: 'success', title: '拍品已加入本场队列', description: `${queued.lot.title} · #${queued.queuePosition || queued.lot.queuePosition || '-'}` });
       window.setTimeout(() => { location.href = '/admin/auctions?queued=1'; }, 350);
@@ -374,7 +378,7 @@ export function AuctionCreatePage() {
           <div className="publishReviewGrid">
             <div className="publishSummaryBlock">
               <h4>入队摘要</h4>
-              <div><span>直播间</span><b>{ADMIN_ROOM.name}</b></div>
+              <div><span>直播间</span><b>{roomName}</b></div>
               <div><span>拍品</span><b>{form.title || '未填写'}</b></div>
               <div><span>分类</span><b>{form.category.trim() || '未选择'}</b></div>
               <div><span>图片素材</span><b>{Number(Boolean(form.imageUrl)) + form.gallery.length} 张</b></div>
@@ -452,9 +456,9 @@ function buildTrustCards(form: FormState): CreateLotRequest['trustCards'] {
   });
 }
 
-function toRequest(form: FormState): CreateLotRequest {
+function toRequest(form: FormState, roomId: string): CreateLotRequest {
   const request: CreateLotRequest = {
-    roomId: ADMIN_ROOM.id,
+    roomId,
     title: form.title.trim(),
     description: form.description.trim(),
     imageUrl: form.imageUrl.trim(),

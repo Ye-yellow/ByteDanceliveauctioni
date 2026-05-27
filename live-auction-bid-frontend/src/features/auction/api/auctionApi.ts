@@ -1,9 +1,9 @@
 import { apiRequest } from '../../../shared/api/httpClient';
 import { toQueryString } from '../../../shared/api/query';
 import { assertOkResult, normalizeAuctionEvent } from '../../../shared/api/result';
-import { normalizeLot, normalizeRoomPresence, normalizeRoomSnapshot, normalizeTrustRevealCard, normalizeUploadedAsset } from '../../../shared/api/normalizers';
+import { normalizeLot, normalizeRoom, normalizeRoomPresence, normalizeRoomSnapshot, normalizeTrustRevealCard, normalizeUploadedAsset } from '../../../shared/api/normalizers';
 import { clientLog, createRequestId } from '../../../shared/lib/clientLogger';
-import type { AuctionEvent, CancelLotReply, CreateLotReply, CreateLotRequest, GetRoomPresenceReply, GetRoomSnapshotReply, ListLotsReply, ListRoomEventsReply, Lot, LotStatus, PatchLotDraftRequest, PatchLotDraftReply, QueueLotReply, ReplyResult, RevealTrustCardReply, RoomPresence, RoomSnapshot, SettleLotReply, StartDuelReply, StartLotReply, TrustRevealCard, UploadedAsset, UploadImageReply } from '../../../shared/api/types';
+import type { AuctionEvent, CancelLotReply, CreateLotReply, CreateLotRequest, GetRoomPresenceReply, GetRoomSnapshotReply, ListLotsReply, ListRoomEventsReply, ListRoomsReply, Lot, LotStatus, PatchLotDraftRequest, PatchLotDraftReply, QueueLotReply, ReplyResult, RevealTrustCardReply, Room, RoomPresence, RoomSnapshot, SettleLotReply, StartDuelReply, StartLotReply, TrustRevealCard, UploadedAsset, UploadImageReply } from '../../../shared/api/types';
 
 export type AdminLotsQuery = {
   page?: number;
@@ -34,6 +34,24 @@ export type RoomEventsPage = {
   nextPageToken: string;
 };
 
+export async function listAdminRooms(): Promise<Room[]> {
+  const reply = assertOkResult(await apiRequest<ListRoomsReply>({
+    path: '/api/admin/rooms',
+    method: 'GET',
+    operation: 'admin-list-rooms',
+  }));
+  return requireArray(reply.rooms, 'rooms').map(normalizeRoom);
+}
+
+export async function listPublicRooms(): Promise<Room[]> {
+  const reply = assertOkResult(await apiRequest<ListRoomsReply>({
+    path: '/api/rooms',
+    method: 'GET',
+    operation: 'list-public-rooms',
+  }));
+  return requireArray(reply.rooms, 'rooms').map(normalizeRoom);
+}
+
 function formatApiError(input: { status?: number; code?: number; message?: string; requestId?: string; result?: { code?: number; message?: string; traceId?: string; trace_id?: string }; error?: string }) {
   const code = input.code ?? input.result?.code;
   const requestId = input.requestId ?? input.result?.traceId ?? input.result?.trace_id;
@@ -57,7 +75,7 @@ function requiredValue<T>(value: T | undefined | null, field: string): T {
   return value;
 }
 
-export async function listLots(roomId = 'demo'): Promise<Lot[]> {
+export async function listLots(roomId: string): Promise<Lot[]> {
   const reply = assertOkResult(await apiRequest<ListLotsReply>({
     path: `/api/lots?room_id=${encodeURIComponent(roomId)}`,
     method: 'GET',
@@ -89,7 +107,7 @@ export async function listAdminLots(query: AdminLotsQuery = {}): Promise<AdminLo
   };
 }
 
-export async function getRoomSnapshot(roomId = 'demo'): Promise<RoomSnapshot> {
+export async function getRoomSnapshot(roomId: string): Promise<RoomSnapshot> {
   const reply = assertOkResult(await apiRequest<GetRoomSnapshotReply>({
     path: `/api/rooms/${encodeURIComponent(roomId)}/snapshot`,
     method: 'GET',
@@ -99,7 +117,7 @@ export async function getRoomSnapshot(roomId = 'demo'): Promise<RoomSnapshot> {
   return normalizeRoomSnapshot(reply.snapshot);
 }
 
-export async function getRoomPresence(roomId = 'demo'): Promise<RoomPresence> {
+export async function getRoomPresence(roomId: string): Promise<RoomPresence> {
   const reply = assertOkResult(await apiRequest<GetRoomPresenceReply>({
     path: `/api/rooms/${encodeURIComponent(roomId)}/presence`,
     method: 'GET',
@@ -110,7 +128,7 @@ export async function getRoomPresence(roomId = 'demo'): Promise<RoomPresence> {
   return presence;
 }
 
-export async function listRoomEvents(roomId = 'demo', input: { pageSize?: number; pageToken?: string } = {}): Promise<RoomEventsPage> {
+export async function listRoomEvents(roomId: string, input: { pageSize?: number; pageToken?: string } = {}): Promise<RoomEventsPage> {
   const reply = assertOkResult(await apiRequest<ListRoomEventsReply>({
     path: `/api/rooms/${encodeURIComponent(roomId)}/events${toQueryString({
       page_size: input.pageSize ?? 12,
@@ -153,7 +171,7 @@ export async function uploadImage(file: File, input?: { roomId?: string; bizType
     });
     const code = reply.code ?? reply.result?.code ?? 0;
     if (code !== 0) throw new Error(formatApiError(reply));
-    const asset = normalizeUploadedAsset(reply.data?.asset ?? reply.asset);
+    const asset = normalizeUploadedAsset(reply.data?.asset);
     clientLog('info', 'upload_image.success', {
       requestId: reply.requestId ?? requestId,
       durationMs: Math.round(performance.now() - startedAt),

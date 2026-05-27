@@ -8,6 +8,7 @@ export const RESULT_CODE_TOKEN_INVALID = 401003;
 export const RESULT_CODE_SESSION_EXPIRED = 401004;
 export const RESULT_CODE_INVALID_CREDENTIALS = 401005;
 export const RESULT_CODE_FORBIDDEN = 403001;
+export const RESULT_CODE_ACCOUNT_DISABLED = 403002;
 export const RESULT_CODE_LOT_VERSION_CONFLICT = 409001;
 export const RESULT_CODE_INTERNAL_ERROR = 500000;
 
@@ -22,12 +23,43 @@ export const USER_ROLE = {
   BUYER: 'USER_ROLE_BUYER',
   ANCHOR: 'USER_ROLE_ANCHOR',
   OPERATOR: 'USER_ROLE_OPERATOR',
-  ADMIN: 'USER_ROLE_ADMIN',
+  MAIN_ACCOUNT: 'USER_ROLE_MAIN_ACCOUNT',
 } as const;
 
 export type UserRole = (typeof USER_ROLE)[keyof typeof USER_ROLE];
-export const ADMIN_ACCESS_ROLES: UserRole[] = [USER_ROLE.ANCHOR, USER_ROLE.OPERATOR, USER_ROLE.ADMIN];
-export type User = { id: string; username: string; nickname: string; role: UserRole; createdAtUnixMs: number | string; updatedAtUnixMs: number | string };
+
+export const USER_STATUS = {
+  UNSPECIFIED: 'USER_STATUS_UNSPECIFIED',
+  ACTIVE: 'USER_STATUS_ACTIVE',
+  DISABLED: 'USER_STATUS_DISABLED',
+} as const;
+
+export type UserStatus = (typeof USER_STATUS)[keyof typeof USER_STATUS];
+export const BACKOFFICE_ACCESS_ROLES: UserRole[] = [USER_ROLE.MAIN_ACCOUNT, USER_ROLE.ANCHOR, USER_ROLE.OPERATOR];
+
+export function canAccessBackoffice(user?: Pick<User, 'role' | 'status'> | null) {
+  return Boolean(user && user.status === USER_STATUS.ACTIVE && BACKOFFICE_ACCESS_ROLES.includes(user.role));
+}
+
+export function isMainAccount(user?: Pick<User, 'role'> | null) {
+  return user?.role === USER_ROLE.MAIN_ACCOUNT;
+}
+
+export function isManagedTeamRole(role?: UserRole | null) {
+  return role === USER_ROLE.ANCHOR || role === USER_ROLE.OPERATOR;
+}
+
+export type User = {
+  id: string;
+  username: string;
+  nickname: string;
+  role: UserRole;
+  mainAccountId: string;
+  createdByUserId: string;
+  status: UserStatus;
+  createdAtUnixMs: number | string;
+  updatedAtUnixMs: number | string;
+};
 export type AuthTokens = { accessToken: string; refreshToken: string; accessExpiresAtUnixMs: number | string; refreshExpiresAtUnixMs: number | string };
 
 export type BidRule = {
@@ -47,6 +79,7 @@ export type LotStats = { participantCount: number; bidCount: number };
 export type Lot = { id: string; roomId: string; title: string; description: string; imageUrl: string; status: LotStatus; queueStatus?: LotQueueStatus; queuePosition?: number; rule: BidRule; currentPrice: Money; leadingUserId: string; leadingNickname: string; startedAtUnixMs: number | string; endsAtUnixMs: number | string; settledAtUnixMs: number | string; cancelledAtUnixMs?: number | string; winnerUserId: string; winnerNickname: string; finalPrice: Money; version: number | string; trustCards: TrustRevealCard[]; duelState: DuelState; playbookStage: PlaybookStage; stats: LotStats; cancelReason?: string; galleryImageUrls?: string[]; category?: string; tags?: string[]; estimatePrice?: Money; stock?: number | string; afterSaleNotes?: string; depositAmount?: Money };
 export type RoomSnapshot = { roomId: string; currentLot?: Lot; ranking: RankingItem[]; recentBids: Bid[]; playbookStage: PlaybookStage; serverTimeUnixMs: number | string };
 export type RoomPresence = { roomId: string; totalConnections: number | string; viewerConnections: number | string; operatorConnections: number | string; serverTimeUnixMs: number | string };
+export type Room = { id: string; mainAccountId: string; name: string; platform: string; platformRoomId?: string; status: 'ACTIVE' | 'DISABLED' | string; createdByUserId?: string; createdAtUnixMs: number | string; updatedAtUnixMs: number | string };
 export type AuctionEvent = { id: string; type: EventType; roomId: string; lotId: string; occurredAtUnixMs: number | string; lot?: Lot; bid?: Bid; ranking?: RankingItem[]; trustCard?: TrustRevealCard; duelState?: DuelState; snapshot?: RoomSnapshot; reason?: string; orderId?: string; paymentId?: string };
 export type CreateLotRequest = { roomId: string; title: string; description: string; imageUrl: string; rule: BidRule; trustCards: Omit<TrustRevealCard, 'lotId' | 'revealed' | 'revealedAtUnixMs'>[]; galleryImageUrls?: string[]; category?: string; tags?: string[]; estimatePrice?: Money; stock?: number; afterSaleNotes?: string; depositAmount?: Money };
 export type PatchLotDraftRequest = Partial<CreateLotRequest> & { lotId: string };
@@ -67,6 +100,7 @@ export type CancelLotReply = { lot?: Lot; event?: AuctionEvent; result?: ReplyRe
 export type GetRoomSnapshotReply = { snapshot?: RoomSnapshot; result?: ReplyResult };
 export type GetRoomPresenceReply = { presence?: RoomPresence; result?: ReplyResult };
 export type ListRoomEventsReply = { events?: AuctionEvent[]; nextPageToken?: string; result?: ReplyResult };
+export type ListRoomsReply = { rooms?: Room[]; result?: ReplyResult };
 
 export type UploadedAsset = { id: string; imageUrl: string; bucket: string; objectKey: string; mimeType: string; sizeBytes: number | string; status?: string; expiresAtUnixMs?: number | string };
 export type UploadImageReply = {
@@ -75,11 +109,11 @@ export type UploadImageReply = {
   requestId?: string;
   serverTimeUnixMs?: number | string;
   data?: { asset?: UploadedAsset };
-  asset?: UploadedAsset;
   result?: ReplyResult;
 };
 
 export type LoginReply = { user?: User; tokens?: AuthTokens; result?: ReplyResult };
+export type RegisterMerchantReply = { user?: User; tokens?: AuthTokens; result?: ReplyResult };
 export type RefreshTokenReply = { tokens?: AuthTokens; result?: ReplyResult };
 export type LogoutReply = { result?: ReplyResult };
 export type GetMeReply = { user?: User; result?: ReplyResult };

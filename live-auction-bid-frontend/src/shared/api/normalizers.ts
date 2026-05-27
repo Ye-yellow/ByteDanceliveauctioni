@@ -11,6 +11,7 @@ import type {
   Money,
   PlaybookStage,
   RankingItem,
+  Room,
   RoomPresence,
   RoomSnapshot,
   TrustCardType,
@@ -18,6 +19,7 @@ import type {
   UploadedAsset,
   User,
   UserRole,
+  UserStatus,
 } from './types';
 
 type JsonRecord = Record<string, unknown>;
@@ -87,7 +89,13 @@ const userRoleValues = new Set<UserRole>([
   'USER_ROLE_BUYER',
   'USER_ROLE_ANCHOR',
   'USER_ROLE_OPERATOR',
-  'USER_ROLE_ADMIN',
+  'USER_ROLE_MAIN_ACCOUNT',
+]);
+
+const userStatusValues = new Set<UserStatus>([
+  'USER_STATUS_UNSPECIFIED',
+  'USER_STATUS_ACTIVE',
+  'USER_STATUS_DISABLED',
 ]);
 
 function asRecord(input: unknown, field: string): JsonRecord {
@@ -283,6 +291,21 @@ export function normalizeRoomSnapshot(input: unknown): RoomSnapshot {
   };
 }
 
+export function normalizeRoom(input: unknown): Room {
+  const raw = asRecord(input, 'room');
+  return {
+    id: stringValue(requiredField(field(raw, 'id'), 'room.id')),
+    mainAccountId: stringValue(field(raw, 'mainAccountId', 'main_account_id')),
+    name: stringValue(field(raw, 'name')),
+    platform: stringValue(field(raw, 'platform')) || 'douyin',
+    platformRoomId: optionalString(field(raw, 'platformRoomId', 'platform_room_id')),
+    status: stringValue(field(raw, 'status')) || 'ACTIVE',
+    createdByUserId: optionalString(field(raw, 'createdByUserId', 'created_by_user_id')),
+    createdAtUnixMs: scalarValue(field(raw, 'createdAtUnixMs', 'created_at_unix_ms'), 0),
+    updatedAtUnixMs: scalarValue(field(raw, 'updatedAtUnixMs', 'updated_at_unix_ms'), 0),
+  };
+}
+
 export function normalizeRoomPresence(input: unknown): RoomPresence {
   const raw = asRecord(input, 'presence');
   return {
@@ -328,6 +351,9 @@ export function normalizeUser(input: unknown): User {
     username: stringValue(requiredField(field(raw, 'username'), 'user.username')),
     nickname: stringValue(field(raw, 'nickname')),
     role: normalizeEnum(field(raw, 'role'), 'user.role', userRoleValues),
+    mainAccountId: stringValue(field(raw, 'mainAccountId', 'main_account_id')),
+    createdByUserId: stringValue(field(raw, 'createdByUserId', 'created_by_user_id')),
+    status: normalizeEnum(field(raw, 'status'), 'user.status', userStatusValues),
     createdAtUnixMs: scalarValue(field(raw, 'createdAtUnixMs', 'created_at_unix_ms'), 0),
     updatedAtUnixMs: scalarValue(field(raw, 'updatedAtUnixMs', 'updated_at_unix_ms'), 0),
   };

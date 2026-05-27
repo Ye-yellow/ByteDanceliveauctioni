@@ -5,7 +5,6 @@ import { isLiveLot, isQueueReadyLot, lotStatusLabel, lotStatusTone } from '../..
 import type { AuctionEvent, Bid, Lot, RoomSnapshot } from '../../shared/api/types';
 import { resultMessage } from '../../shared/api/result';
 import { formatDateTimeText, formatMoneyText } from '../../shared/lib/format';
-import { ADMIN_ROOM } from '../../shared/config/studio';
 import { formatAuctionLeftMs, getLotLeftMs, getServerOffsetMs } from '../../shared/lib/time';
 import { HTTP_REFRESH_EVENTS, REALTIME_CONSOLE_EVENTS, REALTIME_EVENT } from '../../shared/realtime/events';
 import { roomSocketStatusLabel, useRoomSocket } from '../../shared/realtime/useRoomSocket';
@@ -14,7 +13,7 @@ import { StudioBadge, StudioButton, StudioCard, StudioEmptyState, StudioMetricCa
 type ControlLog = { id: string; time: string; type: string; detail: string; level?: 'info' | 'warning' | 'danger' | 'success' };
 type LinkEvent = { seq: number; time: string; type: string; lotId?: string; detail: string };
 
-export function LiveControlPage({ roomId = ADMIN_ROOM.id }: { roomId?: string }) {
+export function LiveControlPage({ roomId }: { roomId: string }) {
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
   const [lots, setLots] = useState<Lot[]>([]);
   const [lot, setLot] = useState<Lot | null>(null);
@@ -45,7 +44,7 @@ export function LiveControlPage({ roomId = ADMIN_ROOM.id }: { roomId?: string })
     handledEventTypes: REALTIME_CONSOLE_EVENTS,
     recoverSnapshot: syncRoom,
     onStatusChange: (status) => {
-      if (status === 'connected') appendLog({ type: '实时链路连接', detail: '当前固定直播间已连接', level: 'success' });
+      if (status === 'connected') appendLog({ type: '实时链路连接', detail: '当前直播间已连接', level: 'success' });
       if (status === 'reconnecting') appendLog({ type: '实时链路重连', detail: '重连后自动恢复房间快照', level: 'warning' });
     },
     onEvent: (event) => {
@@ -105,7 +104,7 @@ export function LiveControlPage({ roomId = ADMIN_ROOM.id }: { roomId?: string })
   </section>;
 }
 
-export function BidAuditPage({ roomId = ADMIN_ROOM.id }: { roomId?: string }) {
+export function BidAuditPage({ roomId }: { roomId: string }) {
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -148,7 +147,7 @@ export function BidAuditPage({ roomId = ADMIN_ROOM.id }: { roomId?: string }) {
   </section>;
 }
 
-export function RealtimeDiagnosticsPage({ roomId = ADMIN_ROOM.id }: { roomId?: string }) {
+export function RealtimeDiagnosticsPage({ roomId }: { roomId: string }) {
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
   const [events, setEvents] = useState<LinkEvent[]>([]);
   const [lastEventType, setLastEventType] = useState('暂无');
@@ -202,7 +201,7 @@ function logFromEvent(event: AuctionEvent): Omit<ControlLog, 'id' | 'time'> {
   const success = event.type === REALTIME_EVENT.BID_ACCEPTED || event.type === REALTIME_EVENT.ORDER_CREATED || event.type === REALTIME_EVENT.PAYMENT_SUCCESS || event.type === REALTIME_EVENT.LOT_SETTLED;
   const warning = event.type === REALTIME_EVENT.AUCTION_EXTENDED || event.type === REALTIME_EVENT.BID_OUTBID;
   const danger = event.type === REALTIME_EVENT.BID_REJECTED || event.type === REALTIME_EVENT.LOT_CANCELLED;
-  return { type: event.type, detail: event.bid ? `${event.bid.nickname || event.bid.userId} ${formatMoneyText(event.bid.amount)}` : event.reason || event.lot?.title || event.lotId || ADMIN_ROOM.name, level: danger ? 'danger' : success ? 'success' : warning ? 'warning' : 'info' };
+  return { type: event.type, detail: event.bid ? `${event.bid.nickname || event.bid.userId} ${formatMoneyText(event.bid.amount)}` : event.reason || event.lot?.title || event.lotId || '房间事件', level: danger ? 'danger' : success ? 'success' : warning ? 'warning' : 'info' };
 }
 
 function PreparedStage({ nextLot, onSync }: { nextLot: Lot | null; onSync: () => void }) {

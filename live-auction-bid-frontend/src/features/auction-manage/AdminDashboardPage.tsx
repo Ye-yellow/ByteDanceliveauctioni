@@ -27,7 +27,6 @@ import { isAbnormalOrder, paymentStatusLabel, paymentStatusTone, type PaymentSta
 import type { AuctionEvent, Bid, Lot, Money, RoomSnapshot } from '../../shared/api/types';
 import { resultMessage } from '../../shared/api/result';
 import { formatDateTimeText, formatMoneyText } from '../../shared/lib/format';
-import { ADMIN_ROOM } from '../../shared/config/studio';
 import { REALTIME_CONSOLE_EVENTS, REALTIME_EVENT } from '../../shared/realtime/events';
 import { useRoomSocket } from '../../shared/realtime/useRoomSocket';
 import { StudioBadge, StudioButton, StudioCard, StudioEmptyState, StudioPageHeader, StudioTableSkeleton, type StudioTone } from '../../pages/host-console/components/studio-ui';
@@ -132,7 +131,7 @@ const rangeOptions: Array<{ value: DashboardRange; label: string; detail: string
   { value: '30d', label: '近30天', detail: '默认视图' },
 ];
 
-export function AdminDashboardPage({ roomId = ADMIN_ROOM.id }: { roomId?: string }) {
+export function AdminDashboardPage({ roomId, roomName = roomId }: { roomId: string; roomName?: string }) {
   const [range, setRange] = useState<DashboardRange>('30d');
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
   const [snapshotReceivedAt, setSnapshotReceivedAt] = useState(0);
@@ -229,7 +228,7 @@ export function AdminDashboardPage({ roomId = ADMIN_ROOM.id }: { roomId?: string
         </button>)}
       </div>
       <div className="merchantHeroMeta">
-        <span>当前直播间 <b>{ADMIN_ROOM.name}</b></span>
+        <span>当前直播间 <b>{roomName}</b></span>
         <span>数据范围 <b>{rangeOptions.find((item) => item.value === range)?.label}</b></span>
         <span>更新时间 <b>{lastUpdatedAt ? formatDateTimeText(lastUpdatedAt, '刚刚') : '加载中'}</b></span>
       </div>

@@ -1,4 +1,4 @@
-import { type ComponentType, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Bell, FileClock, Gavel, LayoutDashboard, ListChecks, PlayCircle, Radio, ReceiptText, Settings, ShieldAlert, Users, Wifi } from 'lucide-react';
 import { AdminDashboardPage } from '../../features/auction-manage/AdminDashboardPage';
 import { AuctionHistoryPage } from '../../features/auction-manage/AuctionHistoryPage';
@@ -7,7 +7,9 @@ import { AuctionCreatePage } from '../../features/auction-create/AuctionCreatePa
 import { OrderManagementPage } from '../../features/order-manage/OrderManagementPage';
 import { TeamAccountsPage } from '../../features/team-accounts/TeamAccountsPage';
 import { BidAuditPage, LiveControlPage, RealtimeDiagnosticsPage } from '../../features/realtime-console/RealtimeConsolePages';
-import { ADMIN_ROOM, ADMIN_TEAM_ACCOUNT } from '../../shared/config/studio';
+import { listAdminRooms } from '../../features/auction/api/auctionApi';
+import { ADMIN_TEAM_ACCOUNT } from '../../shared/config/studio';
+import type { Room } from '../../shared/api/types';
 import { HostConsoleShell, type StudioNavGroupConfig } from './components/HostConsoleShell';
 import { StudioCard, StudioEmptyState, StudioMetricCard, StudioPageHeader } from './components/studio-ui';
 import './styles/console-round06.css';
@@ -50,32 +52,66 @@ function pathTitle(pathname: string) {
   return '今日工作台';
 }
 
-function AppShell({ children }: { children: ReactNode }) {
-  return <HostConsoleShell navGroups={navGroups} currentHostRoom={ADMIN_ROOM} currentTeamAccount={ADMIN_TEAM_ACCOUNT} titleForPath={pathTitle}>{children}</HostConsoleShell>;
+function AppShell({ children, currentRoom }: { children: ReactNode; currentRoom: Room }) {
+  const roomSummary = useMemo(() => ({ name: currentRoom.name || currentRoom.id, latency: currentRoom.platform || 'douyin' }), [currentRoom]);
+  return <HostConsoleShell navGroups={navGroups} currentHostRoom={roomSummary} currentTeamAccount={ADMIN_TEAM_ACCOUNT} titleForPath={pathTitle}>{children}</HostConsoleShell>;
 }
 
-type ConsoleRoute = { match: (pathname: string) => boolean; Page: ComponentType };
+type ConsoleRoute = { match: (pathname: string) => boolean; render: (room: Room) => ReactNode };
 
 const consoleRoutes: ConsoleRoute[] = [
-  { match: (pathname) => pathname === '/admin/realtime' || pathname === '/host/realtime', Page: RealtimeDiagnosticsPage },
-  { match: (pathname) => pathname.includes('/auctions/create'), Page: AuctionCreatePage },
-  { match: (pathname) => pathname.includes('/auctions/history'), Page: AuctionHistoryPage },
-  { match: (pathname) => pathname.includes('/control'), Page: LiveControlPage },
-  { match: (pathname) => pathname.includes('/auctions'), Page: AuctionManagementPage },
-  { match: (pathname) => pathname.includes('/orders'), Page: () => <OrderManagementPage roomId={ADMIN_ROOM.id} /> },
-  { match: (pathname) => pathname.includes('/bids'), Page: BidAuditPage },
-  { match: (pathname) => pathname.includes('/merchants'), Page: TeamAccountsPage },
-  { match: (pathname) => pathname.includes('/settings'), Page: SettingsPage },
-  { match: (pathname) => pathname.includes('/alerts'), Page: AlertsPage },
+  { match: (pathname) => pathname === '/admin/realtime' || pathname === '/host/realtime', render: (room) => <RealtimeDiagnosticsPage roomId={room.id} /> },
+  { match: (pathname) => pathname.includes('/auctions/create'), render: (room) => <AuctionCreatePage roomId={room.id} roomName={room.name} /> },
+  { match: (pathname) => pathname.includes('/auctions/history'), render: (room) => <AuctionHistoryPage roomId={room.id} /> },
+  { match: (pathname) => pathname.includes('/control'), render: (room) => <LiveControlPage roomId={room.id} /> },
+  { match: (pathname) => pathname.includes('/auctions'), render: (room) => <AuctionManagementPage roomId={room.id} roomName={room.name} /> },
+  { match: (pathname) => pathname.includes('/orders'), render: (room) => <OrderManagementPage roomId={room.id} /> },
+  { match: (pathname) => pathname.includes('/bids'), render: (room) => <BidAuditPage roomId={room.id} /> },
+  { match: (pathname) => pathname.includes('/merchants'), render: () => <TeamAccountsPage /> },
+  { match: (pathname) => pathname.includes('/settings'), render: () => <SettingsPage /> },
+  { match: (pathname) => pathname.includes('/alerts'), render: () => <AlertsPage /> },
 ];
 
-function routePage(pathname = location.pathname) {
-  const RoutePage = consoleRoutes.find((route) => route.match(pathname))?.Page || AdminDashboardPage;
-  return <RoutePage />;
+function routePage(room: Room, pathname = location.pathname) {
+  const route = consoleRoutes.find((item) => item.match(pathname));
+  return route ? route.render(room) : <AdminDashboardPage roomId={room.id} roomName={room.name} />;
 }
 
 export function HostConsolePage() {
-  return <AppShell>{routePage()}</AppShell>;
+  const [room, setRoom] = useState<Room | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    listAdminRooms()
+      .then((nextRooms) => {
+        if (!alive) return;
+        setRoom(nextRooms[0] || null);
+        setError('');
+      })
+      .catch((err) => {
+        if (!alive) return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => { alive = false; };
+  }, []);
+
+  if (loading) return <LoadingShell />;
+  if (error || !room) return <RoomErrorPage message={error || '当前主账号还没有可用直播间'} />;
+  return <AppShell currentRoom={room}>{routePage(room)}</AppShell>;
+}
+
+function LoadingShell() {
+  return <section className="settingsPage laSettingsGrid"><StudioCard padding="lg"><StudioPageHeader eyebrow="Rooms" title="正在加载直播间" description="正在获取当前主账号的直播间配置。" /></StudioCard></section>;
+}
+
+function RoomErrorPage({ message }: { message: string }) {
+  return <section className="settingsPage laSettingsGrid"><StudioCard padding="lg"><StudioEmptyState icon={<ShieldAlert size={34} />} title="直播间不可用" description={message} /></StudioCard></section>;
 }
 
 function SettingsPage() {

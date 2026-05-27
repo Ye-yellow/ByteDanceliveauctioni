@@ -5,7 +5,6 @@ import { CURRENT_LOT_STATUS_FILTERS, isLiveLot, isPreStartCancellableLot, isQueu
 import type { Lot, RoomSnapshot } from '../../shared/api/types';
 import { resultMessage } from '../../shared/api/result';
 import { formatDateTimeText, formatDurationText, formatMoneyText } from '../../shared/lib/format';
-import { ADMIN_ROOM } from '../../shared/config/studio';
 import { getLotLeftMs, formatAuctionLeftMs } from '../../shared/lib/time';
 import { AUCTION_REFRESH_EVENTS } from '../../shared/realtime/events';
 import { roomSocketStatusLabel, useRoomSocket } from '../../shared/realtime/useRoomSocket';
@@ -14,10 +13,11 @@ import { StudioBadge, StudioButton, StudioCard, StudioEmptyState, StudioErrorSta
 const DEFAULT_PAGE_SIZE = 5;
 
 type Props = {
-  roomId?: string;
+  roomId: string;
+  roomName?: string;
 };
 
-export function AuctionManagementPage({ roomId = ADMIN_ROOM.id }: Props) {
+export function AuctionManagementPage({ roomId, roomName = roomId }: Props) {
   const [query, setQuery] = useState<AdminLotsQuery>({ page: 1, pageSize: DEFAULT_PAGE_SIZE, roomId, view: 'current' });
   const [lots, setLots] = useState<Lot[]>([]);
   const [total, setTotal] = useState(0);
@@ -150,7 +150,7 @@ export function AuctionManagementPage({ roomId = ADMIN_ROOM.id }: Props) {
     <section className="queueTopCards">
       <QueueFocusCard lot={currentLot} snapshot={snapshot} onCancel={setCancelTarget} />
       <NextLotCard lot={nextLot} disabled={Boolean(currentLot)} onStart={startAuction} />
-      <article className="queueTopCard health"><header><span><ShieldCheck size={18} />队列健康</span><StudioBadge tone={socket.status === 'connected' ? 'success' : 'warning'}>{wsState}</StudioBadge></header><div className="queueHealthGrid"><span>返回总数<b>{total}</b></span><span>本页待拍<b>{metrics.waiting}</b></span><span>本页落锤<b>{metrics.settled}</b></span><span>本页异常<b>{metrics.abnormal}</b></span></div><p>当前固定直播间 {ADMIN_ROOM.name} · {ADMIN_ROOM.latency}</p></article>
+      <article className="queueTopCard health"><header><span><ShieldCheck size={18} />队列健康</span><StudioBadge tone={socket.status === 'connected' ? 'success' : 'warning'}>{wsState}</StudioBadge></header><div className="queueHealthGrid"><span>返回总数<b>{total}</b></span><span>本页待拍<b>{metrics.waiting}</b></span><span>本页落锤<b>{metrics.settled}</b></span><span>本页异常<b>{metrics.abnormal}</b></span></div><p>当前直播间 {roomName}</p></article>
     </section>
     <section className="auctionMgmtStats">
       <StudioMetricCard icon={<Clock3 />} label="待开拍" value={metrics.waiting} trend="READY / QUEUED" tone="info" />

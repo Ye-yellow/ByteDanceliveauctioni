@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, RefreshCw, Search, ShieldAlert, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { AlertTriangle, Ban, CheckCircle2, ChevronLeft, ChevronRight, Power, RefreshCw, Search, ShieldAlert, ShieldCheck, UserCog, Users } from 'lucide-react';
 import { currentAuth } from '../auth/api/authApi';
-import { adminCreateUser, adminUpdateUserRole, listAdminUsers, type AdminUsersQuery } from '../admin-user/api/adminUserApi';
-import { USER_ROLE, type User, type UserRole } from '../../shared/api/types';
+import { adminCreateUser, adminUpdateUserRole, adminUpdateUserStatus, listAdminUsers, type AdminUsersQuery } from '../admin-user/api/adminUserApi';
+import { isMainAccount, isManagedTeamRole, USER_ROLE, USER_STATUS, type User, type UserRole } from '../../shared/api/types';
 import { resultMessage } from '../../shared/api/result';
 import { formatDateTimeText } from '../../shared/lib/format';
-import { TEAM_ACCOUNT_ROLE_OPTIONS, USER_ROLE_FILTERS, userRoleMeta } from '../../entities/user/model/userRole';
+import { TEAM_ACCOUNT_ROLE_OPTIONS, USER_ROLE_FILTERS, userRoleMeta, userStatusMeta } from '../../entities/user/model/userRole';
 import { StudioBadge, StudioButton, StudioCard, StudioEmptyState, StudioField, StudioMetricCard, StudioPageHeader, StudioTable, StudioTableSkeleton, StudioToastViewport, useStudioToast } from '../../pages/host-console/components/studio-ui';
 
 const DEFAULT_PAGE_SIZE = 20;
-const BACKOFFICE_ROLES: UserRole[] = [USER_ROLE.ADMIN, USER_ROLE.ANCHOR, USER_ROLE.OPERATOR];
 const MANAGED_TEAM_ROLES: UserRole[] = [USER_ROLE.ANCHOR, USER_ROLE.OPERATOR];
 
 export function TeamAccountsPage() {
   const currentUser = currentAuth().user;
-  const isAdmin = currentUser?.role === USER_ROLE.ADMIN;
+  const canManageTeam = isMainAccount(currentUser);
   const [query, setQuery] = useState<AdminUsersQuery>({ page: 1, pageSize: DEFAULT_PAGE_SIZE });
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
@@ -24,6 +23,7 @@ export function TeamAccountsPage() {
   const [updateForm, setUpdateForm] = useState({ userId: '', role: USER_ROLE.OPERATOR as UserRole });
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [statusUpdatingId, setStatusUpdatingId] = useState('');
   const { toasts, showToast } = useStudioToast();
 
   const totalPages = Math.max(1, Math.ceil(total / (query.pageSize || DEFAULT_PAGE_SIZE)));
@@ -33,20 +33,20 @@ export function TeamAccountsPage() {
   const goNextPage = () => setQuery((c) => ({ ...c, page: (c.page || 1) + 1 }));
 
   const syncUsers = async (nextQuery = query) => {
-    if (!isAdmin) return;
+    if (!canManageTeam) return;
     setLoading(true);
     setError('');
     try {
       const page = await listAdminUsers(nextQuery);
-      const buyer = page.users.find((user) => user.role === USER_ROLE.BUYER);
-      if (buyer) throw new Error(`后台团队账号接口返回了买家账号 ${buyer.username}，违反 Admin 工作台账号边界`);
+      const outOfScopeUser = page.users.find((user) => !isManagedTeamRole(user.role));
+      if (outOfScopeUser) throw new Error(`团队账号接口返回了非子账号 ${outOfScopeUser.username}，违反主账号空间边界`);
       setUsers(page.users);
       setTotal(page.total);
       setQuery((current) => ({ ...current, page: page.page, pageSize: page.pageSize }));
     } catch (e) {
       const message = resultMessage(e);
       setError(message);
-      showToast({ id: 'admin-users-sync-failed', tone: 'danger', title: '账号列表同步失败', description: message });
+      showToast({ id: 'team-users-sync-failed', tone: 'danger', title: '账号列表同步失败', description: message });
     } finally {
       setLoading(false);
     }
@@ -57,9 +57,9 @@ export function TeamAccountsPage() {
   };
 
   const submitCreate = async () => {
-    if (!isAdmin || !createForm.username.trim() || !createForm.password || !createForm.nickname.trim()) return;
+    if (!canManageTeam || !createForm.username.trim() || !createForm.password || !createForm.nickname.trim()) return;
     if (!MANAGED_TEAM_ROLES.includes(createForm.role)) {
-      setError('Admin 工作台只能创建主播团队子账号，不能创建主播主账号或买家账号');
+      setError('主账号只能创建主播 / 场控或运营子账号，不能创建其他主账号或买家账号');
       return;
     }
     setCreating(true);
@@ -79,9 +79,9 @@ export function TeamAccountsPage() {
   };
 
   const submitUpdate = async () => {
-    if (!isAdmin || !updateForm.userId.trim()) return;
+    if (!canManageTeam || !updateForm.userId.trim()) return;
     if (!MANAGED_TEAM_ROLES.includes(updateForm.role)) {
-      setError('Admin 工作台只能把团队成员设置为主播 / 场控或运营子账号');
+      setError('团队成员只能设置为主播 / 场控或运营子账号');
       return;
     }
     setUpdating(true);
@@ -100,25 +100,43 @@ export function TeamAccountsPage() {
     }
   };
 
-  useEffect(() => { void syncUsers(); }, [isAdmin]);
+  const submitStatus = async (user: User) => {
+    if (!canManageTeam || !isManagedTeamRole(user.role)) return;
+    const nextStatus = user.status === USER_STATUS.ACTIVE ? USER_STATUS.DISABLED : USER_STATUS.ACTIVE;
+    setStatusUpdatingId(user.id);
+    setError('');
+    try {
+      const updated = await adminUpdateUserStatus(user.id, nextStatus);
+      showToast({ tone: 'success', title: nextStatus === USER_STATUS.ACTIVE ? '账号已启用' : '账号已停用', description: `${updated.username} · ${userStatusMeta(updated.status).label}` });
+      await syncUsers(query);
+    } catch (e) {
+      const message = resultMessage(e);
+      setError(message);
+      showToast({ tone: 'danger', title: '账号状态更新失败', description: message });
+    } finally {
+      setStatusUpdatingId('');
+    }
+  };
+
+  useEffect(() => { void syncUsers(); }, [canManageTeam]);
   useEffect(() => { void syncUsers(query); }, [query.page, query.role]);
 
   const metrics = useMemo(() => ({
-    ownerAccounts: users.filter((user) => user.role === USER_ROLE.ADMIN).length,
     subaccounts: users.filter((user) => MANAGED_TEAM_ROLES.includes(user.role)).length,
-    backoffice: users.filter((user) => BACKOFFICE_ROLES.includes(user.role)).length,
+    active: users.filter((user) => user.status === USER_STATUS.ACTIVE).length,
+    disabled: users.filter((user) => user.status === USER_STATUS.DISABLED).length,
   }), [users]);
 
   return <section className="teamAccountPage">
     <StudioToastViewport toasts={toasts} />
-    <section className="laSettingsHero laMerchantsHero"><StudioPageHeader eyebrow="Team accounts" title="团队成员" description="主播主账号由平台发放；当前页只管理该商家空间下的主播 / 场控和运营子账号。" actions={<StudioButton type="button" variant="secondary" icon={<RefreshCw size={15} />} loading={loading} disabled={!isAdmin} onClick={() => void syncUsers()}>{loading ? '同步中' : '同步账号'}</StudioButton>} /></section>
+    <section className="laSettingsHero laMerchantsHero"><StudioPageHeader eyebrow="Team accounts" title="团队成员" description="每个主账号只管理自己主播 / 商家空间下的主播、场控和运营子账号。" actions={<StudioButton type="button" variant="secondary" icon={<RefreshCw size={15} />} loading={loading} disabled={!canManageTeam} onClick={() => void syncUsers()}>{loading ? '同步中' : '同步账号'}</StudioButton>} /></section>
     {error ? <div className="auctionMgmtNotice danger"><AlertTriangle size={16} />{error}</div> : null}
-    {!isAdmin ? <NonAdminAccountNotice currentUser={currentUser} /> : <>
+    {!canManageTeam ? <NonMainAccountNotice currentUser={currentUser} /> : <>
       <section className="laStatsGrid">
         <StudioMetricCard icon={<ShieldCheck />} label="账号总数" value={total} trend="当前商家空间" tone="info" />
         <StudioMetricCard icon={<UserCog />} label="团队子账号" value={metrics.subaccounts} trend="主播 / 场控 / 运营" tone="success" />
-        <StudioMetricCard icon={<ShieldAlert />} label="主播主账号" value={metrics.ownerAccounts} trend="平台发放，不在此创建" tone="purple" />
-        <StudioMetricCard icon={<Users />} label="后台角色" value={metrics.backoffice} trend="不包含 H5 买家账号" tone="info" />
+        <StudioMetricCard icon={<Power />} label="启用中" value={metrics.active} trend="允许登录后台" tone="success" />
+        <StudioMetricCard icon={<Ban />} label="已停用" value={metrics.disabled} trend="禁止登录并撤销会话" tone="danger" />
       </section>
       <StudioCard padding="md">
         <div className="auctionFilterBar queueFilters" aria-label="账号筛选">
@@ -143,11 +161,11 @@ export function TeamAccountsPage() {
             <StudioField label="用户 ID"><input value={updateForm.userId} onChange={(e) => setUpdateForm({ ...updateForm, userId: e.target.value })} placeholder="输入后端 user.id" /></StudioField>
             <StudioField label="新角色"><select value={updateForm.role} onChange={(e) => setUpdateForm({ ...updateForm, role: e.target.value as UserRole })}>{TEAM_ACCOUNT_ROLE_OPTIONS.map((item) => <option key={item.role} value={item.role}>{item.label}</option>)}</select></StudioField>
           </div>
-          <StudioEmptyState compact icon={<CheckCircle2 size={22} />} title="角色变更后立即刷新列表" description="后端仍负责最终权限校验；页面不提供主播主账号或买家账号创建入口。" />
+          <StudioEmptyState compact icon={<CheckCircle2 size={22} />} title="角色变更后立即刷新列表" description="后端按主账号空间做最终校验；页面不提供主账号或买家账号创建入口。" />
           <div className="drawerActions"><StudioButton type="button" variant="primary" loading={updating} disabled={!updateForm.userId.trim()} onClick={() => void submitUpdate()}>更新角色</StudioButton></div>
         </StudioCard>
       </section>
-      {loading ? <StudioTableSkeleton rows={6} columns={6} /> : <StudioTable
+      {loading ? <StudioTableSkeleton rows={6} columns={7} /> : <StudioTable
         rows={users}
         rowKey={(user) => user.id}
         header={`共 ${total} 个账号 · 每页 ${DEFAULT_PAGE_SIZE} 条`}
@@ -161,23 +179,27 @@ export function TeamAccountsPage() {
           { label: '用户', render: (user) => <div><b>{user.username}</b><br /><span>{user.nickname || '未设置昵称'}</span></div> },
           { label: '用户 ID', render: (user) => <code>{user.id}</code> },
           { label: '角色', render: (user) => <StudioBadge tone={userRoleMeta(user.role).tone}>{userRoleMeta(user.role).label}</StudioBadge> },
+          { label: '账号状态', render: (user) => <StudioBadge tone={userStatusMeta(user.status).tone}>{userStatusMeta(user.status).label}</StudioBadge> },
           { label: '创建时间', render: (user) => formatDateTimeText(user.createdAtUnixMs) },
           { label: '更新时间', render: (user) => formatDateTimeText(user.updatedAtUnixMs) },
-          { label: '操作', render: (user) => <div className="laRowActions">{MANAGED_TEAM_ROLES.includes(user.role) ? <button type="button" onClick={() => setUpdateForm({ userId: user.id, role: user.role })}>填入改角色</button> : <span className="mutedText">平台发放账号</span>}</div> },
+          { label: '操作', render: (user) => <div className="laRowActions">
+            <button type="button" onClick={() => setUpdateForm({ userId: user.id, role: user.role })}>填入改角色</button>
+            <button type="button" disabled={statusUpdatingId === user.id} onClick={() => void submitStatus(user)}>{user.status === USER_STATUS.ACTIVE ? '停用账号' : '启用账号'}</button>
+          </div> },
         ]}
       />}
     </>}
   </section>;
 }
 
-function NonAdminAccountNotice({ currentUser }: { currentUser?: User | null }) {
+function NonMainAccountNotice({ currentUser }: { currentUser?: User | null }) {
   return <>
     <section className="laStatsGrid">
       <StudioMetricCard icon={<ShieldCheck />} label="当前后台账号" value={currentUser?.username || '未同步'} trend={currentUser ? userRoleMeta(currentUser.role).label : 'AuthSession'} tone="info" />
-      <StudioMetricCard icon={<ShieldAlert />} label="账号管理权限" value="仅主账号" trend="团队子账号不能创建或改角色" tone="danger" />
+      <StudioMetricCard icon={<ShieldAlert />} label="账号管理权限" value="仅主账号" trend="团队子账号不能创建、改角色或停用账号" tone="danger" />
     </section>
-    <StudioCard title="仅主播主账号可管理团队成员" subtitle="Owner account only" padding="md">
-      <StudioEmptyState compact icon={<ShieldAlert size={28} />} title="仅主播主账号可管理团队成员" description="当前账号只能查看后台业务功能，不能看到或提交创建团队子账号、修改角色表单。" />
+    <StudioCard title="仅主账号可管理团队成员" subtitle="Main account only" padding="md">
+      <StudioEmptyState compact icon={<ShieldAlert size={28} />} title="仅主账号可管理团队成员" description="当前账号只能查看后台业务功能，不能看到或提交创建团队子账号、修改角色、停用账号表单。" />
     </StudioCard>
   </>;
 }

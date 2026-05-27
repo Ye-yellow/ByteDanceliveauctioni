@@ -7,12 +7,11 @@ import type { OrderSummary } from '../../entities/order/model/orderTypes';
 import type { Lot } from '../../shared/api/types';
 import { resultMessage } from '../../shared/api/result';
 import { formatDateTimeText, formatDurationText, formatMoneyText } from '../../shared/lib/format';
-import { ADMIN_ROOM } from '../../shared/config/studio';
 import { StudioBadge, StudioButton, StudioCard, StudioEmptyState, StudioErrorState, StudioField, StudioMetricCard, StudioPageHeader, StudioTableSkeleton, StudioToastViewport, useStudioToast } from '../../pages/host-console/components/studio-ui';
 
 const DEFAULT_PAGE_SIZE = 10;
 
-export function AuctionHistoryPage({ roomId = ADMIN_ROOM.id }: { roomId?: string }) {
+export function AuctionHistoryPage({ roomId }: { roomId: string }) {
   const [query, setQuery] = useState<AdminLotsQuery>({ page: 1, pageSize: DEFAULT_PAGE_SIZE, roomId, view: 'history' });
   const [lots, setLots] = useState<Lot[]>([]);
   const [ordersByLotId, setOrdersByLotId] = useState<Record<string, OrderSummary | null>>({});
