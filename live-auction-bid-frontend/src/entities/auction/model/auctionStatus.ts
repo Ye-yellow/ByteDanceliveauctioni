@@ -58,9 +58,8 @@ export function lotStatusTone(status?: string): StudioTone {
   return lotStatusMeta[status || '']?.tone ?? 'neutral';
 }
 
-export function uiStatusOfLot(lot: Pick<Lot, 'status' | 'queueStatus' | 'playbookStage'>): AuctionUiStatus {
+export function uiStatusOfLot(lot: Pick<Lot, 'status' | 'playbookStage'>): AuctionUiStatus {
   if (lot.status === 'LOT_STATUS_QUEUED') return '待开拍';
-  if (lot.status === 'LOT_STATUS_READY' && lot.queueStatus === 'LOT_QUEUE_STATUS_QUEUED') return '待开拍';
   if (lot.status === 'LOT_STATUS_DRAFT' && lot.playbookStage === 'PLAYBOOK_STAGE_WARM_UP') return '草稿';
   return lotStatusMeta[lot.status]?.ui ?? '准备中';
 }
@@ -79,13 +78,11 @@ export function isQueueReadyLot(lot: Pick<Lot, 'status' | 'queueStatus' | 'playb
   return ['草稿', '准备中', '待开拍'].includes(uiStatusOfLot(lot));
 }
 
-export function isPreStartCancellableLot(lot: Pick<Lot, 'status' | 'queueStatus'>) {
+export function isPreStartCancellableLot(lot: Pick<Lot, 'status'>) {
   if (['LOT_STATUS_LIVE', 'LOT_STATUS_EXTENDED', 'LOT_STATUS_SETTLED', 'LOT_STATUS_CANCELLED', 'LOT_STATUS_FAILED'].includes(lot.status)) return false;
   return lot.status === 'LOT_STATUS_DRAFT'
     || lot.status === 'LOT_STATUS_READY'
-    || lot.status === 'LOT_STATUS_QUEUED'
-    || lot.queueStatus === 'LOT_QUEUE_STATUS_QUEUED'
-    || lot.queueStatus === 'LOT_QUEUE_STATUS_NEXT';
+    || lot.status === 'LOT_STATUS_QUEUED';
 }
 
 export function isRemovedFromCurrentQueueLot(lot: Pick<Lot, 'status'>) {
