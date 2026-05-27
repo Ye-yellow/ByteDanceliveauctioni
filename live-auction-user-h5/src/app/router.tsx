@@ -12,7 +12,7 @@ function routeForPath(path: string) {
   if (path.startsWith('/m/result/')) return <ResultPage />;
   if (path.startsWith('/m/history')) return <HistoryPage />;
   if (path.startsWith('/m/profile')) return <ProfilePage />;
-  return <HomePage roomId="room-jewel-01" />;
+  return <HomePage />;
 }
 
 export function Router() {

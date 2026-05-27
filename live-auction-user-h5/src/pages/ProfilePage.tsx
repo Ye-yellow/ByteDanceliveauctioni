@@ -22,7 +22,7 @@ const PROFILE_TABS = ['作品', '日常', '推荐', '收藏', '喜欢'];
 
 function getProfileRoomId() {
   const params = new URLSearchParams(location.search);
-  return params.get('roomId') || 'room-jewel-01';
+  return params.get('roomId') || '';
 }
 
 function nicknameFromUsername(username: string) {
@@ -173,7 +173,7 @@ export function ProfilePage() {
   const avatarText = isSignedIn ? displayName.slice(0, 1) : '未';
   const buyerId = user?.id?.trim() || '';
   const accountLine = buyerId ? `买家ID：${buyerId}` : '登录后显示买家ID';
-  const historyHref = `/m/history?roomId=${encodeURIComponent(roomId)}&from=profile`;
+  const historyHref = roomId ? `/m/history?roomId=${encodeURIComponent(roomId)}&from=profile` : '/m/history?from=profile';
 
   return (
     <main className="mobileShell profileShell">

@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { isBiddableLotStatus, isPrivateRefreshEventType, isSettlementEventType, lotIdFromPublicEvent } from '../../../entities/auction/model/status';
 import { ownOrderForLot } from '../../../entities/order/model/privacy';
-import { listRoomLots, placeBid } from '../../auction/api/auctionApi';
+import { listPublicRooms, listRoomLots, placeBid } from '../../auction/api/auctionApi';
 import { createIdempotencyKey } from '../../../shared/lib/idempotency';
 import { normalizeMoney } from '../../../shared/api/adapters';
 import { AuthExpiredError } from '../../../shared/api/errors';
 import { AUCTION_EVENT_TYPE, type AuctionSocketEvent, type Lot, type OrderSummary, type PaymentSummary } from '../../../shared/api/types';
 import { normalizeBuyerUsername, validateBuyerCredentials } from '../../../shared/auth/credentialRules';
 import { useAuthSession } from '../../../shared/auth/useAuthSession';
-import { DEFAULT_DEMO_ROOM_PROFILE, getDemoRoomProfile } from '../../../shared/config/demoRooms';
+import { DEFAULT_ROOM_VISUAL_PROFILE } from '../../../shared/config/demoRooms';
 import { noticeForAuctionEvent } from '../model/notices';
 import { useAuctionRoom } from './useAuctionRoom';
 import { useAuctionSocket } from './useAuctionSocket';
@@ -106,11 +106,12 @@ export function useLiveRoomController(roomId: string) {
   const [roomLots, setRoomLots] = useState<Lot[]>([]);
   const [roomLotsLoading, setRoomLotsLoading] = useState(false);
   const [roomLotsError, setRoomLotsError] = useState('');
+  const [publicRoomName, setPublicRoomName] = useState('');
 
   const meId = user?.id ?? '';
   const currentLot = room.currentLot;
-  const roomProfile = getDemoRoomProfile(roomId);
-  const roomName = roomProfile?.roomName || room.snapshot?.roomName || DEFAULT_DEMO_ROOM_PROFILE.roomName;
+  const roomName = room.snapshot?.roomName || room.snapshot?.anchorName || publicRoomName || DEFAULT_ROOM_VISUAL_PROFILE.roomName;
+  const anchorName = room.snapshot?.anchorName || room.snapshot?.roomName || publicRoomName || DEFAULT_ROOM_VISUAL_PROFILE.anchorName;
   const isBidPending = Boolean(room.localOptimistic.pendingBid) || bidding;
   const accountRoleMessage = status !== 'authenticated' && reason === '该账号不是买家账号' ? reason : '';
   const showBuyerAuth = !user && (authMode === 'real' || reason?.includes('请先登录'));
@@ -121,6 +122,22 @@ export function useLiveRoomController(roomId: string) {
   );
 
   const visibleResultOrder = ownOrderForLot(resultOrder || room.activeOrder, meId, resultLot?.id);
+
+  useEffect(() => {
+    let disposed = false;
+    void listPublicRooms()
+      .then((rooms) => {
+        if (disposed) return;
+        const matchedRoom = rooms.find((item) => item.id === roomId);
+        setPublicRoomName(matchedRoom?.name || '');
+      })
+      .catch(() => {
+        if (!disposed) setPublicRoomName('');
+      });
+    return () => {
+      disposed = true;
+    };
+  }, [roomId]);
 
   const refreshRoomLots = useCallback(async () => {
     setRoomLotsLoading(true);
@@ -374,6 +391,7 @@ export function useLiveRoomController(roomId: string) {
     loading,
     error,
     roomName,
+    anchorName,
     currentLot,
     ranking,
     meId,

@@ -9,10 +9,10 @@ export function HistoryPage() {
   const { user, authMode, ensureBuyerSession } = useAuthSession();
   const [payOrder, setPayOrder] = useState<OrderSummary | null>(null);
   const params = new URLSearchParams(location.search);
-  const roomId = params.get('roomId') || 'room-jewel-01';
+  const roomId = params.get('roomId') || '';
   const from = params.get('from');
-  const roomHref = `/m/room/${encodeURIComponent(roomId)}`;
-  const profileHref = `/m/profile?roomId=${encodeURIComponent(roomId)}`;
+  const roomHref = roomId ? `/m/room/${encodeURIComponent(roomId)}` : '/';
+  const profileHref = roomId ? `/m/profile?roomId=${encodeURIComponent(roomId)}` : '/m/profile';
   const backLabel = '返回';
   const backHref = from === 'profile' ? profileHref : roomHref;
   const activity = useBuyerActivity(ensureBuyerSession);

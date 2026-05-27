@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { mockPay } from '../../auction/api/auctionApi';
 import type { OrderSummary, PaymentSummary } from '../../../shared/api/types';
 import { createIdempotencyKey } from '../../../shared/lib/idempotency';
@@ -24,6 +24,12 @@ export function MockPayModal({
     () => createIdempotencyKey('pay', order.id, order.amount.amount),
     [order.amount.amount, order.id],
   );
+
+  useEffect(() => {
+    if (!settled) return undefined;
+    const timer = window.setTimeout(onClose, message?.orderId === order.id ? 900 : 500);
+    return () => window.clearTimeout(timer);
+  }, [message?.orderId, onClose, order.id, settled]);
 
   const pay = async () => {
     if (loading) return;
