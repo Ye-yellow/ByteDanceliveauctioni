@@ -1,9 +1,9 @@
 import Hls from 'hls.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { listRoomLots, getRoomSnapshot } from '../features/auction/api/auctionApi';
+import { listPublicRooms, listRoomLots, getRoomSnapshot } from '../features/auction/api/auctionApi';
 import { isHls, resolveLiveSource } from '../features/live/hooks/useLivePlayer';
-import { DEMO_ROOM_PROFILES } from '../shared/config/demoRooms';
-import type { Lot, RoomSnapshot } from '../shared/api/types';
+import { roomVisualProfileAt } from '../shared/config/demoRooms';
+import type { Lot, Room, RoomSnapshot } from '../shared/api/types';
 
 type HomeFeedRoom = {
   roomId: string;
@@ -15,17 +15,23 @@ type HomeFeedRoom = {
   lot: Lot | null;
 };
 
-const FALLBACK_VIDEO = '/demo-live.mp4';
+type RoomPreview = {
+  snapshot: RoomSnapshot | null;
+  lots: Lot[];
+};
 
-const DEMO_FEED_TEMPLATES = DEMO_ROOM_PROFILES.map((profile, index) => ({
-  ...profile,
-  videoUrl: [
-    resolveLiveSource(),
-    '/demo-live-02.mp4',
-    '/demo-live-03.mp4',
-    '/demo-live-04.mp4',
-  ][index] || FALLBACK_VIDEO,
-}));
+const FALLBACK_VIDEO = '/demo-live.mp4';
+const MAX_HOME_ROOMS = 12;
+const FEED_VIDEO_SOURCES = [
+  resolveLiveSource(),
+  '/demo-live-02.mp4',
+  '/demo-live-03.mp4',
+  '/demo-live-04.mp4',
+];
+
+function feedVideoAt(index: number): string {
+  return FEED_VIDEO_SOURCES[index % FEED_VIDEO_SOURCES.length] || FALLBACK_VIDEO;
+}
 
 function HomeTopTabs() {
   return (
@@ -114,33 +120,34 @@ function HomeLivePreview({
   );
 }
 
-function createHomeFeedRooms(roomId: string, snapshot: RoomSnapshot | null, lots: Lot[]): HomeFeedRoom[] {
-  const previewLot = snapshot?.currentLot || lots[0] || null;
-  return DEMO_FEED_TEMPLATES.map((template, index) => {
-    if (index === 0) {
-      return {
-        ...template,
-        roomId,
-        roomName: template.roomName,
-        summary: previewLot?.title ? `今晚主拍：${previewLot.title}` : template.summary,
-        lot: previewLot,
-      };
-    }
+function createHomeFeedRooms(rooms: Room[], previews: Record<string, RoomPreview>): HomeFeedRoom[] {
+  return rooms.map((room, index) => {
+    const visual = roomVisualProfileAt(index);
+    const preview = previews[room.id];
+    const snapshot = preview?.snapshot || null;
+    const lots = preview?.lots || [];
+    const previewLot = snapshot?.currentLot || lots[0] || null;
     return {
-      ...template,
-      lot: lots[index] || previewLot,
+      roomId: room.id,
+      roomName: room.name || snapshot?.roomName || visual.roomName,
+      anchorName: snapshot?.anchorName || room.name || visual.anchorName,
+      heatText: visual.heatText,
+      summary: previewLot?.title ? `正在竞拍：${previewLot.title}` : visual.summary,
+      videoUrl: feedVideoAt(index),
+      lot: previewLot,
     };
   });
 }
 
-function BottomNav({ roomId }: { roomId: string }) {
+function BottomNav({ roomId }: { roomId?: string }) {
+  const profileHref = roomId ? `/m/profile?roomId=${encodeURIComponent(roomId)}` : '/m/profile';
   return (
     <nav className="homeBottomNav" aria-label="底部导航">
       <b>首页</b>
       <span aria-hidden="true" />
       <button type="button" aria-label="发布">+</button>
       <span aria-hidden="true" />
-      <a href={`/m/profile?roomId=${encodeURIComponent(roomId)}`}>我</a>
+      <a href={profileHref}>我</a>
     </nav>
   );
 }
@@ -170,41 +177,84 @@ function HomeFeedSlide({
   );
 }
 
-export function HomePage({ roomId }: { roomId: string }) {
-  const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
-  const [lots, setLots] = useState<Lot[]>([]);
+export function HomePage() {
+  const initialRoomId = useMemo(() => new URLSearchParams(location.search).get('roomId') || '', []);
+  const [publicRooms, setPublicRooms] = useState<Room[]>([]);
+  const [previews, setPreviews] = useState<Record<string, RoomPreview>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [feedIndex, setFeedIndex] = useState(1);
   const [jumping, setJumping] = useState(false);
   const touchStartY = useRef<number | null>(null);
   const transitioningRef = useRef(false);
+  const initialRoomAppliedRef = useRef(false);
 
   useEffect(() => {
     let disposed = false;
+    setLoading(true);
+    setError('');
     const timer = window.setTimeout(() => {
-      void Promise.allSettled([getRoomSnapshot(roomId), listRoomLots(roomId)]).then(([snapshotResult, lotsResult]) => {
-        if (disposed) return;
-        if (snapshotResult.status === 'fulfilled') setSnapshot(snapshotResult.value);
-        if (lotsResult.status === 'fulfilled') setLots(lotsResult.value);
-      });
+      void (async () => {
+        try {
+          const rooms = (await listPublicRooms()).slice(0, MAX_HOME_ROOMS);
+          if (disposed) return;
+          setPublicRooms(rooms);
+          const entries = await Promise.all(rooms.map(async (room) => {
+            const [snapshotResult, lotsResult] = await Promise.allSettled([
+              getRoomSnapshot(room.id),
+              listRoomLots(room.id),
+            ]);
+            return [
+              room.id,
+              {
+                snapshot: snapshotResult.status === 'fulfilled' ? snapshotResult.value : null,
+                lots: lotsResult.status === 'fulfilled' ? lotsResult.value : [],
+              },
+            ] as const;
+          }));
+          if (!disposed) setPreviews(Object.fromEntries(entries));
+        } catch (e) {
+          if (!disposed) {
+            setPublicRooms([]);
+            setPreviews({});
+            setError(e instanceof Error ? e.message : '直播间加载失败');
+          }
+        } finally {
+          if (!disposed) setLoading(false);
+        }
+      })();
     }, 0);
     return () => {
       disposed = true;
       window.clearTimeout(timer);
     };
-  }, [roomId]);
+  }, []);
 
-  const rooms = useMemo(() => createHomeFeedRooms(roomId, snapshot, lots), [lots, roomId, snapshot]);
-  const visibleRooms = useMemo(() => [rooms[rooms.length - 1], ...rooms, rooms[0]], [rooms]);
-  const activeRoomIndex = ((feedIndex - 1) % rooms.length + rooms.length) % rooms.length;
+  useEffect(() => {
+    if (!initialRoomId || initialRoomAppliedRef.current || !publicRooms.length) return;
+    const roomIndex = publicRooms.findIndex((room) => room.id === initialRoomId);
+    if (roomIndex < 0) return;
+    initialRoomAppliedRef.current = true;
+    setFeedIndex(roomIndex + 1);
+  }, [initialRoomId, publicRooms]);
+
+  const rooms = useMemo(() => createHomeFeedRooms(publicRooms, previews), [previews, publicRooms]);
+  const visibleRooms = useMemo(() => rooms.length ? [rooms[rooms.length - 1], ...rooms, rooms[0]] : [], [rooms]);
+  const activeRoomIndex = rooms.length ? ((feedIndex - 1) % rooms.length + rooms.length) % rooms.length : 0;
   const activeRoom = rooms[activeRoomIndex];
 
   const moveFeed = (delta: number) => {
+    if (rooms.length < 2) return;
     if (transitioningRef.current) return;
     transitioningRef.current = true;
     setFeedIndex((current) => current + delta);
   };
 
   const settleLoop = () => {
+    if (!rooms.length) {
+      transitioningRef.current = false;
+      return;
+    }
     if (feedIndex === 0) {
       setJumping(true);
       setFeedIndex(rooms.length);
@@ -229,6 +279,16 @@ export function HomePage({ roomId }: { roomId: string }) {
     }
     transitioningRef.current = false;
   };
+
+  if (!rooms.length) {
+    return (
+      <main className="mobileShell homeShell">
+        <HomeTopTabs />
+        <section className="emptyState">{loading ? '正在加载直播间...' : error || '暂无可进入的直播间'}</section>
+        <BottomNav />
+      </main>
+    );
+  }
 
   return (
     <main
@@ -264,7 +324,7 @@ export function HomePage({ roomId }: { roomId: string }) {
           ))}
         </div>
       </section>
-      <BottomNav roomId={activeRoom.roomId} />
+      <BottomNav roomId={activeRoom?.roomId} />
     </main>
   );
 }

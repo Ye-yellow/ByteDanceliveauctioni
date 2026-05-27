@@ -1,7 +1,7 @@
 import { normalizeAuthTokens, normalizeUser } from '../api/adapters';
 import { AppApiError, AuthExpiredError } from '../api/errors';
 import { apiRequest, setAuthProvider } from '../api/httpClient';
-import { USER_ROLE, type AuthTokens, type User } from '../api/types';
+import { isBuyerUser, type AuthTokens, type User } from '../api/types';
 
 const AUTH_SESSION_STORAGE_KEY = 'live-auction-h5.auth-session.v1';
 const DEMO_BUYER_STORAGE_KEY = 'live-auction-h5.demo-buyer.v1';
@@ -102,7 +102,7 @@ class H5AuthSession {
     const stored = readJson<StoredSession>(AUTH_SESSION_STORAGE_KEY);
     if (stored?.user && stored.tokens) {
       const session = { user: normalizeUser(stored.user), tokens: normalizeAuthTokens(stored.tokens) };
-      if (session.user.role === USER_ROLE.BUYER) {
+      if (isBuyerUser(session.user)) {
         this.snapshot = {
           user: session.user,
           tokens: session.tokens,
@@ -135,7 +135,7 @@ class H5AuthSession {
 
   async ensureBuyerSession(): Promise<StoredSession> {
     const currentTokens = this.snapshot.tokens;
-    if (this.snapshot.user && this.snapshot.user.role !== USER_ROLE.BUYER) {
+    if (this.snapshot.user && !isBuyerUser(this.snapshot.user)) {
       return this.rejectNonBuyerAccount();
     }
     if (this.snapshot.user && currentTokens && isUsableToken(currentTokens)) {
@@ -165,7 +165,7 @@ class H5AuthSession {
   }
 
   async getValidAccessToken(): Promise<string | null> {
-    if (this.snapshot.user && this.snapshot.user.role !== USER_ROLE.BUYER) {
+    if (this.snapshot.user && !isBuyerUser(this.snapshot.user)) {
       return this.rejectNonBuyerAccount();
     }
     if (isUsableToken(this.snapshot.tokens)) return this.snapshot.tokens?.accessToken ?? null;
@@ -176,7 +176,7 @@ class H5AuthSession {
   }
 
   async refreshIfNeeded(): Promise<boolean> {
-    if (this.snapshot.user && this.snapshot.user.role !== USER_ROLE.BUYER) {
+    if (this.snapshot.user && !isBuyerUser(this.snapshot.user)) {
       this.clear(NON_BUYER_ACCOUNT_MESSAGE);
       return false;
     }
@@ -186,7 +186,7 @@ class H5AuthSession {
   }
 
   async refreshOnce(): Promise<AuthTokens | null> {
-    if (this.snapshot.user && this.snapshot.user.role !== USER_ROLE.BUYER) {
+    if (this.snapshot.user && !isBuyerUser(this.snapshot.user)) {
       return this.rejectNonBuyerAccount();
     }
     if (!this.snapshot.tokens?.refreshToken) return null;
@@ -364,7 +364,7 @@ class H5AuthSession {
   }
 
   private requireBuyerSession(session: StoredSession): StoredSession {
-    if (session.user.role === USER_ROLE.BUYER) return session;
+    if (isBuyerUser(session.user)) return session;
     return this.rejectNonBuyerAccount();
   }
 

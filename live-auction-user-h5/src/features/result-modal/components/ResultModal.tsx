@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { formatLotDeposit } from '../../../entities/auction/model/deposit';
 import { canPayOrder, isOrderFailed, maskPublicBuyerName, ORDER_PAYMENT_WINDOW_MS, orderStatusLabel } from '../../../entities/order/model/privacy';
 import type { Lot, OrderSummary } from '../../../shared/api/types';
 import { formatMoney, moneyNumber } from '../../../shared/lib/money';
@@ -132,7 +131,6 @@ export function ResultModal({
             <section className="resultDeposit" aria-label="保证金">
               <span>保证金</span>
               <b>拍品付款后退回</b>
-              <small className="scrollAmount" title={formatLotDeposit(lot)}>{formatLotDeposit(lot)}</small>
             </section>
             <button
               className="resultPrimaryButton"

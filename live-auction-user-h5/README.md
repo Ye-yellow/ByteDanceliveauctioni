@@ -14,13 +14,13 @@ npm run dev
 访问：
 
 ```text
-http://localhost:5173/m/room/{roomId}
+http://localhost:5173/
 ```
 
-例如：
+首页会从后端 `GET /api/rooms` 获取可进入的直播间。进入指定直播间时使用：
 
 ```text
-http://localhost:5173/m/room/room-jewel-01
+http://localhost:5173/m/room/{roomId}
 ```
 
 ## 环境变量
@@ -44,6 +44,7 @@ VITE_DEMO_BUYER_NICKNAME=H5 买家
 ## 后端接口要求
 
 - `GET /api/rooms/{roomId}/snapshot`
+- `GET /api/rooms`
 - `POST /api/lots/{lotId}/bid`
 - `GET /api/lots/{lotId}/result`
 - `POST /api/orders/{orderId}/mock-pay`

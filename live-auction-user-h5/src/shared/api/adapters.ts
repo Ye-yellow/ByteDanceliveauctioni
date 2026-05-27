@@ -3,6 +3,7 @@ import {
   LOT_QUEUE_STATUS,
   LOT_STATUS,
   USER_ROLE,
+  USER_STATUS,
   type AuctionEventType,
   type AuctionSocketEvent,
   type AuthTokens,
@@ -19,9 +20,11 @@ import {
   type PaymentSummary,
   type PlaceBidResponse,
   type RankingItem,
+  type Room,
   type RoomSnapshot,
   type User,
   type UserRole,
+  type UserStatus,
 } from './types';
 
 type RawRecord = Record<string, unknown>;
@@ -44,6 +47,7 @@ function numberValue(value: unknown, fallback = 0): number {
 }
 
 const userRoleValues = new Set<UserRole>(Object.values(USER_ROLE));
+const userStatusValues = new Set<UserStatus>(Object.values(USER_STATUS));
 const lotStatusValues = new Set<LotStatus>(Object.values(LOT_STATUS));
 const lotQueueStatusValues = new Set<LotQueueStatus>(Object.values(LOT_QUEUE_STATUS));
 const auctionEventTypeValues = new Set<AuctionEventType>(Object.values(AUCTION_EVENT_TYPE));
@@ -85,6 +89,24 @@ export function normalizeUser(input: unknown): User {
     username: stringValue(raw.username),
     nickname: stringValue(raw.nickname),
     role: normalizeUserRole(raw.role),
+    mainAccountId: stringValue(pick(raw, 'mainAccountId', 'main_account_id')),
+    createdByUserId: stringValue(pick(raw, 'createdByUserId', 'created_by_user_id')),
+    status: normalizeUserStatus(pick(raw, 'status')),
+    createdAtUnixMs: pick(raw, 'createdAtUnixMs', 'created_at_unix_ms'),
+    updatedAtUnixMs: pick(raw, 'updatedAtUnixMs', 'updated_at_unix_ms'),
+  };
+}
+
+export function normalizeRoom(input: unknown): Room {
+  const raw = asRecord(input);
+  return {
+    id: stringValue(raw.id),
+    mainAccountId: stringValue(pick(raw, 'mainAccountId', 'main_account_id')),
+    name: stringValue(raw.name),
+    platform: stringValue(raw.platform),
+    platformRoomId: stringValue(pick(raw, 'platformRoomId', 'platform_room_id')),
+    status: stringValue(raw.status),
+    createdByUserId: stringValue(pick(raw, 'createdByUserId', 'created_by_user_id')),
     createdAtUnixMs: pick(raw, 'createdAtUnixMs', 'created_at_unix_ms'),
     updatedAtUnixMs: pick(raw, 'updatedAtUnixMs', 'updated_at_unix_ms'),
   };
@@ -92,6 +114,10 @@ export function normalizeUser(input: unknown): User {
 
 function normalizeUserRole(value: unknown): UserRole {
   return normalizeEnum(value, userRoleValues, USER_ROLE.UNSPECIFIED);
+}
+
+function normalizeUserStatus(value: unknown): UserStatus {
+  return normalizeEnum(value, userStatusValues, USER_STATUS.UNSPECIFIED);
 }
 
 export function normalizeLotStatus(value: unknown): LotStatus {

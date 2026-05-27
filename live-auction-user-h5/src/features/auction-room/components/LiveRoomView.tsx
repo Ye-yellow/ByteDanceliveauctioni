@@ -3,19 +3,16 @@ import { DepositPayModal } from '../../payment-flow/components/DepositPayModal';
 import { MockPayModal } from '../../payment-flow/components/MockPayModal';
 import { ResultModal } from '../../result-modal/components/ResultModal';
 import { isBiddableLotStatus } from '../../../entities/auction/model/status';
-import { DEFAULT_DEMO_ROOM_PROFILE, getDemoRoomProfile } from '../../../shared/config/demoRooms';
 import { formatMoney, moneyNumber } from '../../../shared/lib/money';
 import type { LiveRoomController } from '../hooks/useLiveRoomController';
 import { AuctionDrawer } from './AuctionDrawer';
 import { AuctionNoticeLayer } from './AuctionNoticeLayer';
 
 function LiveRoomChrome({ controller }: { controller: LiveRoomController }) {
-  const { roomId, roomName, room } = controller;
-  const roomProfile = getDemoRoomProfile(roomId);
-  const anchorName = roomProfile?.anchorName || room.snapshot?.anchorName || DEFAULT_DEMO_ROOM_PROFILE.anchorName;
+  const { roomId, roomName, anchorName, room } = controller;
   const likes = Math.max(room.snapshot?.onlineCount || 0, 93000);
   const closeRoom = () => {
-    window.location.assign('/');
+    window.location.assign(`/?roomId=${encodeURIComponent(roomId)}`);
   };
 
   return (
@@ -94,10 +91,10 @@ function LiveComposer() {
 
 export function LiveRoomView({ controller }: { controller: LiveRoomController }) {
   const {
-    roomId,
     room,
     error,
     roomName,
+    anchorName,
     currentLot,
     meId,
     wsState,
@@ -109,8 +106,6 @@ export function LiveRoomView({ controller }: { controller: LiveRoomController })
     depositPrompt,
     actions,
   } = controller;
-  const roomProfile = getDemoRoomProfile(roomId);
-  const anchorName = roomProfile?.anchorName || room.snapshot?.anchorName || DEFAULT_DEMO_ROOM_PROFILE.anchorName;
 
   return (
     <main className={`mobileShell douyinShell ${auctionPanel.open ? 'drawerVisible' : ''}`}>

@@ -7,6 +7,7 @@ export const RESULT_CODE = {
   SESSION_EXPIRED: 401004,
   INVALID_CREDENTIALS: 401005,
   FORBIDDEN: 403001,
+  ACCOUNT_DISABLED: 403002,
   USER_NOT_FOUND: 404001,
   LOT_VERSION_CONFLICT: 409001,
   IDEMPOTENCY_CONFLICT: 409010,
@@ -28,6 +29,20 @@ export type Money = {
 };
 
 export type MoneyInput = Money | number | string | null | undefined;
+
+export type RoomStatus = 'ACTIVE' | 'DISABLED' | string;
+
+export type Room = {
+  id: string;
+  mainAccountId?: string;
+  name: string;
+  platform?: string;
+  platformRoomId?: string;
+  status?: RoomStatus;
+  createdByUserId?: string;
+  createdAtUnixMs?: number | string;
+  updatedAtUnixMs?: number | string;
+};
 
 export const LOT_STATUS = {
   UNSPECIFIED: 'LOT_STATUS_UNSPECIFIED',
@@ -83,19 +98,34 @@ export const USER_ROLE = {
   BUYER: 'USER_ROLE_BUYER',
   ANCHOR: 'USER_ROLE_ANCHOR',
   OPERATOR: 'USER_ROLE_OPERATOR',
-  ADMIN: 'USER_ROLE_ADMIN',
+  MAIN_ACCOUNT: 'USER_ROLE_MAIN_ACCOUNT',
 } as const;
 
 export type UserRole = (typeof USER_ROLE)[keyof typeof USER_ROLE];
+
+export const USER_STATUS = {
+  UNSPECIFIED: 'USER_STATUS_UNSPECIFIED',
+  ACTIVE: 'USER_STATUS_ACTIVE',
+  DISABLED: 'USER_STATUS_DISABLED',
+} as const;
+
+export type UserStatus = (typeof USER_STATUS)[keyof typeof USER_STATUS];
 
 export type User = {
   id: string;
   username: string;
   nickname?: string;
-  role?: UserRole;
+  role: UserRole;
+  mainAccountId: string;
+  createdByUserId: string;
+  status: UserStatus;
   createdAtUnixMs?: number | string;
   updatedAtUnixMs?: number | string;
 };
+
+export function isBuyerUser(user?: Pick<User, 'role' | 'status'> | null): boolean {
+  return Boolean(user && user.role === USER_ROLE.BUYER && user.status === USER_STATUS.ACTIVE);
+}
 
 export type AuthTokens = {
   accessToken: string;

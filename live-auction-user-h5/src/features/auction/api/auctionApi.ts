@@ -1,4 +1,4 @@
-import { normalizeBidRecord, normalizeLot, normalizeLotResult, normalizeMoney, normalizeOrder, normalizePayment, normalizePlaceBidResponse, normalizeRoomSnapshot } from '../../../shared/api/adapters';
+import { normalizeBidRecord, normalizeLot, normalizeLotResult, normalizeMoney, normalizeOrder, normalizePayment, normalizePlaceBidResponse, normalizeRoom, normalizeRoomSnapshot } from '../../../shared/api/adapters';
 import { apiRequest } from '../../../shared/api/httpClient';
 import type {
   BidRecord,
@@ -13,12 +13,14 @@ import type {
   PaymentSummary,
   PlaceBidRequest,
   PlaceBidResponse,
+  Room,
   RoomSnapshot,
 } from '../../../shared/api/types';
 import { authSession } from '../../../shared/auth/authSession';
 
 type SnapshotReply = { snapshot?: unknown };
 type LotResultReply = LotResult | { lot?: unknown; order?: unknown; orderId?: string; order_id?: string };
+type ListRoomsReply = { rooms?: unknown[] };
 type ListLotsReply = { lots?: unknown[]; total?: number; nextPageToken?: string; next_page_token?: string };
 type ListOrdersReply = { orders?: unknown[]; total?: number; page?: number; pageSize?: number; page_size?: number };
 type ListBidsReply = { bids?: unknown[]; total?: number; page?: number; pageSize?: number; page_size?: number };
@@ -41,6 +43,16 @@ export async function getRoomSnapshot(roomId: string): Promise<RoomSnapshot> {
   });
 
   return normalizeRoomSnapshot(reply.snapshot ?? reply, roomId);
+}
+
+export async function listPublicRooms(): Promise<Room[]> {
+  const reply = await apiRequest<ListRoomsReply>({
+    path: '/api/rooms',
+    auth: 'optional',
+    operation: 'listPublicRooms',
+  });
+
+  return Array.isArray(reply.rooms) ? reply.rooms.map(normalizeRoom).filter((room) => Boolean(room.id)) : [];
 }
 
 export async function listRoomLots(roomId: string): Promise<Lot[]> {
