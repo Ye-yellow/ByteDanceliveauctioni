@@ -1756,6 +1756,16 @@
   overscroll-behavior-inline: contain;
 }
 
+.priceGrid b.scrollAmount {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.scrollAmount.isDragging {
+  user-select: none;
+  cursor: grabbing;
+}
+
 .scrollAmount.inlineAmount {
   max-width: min(12ch, 100%);
   vertical-align: bottom;

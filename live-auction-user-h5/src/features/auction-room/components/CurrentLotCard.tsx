@@ -48,14 +48,24 @@ function primaryPrice(lot: Lot, state: LotDisplayState) {
   return lot.rule.startPrice;
 }
 
+function secondaryPriceMetric(lot: Lot, primaryLabel: string) {
+  if (primaryLabel === '起拍价') {
+    const currentPrice = moneyNumber(lot.currentPrice) > 0 ? lot.currentPrice : lot.rule.startPrice;
+    return { label: '当前价', value: currentPrice };
+  }
+  return { label: '起拍价', value: lot.rule.startPrice };
+}
+
 export function CurrentLotCard({ lot, serverTimeUnixMs, serverTimeReceivedAtUnixMs, displayState }: CurrentLotCardProps) {
   const countdown = useServerCountdown(lot.endsAtUnixMs, serverTimeUnixMs, serverTimeReceivedAtUnixMs);
   const state = displayState || deriveLotDisplayState(lot);
   const copy = cardCopyByState[state];
   const countdownValue = state === 'live' ? countdown.text : copy.value;
   const participantText = lotPersonText(lot, state);
+  const primaryLabel = primaryPriceLabel(lot, state);
   const primaryPriceText = formatMoney(primaryPrice(lot, state));
-  const startPriceText = formatMoney(lot.rule.startPrice);
+  const secondaryMetric = secondaryPriceMetric(lot, primaryLabel);
+  const secondaryPriceText = formatMoney(secondaryMetric.value);
   const incrementText = formatMoney(lot.rule.minIncrement);
   const participantCount = lot.stats?.participantCount || 0;
   const bidCount = lot.stats?.bidCount || 0;
@@ -80,12 +90,12 @@ export function CurrentLotCard({ lot, serverTimeUnixMs, serverTimeReceivedAtUnix
       </div>
       <div className="priceGrid">
         <div>
-          <span>{primaryPriceLabel(lot, state)}</span>
+          <span>{primaryLabel}</span>
           <b className="scrollAmount" title={primaryPriceText}>{primaryPriceText}</b>
         </div>
         <div>
-          <span>起拍价</span>
-          <b className="scrollAmount" title={startPriceText}>{startPriceText}</b>
+          <span>{secondaryMetric.label}</span>
+          <b className="scrollAmount" title={secondaryPriceText}>{secondaryPriceText}</b>
         </div>
         <div>
           <span>加价幅度</span>
