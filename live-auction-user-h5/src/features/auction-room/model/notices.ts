@@ -13,7 +13,6 @@ export function noticeForAuctionEvent(event: AuctionSocketEvent, currentUserId: 
     if (previousLeaderId === currentUserId && event.lot?.leadingUserId !== currentUserId) {
       return '你已被超越，可继续加价';
     }
-    if (event.lot?.leadingUserId === currentUserId) return '你重新领先';
     return '排名发生变化';
   }
 
