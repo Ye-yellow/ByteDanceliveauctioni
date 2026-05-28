@@ -15,7 +15,6 @@ export type RoomSocketMeta = {
 type RoomSocketOptions = {
   roomId: string;
   handledEventTypes?: Iterable<EventType | string>;
-  heartbeatTimeoutMs?: number;
   recoverSnapshot?: () => Promise<RoomSnapshot | void>;
   onStatusChange?: (status: RoomSocketStatus, attempt: number) => void;
   onEvent?: (event: AuctionEvent, meta: RoomSocketMeta) => void;
@@ -43,7 +42,6 @@ export class RoomSocket {
   private readonly handledEventTypes?: Set<string>;
   private socket: WebSocket | null = null;
   private reconnectTimer = 0;
-  private heartbeatTimer = 0;
   private closed = true;
   private attempt = 0;
   private seq = 0;
@@ -77,18 +75,7 @@ export class RoomSocket {
 
   private clearTimers() {
     if (this.reconnectTimer) window.clearTimeout(this.reconnectTimer);
-    if (this.heartbeatTimer) window.clearTimeout(this.heartbeatTimer);
     this.reconnectTimer = 0;
-    this.heartbeatTimer = 0;
-  }
-
-  private resetHeartbeatTimer() {
-    if (this.heartbeatTimer) window.clearTimeout(this.heartbeatTimer);
-    const timeout = this.options.heartbeatTimeoutMs ?? 60_000;
-    this.heartbeatTimer = window.setTimeout(() => {
-      this.options.onError?.(new Error('room socket heartbeat timeout'));
-      this.socket?.close();
-    }, timeout);
   }
 
   private open(status: RoomSocketStatus) {
@@ -105,14 +92,12 @@ export class RoomSocket {
     this.socket.onopen = () => {
       this.attempt = 0;
       this.emitStatus('connected');
-      this.resetHeartbeatTimer();
       void authSession.getValidAccessToken().then((token) => {
         if (token) this.send({ type: 'AUTH', accessToken: token });
       });
       void this.recoverSnapshot();
     };
     this.socket.onmessage = (message) => {
-      this.resetHeartbeatTimer();
       void this.handleMessage(message.data);
     };
     this.socket.onerror = (event) => {
@@ -140,7 +125,6 @@ export class RoomSocket {
     if (this.closed || this.reconnectTimer) return;
     this.attempt += 1;
     this.emitStatus('reconnecting');
-    if (this.heartbeatTimer) window.clearTimeout(this.heartbeatTimer);
     this.reconnectTimer = window.setTimeout(() => {
       this.reconnectTimer = 0;
       this.open('reconnecting');

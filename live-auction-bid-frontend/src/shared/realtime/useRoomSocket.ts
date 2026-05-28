@@ -6,7 +6,6 @@ type UseRoomSocketOptions = {
   roomId: string;
   enabled?: boolean;
   handledEventTypes?: Iterable<EventType | string>;
-  heartbeatTimeoutMs?: number;
   recoverSnapshot?: () => Promise<RoomSnapshot | void>;
   onStatusChange?: (status: RoomSocketStatus, attempt: number) => void;
   onEvent?: (event: AuctionEvent, meta: RoomSocketMeta) => void;
@@ -49,7 +48,6 @@ export function useRoomSocket(options: UseRoomSocketOptions): RoomSocketState {
     const socket = new RoomSocket({
       roomId: options.roomId,
       handledEventTypes: eventTypes,
-      heartbeatTimeoutMs: options.heartbeatTimeoutMs,
       recoverSnapshot: () => callbacks.current.recoverSnapshot?.() ?? Promise.resolve(),
       onStatusChange: (status, attempt) => {
         if (!active) return;
@@ -93,7 +91,7 @@ export function useRoomSocket(options: UseRoomSocketOptions): RoomSocketState {
       active = false;
       socket.close();
     };
-  }, [options.roomId, options.enabled, options.heartbeatTimeoutMs, eventTypesKey]);
+  }, [options.roomId, options.enabled, eventTypesKey]);
 
   return state;
 }
