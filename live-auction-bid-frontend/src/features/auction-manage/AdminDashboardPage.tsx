@@ -228,9 +228,9 @@ export function AdminDashboardPage({ roomId, roomName = roomId }: { roomId: stri
         </button>)}
       </div>
       <div className="merchantHeroMeta">
-        <span>当前直播间 <b>{roomName}</b></span>
-        <span>数据范围 <b>{rangeOptions.find((item) => item.value === range)?.label}</b></span>
-        <span>更新时间 <b>{lastUpdatedAt ? formatDateTimeText(lastUpdatedAt, '刚刚') : '加载中'}</b></span>
+        <span>当前直播间：<b>{roomName}</b></span>
+        <span>数据范围：<b>{rangeOptions.find((item) => item.value === range)?.label}</b></span>
+        <span>更新时间：<b>{lastUpdatedAt ? formatDateTimeText(lastUpdatedAt, '刚刚') : '加载中'}</b></span>
       </div>
     </StudioCard>
 
@@ -348,9 +348,9 @@ function LiveBusinessPanel({ currentLot, recentBids, remainingMs, participantCou
         <h3>{currentLot.title}</h3>
         <div className="merchantLivePrice"><span>当前价</span><b>{formatMoneyText(currentLot.currentPrice)}</b></div>
         <div className="merchantLiveFacts">
-          <span>剩余时间 <b>{formatCountdown(remainingMs)}</b></span>
-          <span>领先用户 <b>{currentLot.leadingNickname || currentLot.leadingUserId || '暂无'}</b></span>
-          <span>参拍人数 <b>{participantCount.toLocaleString('zh-CN')}</b></span>
+          <span>剩余时间：<b>{formatCountdown(remainingMs)}</b></span>
+          <span>领先用户：<b>{currentLot.leadingNickname || currentLot.leadingUserId || '暂无'}</b></span>
+          <span>参拍人数：<b>{participantCount.toLocaleString('zh-CN')}</b></span>
         </div>
         <div className="merchantBidTape" aria-label="最近出价">
           {recentBids.length ? recentBids.map((bid) => <div key={bid.id}><span>{bid.nickname || bid.userId || '买家'}</span><b>{formatMoneyText(bid.amount)}</b></div>) : <div><span>暂无出价</span><b>等待开拍</b></div>}

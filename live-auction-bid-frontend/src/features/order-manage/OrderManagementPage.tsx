@@ -161,13 +161,13 @@ function OrderReviewCard({ order, disabled, onOpen }: { order: OrderSummary; dis
       </div>
     </div>
     <div className="historyCardOutcome orderReviewOutcome">
-      <strong><b>订单状态</b><StudioBadge tone={orderStatusTone(order.status)}>{orderStatusLabel(order.status)}</StudioBadge></strong>
+      <strong><b>订单状态：</b><StudioBadge tone={orderStatusTone(order.status)}>{orderStatusLabel(order.status)}</StudioBadge></strong>
       <div><StudioButton type="button" variant="ghost" size="sm" disabled={disabled} onClick={(event) => { event.stopPropagation(); open(); }}>成交详情</StudioButton></div>
     </div>
     <div className="historyCardMetrics orderReviewMetrics">
-      <span><b>{amountLabel}</b><strong className="orderAmountCell">{formatAmountText(order.amount, order.currency)}</strong></span>
-      <span><b>买家</b>{order.buyerNickname || order.buyerUserId}</span>
-      <span><b>创建时间</b>{formatDateTimeText(order.createdAtUnixMs)}</span>
+      <span><b>{amountLabel}：</b><strong className="orderAmountCell">{formatAmountText(order.amount, order.currency)}</strong></span>
+      <span><b>买家：</b>{order.buyerNickname || order.buyerUserId}</span>
+      <span><b>创建时间：</b>{formatDateTimeText(order.createdAtUnixMs)}</span>
     </div>
   </article>;
 }
@@ -197,12 +197,12 @@ function OrderDetailDrawer({ detail, loading, onClose }: { detail: LotResultRepl
       {loading ? <div className="orderDetailLoading"><StudioTableSkeleton rows={2} columns={2} /></div> : <div className="orderDetailBody">
         <div className="drawerOrderHero"><img src={order?.lotImageUrl || detail.lot?.imageUrl || '/vite.svg'} alt={order?.lotTitle || detail.lot?.title || '成交拍品'} /><div><h3>{order?.lotTitle || detail.lot?.title || '成交拍品'}</h3><strong>{order ? formatAmountText(order.amount, order.currency) : '订单不可见'}</strong><span>{order?.buyerNickname || order?.buyerUserId || detail.lot?.winnerNickname || '买家未同步'} · {formatDateTimeText(order?.createdAtUnixMs || detail.lot?.settledAtUnixMs)}</span></div></div>
         <div className="drawerInfoGrid">
-          <span>订单状态<b>{orderStatusLabel(order?.status)}</b></span>
-          <span>支付状态<b>{paymentStatusLabel(order?.paymentStatus)}</b></span>
-          <span>竞拍状态<b>{detail.auctionState || detail.lot?.status || '未同步'}</b></span>
-          <span>关联竞拍<b>{order?.lotId || detail.lot?.id || '未同步'}</b></span>
-          <span>支付单号<b>{order?.paymentId || '未生成 / 不可见'}</b></span>
-          <span>支付截止<b>{formatDateTimeText(order?.expiresAtUnixMs)}</b></span>
+          <span>订单状态：<b>{orderStatusLabel(order?.status)}</b></span>
+          <span>支付状态：<b>{paymentStatusLabel(order?.paymentStatus)}</b></span>
+          <span>竞拍状态：<b>{detail.auctionState || detail.lot?.status || '未同步'}</b></span>
+          <span>关联竞拍：<b>{order?.lotId || detail.lot?.id || '未同步'}</b></span>
+          <span>支付单号：<b>{order?.paymentId || '未生成 / 不可见'}</b></span>
+          <span>支付截止：<b>{formatDateTimeText(order?.expiresAtUnixMs)}</b></span>
         </div>
         <div className="orderDetailFooter">
           {order ? <StudioEmptyState compact tone="success" icon={<ReceiptText size={22} />} title="订单详情来自后端权限接口" description="后台不使用公开 WebSocket reason 中的订单或支付标识。" /> : <StudioErrorState compact icon={<AlertTriangle size={22} />} title="后端未返回订单详情" description="当前账号可能无权查看，或该成交尚未生成订单。" />}
