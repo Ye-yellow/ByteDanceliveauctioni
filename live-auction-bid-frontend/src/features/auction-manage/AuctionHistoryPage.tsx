@@ -180,12 +180,12 @@ function HistoryLotCard({ lot, order, onOpen }: { lot: Lot; order?: OrderSummary
       </div>
     </div>
     <div className="historyCardMetrics">
-      <span><b>{historyPriceLabel(lot, order)}</b>{formatMoneyText(price)}</span>
-      <span><b>买家 ID</b>{historyBuyerIdText(lot)}</span>
-      <span><b>{historyTimeLabel(lot)}</b>{historyTimeText(lot)}</span>
-      <span><b>起拍价</b>{formatMoneyText(lot.rule.startPrice)}</span>
-      <span><b>最低加价要求</b>{formatMoneyText(lot.rule.minIncrement)}</span>
-      <span><b>耗时</b>{actualDurationText(lot)}</span>
+      <span><b>{historyPriceLabel(lot, order)}：</b>{formatMoneyText(price)}</span>
+      <span><b>买家 ID：</b>{historyBuyerIdText(lot)}</span>
+      <span><b>{historyTimeLabel(lot)}：</b>{historyTimeText(lot)}</span>
+      <span><b>起拍价：</b>{formatMoneyText(lot.rule.startPrice)}</span>
+      <span><b>最低加价要求：</b>{formatMoneyText(lot.rule.minIncrement)}</span>
+      <span><b>耗时：</b>{actualDurationText(lot)}</span>
     </div>
     <div className="historyCardOutcome">
       <strong>{historyReasonText(lot)}</strong>
