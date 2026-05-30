@@ -52,11 +52,10 @@ VITE_DEMO_BUYER_NICKNAME=H5 买家
 
 ## 直播模拟
 
-直播区域使用 `xgplayer` / `xgplayer-hls-live` 播放 `VITE_DEMO_LIVE_URL`。
+直播区域使用原生 `<video>` 播放 TOS 上的模拟直播视频。
 
-- 如果是 `.m3u8`，优先用 xgplayer HLS live 插件。
-- 如果插件失败，降级到 `hls.js + video`，但封装仍在 `LivePlayer` 内。
-- 如果没有真实 HLS 流，使用 `public/demo-live.mp4` 循环模拟。
+- 默认使用 `VITE_DEMO_LIVE_URL`，没有配置时按内置 TOS MP4 播放列表循环。
+- `.m3u8` 仅在浏览器原生支持 HLS 时播放；当前 demo 不再打包 HLS 播放器库。
 - 不使用商品图假装直播；商品图只作为 poster / fallback。
 
 ## MVP 路由

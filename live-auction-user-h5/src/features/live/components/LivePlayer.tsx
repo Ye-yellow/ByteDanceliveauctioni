@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Hls from 'hls.js';
 import {
   isHls,
   resolveInitialLiveSource,
@@ -18,7 +17,6 @@ type Props = {
 
 export function LivePlayer({ poster, anchorName, onlineCount, wsState, roomName }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const hlsRef = useRef<Hls | null>(null);
   const [source, setSource] = useState(resolveInitialLiveSource);
   const [message, setMessage] = useState('');
   const playlist = resolveLivePlaylist();
@@ -49,21 +47,24 @@ export function LivePlayer({ poster, anchorName, onlineCount, wsState, roomName 
     const retryTimers: number[] = [];
 
     setMessage('直播画面加载中');
-    hlsRef.current?.destroy();
-    hlsRef.current = null;
+    video.pause();
+    video.removeAttribute('src');
 
-    if (isHls(source) && Hls.isSupported()) {
-      const hls = new Hls({ liveSyncDurationCount: 3 });
-      hlsRef.current = hls;
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MEDIA_ATTACHED, () => hls.loadSource(source));
-      hls.on(Hls.Events.ERROR, (_, data) => {
-        if (data.fatal && !disposed) goNext();
-      });
-    } else {
-      video.src = source;
-      video.load();
+    if (isHls(source) && !video.canPlayType('application/vnd.apple.mpegurl')) {
+      setMessage('当前浏览器不支持 HLS 直播源');
+      if (hasPlaylistLoop) {
+        retryTimers.push(window.setTimeout(() => {
+          if (!disposed) goNext();
+        }, 1200));
+      }
+      return () => {
+        disposed = true;
+        retryTimers.forEach((timer) => window.clearTimeout(timer));
+      };
     }
+
+    video.src = source;
+    video.load();
 
     const tryPlay = () => {
       if (!disposed) playVideo();
@@ -78,10 +79,10 @@ export function LivePlayer({ poster, anchorName, onlineCount, wsState, roomName 
     return () => {
       disposed = true;
       retryTimers.forEach((timer) => window.clearTimeout(timer));
-      hlsRef.current?.destroy();
-      hlsRef.current = null;
+      video.removeAttribute('src');
+      video.load();
     };
-  }, [goNext, source]);
+  }, [goNext, hasPlaylistLoop, source]);
 
   return (
     <section className="livePlayerShell">

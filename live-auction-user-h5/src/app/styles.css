@@ -1745,10 +1745,8 @@
   box-shadow: none;
 }
 
-.xgMount,
 .nativeLiveVideo,
-.posterFallback,
-.xgMount .xgplayer {
+.posterFallback {
   width: 100% !important;
   height: 100% !important;
 }
@@ -1756,36 +1754,6 @@
 .nativeLiveVideo {
   object-fit: cover;
   background: #050712;
-}
-
-.douyinShell .xgMount,
-.douyinShell .xgMount .xgplayer,
-.douyinShell .xgMount video {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-.douyinShell .xgMount video {
-  object-fit: cover !important;
-}
-
-.douyinShell .xgplayer-start {
-  left: 50% !important;
-  top: 50% !important;
-  margin-left: -35px !important;
-  margin-top: -35px !important;
-  transform: none !important;
-}
-
-.douyinShell .xgplayer-start svg {
-  display: block;
-}
-
-.douyinShell .xgplayer-start .xgplayer-icon-play svg {
-  position: relative;
-  left: -2px;
 }
 
 .posterFallback {
@@ -2218,10 +2186,6 @@
 .douyinShell .posterFallback p,
 .douyinShell .playerMessage {
   z-index: var(--live-z-sticky);
-}
-
-.douyinShell .xgplayer-controls {
-  display: none !important;
 }
 
 .douyinTopTabs {

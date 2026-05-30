@@ -41,7 +41,7 @@ type VideoSheet = 'comments' | 'share' | null;
 
 const FEED_SOURCE = '/data/douyin-feed.json';
 const USER_VIDEO_SOURCE = '/data/user-video-list';
-const DOUYIN_IMAGE_BASE = 'https://dy.2study.top/images/';
+const DOUYIN_IMAGE_BASE = 'https://liveauction.tos-cn-beijing.volces.com/douyin-h5/images/';
 const SWIPE_DISTANCE = 42;
 const DY_HEART_PATH = 'M453.036 88.712C493.774 30.664 560.66 0 634.251 0C774.403 0 890.972 121.59 890.972 266.137C890.972 266.155 890.972 266.173 890.972 266.191C890.981 266.171 890.991 266.151 891 266.131C891 270.252 890.93 273.372 890.878 275.668C890.806 278.819 890.77 280.416 891 280.916C890.469 311.319 885.222 336.438 875.899 369.628C870.609 375.588 865.694 386.812 860.798 399.199C853.074 411.197 850.151 417.009 845.697 428.77C841.152 436.399 836.324 444.063 831.245 451.744C793.796 508.544 743.708 565.074 693.667 615.252C615.336 694.277 535.544 760.058 500.832 788.675C491.247 796.576 485.1 801.644 483.368 803.375C471.067 815.678 458.765 815.986 446.463 815.994C446.139 815.998 445.814 816 445.486 816C420.25 816 407.632 803.381 395.014 790.763C394.051 789.8 391.601 787.779 387.858 784.783C349.625 756.6 263.586 687.786 182.742 604.783C121.066 542.02 61.622 470.007 29.092 399.588C16.474 374.351 0.731 314.264 0 280.922C0.269 280.655 0.227 279.049 0.144 275.844C0.083 273.498 0 270.297 0 266.137C0 121.524 116.502 0 256.721 0C330.179 0 397.131 30.664 453.036 88.712z';
 
@@ -57,7 +57,8 @@ function normalizeRemoteAsset(url?: string) {
   if (!url) return '';
   if (/^https?:\/\//i.test(url)) return url;
   if (url.startsWith('/douyin-assets/') || url.startsWith('/data/')) return url;
-  if (url.startsWith('/')) return `https://dy.2study.top${url}`;
+  if (url.startsWith('/images/')) return `${DOUYIN_IMAGE_BASE}${url.slice('/images/'.length)}`;
+  if (url.startsWith('/')) return url;
   return `${DOUYIN_IMAGE_BASE}${url}`;
 }
 

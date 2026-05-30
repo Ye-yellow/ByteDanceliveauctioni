@@ -5,17 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run check:external-assets && tsc -b && vite build",
     "lint": "eslint .",
     "check:ui-debt": "../scripts/check-ui-debt.sh",
+    "check:external-assets": "node scripts/check-external-assets.mjs",
+    "mirror:external-assets": "node scripts/mirror-external-assets.mjs",
+    "sync:external-assets": "npm run mirror:external-assets && (cd ../live-auction-bid-backend && go run ./cmd/upload_tos_dir --env deploy/.env --dir ../live-auction-user-h5/tmp/external-assets-mirror/files --prefix douyin-h5/external) && npm run check:external-assets",
     "preview": "vite preview"
   },
   "dependencies": {
-    "hls.js": "^1.6.16",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6",
-    "xgplayer": "^2.32.6",
-    "xgplayer-hls-live": "^2.5.2"
+    "react-dom": "^19.2.6"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

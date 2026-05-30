@@ -43,7 +43,7 @@ type DouyinCommentSheetProps = {
   onClose: () => void;
 };
 
-const COMMENT_BASE_URLS = ['/data/comments', 'https://dy.2study.top/data/comments'];
+const COMMENT_BASE_URLS = ['/data/comments'];
 const INITIAL_REPLY_PAGE_SIZE = 3;
 const MORE_REPLY_PAGE_SIZE = 10;
 const COMMENT_SOURCE_IDS = [

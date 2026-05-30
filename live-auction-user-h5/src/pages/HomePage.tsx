@@ -67,8 +67,7 @@ type DouyinVideoRecord = {
 
 const CHANNELS = ['热点', '长视频', '关注', '经验', '推荐'];
 const DOUYIN_VIDEO_SOURCE = '/data/douyin-feed.json';
-const DOUYIN_REMOTE_VIDEO_SOURCE = 'https://dy.2study.top/data/videos.json';
-const DOUYIN_IMAGE_BASE = 'https://dy.2study.top/images/';
+const DOUYIN_IMAGE_BASE = 'https://liveauction.tos-cn-beijing.volces.com/douyin-h5/images/';
 const DOUYIN_COMMENT_VIDEO_IDS = [
   '6686589698707590411',
   '6826943630775831812',
@@ -242,7 +241,8 @@ function normalizeRemoteAsset(url?: string) {
   if (!url) return '';
   if (/^https?:\/\//i.test(url)) return url;
   if (url.startsWith('/douyin-assets/') || url.startsWith('/data/')) return url;
-  if (url.startsWith('/')) return `https://dy.2study.top${url}`;
+  if (url.startsWith('/images/')) return `${DOUYIN_IMAGE_BASE}${url.slice('/images/'.length)}`;
+  if (url.startsWith('/')) return url;
   return `${DOUYIN_IMAGE_BASE}${url}`;
 }
 
@@ -349,11 +349,7 @@ async function fetchDouyinFeedItemsFrom(source: string) {
 }
 
 async function fetchDouyinFeedItems() {
-  try {
-    return shuffleItems(await fetchDouyinFeedItemsFrom(DOUYIN_VIDEO_SOURCE));
-  } catch {
-    return shuffleItems(await fetchDouyinFeedItemsFrom(DOUYIN_REMOTE_VIDEO_SOURCE));
-  }
+  return shuffleItems(await fetchDouyinFeedItemsFrom(DOUYIN_VIDEO_SOURCE));
 }
 
 function takeLoop<T>(items: T[], count: number, start = 0) {

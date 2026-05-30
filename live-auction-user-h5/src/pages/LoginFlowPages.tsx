@@ -355,6 +355,12 @@ export function RetrievePasswordPage() {
 }
 
 export function LoginHelpPage() {
+  const helpItems = [
+    ['账号登录', '支持 live auction 账号密码登录，手机号登录页会统一跳转到本地账号体系。'],
+    ['协议与隐私', '用户协议和隐私政策保留本地页面，不再依赖外部客服 iframe。'],
+    ['反馈入口', '遇到登录异常时，先检查账号、密码和当前网络，再联系后台管理员处理。'],
+  ];
+
   return (
     <main className="dyLoginFlowHelp">
       <header className="dyLoginFlowHelpHeader">
@@ -362,7 +368,19 @@ export function LoginHelpPage() {
         <b>帮助与设置</b>
         <span>我的反馈</span>
       </header>
-      <iframe title="帮助与设置" src="https://kf.qq.com/touch/product/wechat_app.html" />
+      <section className="dyLoginFlowHelpContent">
+        <h1>登录帮助</h1>
+        <p>当前 H5 使用 live auction 的账号密码登录，不再跳转第三方客服页面。</p>
+        <div className="dyLoginFlowHelpList">
+          {helpItems.map(([title, desc]) => (
+            <article key={title}>
+              <b>{title}</b>
+              <span>{desc}</span>
+            </article>
+          ))}
+        </div>
+        <a href="/login" className="dyLoginFlowHelpAction">返回登录</a>
+      </section>
     </main>
   );
 }
