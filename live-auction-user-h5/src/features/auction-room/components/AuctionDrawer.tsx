@@ -1,21 +1,18 @@
 import { useMemo, useState } from 'react';
-import { isBiddableLotStatus } from '../../../entities/auction/model/status';
 import { orderStatusLabel } from '../../../entities/order/model/privacy';
 import { LOT_STATUS, type OrderSummary } from '../../../shared/api/types';
 import { formatMoney } from '../../../shared/lib/money';
 import { formatEventTime, getServerNowMs } from '../../../shared/lib/time';
-import { BidPanel } from '../../bid-panel/components/BidPanel';
 import type { AuctionPanelTab, LiveRoomController } from '../hooks/useLiveRoomController';
+import { BidPanel } from '../../bid-panel/components/BidPanel';
 import { BuyerAuthPanel } from './BuyerAuthPanel';
 import { CurrentLotCard } from './CurrentLotCard';
 import { LotQueueList } from './LotQueueList';
 import { deriveLotDisplayState, orderForLot } from '../model/lotDisplayState';
-import { RankingBoard } from './RankingBoard';
-import { RecentBidFeed } from './RecentBidFeed';
 
 function tabLabel(tab: AuctionPanelTab): string {
-  if (tab === 'current') return '正在竞拍';
-  return '我的记录';
+  if (tab === 'current') return '商品橱窗';
+  return '我的订单';
 }
 
 const DRAWER_TABS: AuctionPanelTab[] = ['current', 'mine'];
@@ -60,8 +57,8 @@ function MyPanel({
     <section className="minePanel">
       <header className="drawerSectionHeader">
         <div>
-          <b>我的竞拍</b>
-          <span>订单和出价记录来自当前账号</span>
+          <b>我的订单</b>
+          <span>订单和互动记录来自当前账号</span>
         </div>
         <button type="button" onClick={() => void actions.refreshOrders().catch(() => undefined)}>
           刷新
@@ -72,7 +69,7 @@ function MyPanel({
         {orders.map((order) => <MiniOrder order={order} key={order.id} />)}
       </div>
       <a className="historyLink" href={`/m/history?roomId=${encodeURIComponent(roomId)}&from=room`}>
-        查看全部订单和竞拍记录
+        查看全部订单记录
       </a>
     </section>
   );
@@ -83,7 +80,7 @@ function MiniOrder({ order }: { order: OrderSummary }) {
     <article className="miniOrder">
       {order.lotImageUrl ? <img src={order.lotImageUrl} alt={order.lotTitle || order.id} /> : <div className="miniOrderFallback">单</div>}
       <div>
-        <b>{order.lotTitle || order.lotId || '成交拍品'}</b>
+        <b>{order.lotTitle || order.lotId || '成交商品'}</b>
         <span>{formatEventTime(order.createdAtUnixMs)}</span>
       </div>
       <aside>
@@ -94,27 +91,6 @@ function MiniOrder({ order }: { order: OrderSummary }) {
   );
 }
 
-function unavailableReasonForLot(
-  lot: NonNullable<LiveRoomController['currentLot']>,
-  currentLot: LiveRoomController['currentLot'],
-  orders: OrderSummary[],
-  paidLotIds: Record<string, boolean>,
-  nowMs?: number,
-): string {
-  const displayState = deriveLotDisplayState(lot, {
-    order: orderForLot(orders, lot),
-    paymentKnownPaid: Boolean(paidLotIds[lot.id]),
-    nowMs,
-  });
-
-  if (displayState === 'pendingPayment') return '这件拍品已落锤，正在等待竞得者付款';
-  if (displayState === 'failed') return '这件拍品未成交，已结束';
-  if (displayState === 'finished') return '这件拍品已结束';
-  if (!currentLot || lot.id !== currentLot.id) return '这件还未开拍，先看看本场安排';
-  if (!isBiddableLotStatus(lot.status)) return '当前拍品状态不可出价';
-  return '';
-}
-
 function CurrentAuctionPanel({ controller }: { controller: LiveRoomController }) {
   const {
     room,
@@ -122,11 +98,8 @@ function CurrentAuctionPanel({ controller }: { controller: LiveRoomController })
     loading,
     error,
     currentLot,
-    ranking,
-    meId,
-    isBidPending,
     accountRoleMessage,
-    showBuyerAuth,
+    bidAuthPanelOpen,
     buyerAuth,
     actions,
   } = controller;
@@ -147,13 +120,7 @@ function CurrentAuctionPanel({ controller }: { controller: LiveRoomController })
     paymentKnownPaid: Boolean(room.paidLotIds[sheetLot.id]),
     nowMs: displayNowMs,
   }) : undefined;
-  const leadingBidDisabledReason = sheetIsCurrent && currentLot?.leadingUserId && currentLot.leadingUserId === meId
-    ? '当前您已是最高价'
-    : '';
-  const unavailableReason = sheetLot && (!sheetIsCurrent || !isBiddableLotStatus(sheetLot.status))
-    ? unavailableReasonForLot(sheetLot, currentLot, room.orders, room.paidLotIds, displayNowMs)
-    : '';
-  const bidDisabledReason = leadingBidDisabledReason || unavailableReason;
+  const sheetCanBid = Boolean(sheetLot && sheetIsCurrent && sheetDisplayState === 'live');
 
   return (
     <section className="currentAuctionPanel">
@@ -174,51 +141,47 @@ function CurrentAuctionPanel({ controller }: { controller: LiveRoomController })
         nowMs={displayNowMs}
       />
 
-      {sheetLot ? (
-        <section className="liveBidSheet" aria-label="出价面板">
-          <button type="button" className="bidSheetClose" onClick={() => setSheetLotId('')} aria-label="收起出价面板">×</button>
+      {bidAuthPanelOpen ? (
+        <section className="liveBidSheet liveProductSheet liveAuthSheet" aria-label="登录后出价">
+          <button type="button" className="bidSheetClose" onClick={actions.closeBuyerAuthPanel} aria-label="关闭登录窗口">×</button>
+          <BuyerAuthPanel auth={buyerAuth} />
+        </section>
+      ) : sheetLot ? (
+        <section className="liveBidSheet liveProductSheet" aria-label="商品详情">
+          <button type="button" className="bidSheetClose" onClick={() => setSheetLotId('')} aria-label="收起商品详情">×</button>
           <CurrentLotCard
             lot={sheetLot}
             serverTimeUnixMs={room.serverTimeUnixMs}
             serverTimeReceivedAtUnixMs={room.serverTimeReceivedAtUnixMs}
             displayState={sheetDisplayState}
           />
-          {showBuyerAuth ? (
-            <BuyerAuthPanel auth={buyerAuth} />
-          ) : (
+          {sheetCanBid ? (
             <BidPanel
               lot={sheetLot}
-              loading={isBidPending}
-              disabledReason={bidDisabledReason}
+              loading={controller.isBidPending}
+              disabledReason={accountRoleMessage || ''}
               onBid={actions.submitBid}
               onTip={actions.showNotice}
             />
-          )}
+          ) : null}
         </section>
       ) : null}
 
-      {!loading && !currentLot && !lots.length ? <section className="drawerEmpty">当前暂无竞拍，等待主播开拍</section> : null}
-
-      {currentLot ? (
-        <section className="liveAuctionTelemetry">
-          <RankingBoard ranking={ranking} meId={meId} />
-          <RecentBidFeed bids={room.recentBids} meId={meId} />
-        </section>
-      ) : null}
+      {!loading && !currentLot && !lots.length ? <section className="drawerEmpty">当前暂无商品，等待主播上架</section> : null}
 
       {room.localOptimistic.pendingBid ? (
         <p className="pendingHint">
-          出价已提交，等待后端确认，幂等键 {room.localOptimistic.pendingBid.idempotencyKey.slice(0, 18)}...
+          订单状态同步中，幂等键 {room.localOptimistic.pendingBid.idempotencyKey.slice(0, 18)}...
         </p>
       ) : null}
 
-      {currentLot?.status === LOT_STATUS.CANCELLED ? <div className="cancelBanner">本场竞拍已异常取消</div> : null}
+      {currentLot?.status === LOT_STATUS.CANCELLED ? <div className="cancelBanner">本场商品已下架</div> : null}
     </section>
   );
 }
 
 export function AuctionDrawer({ controller }: { controller: LiveRoomController }) {
-  const { auctionPanel, currentLot, room, actions } = controller;
+  const { auctionPanel, currentLot, actions } = controller;
   if (!auctionPanel.open) return null;
   const activeTab = auctionPanel.tab === 'mine' ? 'mine' : 'current';
 
@@ -229,13 +192,18 @@ export function AuctionDrawer({ controller }: { controller: LiveRoomController }
 
   return (
     <div className="auctionDrawerMask" onClick={actions.closeAuctionPanel}>
-      <section className="auctionDrawer" role="dialog" aria-modal="true" aria-label="直播竞拍" onClick={(event) => event.stopPropagation()}>
+      <section className="auctionDrawer" role="dialog" aria-modal="true" aria-label="直播商品" onClick={(event) => event.stopPropagation()}>
         <header className="auctionDrawerHeader">
           <div>
-            <span>直播竞拍</span>
-            <h2>{currentLot?.title || '本场拍品'}</h2>
+            <span>进主播橱窗 ›</span>
+            <h2>{currentLot?.title || '本场商品'}</h2>
+            <div className="auctionDrawerTrust">
+              <em>带货口碑 5.0高</em>
+              <em>安心购</em>
+              <em>真实宝</em>
+            </div>
           </div>
-          <button type="button" className="drawerClose" onClick={actions.closeAuctionPanel} aria-label="关闭竞拍面板">
+          <button type="button" className="drawerClose" onClick={actions.closeAuctionPanel} aria-label="关闭商品面板">
             ×
           </button>
         </header>
@@ -253,10 +221,6 @@ export function AuctionDrawer({ controller }: { controller: LiveRoomController }
           {activeTab === 'current' ? <CurrentAuctionPanel controller={controller} /> : null}
           {activeTab === 'mine' ? <MyPanel controller={controller} /> : null}
         </div>
-
-        <footer className="drawerSyncState">
-          {room.eventState.source === 'websocket' ? '实时事件同步中' : room.eventState.source === 'local' ? '本地操作待确认' : '快照同步中'}
-        </footer>
       </section>
     </div>
   );

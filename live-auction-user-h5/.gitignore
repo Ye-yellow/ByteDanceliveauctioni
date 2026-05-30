@@ -17,10 +17,11 @@ dist-ssr
 *.tar.gz
 *.zip
 coverage
+test-results
 .codex
 .agents
 .codegraph
-tmp/shot
+tmp
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

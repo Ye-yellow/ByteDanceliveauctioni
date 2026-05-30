@@ -50,7 +50,7 @@ export function MockPayModal({
   };
 
   return (
-    <div className="modalMask">
+    <div className="modalMask paySheetMask">
       <section className="payModal" aria-modal="true" role="dialog">
         <button className="modalClose" onClick={onClose} aria-label="关闭支付弹窗">
           ×

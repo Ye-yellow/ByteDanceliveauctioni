@@ -62,8 +62,8 @@ VITE_DEMO_BUYER_NICKNAME=H5 买家
 ## MVP 路由
 
 - `/m/room/:roomId` 用户直播间主页面
-- `/m/result/:lotId` 可选结果页占位
-- `/m/history` 可选历史记录页占位
+- `/m/result/:lotId` 竞拍结果页
+- `/m/history` 我的订单和竞拍记录页
 
 ## H5 页面布局约定
 

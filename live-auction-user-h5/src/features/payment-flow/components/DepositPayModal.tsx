@@ -11,7 +11,7 @@ export function DepositPayModal({
   onClose: () => void;
 }) {
   return (
-    <div className="modalMask resultModalMask">
+    <div className="modalMask paySheetMask">
       <section className="payModal depositModal" aria-modal="true" role="dialog">
         <button className="modalClose" onClick={onClose} aria-label="关闭保证金弹窗">
           ×

@@ -1,0 +1,768 @@
+.dyMessageReplica {
+  --dy-message-bg: #111217;
+  --dy-message-line: rgba(255, 255, 255, 0.08);
+  --dy-message-text: #f7f7f8;
+  --dy-message-muted: rgba(255, 255, 255, 0.48);
+  --dy-message-faint: rgba(255, 255, 255, 0.28);
+  --dy-message-primary: #fe2c55;
+  width: min(100%, 430px);
+  padding: 0;
+  overflow: hidden;
+  background: var(--dy-message-bg);
+  color: var(--dy-message-text);
+}
+
+.dyMessageReplica a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.dyMessageReplica button,
+.dyMessageReplica input {
+  font: inherit;
+}
+
+.dyMessageMain {
+  height: 100dvh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--dy-message-bg);
+}
+
+.dyMessageHeader {
+  flex: 0 0 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px;
+}
+
+.dyMessageIconButton {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dy-message-text);
+  font-size: 29px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.dyMessageIconButton[href] {
+  font-size: 26px;
+}
+
+.dyMessageIconButton:active,
+.dyMessageRow:active,
+.dyMessageFriend:active,
+.dyMessageJoinedEntry:active,
+.dyMessageCreateFriend:active,
+.dyMessageCreateResult:active,
+.dyMessageGroupRow:active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dyMessageScroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 0 var(--live-bottom-nav-total-height);
+  -webkit-overflow-scrolling: touch;
+}
+
+.dyMessageScroll::-webkit-scrollbar,
+.dyMessageSearchReplica::-webkit-scrollbar,
+.dyMessageSheetScroll::-webkit-scrollbar,
+.dyMessageFriends::-webkit-scrollbar {
+  display: none;
+}
+
+.dyMessageFriends {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  padding: 0 10px 2px;
+}
+
+.dyMessageFriend {
+  width: 70px;
+  min-width: 70px;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--dy-message-text);
+  padding: 0;
+}
+
+.dyMessageFriendAvatar {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  display: block;
+}
+
+.dyMessageFriendAvatar > .dyMessageAvatar {
+  width: 70px;
+  height: 70px;
+  font-size: 24px;
+}
+
+.dyMessageFriendAvatar.isOnline::before,
+.dyMessageRowAvatar.isOnline::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  border-radius: 50%;
+  background: #73fe49;
+}
+
+.dyMessageFriendAvatar.isOnline::before {
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  border: 4px solid #000;
+}
+
+.dyMessageFriend > span:last-child {
+  width: 64px;
+  overflow: hidden;
+  color: var(--dy-message-text);
+  white-space: nowrap;
+  text-align: center;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.dyMessageStatusAvatar {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--dy-message-muted);
+  font-size: 28px;
+}
+
+.dyMessageRows {
+  margin-top: 20px;
+}
+
+.dyMessageRow {
+  min-height: 87px;
+  display: flex;
+  align-items: center;
+}
+
+.dyMessageRowAvatar {
+  position: relative;
+  flex: 0 0 auto;
+  margin: 0 15px 0 20px;
+}
+
+.dyMessageRowAvatar .dyMessageAvatar {
+  width: 55px;
+  height: 55px;
+  font-size: 18px;
+}
+
+.dyMessageRowAvatar.isOnline::before {
+  right: 0;
+  bottom: 0;
+  width: 12px;
+  height: 12px;
+  border: 3px solid #000;
+}
+
+.dyMessageRowContent {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 16px 0;
+}
+
+.dyMessageRowLeft {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.dyMessageRowName {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.dyMessageRowName b {
+  overflow: hidden;
+  color: var(--dy-message-text);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.dyMessageRowName em {
+  flex: 0 0 auto;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--dy-message-muted);
+  padding: 2px 5px;
+  font-style: normal;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.dyMessageRowDetail {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  color: var(--dy-message-muted);
+  font-size: 14px;
+}
+
+.dyMessageRowDetail span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dyMessageRowDetail i {
+  flex: 0 0 auto;
+  width: 2px;
+  height: 2px;
+  margin: 0 8px;
+  border-radius: 50%;
+  background: var(--dy-message-muted);
+}
+
+.dyMessageRowDetail time {
+  flex: 0 0 auto;
+}
+
+.dyMessageRowRight {
+  flex: 0 0 auto;
+  min-width: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: 12px;
+}
+
+.dyMessageArrow {
+  color: var(--dy-message-faint);
+  font-size: 26px;
+  line-height: 1;
+}
+
+.dyMessageBadge {
+  min-width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--dy-message-primary);
+  color: #fff;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.dyMessageUnreadDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dy-message-primary);
+}
+
+.dyMessageNoMore {
+  margin: 0;
+  color: var(--dy-message-muted);
+  padding: 20px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.dyMessageAvatar {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dyMessageAvatar-cyan {
+  background: linear-gradient(135deg, #19d5d1, #3762ff);
+}
+
+.dyMessageAvatar-rose {
+  background: linear-gradient(135deg, #ff5e8f, #fe2c55);
+}
+
+.dyMessageAvatar-amber {
+  background: linear-gradient(135deg, #ffd36b, #ff8a00);
+}
+
+.dyMessageAvatar-violet {
+  background: linear-gradient(135deg, #9b7cff, #5a3be8);
+}
+
+.dyMessageAvatar-green {
+  background: linear-gradient(135deg, #84f06a, #0aa66d);
+}
+
+.dyMessageAvatar-blue {
+  background: linear-gradient(135deg, #70b7ff, #1e55ff);
+}
+
+.dyMessageAvatar-dark {
+  background: linear-gradient(135deg, #3b3f4d, #0b0c11);
+}
+
+.dyMessageSearchReplica {
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.dyMessageSearchHeader,
+.dyMessageCreateSearch {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.dyMessageSearchHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-bottom: 10px;
+  background: var(--dy-message-bg);
+}
+
+.dyMessageSearchBox {
+  min-width: 0;
+  height: 38px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 0 10px;
+}
+
+.dyMessageSearchBox span {
+  color: var(--dy-message-muted);
+  font-size: 18px;
+}
+
+.dyMessageSearchBox input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--dy-message-text);
+  font-size: 14px;
+}
+
+.dyMessageSearchBox input::placeholder {
+  color: var(--dy-message-muted);
+}
+
+.dyMessageSearchHeader > button,
+.dyMessageCreateSearch > button {
+  border: 0;
+  background: transparent;
+  color: var(--dy-message-text);
+  padding: 0;
+  font-size: 14px;
+}
+
+.dyMessageSearchContent {
+  display: grid;
+  gap: 2px;
+}
+
+.dyMessageSubTitle {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--dy-message-muted);
+  font-size: 12px;
+}
+
+.dyMessageSubTitle a {
+  color: var(--dy-message-muted);
+}
+
+.dyMessagePeopleResult,
+.dyMessageGotoSearch,
+.dyMessageGroupRow {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+}
+
+.dyMessagePeopleResult .dyMessageAvatar,
+.dyMessageGroupRow .dyMessageAvatar {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  margin-right: 10px;
+  font-size: 17px;
+}
+
+.dyMessagePeopleResult span,
+.dyMessageGotoSearch span,
+.dyMessageGroupRow span {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 4px;
+}
+
+.dyMessagePeopleResult b,
+.dyMessageGotoSearch b,
+.dyMessageGroupRow b {
+  overflow: hidden;
+  color: var(--dy-message-text);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.dyMessagePeopleResult small,
+.dyMessageGotoSearch small,
+.dyMessageGroupRow small {
+  color: var(--dy-message-muted);
+  font-size: 12px;
+}
+
+.dyMessageGotoSearch {
+  margin-top: 12px;
+  border-top: 1px solid var(--dy-message-line);
+  padding-top: 12px;
+}
+
+.dyMessageGotoSearch i {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--dy-message-muted);
+  margin-right: 10px;
+  font-style: normal;
+  font-size: 20px;
+}
+
+.dyMessageGotoSearch mark {
+  background: transparent;
+  color: #ffe64d;
+}
+
+.dyMessageGotoSearch em,
+.dyMessageGroupRow em {
+  color: var(--dy-message-faint);
+  font-style: normal;
+  font-size: 24px;
+}
+
+.dyMessageCreateLayer {
+  position: absolute;
+  z-index: calc(var(--live-z-modal) + 1);
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+}
+
+.dyMessageCreateMask {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.56);
+}
+
+.dyMessageCreateSheet {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 78dvh;
+  max-height: 78dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 16px 16px 0 0;
+  background: var(--dy-message-bg);
+  box-shadow: 0 -18px 48px rgba(0, 0, 0, 0.35);
+}
+
+.dyMessageCreateSearch {
+  flex: 0 0 auto;
+  padding: 14px 20px 8px;
+}
+
+.dyMessageSheetScroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 82px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dyMessageJoinedEntry {
+  width: 100%;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid var(--dy-message-line);
+  background: transparent;
+  color: var(--dy-message-text);
+  padding: 0 20px;
+}
+
+.dyMessageJoinedEntry span {
+  width: 52px;
+  color: var(--dy-message-muted);
+  text-align: center;
+  font-size: 20px;
+}
+
+.dyMessageJoinedEntry b {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.dyMessageJoinedEntry em {
+  color: var(--dy-message-faint);
+  font-style: normal;
+  font-size: 22px;
+}
+
+.dyMessageFriendList {
+  padding: 0 20px;
+}
+
+.dyMessageFriendList h2 {
+  height: 60px;
+  margin: 0;
+  color: var(--dy-message-text);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 60px;
+}
+
+.dyMessageCreateFriend,
+.dyMessageCreateResult {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--dy-message-text);
+  padding: 0;
+  text-align: left;
+}
+
+.dyMessageCreateFriend {
+  min-height: 68px;
+}
+
+.dyMessageCreateFriend .dyMessageAvatar,
+.dyMessageCreateResult .dyMessageAvatar {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  margin-right: 10px;
+  font-size: 17px;
+}
+
+.dyMessageCreateFriend > span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+}
+
+.dyMessageCheck {
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 50%;
+}
+
+.dyMessageCheck.isChecked {
+  border-color: var(--dy-message-primary);
+  background: var(--dy-message-primary);
+}
+
+.dyMessageCheck.isChecked::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 3px;
+  width: 7px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.dyMessageCreateFooter {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  background: var(--dy-message-bg);
+}
+
+.dyMessageCreateFooter button {
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--dy-message-primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.dyMessageCreateFooter button:disabled {
+  background: rgba(254, 44, 85, 0.34);
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.dyMessageCreateResults {
+  padding: 10px 20px 0;
+}
+
+.dyMessageCreateResult {
+  min-height: 68px;
+}
+
+.dyMessageCreateResult > span {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 4px;
+}
+
+.dyMessageCreateResult b {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.dyMessageCreateResult small {
+  color: var(--dy-message-muted);
+  font-size: 13px;
+}
+
+.dyMessageNoResult {
+  min-height: 50vh;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+}
+
+.dyMessageNoResult b {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.dyMessageNoResult small {
+  color: var(--dy-message-muted);
+  font-size: 14px;
+}
+
+.dyMessageJoinedNav {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+}
+
+.dyMessageJoinedNav button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  color: var(--dy-message-text);
+  padding: 0;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.dyMessageJoinedNav b {
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.dyMessageJoinedNav span {
+  width: 28px;
+}
+
+.dyMessageGroupRow {
+  padding: 0 20px;
+}
+
+.dyMessageGroupRow b {
+  display: inline-block;
+  max-width: 100%;
+}
+
+.dyMessageGroupRow small {
+  margin-left: 5px;
+}
+
+@media (max-width: 360px) {
+  .dyMessageFriends {
+    gap: 16px;
+  }
+
+  .dyMessageHeader {
+    padding-inline: 16px;
+  }
+
+  .dyMessageRowAvatar {
+    margin-left: 16px;
+    margin-right: 12px;
+  }
+
+  .dyMessageRowContent {
+    padding-right: 16px;
+  }
+}

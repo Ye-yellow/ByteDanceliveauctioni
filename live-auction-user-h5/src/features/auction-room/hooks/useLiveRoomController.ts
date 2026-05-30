@@ -25,7 +25,7 @@ type DepositPrompt = {
 
 function bidFailureMessage(reason: unknown): string {
   const message = reason instanceof Error ? reason.message : typeof reason === 'string' ? reason : '请稍后重试';
-  return message.startsWith('出价失败') ? message : `出价失败：${message}`;
+  return message.startsWith('操作失败') ? message : `操作失败：${message}`;
 }
 
 function shouldOpenBuyerAuth(reason: unknown): boolean {
@@ -97,6 +97,7 @@ export function useLiveRoomController(roomId: string) {
   const [authNickname, setAuthNickname] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [authPanelForcedOpen, setAuthPanelForcedOpen] = useState(false);
   const [resultLot, setResultLot] = useState<Lot | null>(null);
   const [resultOrder, setResultOrder] = useState<OrderSummary | null>(null);
   const [payOrder, setPayOrder] = useState<OrderSummary | null>(null);
@@ -115,6 +116,7 @@ export function useLiveRoomController(roomId: string) {
   const isBidPending = Boolean(room.localOptimistic.pendingBid) || bidding;
   const accountRoleMessage = status !== 'authenticated' && reason === '该账号不是买家账号' ? reason : '';
   const showBuyerAuth = !user && (authMode === 'real' || reason?.includes('请先登录'));
+  const bidAuthPanelOpen = !user && authPanelForcedOpen;
 
   const ranking = useMemo(
     () => room.ranking.map((item) => ({ ...item, isMe: item.userId === meId })),
@@ -147,7 +149,7 @@ export function useLiveRoomController(roomId: string) {
       setRoomLots(lots);
       return lots;
     } catch (e) {
-      const message = e instanceof Error ? e.message : '拍品队列加载失败';
+      const message = e instanceof Error ? e.message : '商品队列加载失败';
       setRoomLotsError(message);
       throw e;
     } finally {
@@ -252,7 +254,8 @@ export function useLiveRoomController(roomId: string) {
       if (authFormMode === 'login') await loginBuyer(username, authPassword);
       else await registerBuyer(username, authPassword, authNickname.trim() || nicknameFromUsername(username));
       setBidError('');
-      pushNotice(authFormMode === 'login' ? '登录成功，可以出价' : '注册成功，可以出价');
+      setAuthPanelForcedOpen(false);
+        pushNotice(authFormMode === 'login' ? '登录成功，可以继续' : '注册成功，可以继续');
     } catch (e) {
       setAuthError(e instanceof Error ? e.message : '账号处理失败，请重试');
     } finally {
@@ -271,6 +274,7 @@ export function useLiveRoomController(roomId: string) {
 
   const openBuyerAuthPanel = useCallback(() => {
     setAuthFormMode('login');
+    setAuthPanelForcedOpen(true);
     setAuctionPanelTab('current');
     setAuctionPanelOpen(true);
   }, []);
@@ -278,15 +282,15 @@ export function useLiveRoomController(roomId: string) {
   const submitBid = useCallback(async (amount: number) => {
     if (isBidPending) return;
     if (!currentLot) {
-      setBidError('当前暂无竞拍，等待主播开拍');
+      setBidError('当前暂无商品，等待主播讲解');
       return;
     }
     if (!isBiddableLotStatus(currentLot.status)) {
-      setBidError('当前拍品还未开拍或已结束');
+      setBidError('当前商品还未开始或已结束');
       return;
     }
     if (meId && currentLot.leadingUserId === meId) {
-      const message = '你已领先，等待其他买家出价后再加价';
+      const message = '你已关注这件商品，等待主播继续讲解';
       setBidError(message);
       pushNotice(message);
       return;
@@ -333,9 +337,9 @@ export function useLiveRoomController(roomId: string) {
           ranking: res.ranking,
           serverTimeUnixMs: Date.now(),
         });
-        pushNotice(res.lot?.leadingUserId === session.user.id || res.bid?.userId === session.user.id ? '出价成功，你已领先' : '出价成功，等待排名更新');
+        pushNotice(res.lot?.leadingUserId === session.user.id || res.bid?.userId === session.user.id ? '已记录你的商品互动' : '互动成功，等待同步');
       } else {
-        const message = bidFailureMessage(res.rejectReason || '后端未接受本次出价');
+        const message = bidFailureMessage(res.rejectReason || '后端未接受本次操作');
         setBidError(message);
         pushNotice(message);
       }
@@ -401,6 +405,7 @@ export function useLiveRoomController(roomId: string) {
     isBidPending,
     accountRoleMessage,
     showBuyerAuth,
+    bidAuthPanelOpen,
     buyerAuth: {
       mode: authFormMode,
       username: authUsername,
@@ -432,6 +437,7 @@ export function useLiveRoomController(roomId: string) {
       closeResult,
       nextLot,
       openAuctionPanel,
+      closeBuyerAuthPanel: () => setAuthPanelForcedOpen(false),
       closeAuctionPanel: () => setAuctionPanelOpen(false),
       setAuctionPanelTab,
       showNotice: pushNotice,

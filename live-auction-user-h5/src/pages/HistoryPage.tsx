@@ -12,7 +12,7 @@ export function HistoryPage() {
   const roomId = params.get('roomId') || '';
   const from = params.get('from');
   const roomHref = roomId ? `/m/room/${encodeURIComponent(roomId)}` : '/';
-  const profileHref = roomId ? `/m/profile?roomId=${encodeURIComponent(roomId)}` : '/m/profile';
+  const profileHref = roomId ? `/me?roomId=${encodeURIComponent(roomId)}` : '/me';
   const backLabel = '返回';
   const backHref = from === 'profile' ? profileHref : roomHref;
   const activity = useBuyerActivity(ensureBuyerSession);
@@ -41,7 +41,7 @@ export function HistoryPage() {
 
   if (authMode === 'real' && !user) {
     return (
-      <main className="mobileShell">
+      <main className="mobileShell orderPage">
         <section className="emptyState">请先在直播间登录买家账号，再查看我的订单和竞拍记录。</section>
         {from === 'room' ? (
           <button type="button" className="bottomAction" onClick={handleBack}>{backLabel}</button>

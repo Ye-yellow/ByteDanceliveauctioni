@@ -1,0 +1,362 @@
+.dyProfileEditPage {
+  position: fixed;
+  inset: 0;
+  overflow: auto;
+  background: #111;
+  color: #fff;
+  font-size: 14px;
+}
+
+.dyProfileEditHeader {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  min-height: calc(54px + var(--live-safe-top));
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) 86px;
+  align-items: center;
+  padding: var(--live-safe-top) 14px 0;
+  box-sizing: border-box;
+  background: rgba(17, 17, 17, 0.96);
+}
+
+.dyProfileEditHeader > button {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 28px;
+}
+
+.dyProfileEditHeader > span {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+.dyProfileEditHeader b {
+  font-size: 16px;
+}
+
+.dyProfileEditHeader small {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 10px;
+}
+
+.dyProfileEditHeader > div {
+  justify-self: end;
+}
+
+.dyProfileEditHeader .saveYes,
+.dyProfileEditHeader .saveNo,
+.dyProfileEditRightLink {
+  border: 0;
+  background: transparent;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.dyProfileEditHeader .saveYes {
+  color: #fe2c55;
+}
+
+.dyProfileEditHeader .saveNo {
+  color: rgba(254, 44, 85, 0.42);
+}
+
+.dyProfileEditRightLink {
+  color: #fff;
+}
+
+.dyProfileEditAvatarBlock {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 34px 0 24px;
+}
+
+.dyProfileEditAvatarBlock button {
+  position: relative;
+  width: 82px;
+  height: 82px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff6b8b, #ffd36a 52%, #36d399);
+  color: #fff;
+  font-size: 32px;
+  font-weight: 950;
+}
+
+.dyProfileEditAvatarBlock button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(0, 0, 0, 0.38);
+}
+
+.dyProfileEditAvatarBlock span,
+.dyProfileEditAvatarBlock i {
+  position: relative;
+  z-index: 1;
+}
+
+.dyProfileEditAvatarBlock i {
+  position: absolute;
+  font-style: normal;
+  font-size: 23px;
+}
+
+.dyProfileEditAvatarBlock p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.dyProfileEditRows,
+.dyProfileChooseList {
+  display: grid;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dyProfileEditRows a,
+.dyProfileEditRows button,
+.dyProfileChooseList a,
+.dyProfileChooseList button {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #111;
+  color: #fff;
+  padding: 0 18px;
+  text-align: left;
+  text-decoration: none;
+}
+
+.dyProfileEditRows p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.dyProfileEditRows i,
+.dyProfileChooseList span {
+  color: rgba(255, 255, 255, 0.42);
+  font-style: normal;
+}
+
+.dyProfileEditSheetMask,
+.dyProfileEditDialogMask {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.46);
+}
+
+.dyProfileEditSheet {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: min(100%, 430px);
+  overflow: hidden;
+  border-radius: 14px 14px 0 0;
+  background: #fff;
+  color: #111;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.dyProfileEditSheet b {
+  display: block;
+  padding: 16px;
+}
+
+.dyProfileEditSheet button {
+  width: 100%;
+  min-height: 50px;
+  border: 0;
+  border-top: 1px solid #eee;
+  background: #fff;
+}
+
+.dyProfileEditSheet i {
+  display: block;
+  height: 10px;
+  background: #f5f5f6;
+}
+
+.dyProfileEditItemContent {
+  padding: 20px;
+}
+
+.dyProfileEditItemContent p,
+.dyProfileEditItemContent small {
+  margin: 0 0 8px;
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.dyProfileEditItemContent label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dyProfileEditItemContent input {
+  flex: 1;
+  min-height: 42px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 16px;
+}
+
+.dyProfileEditItemContent label button {
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  width: 22px;
+  height: 22px;
+}
+
+.dyProfileEditItemContent textarea {
+  width: 100%;
+  min-height: 160px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 3px;
+  outline: 0;
+  background: #19191b;
+  color: #fff;
+  padding: 14px;
+  resize: none;
+  font: inherit;
+  line-height: 1.55;
+}
+
+.dyProfileEditDialog {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(300px, calc(100vw - 52px));
+  display: grid;
+  gap: 1px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #333;
+  transform: translate(-50%, -50%);
+}
+
+.dyProfileEditDialog p,
+.dyProfileEditDialog button {
+  margin: 0;
+  border: 0;
+  background: #fff;
+  color: #111;
+  padding: 15px;
+  text-align: center;
+}
+
+.dyProfileEditDialog button:first-of-type {
+  color: #fe2c55;
+}
+
+.dyProfileEditSearch {
+  position: sticky;
+  top: calc(54px + var(--live-safe-top));
+  z-index: 4;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 10px 18px;
+  background: #111;
+}
+
+.dyProfileEditSearch label {
+  height: 38px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border-radius: 4px;
+  background: #222;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 0 10px;
+}
+
+.dyProfileEditSearch input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+}
+
+.dyProfileEditSearch button {
+  border: 0;
+  background: transparent;
+  color: #fff;
+}
+
+.dyProfileChooseList.hasSearch {
+  padding-top: 0;
+}
+
+.dyProfileChooseList p {
+  margin: 0;
+  padding: 12px 18px 8px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.dyProfileChooseList > i {
+  height: 1px;
+  margin-left: 18px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dyProfileEditEmpty {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.dyProfileEditEmpty span {
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #333, #555);
+}
+
+.dyProfileEditEmpty b,
+.dyProfileEditEmpty p {
+  margin: 0;
+}
+
+.dyProfileEditEmpty p {
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.dyProfileEditEmpty a {
+  margin-top: 80px;
+  border-radius: 4px;
+  background: #2a2a2d;
+  color: #fff;
+  padding: 13px 28px;
+  text-decoration: none;
+}
+
+.dyProfileEditCheck {
+  color: #fe2c55 !important;
+  font-size: 18px;
+}

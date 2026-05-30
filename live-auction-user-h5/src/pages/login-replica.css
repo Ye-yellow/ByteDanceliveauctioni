@@ -1,0 +1,338 @@
+.dyLoginReplica {
+  position: fixed;
+  inset: 0;
+  overflow: auto;
+  background: #fff;
+  color: #111;
+  font-size: 14px;
+}
+
+.dyLoginReplicaHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  min-height: calc(52px + var(--live-safe-top));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--live-safe-top) 20px 0;
+  box-sizing: border-box;
+  background: #fff;
+}
+
+.dyLoginReplicaHeader button {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  background: transparent;
+  color: #191919;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.dyLoginReplicaHeader a {
+  color: #191919;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.dyLoginReplicaContent {
+  min-height: calc(100dvh - 52px - var(--live-safe-top));
+  display: flex;
+  flex-direction: column;
+  padding: 92px 30px calc(42px + var(--live-safe-bottom));
+  box-sizing: border-box;
+}
+
+.dyLoginReplicaDesc {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  margin-bottom: 38px;
+  text-align: center;
+}
+
+.dyLoginReplicaDesc h1,
+.dyLoginReplicaDesc b,
+.dyLoginReplicaDesc p,
+.dyLoginReplicaSigned h1,
+.dyLoginReplicaSigned p {
+  margin: 0;
+}
+
+.dyLoginReplicaDesc h1 {
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.dyLoginReplicaDesc b {
+  letter-spacing: 3px;
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.dyLoginReplicaDesc p {
+  max-width: 286px;
+  color: #8a8a8f;
+  line-height: 1.55;
+}
+
+.dyLoginReplicaQuick,
+.dyLoginReplicaForm {
+  display: grid;
+  gap: 10px;
+}
+
+.dyLoginReplicaPrimary,
+.dyLoginReplicaSecondary {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 2px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.dyLoginReplicaPrimary {
+  background: #fe2c55;
+  color: #fff;
+}
+
+.dyLoginReplicaPrimary:disabled {
+  opacity: 0.62;
+}
+
+.dyLoginReplicaSecondary {
+  background: #f2f2f4;
+  color: #191919;
+}
+
+.dyLoginReplicaForm nav {
+  height: 36px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.dyLoginReplicaForm nav button {
+  border: 0;
+  border-radius: 2px;
+  background: #f3f3f5;
+  color: #777;
+  font-weight: 800;
+}
+
+.dyLoginReplicaForm nav button.active {
+  background: #191919;
+  color: #fff;
+}
+
+.dyLoginReplicaForm label {
+  display: grid;
+  gap: 8px;
+}
+
+.dyLoginReplicaForm label span {
+  color: #6f6f74;
+  font-size: 12px;
+}
+
+.dyLoginReplicaForm input {
+  width: 100%;
+  height: 46px;
+  border: 0;
+  border-bottom: 1px solid #e4e4e7;
+  background: #fff;
+  color: #111;
+  font-size: 16px;
+  outline: none;
+}
+
+.dyLoginReplicaForm input:focus {
+  border-bottom-color: #191919;
+}
+
+.dyLoginReplicaFieldActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  min-height: 24px;
+  margin: -2px 0 2px;
+}
+
+.dyLoginReplicaFieldActions button {
+  border: 0;
+  background: transparent;
+  color: #191919;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dyLoginReplicaProtocol {
+  position: relative;
+  display: flex;
+  margin-top: 20px;
+  color: #85858a;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.dyLoginReplicaProtocol.isShake {
+  animation: dyLoginReplicaShake 0.42s ease;
+}
+
+.dyLoginReplicaProtocol em {
+  position: absolute;
+  left: 0;
+  top: -36px;
+  padding: 7px 10px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.82);
+  color: #fff;
+  font-style: normal;
+}
+
+.dyLoginReplicaProtocol label {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.dyLoginReplicaProtocol input {
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  accent-color: #fe2c55;
+}
+
+.dyLoginReplicaProtocol a {
+  color: #1b77ff;
+  text-decoration: none;
+}
+
+.dyLoginReplicaNotice,
+.dyLoginReplicaError {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  line-height: 1.5;
+}
+
+.dyLoginReplicaNotice {
+  background: #f0f8ff;
+  color: #2563eb;
+}
+
+.dyLoginReplicaError {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.dyLoginReplicaOther {
+  margin-top: auto;
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  padding-top: 38px;
+}
+
+.dyLoginReplicaOther > button,
+.dyLoginReplicaBackQuick {
+  border: 0;
+  background: transparent;
+  color: #1b77ff;
+  font-size: 13px;
+}
+
+.dyLoginReplicaOther div {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.dyLoginReplicaOther div button {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: #f2f3f5;
+  color: #3d3d42;
+  font-weight: 900;
+}
+
+.dyLoginReplicaBackQuick {
+  margin: 16px auto 0;
+}
+
+.dyLoginReplicaSigned {
+  min-height: calc(100dvh - 52px - var(--live-safe-top));
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: 0 30px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.dyLoginReplicaSigned > span {
+  width: 78px;
+  height: 78px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fe2c55, #111);
+  color: #fff;
+  font-size: 32px;
+  font-weight: 950;
+}
+
+.dyLoginReplicaSigned h1 {
+  font-size: 24px;
+}
+
+.dyLoginReplicaSigned p {
+  color: #777;
+}
+
+.dyLoginReplicaSigned a,
+.dyLoginReplicaSigned button {
+  width: 100%;
+  max-width: 290px;
+  min-height: 46px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 2px;
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.dyLoginReplicaSigned a {
+  margin-top: 18px;
+  background: #fe2c55;
+  color: #fff;
+}
+
+.dyLoginReplicaSigned button {
+  background: #f2f2f4;
+  color: #191919;
+}
+
+@keyframes dyLoginReplicaShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-7px);
+  }
+  40%,
+  80% {
+    transform: translateX(7px);
+  }
+}

@@ -1,0 +1,448 @@
+.dyLoginFlowPage,
+.dyCountryChoosePage,
+.dyLoginFlowHelp {
+  position: fixed;
+  inset: 0;
+  overflow: auto;
+  background: #fff;
+  color: #111;
+  font-size: 14px;
+}
+
+.dyLoginFlowHeader,
+.dyLoginFlowHelpHeader {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  min-height: calc(52px + var(--live-safe-top));
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr) 96px;
+  align-items: center;
+  padding: var(--live-safe-top) 18px 0;
+  box-sizing: border-box;
+  background: #fff;
+}
+
+.dyLoginFlowHeader button,
+.dyLoginFlowHelpHeader button,
+.dyCountryHeader > button {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  background: transparent;
+  color: #191919;
+  font-size: 28px;
+}
+
+.dyLoginFlowHeader b,
+.dyLoginFlowHelpHeader b {
+  justify-self: center;
+  font-size: 16px;
+}
+
+.dyLoginFlowHeader a,
+.dyLoginFlowHeader span,
+.dyLoginFlowHelpHeader span {
+  justify-self: end;
+  color: #191919;
+  text-decoration: none;
+}
+
+.dyLoginFlowContent {
+  padding: 118px 30px calc(38px + var(--live-safe-bottom));
+  box-sizing: border-box;
+}
+
+.dyLoginFlowDesc {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  margin-bottom: 58px;
+  text-align: center;
+}
+
+.dyLoginFlowDesc.compact {
+  justify-items: start;
+  margin-top: 0;
+  margin-bottom: 54px;
+  text-align: left;
+}
+
+.dyLoginFlowDesc h1,
+.dyLoginFlowDesc p,
+.dyLoginFlowNotice,
+.dyLoginFlowDialog h2,
+.dyLoginFlowDialog p {
+  margin: 0;
+}
+
+.dyLoginFlowDesc h1 {
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.dyLoginFlowDesc p {
+  color: #8a8a8f;
+  line-height: 1.55;
+}
+
+.dyLoginFlowInput {
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  border-bottom: 1px solid #e6e6e8;
+  margin-bottom: 10px;
+}
+
+.dyLoginFlowInput input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #111;
+  font-size: 18px;
+}
+
+.dyLoginFlowInput input::placeholder {
+  color: #b2b2b8;
+}
+
+.dyLoginFlowInput button {
+  border: 0;
+  background: transparent;
+  color: #1b77ff;
+  font-weight: 800;
+}
+
+.dyLoginFlowProtocol {
+  position: relative;
+  margin: 20px 0;
+  color: #85858a;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.dyLoginFlowProtocol.isShake {
+  animation: dyLoginFlowShake 0.42s ease;
+}
+
+.dyLoginFlowProtocol em {
+  position: absolute;
+  left: 0;
+  top: -42px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.82);
+  color: #fff;
+  padding: 7px 10px;
+  font-style: normal;
+}
+
+.dyLoginFlowProtocol label {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.dyLoginFlowProtocol input {
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  accent-color: #fe2c55;
+}
+
+.dyLoginFlowProtocol a,
+.dyLoginFlowOptions a,
+.dyLoginFlowOptions button,
+.dyLoginFlowNotice a {
+  border: 0;
+  background: transparent;
+  color: #1b77ff;
+  padding: 0;
+  text-decoration: none;
+}
+
+.dyLoginFlowPrimary {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 2px;
+  background: #fe2c55;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.dyLoginFlowPrimary:disabled {
+  background: #f6a7b6;
+}
+
+.dyLoginFlowPrimary.topGap {
+  margin-top: 20px;
+}
+
+.dyLoginFlowNotice {
+  margin-top: 12px;
+  color: #fe2c55;
+  line-height: 1.5;
+}
+
+.dyLoginFlowOptions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+  color: #777;
+}
+
+.dyLoginFlowOptions.single {
+  justify-content: flex-start;
+}
+
+.dyLoginFlowSheetMask,
+.dyLoginFlowDialogMask {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.38);
+}
+
+.dyLoginFlowSocialSheet {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: min(100%, 430px);
+  overflow: hidden;
+  border-radius: 14px 14px 0 0;
+  background: #fff;
+  transform: translateX(-50%);
+}
+
+.dyLoginFlowSocialSheet button {
+  width: 100%;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 0;
+  border-top: 1px solid #ececef;
+  background: #fff;
+  color: #111;
+  font-size: 15px;
+}
+
+.dyLoginFlowSocialSheet span {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #f2f3f5;
+  font-weight: 900;
+}
+
+.dyLoginFlowSocialSheet i {
+  display: block;
+  height: 10px;
+  background: #f5f5f6;
+}
+
+.dyLoginFlowDialog {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(310px, calc(100vw - 48px));
+  display: grid;
+  gap: 14px;
+  border-radius: 10px;
+  background: #fff;
+  padding: 22px 20px;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.dyLoginFlowDialog h2 {
+  font-size: 18px;
+}
+
+.dyLoginFlowDialog p {
+  color: #777;
+  line-height: 1.55;
+}
+
+.dyLoginFlowDialog button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 4px;
+  background: #fe2c55;
+  color: #fff;
+  font-weight: 900;
+}
+
+.dyLoginFlowHelp {
+  background: #111;
+  color: #fff;
+}
+
+.dyLoginFlowHelpHeader {
+  background: #111;
+}
+
+.dyLoginFlowHelpHeader button,
+.dyLoginFlowHelpHeader span,
+.dyLoginFlowHelpHeader b {
+  color: #fff;
+}
+
+.dyLoginFlowHelp iframe {
+  width: 100%;
+  height: calc(100dvh - 52px - var(--live-safe-top));
+  border: 0;
+  background: #fff;
+}
+
+.dyCountryHeader {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) 46px;
+  gap: 0;
+  align-items: center;
+  padding: var(--live-safe-top) 12px 10px;
+  background: #111;
+  color: #fff;
+}
+
+.dyCountryHeader > b {
+  justify-self: center;
+}
+
+.dyCountryHeader > button {
+  color: #fff;
+}
+
+.dyCountryHeader label {
+  grid-column: 1 / -1;
+  height: 38px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  border-radius: 4px;
+  background: #222;
+  padding: 0 10px;
+}
+
+.dyCountryHeader input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+}
+
+.dyCountryHeader input::placeholder {
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.dyCountryHeader label button {
+  border: 0;
+  background: transparent;
+  color: #fff;
+}
+
+.dyCountryContent {
+  padding: 0 0 24px;
+  background: #111;
+  color: #fff;
+}
+
+.dyCountryRow,
+.dyCountryGroup button {
+  width: 100%;
+  min-height: 45px;
+  display: flex;
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: #fff;
+  padding: 0 18px;
+  text-align: left;
+}
+
+.dyCountryRow.muted,
+.dyCountryTopBlock p,
+.dyCountryGroup p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 13px;
+}
+
+.dyCountryTopBlock {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dyCountryTopBlock p {
+  margin-bottom: 10px;
+}
+
+.dyCountryTopBlock div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.dyCountryTopBlock button {
+  min-width: 70px;
+  min-height: 32px;
+  border: 0;
+  border-radius: 3px;
+  background: #242426;
+  color: #fff;
+}
+
+.dyCountryGroup p {
+  position: sticky;
+  top: calc(100px + var(--live-safe-top));
+  background: #171719;
+  padding: 7px 18px;
+}
+
+.dyCountryIndicator {
+  position: fixed;
+  top: 48%;
+  right: 4px;
+  z-index: 5;
+  display: grid;
+  gap: 1px;
+  transform: translateY(-50%);
+}
+
+.dyCountryIndicator a {
+  min-width: 18px;
+  min-height: 13px;
+  color: rgba(255, 255, 255, 0.72);
+  text-align: center;
+  text-decoration: none;
+  font-size: 10px;
+}
+
+@keyframes dyLoginFlowShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-7px);
+  }
+  40%,
+  80% {
+    transform: translateX(7px);
+  }
+}

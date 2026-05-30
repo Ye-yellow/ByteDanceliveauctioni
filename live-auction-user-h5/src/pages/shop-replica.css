@@ -1,0 +1,925 @@
+.dyShopShell,
+.dyShopDetailShell {
+  width: min(100%, 430px);
+  background: #f8f8f8;
+  color: #101010;
+}
+
+.dyShopShell {
+  padding: 10px 10px calc(66px + var(--live-safe-bottom));
+}
+
+.dyShopSearchBar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 36px;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0 10px;
+  background: #f8f8f8;
+}
+
+.dyShopSearchBox {
+  height: 36px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  border: 2px solid #fe2c55;
+  border-radius: 12px;
+  padding: 0 3px 0 10px;
+  background: #fff;
+}
+
+.dyShopSearchBox input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #111;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.dyShopSearchGlyph,
+.dyShopCameraButton {
+  color: #8c8c92;
+}
+
+.dyShopCameraButton,
+.dyShopSearchButton,
+.dyShopCartButton {
+  border: 0;
+  text-decoration: none;
+}
+
+.dyShopCameraButton {
+  background: transparent;
+}
+
+.dyShopSearchButton {
+  height: 29px;
+  padding: 0 11px;
+  border-radius: 10px;
+  background: #fe2c55;
+  color: #fff;
+  font-weight: 800;
+}
+
+.dyShopCartButton {
+  height: 36px;
+  display: grid;
+  place-items: center;
+  color: #111;
+  font-size: 23px;
+}
+
+.dyShopCategoryTabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 0 10px;
+  scrollbar-width: none;
+}
+
+.dyShopCategoryTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.dyShopCategoryTabs button {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: #626268;
+  padding: 7px 13px;
+  font-weight: 800;
+}
+
+.dyShopCategoryTabs button.isActive {
+  background: #111;
+  color: #fff;
+}
+
+.dyShopCard {
+  border-radius: 8px;
+  background: #fff;
+}
+
+.dyShopShortcutCard {
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.dyShopShortcutScroller {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.dyShopShortcutScroller::-webkit-scrollbar {
+  display: none;
+}
+
+.dyShopShortcutScroller a {
+  flex: 0 0 17vw;
+  min-width: 62px;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  color: #161616;
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.dyShopShortcutIcon {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #f5f5f6;
+}
+
+.dyShopShortcutIcon::before {
+  content: "";
+  width: 17px;
+  height: 17px;
+  display: block;
+  border-radius: 5px;
+  background: #111;
+}
+
+.dyShopShortcutIcon-charge::before {
+  background: #fe2c55;
+}
+
+.dyShopShortcutIcon-message::before {
+  border-radius: 50%;
+  background: #35c9ff;
+}
+
+.dyShopShortcutIcon-nearby::before {
+  background: #16a34a;
+}
+
+.dyShopShortcutIcon-refund::before {
+  background: #f59e0b;
+}
+
+.dyShopShortcutIcon-fashion::before {
+  background: #8b5cf6;
+}
+
+.dyShopSubsidyCard {
+  display: grid;
+  grid-template-columns: 1.1fr repeat(4, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 12px 10px;
+  margin-bottom: 10px;
+}
+
+.dyShopSubsidyTitle {
+  display: grid;
+  gap: 2px;
+  color: #fe2c55;
+}
+
+.dyShopSubsidyTitle span {
+  font-size: 24px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.dyShopSubsidyCard a {
+  min-width: 0;
+  color: #111;
+  text-align: center;
+  text-decoration: none;
+}
+
+.dyShopSubsidyPrice {
+  color: #fe2c55;
+  font-weight: 900;
+  font-size: 12px;
+}
+
+.dyShopWaterfall,
+.dyShopOtherRecommend > div {
+  column-count: 2;
+  column-gap: 10px;
+}
+
+.dyShopGoodsCard,
+.dyShopRecommendGoods {
+  break-inside: avoid;
+  display: block;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  text-decoration: none;
+  margin-bottom: 10px;
+}
+
+.dyShopGoodsCard section,
+.dyShopRecommendGoods section {
+  padding: 10px;
+}
+
+.dyShopGoodsCard h2,
+.dyShopRecommendGoods h3 {
+  margin: 0 0 8px;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  color: #111;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.dyShopGoodsCard em,
+.dyShopRecommendGoods em {
+  display: inline-block;
+  border: 1px solid #c7596a;
+  color: #c7596a;
+  font-size: 11px;
+  font-style: normal;
+  padding: 1px 4px;
+  margin-bottom: 5px;
+}
+
+.dyShopGoodsCard p,
+.dyShopRecommendGoods p {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+}
+
+.dyShopGoodsCard p b,
+.dyShopRecommendGoods p b {
+  color: #f8264a;
+  font-size: 19px;
+}
+
+.dyShopGoodsCard p span,
+.dyShopRecommendGoods p span {
+  color: #888;
+  font-size: 11px;
+}
+
+.dyShopGoodsCard small {
+  display: block;
+  margin-top: 4px;
+  color: #e6995c;
+}
+
+.dyShopEmpty {
+  padding: 38px 0;
+  color: #888;
+  text-align: center;
+}
+
+.dyShopPoster {
+  position: relative;
+  min-height: 176px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f3f4f6, #dedfe5);
+}
+
+.dyShopPosterCompact {
+  min-height: 54px;
+  border-radius: 8px;
+}
+
+.dyShopPosterObject {
+  position: relative;
+  width: 58%;
+  aspect-ratio: 1;
+  display: block;
+}
+
+.dyShopPosterObject i,
+.dyShopPosterObject b {
+  position: absolute;
+  display: block;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+}
+
+.dyShopPosterObject i:first-child {
+  inset: 13% 20% 25%;
+  border-radius: 16px;
+}
+
+.dyShopPosterObject i:nth-child(2) {
+  left: 11%;
+  right: 11%;
+  bottom: 10%;
+  height: 18%;
+  border-radius: 999px;
+}
+
+.dyShopPosterObject b {
+  left: 37%;
+  top: 28%;
+  width: 26%;
+  height: 26%;
+  border-radius: 50%;
+}
+
+.dyShopPoster strong {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  color: rgba(0, 0, 0, 0.46);
+  font-size: 12px;
+}
+
+.dyShopPoster-socket {
+  background: linear-gradient(135deg, #ebedf2, #cfd5dd);
+}
+
+.dyShopPoster-tv {
+  background: linear-gradient(135deg, #111827, #687386);
+}
+
+.dyShopPoster-sweater {
+  background: linear-gradient(135deg, #fee2e2, #fb7185);
+}
+
+.dyShopPoster-socks {
+  background: linear-gradient(135deg, #f8fafc, #a3a3a3);
+}
+
+.dyShopPoster-storage {
+  background: linear-gradient(135deg, #e0f2fe, #93c5fd);
+}
+
+.dyShopPoster-beauty {
+  background: linear-gradient(135deg, #fce7f3, #f9a8d4);
+}
+
+.dyShopPoster-snack {
+  background: linear-gradient(135deg, #fef3c7, #f59e0b);
+}
+
+.dyShopPoster-phone {
+  background: linear-gradient(135deg, #dcfce7, #22c55e);
+}
+
+.dyShopDetailShell {
+  padding: 0 0 calc(76px + var(--live-safe-bottom));
+}
+
+.dyShopDetailTop {
+  position: fixed;
+  left: 50%;
+  top: 0;
+  z-index: 5;
+  width: min(100%, 430px);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.dyShopDetailTop > * {
+  pointer-events: auto;
+}
+
+.dyShopDetailTopFloat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(10px + var(--live-safe-top)) 12px 0;
+}
+
+.dyShopDetailTopRight,
+.dyShopDetailTopRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dyShopRoundButton,
+.dyShopPlainButton,
+.dyShopDetailTopRight button,
+.dyShopDetailTopRow button {
+  border: 0;
+  background: rgba(0, 0, 0, 0.38);
+  color: #fff;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 20px;
+}
+
+.dyShopDetailTopShadow {
+  background: #fff;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+
+.dyShopDetailTopShadow .dyShopPlainButton,
+.dyShopDetailTopShadow button {
+  background: transparent;
+  color: #111;
+}
+
+.dyShopDetailTopRow {
+  height: calc(45px + var(--live-safe-top));
+  padding: var(--live-safe-top) 10px 0;
+}
+
+.dyShopDetailSearch {
+  flex: 1;
+  height: 31px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
+  background: #f2f2f4;
+  color: #777;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.dyShopDetailSearchGhost {
+  width: 118px;
+  flex: none;
+  background: rgba(0, 0, 0, 0.36);
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.dyShopDetailTabs {
+  height: 36px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.dyShopDetailTabs button {
+  border: 0;
+  background: transparent;
+  color: #666;
+  font-weight: 800;
+}
+
+.dyShopDetailTabs button.isActive {
+  color: #111;
+}
+
+.dyShopDetailHero {
+  position: relative;
+  background: #f3f3f4;
+}
+
+.dyShopDetailSlides {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.dyShopDetailSlides::-webkit-scrollbar {
+  display: none;
+}
+
+.dyShopDetailHeroPoster {
+  flex: 0 0 100%;
+  height: 430px;
+  min-height: 430px;
+  scroll-snap-align: start;
+}
+
+.dyShopDetailIndex {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.44);
+  color: #fff;
+  padding: 4px 9px;
+  font-size: 12px;
+}
+
+.dyShopDetailContent,
+.dyShopDetailPad {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.dyShopDetailInfo,
+.dyShopDetailCard {
+  border-radius: 10px;
+  background: #fff;
+}
+
+.dyShopDetailInfo {
+  padding: 12px;
+}
+
+.dyShopDetailPriceWrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.dyShopPrice {
+  color: #f8264a;
+  font-weight: 950;
+}
+
+.dyShopPrice i,
+.dyShopPrice em {
+  font-size: 13px;
+  font-style: normal;
+}
+
+.dyShopPrice b {
+  font-size: 30px;
+}
+
+.dyShopDetailCoupon {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #f8264a;
+}
+
+.dyShopDetailCoupon small {
+  border-radius: 3px;
+  background: #fff1f2;
+  padding: 2px 4px;
+}
+
+.dyShopDetailInfo h1 {
+  margin: 8px 0;
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.dyShopDetailInfo p {
+  margin: 0;
+  color: #777;
+}
+
+.dyShopDescCard,
+.dyShopComments,
+.dyShopStoreCard,
+.dyShopAccordion {
+  padding: 0 12px;
+}
+
+.dyShopSpecRow {
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  border-bottom: 1px solid #f1f1f2;
+}
+
+.dyShopSpecRowTall {
+  align-items: start;
+  padding: 10px 0;
+}
+
+.dyShopSpecRow b {
+  color: #777;
+}
+
+.dyShopSpecRow p {
+  margin: 0;
+  color: #222;
+}
+
+.dyShopMuted {
+  color: #999 !important;
+}
+
+.dyShopEllipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dyShopSpecScroller {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.dyShopSpecScroller button {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 5px;
+  background: #f5f5f6;
+  padding: 5px 8px;
+}
+
+.dyShopSpecScroller button.isActive {
+  background: #fff1f2;
+  color: #fe2c55;
+}
+
+.dyShopSpecScroller em {
+  flex: 0 0 auto;
+  color: #999;
+  font-style: normal;
+}
+
+.dyShopArrow {
+  color: #aaa;
+}
+
+.dyShopComments {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.dyShopComments > header,
+.dyShopStoreRecommend > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dyShopComments h2,
+.dyShopStoreCard h2,
+.dyShopOtherRecommend h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.dyShopCommentTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.dyShopCommentTags span {
+  border-radius: 999px;
+  background: #f5f5f6;
+  padding: 6px 9px;
+  font-size: 12px;
+}
+
+.dyShopComment header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.dyShopComment header span,
+.dyShopStoreLogo {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #111;
+  color: #fff;
+}
+
+.dyShopCommentBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.dyShopCommentBody p {
+  margin: 0 0 6px;
+  line-height: 1.45;
+}
+
+.dyShopCommentBody small {
+  color: #999;
+}
+
+.dyShopCommentPoster,
+.dyShopStorePoster {
+  min-height: 72px;
+  border-radius: 8px;
+}
+
+.dyShopStoreCard {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.dyShopStoreCard > header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.dyShopStoreCard > header p,
+.dyShopStoreCard > header small {
+  margin: 4px 0 0;
+  color: #777;
+}
+
+.dyShopStoreCard em {
+  margin-right: 4px;
+  color: #fe2c55;
+  font-style: normal;
+  font-size: 11px;
+}
+
+.dyShopStoreCard > header button {
+  border: 0;
+  border-radius: 999px;
+  background: #fe2c55;
+  color: #fff;
+  padding: 7px 13px;
+  font-weight: 800;
+}
+
+.dyShopStoreScores {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.dyShopStoreScores span {
+  display: grid;
+  gap: 3px;
+  color: #999;
+  font-size: 11px;
+}
+
+.dyShopStoreScores b {
+  color: #111;
+  font-size: 12px;
+}
+
+.dyShopStoreRecommend > header a {
+  color: #777;
+  text-decoration: none;
+}
+
+.dyShopStoreRecommend > div {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.dyShopStoreRecommend a {
+  min-width: 0;
+  color: #111;
+  text-decoration: none;
+}
+
+.dyShopStoreRecommend a > b {
+  display: block;
+  margin: 6px 0 2px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+
+.dyShopDetailImages {
+  padding: 0 10px;
+}
+
+.dyShopDetailImages > header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 44px;
+  color: #999;
+}
+
+.dyShopDetailImages > header span {
+  width: 40px;
+  height: 1px;
+  background: #ddd;
+}
+
+.dyShopDetailImagePoster {
+  min-height: 360px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+}
+
+.dyShopAccordion article {
+  border-bottom: 1px solid #f1f1f2;
+}
+
+.dyShopAccordion button {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 0;
+  background: transparent;
+}
+
+.dyShopAccordion p {
+  display: none;
+  margin: 0;
+  padding: 0 0 12px;
+  color: #777;
+  line-height: 1.5;
+}
+
+.dyShopAccordion article.isOpen p {
+  display: block;
+}
+
+.dyShopBuyToolbar {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  z-index: 6;
+  width: min(100%, 430px);
+  min-height: calc(66px + var(--live-safe-bottom));
+  display: grid;
+  grid-template-columns: 126px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px calc(8px + var(--live-safe-bottom));
+  box-sizing: border-box;
+  background: #fff;
+  transform: translateX(-50%);
+}
+
+.dyShopToolbarOptions,
+.dyShopBuyButtons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.dyShopToolbarOptions button {
+  border: 0;
+  background: transparent;
+  color: #555;
+  font-size: 11px;
+}
+
+.dyShopToolbarOptions span,
+.dyShopToolbarOptions b {
+  display: block;
+}
+
+.dyShopBuyButtons {
+  grid-template-columns: 1fr 1fr;
+}
+
+.dyShopBuyButtons button {
+  min-height: 42px;
+  border: 0;
+  color: #fff;
+  font-weight: 900;
+}
+
+.dyShopBuyButtons button:first-child {
+  border-radius: 999px 0 0 999px;
+  background: #ff9f1a;
+}
+
+.dyShopBuyButtons button:last-child {
+  border-radius: 0 999px 999px 0;
+  background: #fe2c55;
+}
+
+.dyShopToast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(88px + var(--live-safe-bottom));
+  z-index: 9;
+  max-width: 280px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.78);
+  color: #fff;
+  padding: 10px 15px;
+  transform: translateX(-50%);
+}
+
+@media (max-width: 360px) {
+  .dyShopSubsidyCard {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .dyShopSubsidyTitle {
+    grid-column: 1 / -1;
+    grid-template-columns: auto 1fr;
+    align-items: end;
+  }
+}
