@@ -138,7 +138,7 @@ func (s *AuctionService) ListAdminRooms(ctx context.Context) ([]auction.Room, er
 }
 
 func (s *AuctionService) ListPublicRooms(ctx context.Context) ([]auction.Room, error) {
-	return s.auction.ListRooms(ctx, auction.RoomQuery{PublicOnly: true})
+	return s.auction.ListRooms(ctx, auction.RoomQuery{PublicOnly: true, PublicVisibleOnly: true})
 }
 
 func (s *AuctionService) StartLot(ctx context.Context, req *v1.StartLotRequest) (*v1.StartLotReply, error) {

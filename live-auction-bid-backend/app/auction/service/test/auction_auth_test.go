@@ -80,6 +80,52 @@ func TestAuctionServiceRequiresAuthForOperationsAndUsesTokenBidder(t *testing.T)
 	}
 }
 
+func TestAuctionServiceListPublicRoomsRequiresVisibleAuctionContent(t *testing.T) {
+	store := newTestStore()
+	store.rooms["room_empty"] = auction.Room{
+		ID:            "room_empty",
+		MainAccountID: testMainAccountID,
+		Name:          "空直播间",
+		Platform:      "douyin",
+		Status:        auction.RoomStatusActive,
+	}
+	store.rooms["room_live"] = auction.Room{
+		ID:            "room_live",
+		MainAccountID: testMainAccountID,
+		Name:          "直播中",
+		Platform:      "douyin",
+		Status:        auction.RoomStatusActive,
+	}
+	store.lots["lot_live"] = &v1.Lot{
+		Id:            "lot_live",
+		RoomId:        "room_live",
+		MainAccountId: testMainAccountID,
+		Title:         "公开拍品",
+		Status:        v1.LotStatus_LOT_STATUS_LIVE,
+	}
+
+	uc := auction.NewAuctionUsecase(store, store, store, nil)
+	svc := appsvc.NewAuctionService(uc)
+	ctx := context.Background()
+
+	publicRooms, err := svc.ListPublicRooms(ctx)
+	if err != nil {
+		t.Fatalf("list public rooms failed: %v", err)
+	}
+	if got := testRoomIDs(publicRooms); len(got) != 1 || got[0] != "room_live" {
+		t.Fatalf("public rooms should only include visible content rooms, got %v", got)
+	}
+
+	adminCtx := auth.WithClaims(ctx, &auth.Claims{UserID: "admin", Username: "admin", Nickname: "管理员", Role: v1.UserRole_USER_ROLE_MAIN_ACCOUNT, MainAccountID: testMainAccountID})
+	adminRooms, err := svc.ListAdminRooms(adminCtx)
+	if err != nil {
+		t.Fatalf("list admin rooms failed: %v", err)
+	}
+	if got := testRoomIDs(adminRooms); len(got) != 2 {
+		t.Fatalf("admin rooms should remain unfiltered, got %v", got)
+	}
+}
+
 func TestGetLotResultOrderVisibility(t *testing.T) {
 	store := newTestStore()
 	uc := auction.NewAuctionUsecase(store, store, store, nil)

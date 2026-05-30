@@ -63,8 +63,28 @@ type Room struct {
 }
 
 type RoomQuery struct {
-	MainAccountID string `json:"mainAccountId,omitempty"`
-	PublicOnly    bool   `json:"publicOnly,omitempty"`
+	MainAccountID     string `json:"mainAccountId,omitempty"`
+	PublicOnly        bool   `json:"publicOnly,omitempty"`
+	PublicVisibleOnly bool   `json:"publicVisibleOnly,omitempty"`
+}
+
+func IsPublicVisibleLotStatus(status v1.LotStatus) bool {
+	switch status {
+	case v1.LotStatus_LOT_STATUS_QUEUED,
+		v1.LotStatus_LOT_STATUS_LIVE,
+		v1.LotStatus_LOT_STATUS_EXTENDED:
+		return true
+	default:
+		return false
+	}
+}
+
+func PublicVisibleLotStatuses() []v1.LotStatus {
+	return []v1.LotStatus{
+		v1.LotStatus_LOT_STATUS_QUEUED,
+		v1.LotStatus_LOT_STATUS_LIVE,
+		v1.LotStatus_LOT_STATUS_EXTENDED,
+	}
 }
 
 type Order struct {

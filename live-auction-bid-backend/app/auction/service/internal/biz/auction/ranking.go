@@ -1,10 +1,38 @@
 package auction
 
 import (
+	"os"
 	"sort"
+	"strconv"
+	"strings"
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 )
+
+const DefaultRealtimeRankingLimit int64 = 50
+
+func RealtimeRankingLimit() int64 {
+	raw := strings.TrimSpace(os.Getenv("AUCTION_REALTIME_RANKING_LIMIT"))
+	if raw == "" {
+		return DefaultRealtimeRankingLimit
+	}
+	limit, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil || limit <= 0 {
+		return DefaultRealtimeRankingLimit
+	}
+	return limit
+}
+
+func LimitRanking(ranking []*v1.RankingItem, limit int64) []*v1.RankingItem {
+	if limit <= 0 || int64(len(ranking)) <= limit {
+		return ranking
+	}
+	return ranking[:limit]
+}
+
+func BuildRealtimeRanking(bids []v1.Bid) []*v1.RankingItem {
+	return LimitRanking(BuildRanking(bids), RealtimeRankingLimit())
+}
 
 func BuildRanking(bids []v1.Bid) []*v1.RankingItem {
 	bestByUser := make(map[string]*v1.RankingItem)

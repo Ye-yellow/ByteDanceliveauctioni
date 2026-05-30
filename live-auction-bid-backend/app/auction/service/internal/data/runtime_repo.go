@@ -369,7 +369,7 @@ func (s *Store) PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceB
 			updatedLot = currentLot
 		}
 	}
-	ranking, err := s.RankingRuntime(ctx, lot.Id, 0)
+	ranking, err := s.RankingRuntime(ctx, lot.Id, auction.RealtimeRankingLimit())
 	if err != nil {
 		return auction.RuntimeBidResult{}, err
 	}
@@ -400,7 +400,7 @@ func (s *Store) SnapshotRuntime(ctx context.Context, current *v1.Lot) (*v1.RoomS
 	if err != nil {
 		return nil, err
 	}
-	ranking, err := s.RankingRuntime(ctx, current.Id, 0)
+	ranking, err := s.RankingRuntime(ctx, current.Id, auction.RealtimeRankingLimit())
 	if err != nil {
 		return nil, err
 	}

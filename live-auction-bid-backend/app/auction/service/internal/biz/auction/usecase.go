@@ -408,7 +408,7 @@ func (uc *AuctionUsecase) StartLot(ctx context.Context, lotID, mainAccountID str
 		return nil, err
 	}
 	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_STARTED, lot)
-	event.Ranking = BuildRanking(bids)
+	event.Ranking = BuildRealtimeRanking(bids)
 	if err := uc.lots.Save(ctx, lot, expectedVersion, []v1.AuctionEvent{event}); err != nil {
 		return nil, err
 	}
@@ -480,7 +480,7 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest,
 		if listErr != nil {
 			return nil, nil, nil, listErr
 		}
-		ranking := BuildRanking(bids)
+		ranking := BuildRealtimeRanking(bids)
 		event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_REJECTED, lot)
 		event.Reason = err.Error()
 		event.Ranking = ranking
@@ -498,7 +498,7 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest,
 		return nil, nil, nil, err
 	}
 	bids = append(bids, bid)
-	ranking := BuildRanking(bids)
+	ranking := BuildRealtimeRanking(bids)
 	nowMs := clock.NowMs()
 	if IsAuctionOpenStatus(lot.Status) && !lot.GetDuelState().GetActive() && len(ranking) >= 2 && len(bids) >= 3 &&
 		lot.EndsAtUnixMs-nowMs <= 60_000 &&
@@ -571,7 +571,7 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest,
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	ranking = BuildRanking(committedBids)
+	ranking = BuildRealtimeRanking(committedBids)
 	if err := uc.broadcast(ctx, commitEvents...); err != nil {
 		return nil, nil, nil, err
 	}
@@ -704,7 +704,7 @@ func (uc *AuctionUsecase) replayBidByIdempotencyKey(ctx context.Context, lotID, 
 	if err != nil {
 		return nil, nil, nil, false, err
 	}
-	return proto.Clone(lot).(*v1.Lot), &old, BuildRanking(bids), true, nil
+	return proto.Clone(lot).(*v1.Lot), &old, BuildRealtimeRanking(bids), true, nil
 }
 
 func (uc *AuctionUsecase) RevealTrustCard(ctx context.Context, lotID, mainAccountID, cardID, operatorID string) (*v1.Lot, *v1.TrustRevealCard, error) {
@@ -736,7 +736,7 @@ func (uc *AuctionUsecase) RevealTrustCard(ctx context.Context, lotID, mainAccoun
 	}
 	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_TRUST_REVEALED, lot)
 	event.TrustCard = card
-	event.Ranking = BuildRanking(bids)
+	event.Ranking = BuildRealtimeRanking(bids)
 	if err := uc.lots.Save(ctx, lot, expectedVersion, []v1.AuctionEvent{event}); err != nil {
 		return nil, nil, err
 	}
@@ -769,7 +769,7 @@ func (uc *AuctionUsecase) StartDuel(ctx context.Context, lotID, mainAccountID, o
 	if err != nil {
 		return nil, nil, err
 	}
-	ranking := BuildRanking(bids)
+	ranking := BuildRealtimeRanking(bids)
 	if err := StartDuel(lot, ranking, clock.NowMs(), userAID, userBID); err != nil {
 		return nil, nil, err
 	}
@@ -812,7 +812,7 @@ func (uc *AuctionUsecase) SettleLot(ctx context.Context, lotID, mainAccountID, o
 		return nil, err
 	}
 	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_SETTLED, lot)
-	event.Ranking = BuildRanking(bids)
+	event.Ranking = BuildRealtimeRanking(bids)
 	order, err := NewOrderFromSettledLot(idgen.New("order"), lot, clock.NowMs())
 	if err != nil {
 		return nil, err
@@ -854,7 +854,7 @@ func (uc *AuctionUsecase) closeExpiredLot(ctx context.Context, lotID string, now
 	if err != nil {
 		return false, false, err
 	}
-	ranking := BuildRanking(bids)
+	ranking := BuildRealtimeRanking(bids)
 	if lot.LeadingUserId == "" {
 		reason := "auction expired without accepted bid"
 		if err := FailExpiredLot(lot, reason, nowMs); err != nil {
@@ -1086,7 +1086,7 @@ func (uc *AuctionUsecase) CancelLot(ctx context.Context, lotID, mainAccountID, o
 		return nil, err
 	}
 	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CANCELLED, lot)
-	event.Ranking = BuildRanking(bids)
+	event.Ranking = BuildRealtimeRanking(bids)
 	event.Reason = reason
 	if err := uc.lots.Save(ctx, lot, expectedVersion, []v1.AuctionEvent{event}); err != nil {
 		return nil, err
@@ -1169,7 +1169,7 @@ func (uc *AuctionUsecase) Snapshot(ctx context.Context, roomID string) (*v1.Room
 		return nil, err
 	}
 	snapshot.CurrentLot = current
-	snapshot.Ranking = BuildRanking(bids)
+	snapshot.Ranking = BuildRealtimeRanking(bids)
 	start := 0
 	if len(bids) > 20 {
 		start = len(bids) - 20

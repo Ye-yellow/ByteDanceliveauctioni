@@ -71,6 +71,12 @@ func (s *Store) ListRooms(ctx context.Context, query auction.RoomQuery) ([]aucti
 	if query.PublicOnly {
 		db = db.Where("status = ?", string(auction.RoomStatusActive))
 	}
+	if query.PublicVisibleOnly {
+		db = db.Where(
+			"EXISTS (SELECT 1 FROM auction_lots WHERE auction_lots.room_id = auction_rooms.id AND auction_lots.main_account_id = auction_rooms.main_account_id AND auction_lots.status IN ?)",
+			publicVisibleLotStatusValues(),
+		)
+	}
 	var models []AuctionRoomModel
 	if err := db.Order("created_at_unix_ms ASC").Order("id ASC").Find(&models).Error; err != nil {
 		return nil, err
@@ -86,6 +92,15 @@ func (s *Store) ListRooms(ctx context.Context, query auction.RoomQuery) ([]aucti
 		}
 	}
 	return rooms, nil
+}
+
+func publicVisibleLotStatusValues() []int32 {
+	statuses := auction.PublicVisibleLotStatuses()
+	values := make([]int32, 0, len(statuses))
+	for _, status := range statuses {
+		values = append(values, int32(status))
+	}
+	return values
 }
 
 func (s *Store) FindRoomByID(ctx context.Context, roomID string) (*auction.Room, bool, error) {

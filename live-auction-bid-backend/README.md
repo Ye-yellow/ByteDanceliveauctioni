@@ -114,6 +114,64 @@ curl -X POST http://127.0.0.1:18080/api/lots/{lot_id}/bid \
   -d '{"amount":{"amount":11000,"currency":"CNY"},"idempotency_key":"buyer1-11000"}'
 ```
 
+### 公开直播间可见性规则
+
+`GET /api/rooms` 只返回真实可进入的公开直播间：
+
+- room 必须是 `ACTIVE`。
+- room 必须至少有 1 个拍品处于 `QUEUED`、`LIVE` 或 `EXTENDED`。
+- 没有拍品，或拍品只处于 `DRAFT`、`READY`、`SETTLED`、`CANCELLED`、`FAILED` 时，不对 H5 公开。
+- `/api/admin/rooms` 不受这个过滤影响，仍然返回主账号自己的后台房间列表。
+
+该规则由 `RoomQuery.PublicVisibleOnly` 承载，避免改 proto/schema。
+
+### 实时排行榜 TopN
+
+Redis 仍保存完整竞价排行榜；实时热路径只返回 TopN，避免高并发下每次出价/快照/WS 事件拉全量 ranking。
+
+```env
+AUCTION_REALTIME_RANKING_LIMIT=50
+```
+
+未设置或设置为非法值时默认 `50`。完整出价历史仍通过订单/出价历史等非热路径分页接口查询。
+
+### 并发出价烟测
+
+需要先启动后端及 MySQL/Redis，然后执行：
+
+```bash
+CONCURRENCY=100 node scripts/load-bid-hot-path.mjs
+CONCURRENCY=300 node scripts/load-bid-hot-path.mjs
+```
+
+如果本机配置了 HTTP 代理，建议显式绕过 localhost：
+
+```bash
+NO_PROXY=127.0.0.1,localhost CONCURRENCY=100 node scripts/load-bid-hot-path.mjs
+```
+
+可选参数：
+
+```env
+BASE_URL=http://127.0.0.1:18080
+AUCTION_REALTIME_RANKING_LIMIT=50
+MERCHANT_USERNAME=
+MERCHANT_PASSWORD=
+RUN_ID=
+```
+
+脚本会创建/复用商家，创建拍品并排队开拍，确认 `/api/rooms` 可见，注册 N 个买家并并发出价，最后报告 `total/accepted/rejected/errors/P50/P95/P99/finalPrice/leader/rankingLength`，并断言最终价与领先者来自最高有效出价、ranking 已排序且长度不超过 TopN、幂等重放不重复生成出价，封顶成交时买家订单只出现一次。
+
+没有本地 MySQL/Redis/HTTP 服务时，可以先跑业务层并发一致性烟测：
+
+```bash
+go test ./app/auction/service/test -run TestConcurrentBidSmokeMaintainsLeaderRankingLimitIdempotencyAndCapOrder -count=1 -v
+```
+
+该用例固定 100 个买家并发出价到封顶价，验证公开房间可见、最终成交价/领先者、实时榜 TopN、幂等重放不重复入库、封顶订单只创建一次。它不能替代上面的 Redis Lua HTTP 压测。
+
+公共注册和重置密码保持当前 demo 友好策略，后端不在这一阶段收紧。
+
 如果宿主机安装了 Go：
 
 ```bash

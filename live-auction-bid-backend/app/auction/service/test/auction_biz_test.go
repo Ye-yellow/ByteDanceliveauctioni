@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"google.golang.org/protobuf/proto"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
@@ -586,11 +587,282 @@ func TestPublicLotReadsRequireActiveRoom(t *testing.T) {
 	}
 }
 
+func TestPublicRoomsRequireVisibleAuctionContent(t *testing.T) {
+	store := newTestStore()
+	uc := auction.NewAuctionUsecase(store, store, store, nil)
+	ctx := context.Background()
+
+	cases := []struct {
+		id         string
+		status     auction.RoomStatus
+		lotStatus  []v1.LotStatus
+		wantPublic bool
+	}{
+		{id: "empty", status: auction.RoomStatusActive},
+		{id: "draft", status: auction.RoomStatusActive, lotStatus: []v1.LotStatus{v1.LotStatus_LOT_STATUS_DRAFT}},
+		{id: "ready", status: auction.RoomStatusActive, lotStatus: []v1.LotStatus{v1.LotStatus_LOT_STATUS_READY}},
+		{id: "terminal", status: auction.RoomStatusActive, lotStatus: []v1.LotStatus{v1.LotStatus_LOT_STATUS_SETTLED, v1.LotStatus_LOT_STATUS_CANCELLED, v1.LotStatus_LOT_STATUS_FAILED}},
+		{id: "queued", status: auction.RoomStatusActive, lotStatus: []v1.LotStatus{v1.LotStatus_LOT_STATUS_QUEUED}, wantPublic: true},
+		{id: "live", status: auction.RoomStatusActive, lotStatus: []v1.LotStatus{v1.LotStatus_LOT_STATUS_LIVE}, wantPublic: true},
+		{id: "extended", status: auction.RoomStatusActive, lotStatus: []v1.LotStatus{v1.LotStatus_LOT_STATUS_EXTENDED}, wantPublic: true},
+		{id: "disabled-queued", status: auction.RoomStatusDisabled, lotStatus: []v1.LotStatus{v1.LotStatus_LOT_STATUS_QUEUED}},
+	}
+
+	wantPublicIDs := make([]string, 0)
+	for _, tc := range cases {
+		roomID := "room_" + tc.id
+		store.rooms[roomID] = auction.Room{
+			ID:              roomID,
+			MainAccountID:   testMainAccountID,
+			Name:            "直播间 " + tc.id,
+			Platform:        "douyin",
+			Status:          tc.status,
+			CreatedByUserID: "owner",
+			CreatedAtUnixMs: int64(len(store.rooms) + 1),
+			UpdatedAtUnixMs: int64(len(store.rooms) + 1),
+		}
+		for index, status := range tc.lotStatus {
+			store.lots[roomID+"_lot_"+strconv.Itoa(index)] = &v1.Lot{
+				Id:            roomID + "_lot_" + strconv.Itoa(index),
+				RoomId:        roomID,
+				MainAccountId: testMainAccountID,
+				Title:         "可见性拍品",
+				Status:        status,
+			}
+		}
+		if tc.wantPublic {
+			wantPublicIDs = append(wantPublicIDs, roomID)
+		}
+	}
+	sort.Strings(wantPublicIDs)
+
+	publicRooms, err := uc.ListRooms(ctx, auction.RoomQuery{PublicOnly: true, PublicVisibleOnly: true})
+	if err != nil {
+		t.Fatalf("list public rooms failed: %v", err)
+	}
+	if got := testRoomIDs(publicRooms); strings.Join(got, ",") != strings.Join(wantPublicIDs, ",") {
+		t.Fatalf("public rooms mismatch got=%v want=%v", got, wantPublicIDs)
+	}
+
+	adminRooms, err := uc.ListRooms(ctx, auction.RoomQuery{MainAccountID: testMainAccountID})
+	if err != nil {
+		t.Fatalf("list admin rooms failed: %v", err)
+	}
+	if len(adminRooms) != len(cases) {
+		t.Fatalf("admin room list should remain unfiltered, got=%d want=%d ids=%v", len(adminRooms), len(cases), testRoomIDs(adminRooms))
+	}
+}
+
+func TestBuildRealtimeRankingHonorsEnvLimit(t *testing.T) {
+	t.Setenv("AUCTION_REALTIME_RANKING_LIMIT", "2")
+	ranking := auction.BuildRealtimeRanking([]v1.Bid{
+		{UserId: "u1", Nickname: "用户1", Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, CreatedAtUnixMs: 1},
+		{UserId: "u2", Nickname: "用户2", Amount: &v1.Money{Amount: 13000, Currency: "CNY"}, CreatedAtUnixMs: 2},
+		{UserId: "u3", Nickname: "用户3", Amount: &v1.Money{Amount: 12000, Currency: "CNY"}, CreatedAtUnixMs: 3},
+	})
+	if len(ranking) != 2 {
+		t.Fatalf("ranking should be capped to 2, got %d", len(ranking))
+	}
+	if ranking[0].UserId != "u2" || ranking[1].UserId != "u3" {
+		t.Fatalf("ranking should keep sorted top bidders, got %+v", ranking)
+	}
+}
+
+func TestConcurrentBidSmokeMaintainsLeaderRankingLimitIdempotencyAndCapOrder(t *testing.T) {
+	t.Setenv("AUCTION_REALTIME_RANKING_LIMIT", "5")
+	store := newTestStore()
+	pub := &testPublisher{}
+	uc := auction.NewAuctionUsecase(store, store, store, pub)
+	ctx := context.Background()
+
+	const (
+		concurrency  = 100
+		startPrice   = int64(10000)
+		minIncrement = int64(1000)
+	)
+	capPrice := startPrice + concurrency*minIncrement
+	room, err := uc.EnsureDefaultRoom(ctx, testMainAccountID, "test-owner")
+	if err != nil {
+		t.Fatalf("ensure default room failed: %v", err)
+	}
+	lot, err := uc.CreateLot(ctx, &v1.CreateLotRequest{
+		RoomId:   room.ID,
+		Title:    "并发封顶拍品",
+		ImageUrl: "https://example.com/lot.jpg",
+		Rule: &v1.BidRule{
+			StartPrice:             &v1.Money{Amount: startPrice, Currency: "CNY"},
+			MinIncrement:           &v1.Money{Amount: minIncrement, Currency: "CNY"},
+			CapPrice:               &v1.Money{Amount: capPrice, Currency: "CNY"},
+			DurationSeconds:        300,
+			AntiSnipeWindowSeconds: 15,
+			AntiSnipeExtendSeconds: 15,
+			MaxExtendCount:         3,
+		},
+	}, testMainAccountID, "test-owner")
+	if err != nil {
+		t.Fatalf("create lot failed: %v", err)
+	}
+	if _, err := uc.StartLot(ctx, lot.Id, testMainAccountID); err != nil {
+		t.Fatalf("start lot failed: %v", err)
+	}
+	publicRooms, err := uc.ListRooms(ctx, auction.RoomQuery{PublicOnly: true, PublicVisibleOnly: true})
+	if err != nil || len(publicRooms) != 1 || publicRooms[0].ID != lot.RoomId {
+		t.Fatalf("started lot should make room public: rooms=%+v err=%v", publicRooms, err)
+	}
+
+	type bidAttempt struct {
+		index    int
+		userID   string
+		key      string
+		amount   int64
+		bidID    string
+		accepted bool
+		err      error
+		latency  time.Duration
+	}
+	start := make(chan struct{})
+	results := make(chan bidAttempt, concurrency)
+	var wg sync.WaitGroup
+	for i := 1; i <= concurrency; i++ {
+		i := i
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			attempt := bidAttempt{
+				index:  i,
+				userID: "buyer-" + strconv.Itoa(i),
+				key:    "concurrent-bid-" + strconv.Itoa(i),
+				amount: startPrice + int64(i)*minIncrement,
+			}
+			started := time.Now()
+			_, bid, _, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
+				LotId:          lot.Id,
+				Amount:         &v1.Money{Amount: attempt.amount, Currency: "CNY"},
+				IdempotencyKey: attempt.key,
+			}, attempt.userID, "买家"+strconv.Itoa(i))
+			attempt.latency = time.Since(started)
+			attempt.err = err
+			if err == nil && bid != nil {
+				attempt.accepted = true
+				attempt.bidID = bid.Id
+			}
+			results <- attempt
+		}()
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+
+	var attempts []bidAttempt
+	var highest bidAttempt
+	accepted := 0
+	rejected := 0
+	for attempt := range results {
+		attempts = append(attempts, attempt)
+		if attempt.accepted {
+			accepted++
+			if !highest.accepted || attempt.amount > highest.amount {
+				highest = attempt
+			}
+			continue
+		}
+		rejected++
+		if attempt.err == nil {
+			t.Fatalf("nil bid with nil error for attempt %+v", attempt)
+		}
+	}
+	if accepted == 0 {
+		t.Fatalf("expected at least one accepted bid, attempts=%+v", attempts)
+	}
+	if !highest.accepted || highest.amount != capPrice || highest.userID != "buyer-100" {
+		t.Fatalf("highest accepted bid mismatch: highest=%+v cap=%d", highest, capPrice)
+	}
+
+	finalLot, err := store.FindByID(ctx, lot.Id)
+	if err != nil {
+		t.Fatalf("find final lot failed: %v", err)
+	}
+	if finalLot.Status != v1.LotStatus_LOT_STATUS_SETTLED || finalLot.WinnerUserId != highest.userID || finalLot.GetFinalPrice().GetAmount() != capPrice {
+		t.Fatalf("cap bid should settle with highest accepted bidder: lot=%+v highest=%+v", finalLot, highest)
+	}
+	bids, err := store.ListByLot(ctx, lot.Id)
+	if err != nil {
+		t.Fatalf("list bids failed: %v", err)
+	}
+	if len(bids) != accepted {
+		t.Fatalf("accepted count must match persisted bids: accepted=%d persisted=%d", accepted, len(bids))
+	}
+	ranking := auction.BuildRealtimeRanking(bids)
+	if len(ranking) == 0 || len(ranking) > 5 {
+		t.Fatalf("realtime ranking should be non-empty and capped to 5, got %d: %+v", len(ranking), ranking)
+	}
+	for i := 1; i < len(ranking); i++ {
+		if ranking[i-1].GetAmount().GetAmount() < ranking[i].GetAmount().GetAmount() {
+			t.Fatalf("ranking must be sorted descending: %+v", ranking)
+		}
+	}
+	if ranking[0].UserId != highest.userID || ranking[0].GetAmount().GetAmount() != highest.amount {
+		t.Fatalf("ranking leader mismatch: ranking=%+v highest=%+v", ranking[0], highest)
+	}
+
+	beforeReplayCount := len(bids)
+	_, replayed, replayRanking, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{
+		LotId:          lot.Id,
+		Amount:         &v1.Money{Amount: highest.amount, Currency: "CNY"},
+		IdempotencyKey: highest.key,
+	}, highest.userID, "买家"+strconv.Itoa(highest.index))
+	if err != nil || replayed == nil || replayed.Id != highest.bidID {
+		t.Fatalf("idempotent replay should return original bid: bid=%+v highest=%+v ranking=%+v err=%v", replayed, highest, replayRanking, err)
+	}
+	afterReplayBids, err := store.ListByLot(ctx, lot.Id)
+	if err != nil {
+		t.Fatalf("list bids after replay failed: %v", err)
+	}
+	if len(afterReplayBids) != beforeReplayCount || len(replayRanking) == 0 || len(replayRanking) > 5 {
+		t.Fatalf("idempotent replay must not append bid and must keep ranking cap: before=%d after=%d ranking=%d", beforeReplayCount, len(afterReplayBids), len(replayRanking))
+	}
+
+	orders, err := uc.ListOrders(ctx, auction.OrderQuery{Page: 1, PageSize: 10})
+	if err != nil || orders.Total != 1 || len(orders.Orders) != 1 {
+		t.Fatalf("cap settlement should create exactly one order: orders=%+v err=%v", orders, err)
+	}
+	if orders.Orders[0].BuyerUserID != highest.userID || orders.Orders[0].Amount != capPrice {
+		t.Fatalf("created order should belong to highest accepted bidder: order=%+v highest=%+v", orders.Orders[0], highest)
+	}
+
+	latencies := make([]time.Duration, 0, len(attempts))
+	for _, attempt := range attempts {
+		latencies = append(latencies, attempt.latency)
+	}
+	sort.Slice(latencies, func(i, j int) bool { return latencies[i] < latencies[j] })
+	t.Logf("concurrent bid smoke: total=%d accepted=%d rejected=%d p50=%s p95=%s p99=%s final_price=%d leader=%s ranking_len=%d",
+		len(attempts),
+		accepted,
+		rejected,
+		latencies[len(latencies)*50/100],
+		latencies[len(latencies)*95/100],
+		latencies[len(latencies)*99/100],
+		finalLot.GetFinalPrice().GetAmount(),
+		finalLot.WinnerUserId,
+		len(ranking),
+	)
+}
+
 func testLotIDs(lots []*v1.Lot) []string {
 	ids := make([]string, 0, len(lots))
 	for _, lot := range lots {
 		ids = append(ids, lot.GetId())
 	}
+	return ids
+}
+
+func testRoomIDs(rooms []auction.Room) []string {
+	ids := make([]string, 0, len(rooms))
+	for _, room := range rooms {
+		ids = append(ids, room.ID)
+	}
+	sort.Strings(ids)
 	return ids
 }
 
@@ -841,10 +1113,22 @@ func (s *testStore) ListRooms(ctx context.Context, query auction.RoomQuery) ([]a
 		if query.PublicOnly && room.Status != auction.RoomStatusActive {
 			continue
 		}
+		if query.PublicVisibleOnly && !s.roomHasPublicVisibleLotLocked(room) {
+			continue
+		}
 		rooms = append(rooms, room)
 	}
 	sort.Slice(rooms, func(i, j int) bool { return rooms[i].ID < rooms[j].ID })
 	return rooms, nil
+}
+
+func (s *testStore) roomHasPublicVisibleLotLocked(room auction.Room) bool {
+	for _, lot := range s.lots {
+		if lot.RoomId == room.ID && lot.MainAccountId == room.MainAccountID && auction.IsPublicVisibleLotStatus(lot.Status) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *testStore) FindRoomByID(ctx context.Context, roomID string) (*auction.Room, bool, error) {
