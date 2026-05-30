@@ -171,7 +171,7 @@ function CurrentAuctionPanel({ controller }: { controller: LiveRoomController })
 
       {room.localOptimistic.pendingBid ? (
         <p className="pendingHint">
-          订单状态同步中，幂等键 {room.localOptimistic.pendingBid.idempotencyKey.slice(0, 18)}...
+          订单状态同步中，请稍候...
         </p>
       ) : null}
 

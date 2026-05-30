@@ -23,6 +23,10 @@ http://localhost:5173/
 http://localhost:5173/m/room/{roomId}
 ```
 
+公开直播间列表完全以后端 `listPublicRooms()` 为准。后端只会返回 `ACTIVE` 且至少有一个 `QUEUED`、`LIVE` 或 `EXTENDED` 拍品的房间；没有真实公开房间时，`/home/live` 展示“暂无正在直播”，推荐流不生成可点击的假直播间。
+
+兼容入口 `/m/room/demo-room` 只会在 `GET /api/rooms` 返回房间时跳转到第一个真实公开房间；如果没有公开房间，会回到 `/home/live` 的无直播状态，不再发明本地 demo room id。
+
 ## 环境变量
 
 ```env
@@ -40,6 +44,7 @@ VITE_DEMO_BUYER_NICKNAME=H5 买家
 - `VITE_AUTH_MODE=demo`：本地开发默认模式，H5 会自动 login/register demo buyer，方便联调出价。
 - `VITE_AUTH_MODE=real`：生产模式，H5 不会静默创建 demo 用户；买家必须在直播页登录或注册后才能出价。
 - 生产构建必须显式设置 `VITE_AUTH_MODE=real`，避免线上自动创建 demo 买家账号。
+- 公开买家注册、密码重置仍保持 demo 友好的宽松策略；不要在 H5 侧伪造竞拍、订单或支付状态。
 
 ## 后端接口要求
 
