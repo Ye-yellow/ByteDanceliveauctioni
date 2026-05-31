@@ -1,6 +1,6 @@
 import { normalizeAuctionEvent } from '../api/adapters';
 import { AUCTION_EVENT_TYPE, type AuctionSocketEvent } from '../api/types';
-import { authSession } from '../auth/authSession';
+import { getPublicWsTicket } from './wsTicket';
 
 export type RoomSocketState = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'failed' | 'closing';
 
@@ -21,9 +21,11 @@ function defaultWsBase(): string {
 
 const WS_BASE = import.meta.env.VITE_WS_BASE || defaultWsBase();
 
-function roomUrl(roomId: string, lastEventId?: string): string {
+function roomUrl(roomId: string, lastEventId?: string, ticket?: string | null): string {
   const url = new URL(`/ws/rooms/${encodeURIComponent(roomId)}`, WS_BASE);
+  url.searchParams.set('scope', 'public');
   if (lastEventId) url.searchParams.set('last_event_id', lastEventId);
+  if (ticket) url.searchParams.set('ticket', ticket);
   return url.toString();
 }
 
@@ -74,13 +76,6 @@ export class RoomSocket {
     this.scheduleReconnect();
   }
 
-  auth(accessToken?: string) {
-    this.send({
-      type: 'AUTH',
-      accessToken,
-    });
-  }
-
   joinRoom(roomId = this.options.roomId) {
     this.send({
       type: 'JOIN_ROOM',
@@ -108,19 +103,19 @@ export class RoomSocket {
     this.setState(this.reconnectAttempts > 0 ? 'reconnecting' : 'connecting');
 
     try {
-      const accessToken = await authSession.getValidAccessToken();
-      this.socket = new WebSocket(roomUrl(this.options.roomId, this.lastEventId));
-      this.bindSocket(this.socket, accessToken);
+      const ticket = await getPublicWsTicket(this.options.roomId).catch(() => null);
+      if (this.stopped) return;
+      this.socket = new WebSocket(roomUrl(this.options.roomId, this.lastEventId, ticket));
+      this.bindSocket(this.socket);
     } catch {
       this.scheduleReconnect();
     }
   }
 
-  private bindSocket(socket: WebSocket, accessToken: string | null) {
+  private bindSocket(socket: WebSocket) {
     socket.onopen = () => {
       this.reconnectAttempts = 0;
       this.setState('connected');
-      this.auth(accessToken ?? undefined);
       this.joinRoom();
       this.startHeartbeat();
       void this.options.onSnapshotRecovery?.();
