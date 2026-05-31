@@ -99,11 +99,37 @@ prepare_ssh_key() {
 }
 
 remote() {
-  ssh -i "$SSH_KEY_RUNTIME" -o IdentitiesOnly=yes -o BatchMode=yes "$SERVER_USER@$SERVER_HOST" "$@"
+  local attempt
+  for attempt in 1 2 3; do
+    if ssh -i "$SSH_KEY_RUNTIME" \
+      -o IdentitiesOnly=yes \
+      -o BatchMode=yes \
+      -o ConnectTimeout=15 \
+      -o ServerAliveInterval=5 \
+      -o ServerAliveCountMax=2 \
+      "$SERVER_USER@$SERVER_HOST" "$@"; then
+      return 0
+    fi
+    sleep 5
+  done
+  return 1
 }
 
 upload() {
-  scp -i "$SSH_KEY_RUNTIME" -o IdentitiesOnly=yes -o BatchMode=yes "$@" "$SERVER_USER@$SERVER_HOST:$SERVER_DIR/uploads/"
+  local attempt
+  for attempt in 1 2 3; do
+    if scp -i "$SSH_KEY_RUNTIME" \
+      -o IdentitiesOnly=yes \
+      -o BatchMode=yes \
+      -o ConnectTimeout=15 \
+      -o ServerAliveInterval=5 \
+      -o ServerAliveCountMax=2 \
+      "$@" "$SERVER_USER@$SERVER_HOST:$SERVER_DIR/uploads/"; then
+      return 0
+    fi
+    sleep 5
+  done
+  return 1
 }
 
 prepare_packages() {
