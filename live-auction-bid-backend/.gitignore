@@ -1,4 +1,5 @@
 .env
+!deploy/.env
 .DS_Store
 *.log
 *.tsbuildinfo

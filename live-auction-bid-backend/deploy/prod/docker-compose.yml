@@ -1,0 +1,96 @@
+services:
+  auction-backend:
+    build:
+      context: ./backend
+      dockerfile: deploy/Dockerfile
+    image: live-auction-bid-backend:prod
+    container_name: live-auction-bid-backend
+    env_file:
+      - ./.env
+    environment:
+      AUCTION_HTTP_ADDR: ":18080"
+      AUCTION_MYSQL_DSN: "auction:${AUCTION_MYSQL_PASSWORD:?AUCTION_MYSQL_PASSWORD is required}@tcp(mysql:3306)/live_auction?parseTime=true&charset=utf8mb4&loc=Local"
+      AUCTION_REDIS_ADDR: "redis:6379"
+      AUCTION_REDIS_PASSWORD: "${AUCTION_REDIS_PASSWORD:?AUCTION_REDIS_PASSWORD is required}"
+      AUCTION_CONSUL_ADDR: "consul:8500"
+      AUCTION_SERVICE_NAME: "auction-backend"
+      AUCTION_SERVICE_ADDR: "auction-backend"
+      AUCTION_JWT_SECRET: "${AUCTION_JWT_SECRET:?AUCTION_JWT_SECRET is required}"
+      AUCTION_JWT_ISSUER: "auction-backend"
+      AUCTION_BOOTSTRAP_MAIN_ACCOUNT_USERNAME: "${AUCTION_BOOTSTRAP_MAIN_ACCOUNT_USERNAME:-main}"
+      AUCTION_BOOTSTRAP_MAIN_ACCOUNT_PASSWORD: "${AUCTION_BOOTSTRAP_MAIN_ACCOUNT_PASSWORD:?AUCTION_BOOTSTRAP_MAIN_ACCOUNT_PASSWORD is required}"
+      AUCTION_BOOTSTRAP_MAIN_ACCOUNT_NICKNAME: "${AUCTION_BOOTSTRAP_MAIN_ACCOUNT_NICKNAME:-主账号}"
+    ports:
+      - "127.0.0.1:18080:18080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:18080/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - live-auction
+
+  mysql:
+    image: mysql:8.4
+    container_name: live-auction-mysql
+    environment:
+      MYSQL_DATABASE: live_auction
+      MYSQL_USER: auction
+      MYSQL_PASSWORD: "${AUCTION_MYSQL_PASSWORD:?AUCTION_MYSQL_PASSWORD is required}"
+      MYSQL_ROOT_PASSWORD: "${AUCTION_MYSQL_ROOT_PASSWORD:?AUCTION_MYSQL_ROOT_PASSWORD is required}"
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    volumes:
+      - live-auction-mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uauction -p$${MYSQL_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - live-auction
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: live-auction-redis
+    environment:
+      REDIS_PASSWORD: "${AUCTION_REDIS_PASSWORD:?AUCTION_REDIS_PASSWORD is required}"
+    command: ["sh", "-c", "redis-server --appendonly yes --requirepass \"$${REDIS_PASSWORD}\""]
+    volumes:
+      - live-auction-redis:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - live-auction
+
+  consul:
+    image: hashicorp/consul:1.18
+    container_name: live-auction-consul
+    command: ["agent", "-dev", "-client=0.0.0.0"]
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - live-auction
+
+volumes:
+  live-auction-mysql:
+  live-auction-redis:
+
+networks:
+  live-auction:
+    driver: bridge
