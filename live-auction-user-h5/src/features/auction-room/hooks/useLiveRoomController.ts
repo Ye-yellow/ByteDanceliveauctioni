@@ -24,7 +24,17 @@ type DepositPrompt = {
 };
 
 function bidFailureMessage(reason: unknown): string {
-  const message = reason instanceof Error ? reason.message : typeof reason === 'string' ? reason : '请稍后重试';
+  const rawMessage = reason instanceof Error ? reason.message : typeof reason === 'string' ? reason : '请稍后重试';
+  const message = rawMessage
+    .replace(/^invalid argument:\s*/i, '')
+    .replace(/^操作失败：\s*/i, '');
+
+  if (message.includes('leading bidder must wait') || message.includes('最高价')) return '你当前已经是最高价，等其他人出价后再加价';
+  if (message.includes('bid amount is lower')) return '出价金额太低，请按当前加价幅度重新出价';
+  if (message.includes('lot is not live') || message.includes('auction has ended')) return '当前商品还未开始或已结束';
+  if (message.includes('currency')) return '出价币种异常，请刷新后重试';
+  if (message.includes('runtime state is missing')) return '竞拍状态正在同步，请稍后重试';
+
   return message.startsWith('操作失败') ? message : `操作失败：${message}`;
 }
 
@@ -290,7 +300,7 @@ export function useLiveRoomController(roomId: string) {
       return;
     }
     if (meId && currentLot.leadingUserId === meId) {
-      const message = '你已关注这件商品，等待主播继续讲解';
+      const message = '你当前已经是最高价，等其他人出价后再加价';
       setBidError(message);
       pushNotice(message);
       return;

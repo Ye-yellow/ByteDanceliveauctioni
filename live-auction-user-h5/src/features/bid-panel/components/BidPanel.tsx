@@ -102,7 +102,6 @@ export function BidPanel({ lot, loading, disabledReason = '', onBid, onTip }: Bi
             }}
           />
           <i>元</i>
-          <span>加价幅度 <span className="scrollAmount inlineAmount" title={formatMoney(step)}>{formatMoney(step)}</span></span>
         </label>
         <button
           type="button"

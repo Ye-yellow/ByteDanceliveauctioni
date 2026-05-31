@@ -168,6 +168,8 @@ export function normalizeLot(input: unknown): Lot {
     startedAtUnixMs: pick(raw, 'startedAtUnixMs', 'started_at_unix_ms'),
     endsAtUnixMs: pick(raw, 'endsAtUnixMs', 'ends_at_unix_ms'),
     settledAtUnixMs: pick(raw, 'settledAtUnixMs', 'settled_at_unix_ms'),
+    createdAtUnixMs: pick(raw, 'createdAtUnixMs', 'created_at_unix_ms'),
+    updatedAtUnixMs: pick(raw, 'updatedAtUnixMs', 'updated_at_unix_ms'),
     rule: normalizeBidRule(raw.rule),
     version: raw.version as Lot['version'],
     queueStatus: normalizeLotQueueStatus(pick(raw, 'queueStatus', 'queue_status')),

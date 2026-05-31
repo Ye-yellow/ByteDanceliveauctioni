@@ -25,6 +25,7 @@ type BidPulseAccumulator = BidPulse & {
 
 const BID_PULSE_ACCUMULATE_MS = 60000;
 const BID_PULSE_VISIBLE_MS = 3000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const statusClassByState: Record<LotDisplayState, string> = {
   upcoming: 'isUpcoming',
@@ -107,6 +108,31 @@ function ecomCountText(count: number) {
   return count.toLocaleString('zh-CN');
 }
 
+function localDayStartMs(nowMs: number) {
+  const date = new Date(nowMs);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+function nextLocalDayStartMs(nowMs: number) {
+  const date = new Date(localDayStartMs(nowMs));
+  date.setDate(date.getDate() + 1);
+  return date.getTime();
+}
+
+function lotDisplayReferenceTime(lot: Lot, referenceNow: number) {
+  const createdAtMs = Number(lot.createdAtUnixMs || 0);
+  if (createdAtMs > 0) return createdAtMs;
+  return referenceNow - DAY_MS;
+}
+
+function lotIsFromToday(lot: Lot, nowMs?: number) {
+  const referenceNow = Number.isFinite(nowMs) ? Number(nowMs) : Date.now();
+  const lotTime = lotDisplayReferenceTime(lot, referenceNow);
+  if (lotTime <= 0) return true;
+  return lotTime >= localDayStartMs(referenceNow) && lotTime < nextLocalDayStartMs(referenceNow);
+}
+
 function EcomCountdownTag({ endsAtUnixMs, nowMs }: { endsAtUnixMs?: number | string; nowMs?: number }) {
   const [leftMs, setLeftMs] = useState(0);
 
@@ -166,7 +192,7 @@ export function LotQueueList({
   const pendingBidPulseRef = useRef<BidPulse | null>(null);
   const showBidPulseTimerRef = useRef<number | null>(null);
   const hideBidPulseTimerRef = useRef<number | null>(null);
-  const visibleLots = lots.filter(lotIsDisplayable);
+  const visibleLots = lots.filter((lot) => lotIsDisplayable(lot) && lotIsFromToday(lot, nowMs));
   const sortedLots = [...visibleLots].sort((a, b) => {
     const scoreDiff = lotSortScore(a, orderForLot(orders, a), Boolean(paidLotIds[a.id]), nowMs) - lotSortScore(b, orderForLot(orders, b), Boolean(paidLotIds[b.id]), nowMs);
     if (scoreDiff) return scoreDiff;
@@ -245,7 +271,7 @@ export function LotQueueList({
       <header className="drawerSectionHeader">
         <div>
           <b>本场商品</b>
-          <span>{visibleLots.length ? `主播已上架 ${visibleLots.length} 件` : '等待主播上架'}</span>
+          <span>{visibleLots.length ? `主播今日上架 ${visibleLots.length} 件` : '今日暂无商品'}</span>
         </div>
         <button type="button" onClick={onRefresh} disabled={loading}>
           {loading ? '刷新中' : '刷新'}
@@ -253,7 +279,7 @@ export function LotQueueList({
       </header>
 
       {error ? <p className="bidError" role="alert">{error}</p> : null}
-      {!loading && !error && sortedLots.length === 0 ? <section className="drawerEmpty">暂无商品，等待主播从 PC 端上架</section> : null}
+      {!loading && !error && sortedLots.length === 0 ? <section className="drawerEmpty">今日暂无商品，等待主播从 PC 端上架</section> : null}
 
       <div className="queueList">
         {sortedLots.map((lot, index) => {

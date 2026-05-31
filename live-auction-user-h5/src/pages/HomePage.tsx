@@ -65,7 +65,8 @@ type DouyinVideoRecord = {
   };
 };
 
-const CHANNELS = ['热点', '长视频', '关注', '经验', '推荐'];
+const LIVE_CHANNEL_INDEX = 3;
+const CHANNELS = ['热点', '长视频', '关注', '直播', '推荐'];
 const DOUYIN_VIDEO_SOURCE = '/data/douyin-feed.json';
 const DOUYIN_IMAGE_BASE = 'https://liveauction.tos-cn-beijing.volces.com/douyin-h5/images/';
 const DOUYIN_COMMENT_VIDEO_IDS = [
@@ -361,7 +362,7 @@ function takeLoop<T>(items: T[], count: number, start = 0) {
 function liveRoomFeedItems(rooms: Room[]): FeedItem[] {
   if (!rooms.length) return [];
   const tones: FeedItem['tone'][] = ['cyan', 'dark', 'violet', 'rose'];
-  return rooms.slice(0, 4).map((room, index) => {
+  return rooms.map((room, index) => {
     const name = room.name || `直播间${index + 1}`;
     return {
       id: `room-${room.id}`,
@@ -401,7 +402,7 @@ function channelItems(channelIndex: number, liveItems: FeedItem[], videoItems: F
   if (channelIndex === 0) return mixed.slice(2).concat(mixed.slice(0, 2));
   if (channelIndex === 1) return takeLoop(videos, CHANNEL_VIDEO_WINDOW, 5).concat(lives.slice(0, 1));
   if (channelIndex === 2) return mixed.slice().reverse();
-  if (channelIndex === 3) return lives.concat(takeLoop(videos, CHANNEL_VIDEO_WINDOW, 12));
+  if (channelIndex === LIVE_CHANNEL_INDEX) return lives;
   return mixed;
 }
 
@@ -1258,24 +1259,43 @@ export function HomePage() {
               const paneItemIndex = clampIndex(itemIndexes[feedIndex] || 0, feed.length);
               return (
                 <section className="dyHomeReplicaChannelPane" key={CHANNELS[feedIndex]}>
-                  <section className="dyHomeReplicaVertical" style={{ transform: `translateY(-${paneItemIndex * 100}%)` }}>
-                    {feed.map((item, index) => (
-                      <FeedSlide
-                        item={item}
-                        active={baseIndex === 1 && feedIndex === channelIndex && index === itemIndex}
-                        shouldLoad={baseIndex === 1 && feedIndex === channelIndex && Math.abs(index - paneItemIndex) <= 2}
-                        liked={likedIds.has(item.id)}
-                        paused={pausedId === item.id}
-                        progressKey={`${feedIndex}-${index}-${item.id}-${pausedId === item.id ? 'paused' : 'playing'}`}
-                        onDoubleTapLike={() => likeItem(item.id)}
-                        onLike={() => toggleLike(item.id)}
-                        onToggle={() => setPausedId((current) => (current === item.id ? '' : item.id))}
-                        onEnterLive={enterLiveRoom}
-                        onOpenSheet={(nextSheet) => openSheetForItem(nextSheet, item)}
-                        key={`${feedIndex}-${index}-${item.id}`}
-                      />
-                    ))}
-                  </section>
+                  {feed.length ? (
+                    <section className="dyHomeReplicaVertical" style={{ transform: `translateY(-${paneItemIndex * 100}%)` }}>
+                      {feed.map((item, index) => (
+                        <FeedSlide
+                          item={item}
+                          active={baseIndex === 1 && feedIndex === channelIndex && index === itemIndex}
+                          shouldLoad={baseIndex === 1 && feedIndex === channelIndex && Math.abs(index - paneItemIndex) <= 2}
+                          liked={likedIds.has(item.id)}
+                          paused={pausedId === item.id}
+                          progressKey={`${feedIndex}-${index}-${item.id}-${pausedId === item.id ? 'paused' : 'playing'}`}
+                          onDoubleTapLike={() => likeItem(item.id)}
+                          onLike={() => toggleLike(item.id)}
+                          onToggle={() => setPausedId((current) => (current === item.id ? '' : item.id))}
+                          onEnterLive={enterLiveRoom}
+                          onOpenSheet={(nextSheet) => openSheetForItem(nextSheet, item)}
+                          key={`${feedIndex}-${index}-${item.id}`}
+                        />
+                      ))}
+                    </section>
+                  ) : feedIndex === LIVE_CHANNEL_INDEX ? (
+                    <section className="dyHomeReplicaLiveEmpty">
+                      <b>目前暂无直播</b>
+                      <span>有商家主账号开拍后，直播间会出现在这里。</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRefreshing(true);
+                          void listPublicRooms()
+                            .then((rooms) => setPublicRooms(rooms))
+                            .catch(() => setPublicRooms([]))
+                            .finally(() => window.setTimeout(() => setRefreshing(false), 300));
+                        }}
+                      >
+                        刷新
+                      </button>
+                    </section>
+                  ) : null}
                 </section>
               );
             })}

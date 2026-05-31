@@ -166,6 +166,8 @@ export type Lot = {
   startedAtUnixMs?: number | string;
   endsAtUnixMs?: number | string;
   settledAtUnixMs?: number | string;
+  createdAtUnixMs?: number | string;
+  updatedAtUnixMs?: number | string;
   rule: BidRule;
   version?: number | string;
   queueStatus?: LotQueueStatus;

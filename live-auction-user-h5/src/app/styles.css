@@ -5385,13 +5385,10 @@
 .liveBidSheet .bidAmountControl {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas:
-    "amount currency"
-    "hint hint";
+  grid-template-areas: "amount currency";
   align-items: center;
   justify-items: stretch;
   column-gap: 4px;
-  row-gap: 2px;
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
@@ -5436,17 +5433,6 @@
 
 .liveBidSheet .bidAmountControl.amountTiny i {
   font-size: 16px;
-}
-
-.liveBidSheet .bidAmountControl span {
-  grid-area: hint;
-  max-width: 100%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  color: #a0a4ad;
-  font-size: 12px;
-  font-weight: 900;
 }
 
 .liveBidSheet .bidButton {
@@ -11673,6 +11659,58 @@
   height: 100%;
   transition: transform 260ms var(--live-ease-swipe);
   will-change: transform;
+}
+
+.dyHomeReplicaLiveEmpty {
+  height: 100%;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 0 28px calc(58px + var(--live-safe-bottom));
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 32%, rgba(254, 44, 85, 0.18), transparent 34%),
+    linear-gradient(180deg, #111218, #050507 62%);
+  color: #fff;
+}
+
+.dyHomeReplicaLiveEmpty::before {
+  content: "LIVE";
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 18px;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.dyHomeReplicaLiveEmpty b {
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.dyHomeReplicaLiveEmpty span {
+  max-width: 240px;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.dyHomeReplicaLiveEmpty button {
+  margin-top: 4px;
+  border: 0;
+  border-radius: 999px;
+  background: #fe2c55;
+  color: #fff;
+  padding: 9px 22px;
+  font-size: 14px;
+  font-weight: 850;
 }
 
 .dyHomeReplicaFeedSlide {
