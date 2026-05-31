@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, Clock3, ListChecks, Package, Radio, RefreshCw, ShieldAlert, Trophy, Wifi } from 'lucide-react';
-import { getRoomSnapshot, listAdminLots, revealTrustCard, settleLot, startDuel } from '../auction/api/auctionApi';
+import { cancelLot, getRoomSnapshot, listAdminLots, revealTrustCard, settleLot, startDuel } from '../auction/api/auctionApi';
 import { isLiveLot, isQueueReadyLot, lotStatusLabel, lotStatusTone } from '../../entities/auction/model/auctionStatus';
 import type { Bid, Lot, RoomSnapshot } from '../../shared/api/types';
 import { resultMessage } from '../../shared/api/result';
@@ -84,7 +84,7 @@ export function LiveControlPage({ roomId }: { roomId: string }) {
     </section>
     {!lot ? <PreparedStage nextLot={nextLot} onSync={() => void syncRoom()} /> : <div className="controlRoomGrid">
       <aside className="controlLeftRail hostBriefingRail"><RoomLivePreview lot={lot} snapshot={snapshot} wsState={wsState} /><TrustCardPanel lot={lot} working={working} onReveal={(cardId) => void action('展示讲解卡', () => revealTrustCard(lot.id, cardId))} /></aside>
-      <main className="controlCenterRail"><PriceCommandBoard lot={lot} snapshot={snapshot} /><ControlActionDeck lot={lot} working={working} onDuel={() => void action('进入决胜', () => startDuel(lot.id))} onSettle={() => void action('落锤成交', () => settleLot(lot.id))} /></main>
+      <main className="controlCenterRail"><PriceCommandBoard lot={lot} snapshot={snapshot} /><ControlActionDeck lot={lot} working={working} onDuel={() => void action('进入决胜', () => startDuel(lot.id))} onSettle={() => void action('落锤成交', () => settleLot(lot.id))} onCancel={(reason) => void action('异常取消', () => cancelLot(lot.id, reason))} /></main>
       <aside className="controlRightRail"><RealtimeBidFeedPanel bids={snapshot?.recentBids || []} /><LiveRankingBoard ranking={snapshot?.ranking || []} leadingUserId={lot.leadingUserId} /></aside>
     </div>}
     <NextLotQueue lot={nextLot} />
@@ -202,9 +202,11 @@ function PriceCommandBoard({ lot, snapshot }: { lot: Lot; snapshot: RoomSnapshot
   return <section className="priceCommandBoard auctionCommandCenter"><div className="priceCommandEyebrow"><span>Command Area</span><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge></div><div className="currentPriceFocus"><p>当前最高价</p><strong className="livePriceBig">{formatMoneyText(lot.currentPrice)}</strong><small>领先用户：{lot.leadingNickname || snapshot?.ranking?.[0]?.nickname || '暂无'}</small></div><span className="serverCountdown"><Clock3 size={22} />{formatAuctionLeftMs(getLotLeftMs(lot, snapshot?.serverTimeUnixMs), 'control')}</span><div className="priceCommandMetrics"><span>下一口价：<b>{formatMoneyText(nextPrice)}</b></span><span>参与人数：<b>{snapshot?.ranking?.length || 0}</b></span><span>出价次数：<b>{snapshot?.recentBids?.length || 0}</b></span><span>规则版本：<b>v{lot.version || 1}</b></span></div></section>;
 }
 
-function ControlActionDeck({ lot, working, onDuel, onSettle }: { lot: Lot; working: string; onDuel: () => void; onSettle: () => void }) {
+function ControlActionDeck({ lot, working, onDuel, onSettle, onCancel }: { lot: Lot; working: string; onDuel: () => void; onSettle: () => void; onCancel: (reason: string) => void }) {
   const disabled = Boolean(working);
-  return <section className="controlActionDeck"><header><h3>控场操作</h3><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge></header><div className="controlActionsGrid"><button type="button" className="controlActionButton controlActionButton-duel" disabled={disabled} onClick={onDuel}>进入决胜</button><button type="button" className="controlActionButton controlActionButton-muted" disabled>推送提醒待接口</button><button type="button" className="controlActionButton controlActionButton-muted" disabled>延时待接口</button></div><div className="dangerActionStrip"><button type="button" className="settleButton" disabled={disabled} onClick={onSettle}>落锤成交</button><span className="controlActionHint">已开拍拍品不可取消，只能落锤成交或等待竞拍结束。</span></div></section>;
+  const [cancelReason, setCancelReason] = useState('');
+  const trimmedReason = cancelReason.trim();
+  return <section className="controlActionDeck"><header><h3>控场操作</h3><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge></header><div className="controlActionsGrid"><button type="button" className="controlActionButton controlActionButton-duel" disabled={disabled} onClick={onDuel}>进入决胜</button><button type="button" className="controlActionButton controlActionButton-muted" disabled>推送提醒待接口</button><button type="button" className="controlActionButton controlActionButton-muted" disabled>延时待接口</button></div><div className="dangerActionStrip"><button type="button" className="settleButton" disabled={disabled} onClick={onSettle}>落锤成交</button><input value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} placeholder="异常取消原因" disabled={disabled} /><button type="button" className="cancelButton" disabled={disabled || !trimmedReason} onClick={() => onCancel(trimmedReason)}>异常取消</button></div></section>;
 }
 
 function RealtimeBidFeedPanel({ bids }: { bids: Bid[] }) {

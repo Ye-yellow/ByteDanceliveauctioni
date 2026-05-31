@@ -39,6 +39,12 @@ function roomURL(roomId: string, ticket: string) {
   return url.toString();
 }
 
+function realtimeConnectionError() {
+  const error = new Error('实时连接异常，正在尝试重连');
+  error.name = 'RealtimeConnectionError';
+  return error;
+}
+
 export class RoomSocket {
   private readonly options: RoomSocketOptions;
   private readonly handledEventTypes?: Set<string>;
@@ -101,8 +107,8 @@ export class RoomSocket {
     this.socket.onmessage = (message) => {
       void this.handleMessage(message.data);
     };
-    this.socket.onerror = (event) => {
-      this.options.onError?.(event);
+    this.socket.onerror = () => {
+      this.options.onError?.(realtimeConnectionError());
       this.emitStatus('disconnected');
     };
     this.socket.onclose = () => {
