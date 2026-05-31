@@ -546,12 +546,7 @@ func (uc *AuctionUsecase) placeBidRuntime(ctx context.Context, req *v1.PlaceBidR
 			event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_REJECTED, guardLot)
 			event.Reason = bidRejectReason(err)
 			event.Ranking = ranking
-			if persistErr := uc.persistEvents(ctx, event); persistErr != nil {
-				return nil, nil, nil, persistErr
-			}
-			if publishErr := uc.broadcast(ctx, event); publishErr != nil {
-				return nil, nil, nil, publishErr
-			}
+			uc.publishBidRejectedBestEffort(ctx, event)
 			return proto.Clone(guardLot).(*v1.Lot), nil, ranking, err
 		}
 	} else if guardCtxErr == nil && apperr.IsNotFound(guardErr) {
@@ -571,12 +566,7 @@ func (uc *AuctionUsecase) placeBidRuntime(ctx context.Context, req *v1.PlaceBidR
 		event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_REJECTED, rejectLot)
 		event.Reason = bidRejectReason(err)
 		event.Ranking = ranking
-		if persistErr := uc.persistEvents(ctx, event); persistErr != nil {
-			return nil, nil, nil, persistErr
-		}
-		if publishErr := uc.broadcast(ctx, event); publishErr != nil {
-			return nil, nil, nil, publishErr
-		}
+		uc.publishBidRejectedBestEffort(ctx, event)
 		return proto.Clone(rejectLot).(*v1.Lot), nil, ranking, err
 	}
 	if result.Replayed {
@@ -1131,6 +1121,26 @@ func (uc *AuctionUsecase) persistEvents(ctx context.Context, events ...v1.Auctio
 		return nil
 	}
 	return uc.eventsStore.PersistEvents(ctx, events)
+}
+
+func (uc *AuctionUsecase) publishBidRejectedBestEffort(ctx context.Context, event v1.AuctionEvent) {
+	if err := uc.persistEvents(ctx, event); err != nil {
+		slog.Warn("bid rejected event persistence failed",
+			"lot_id", event.GetLotId(),
+			"room_id", event.GetRoomId(),
+			"reason", event.GetReason(),
+			"error", err,
+		)
+		return
+	}
+	if err := uc.broadcast(ctx, event); err != nil {
+		slog.Warn("bid rejected event broadcast failed",
+			"lot_id", event.GetLotId(),
+			"room_id", event.GetRoomId(),
+			"reason", event.GetReason(),
+			"error", err,
+		)
+	}
 }
 
 func (uc *AuctionUsecase) broadcast(ctx context.Context, events ...v1.AuctionEvent) error {
