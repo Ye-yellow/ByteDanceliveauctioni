@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,9 +27,10 @@ func main() {
 	}
 
 	store, err := data.NewStore(context.Background(), data.Config{
-		MySQLDSN:      getenv("AUCTION_MYSQL_DSN", "auction:auction_dev@tcp(127.0.0.1:13306)/live_auction?parseTime=true&charset=utf8mb4&loc=Local"),
-		RedisAddr:     getenv("AUCTION_REDIS_ADDR", "127.0.0.1:16379"),
-		RedisPassword: getenv("AUCTION_REDIS_PASSWORD", "auction_redis"),
+		MySQLDSN:                getenv("AUCTION_MYSQL_DSN", "auction:auction_dev@tcp(127.0.0.1:13306)/live_auction?parseTime=true&charset=utf8mb4&loc=Local"),
+		RedisAddr:               getenv("AUCTION_REDIS_ADDR", "127.0.0.1:16379"),
+		RedisPassword:           getenv("AUCTION_REDIS_PASSWORD", "auction_redis"),
+		RuntimeProjectionShards: getenvInt("AUCTION_RUNTIME_PROJECTION_SHARDS", 16),
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -35,7 +38,12 @@ func main() {
 	defer store.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	instanceID := getenv("AUCTION_INSTANCE_ID", defaultInstanceID())
+	leaseProvider := data.NewRedisLeaseProvider(store)
+	leaseTTL := getenvDuration("AUCTION_WORKER_LEASE_TTL", 15*time.Second)
+	leaseRenewInterval := getenvDuration("AUCTION_WORKER_LEASE_RENEW_INTERVAL", 5*time.Second)
 	outboxWorker := data.NewEventOutboxWorker(store, 10*time.Second, 100)
+	outboxWorker.BindLease(leaseProvider, "auction:lease:event-outbox-worker", instanceID, leaseTTL, leaseRenewInterval)
 	outboxWorker.Start(ctx)
 
 	authManager, err := auth.NewManager(auth.Config{
@@ -67,8 +75,12 @@ func main() {
 	hub.BindAuthManager(authManager)
 	eventPublisher := realtime.NewPublisher(hub)
 	auctionUsecase := auction.NewAuctionUsecase(store, store, store, eventPublisher)
+	runtimeProjectionWorker := data.NewRuntimeProjectionWorker(store, eventPublisher, 2*time.Second, 100)
+	runtimeProjectionWorker.BindLease(leaseProvider, instanceID, leaseTTL, leaseRenewInterval)
+	runtimeProjectionWorker.Start(ctx)
 	hub.BindRoomAccessValidator(auctionUsecase)
 	auctionCloseWorker := auction.NewAuctionCloseWorker(auctionUsecase, getenvDuration("AUCTION_CLOSE_WORKER_INTERVAL", 2*time.Second), 100)
+	auctionCloseWorker.BindLease(leaseProvider, "auction:lease:auction-close-worker", instanceID, leaseTTL, leaseRenewInterval)
 	auctionCloseWorker.Start(ctx)
 	hub.BindSnapshotProvider(auctionUsecase)
 	auctionService := appsvc.NewAuctionService(auctionUsecase, hub)
@@ -90,13 +102,29 @@ func main() {
 		}
 	}()
 
-	readiness := server.Readiness{Store: store, Outbox: outboxWorker, AuctionClose: auctionCloseWorker, Consul: consulRegistration}
+	readiness := server.Readiness{
+		Store:             store,
+		Outbox:            outboxWorker,
+		AuctionClose:      auctionCloseWorker,
+		RuntimeProjection: runtimeProjectionWorker,
+		ProjectionMetrics: runtimeProjectionWorker,
+		WorkerStatuses:    []auction.WorkerStatusProvider{outboxWorker, auctionCloseWorker, runtimeProjectionWorker},
+		Consul:            consulRegistration,
+	}
 	httpServer := server.NewHTTPServer(addr, auctionService, userService, hub, readiness, authManager, authManager.Middleware(), imageStorage, store)
 
 	log.Printf("auction backend listening on %s via kratos http", addr)
 	if err := httpServer.Start(ctx); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func defaultInstanceID() string {
+	hostname, _ := os.Hostname()
+	if hostname == "" {
+		hostname = "local"
+	}
+	return fmt.Sprintf("%s-%d", hostname, os.Getpid())
 }
 
 func getenv(key, fallback string) string {
@@ -117,6 +145,18 @@ func getenvDuration(key string, fallback time.Duration) time.Duration {
 		log.Fatalf("invalid %s duration: %v", key, err)
 	}
 	return duration
+}
+
+func getenvInt(key string, fallback int) int {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		log.Fatalf("invalid %s integer: %v", key, err)
+	}
+	return parsed
 }
 
 func bootstrapMainAccount(ctx context.Context, users *userbiz.Usecase) error {

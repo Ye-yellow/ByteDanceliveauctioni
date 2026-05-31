@@ -50,6 +50,9 @@ func (s *Store) CommitAcceptedBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, 
 		}
 	}
 	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockRoomStateForTerminalLot(ctx, tx, lot); err != nil {
+			return err
+		}
 		result := tx.Model(&AuctionLotModel{}).
 			Where("id = ? AND version = ?", lot.Id, expectedLotVersion).
 			Select("*").
@@ -60,6 +63,9 @@ func (s *Store) CommitAcceptedBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, 
 		}
 		if result.RowsAffected == 0 {
 			return apperr.ErrLotVersionConflict
+		}
+		if err := releaseActiveLotIfTerminal(ctx, tx, lot); err != nil {
+			return err
 		}
 		if err := tx.Create(bidModel).Error; err != nil {
 			return err
@@ -80,40 +86,97 @@ func (s *Store) CommitAcceptedBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, 
 }
 
 func (s *Store) ProjectRuntimeBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, idempotencyKey string, order *auction.Order, events []v1.AuctionEvent) error {
+	projection := auction.RuntimeProjectionEvent{
+		RuntimeStreamID:    "",
+		RoomID:             lot.GetRoomId(),
+		LotID:              lot.GetId(),
+		EventType:          "BID_ACCEPTED",
+		IdempotencyKey:     idempotencyKey,
+		Bid:                bid,
+		Lot:                lot,
+		PreviousLotVersion: lot.GetVersion() - 1,
+		LotVersion:         lot.GetVersion(),
+		OccurredAtUnixMs:   bid.GetCreatedAtUnixMs(),
+	}
+	_, err := s.ProjectRuntimeEvent(ctx, projection, order, events)
+	return err
+}
+
+func (s *Store) ProjectRuntimeEvent(ctx context.Context, projection auction.RuntimeProjectionEvent, order *auction.Order, events []v1.AuctionEvent) (auction.RuntimeProjectionOutcome, error) {
+	bid := projection.Bid
+	lot := projection.Lot
 	if bid.Id == "" {
-		return errors.New("bid id is required")
+		return auction.RuntimeProjectionOutcome{}, errors.New("bid id is required")
 	}
 	if bid.LotId == "" {
-		return errors.New("lot id is required")
+		return auction.RuntimeProjectionOutcome{}, errors.New("lot id is required")
 	}
 	if bid.UserId == "" {
-		return errors.New("user id is required")
+		return auction.RuntimeProjectionOutcome{}, errors.New("user id is required")
 	}
 	if bid.GetAmount() == nil || bid.GetAmount().GetCurrency() == "" {
-		return errors.New("bid amount and currency are required")
+		return auction.RuntimeProjectionOutcome{}, errors.New("bid amount and currency are required")
 	}
 	if lot == nil {
-		return errors.New("lot is required")
+		return auction.RuntimeProjectionOutcome{}, errors.New("lot is required")
 	}
+	if projection.PreviousLotVersion <= 0 || projection.LotVersion <= projection.PreviousLotVersion {
+		return auction.RuntimeProjectionOutcome{}, errors.New("runtime projection lot version is required")
+	}
+	idempotencyKey := projection.IdempotencyKey
 	bidModel, err := bidToModel(bid, idempotencyKey, lot.GetMainAccountId())
 	if err != nil {
-		return err
+		return auction.RuntimeProjectionOutcome{}, err
 	}
 	lotModel, err := lotToModel(lot)
 	if err != nil {
-		return err
+		return auction.RuntimeProjectionOutcome{}, err
 	}
 	var orderModel *AuctionOrderModel
 	if order != nil {
 		orderModel, err = orderToModel(*order)
 		if err != nil {
-			return err
+			return auction.RuntimeProjectionOutcome{}, err
 		}
 	}
-	projected := false
+	outcome := auction.RuntimeProjectionOutcome{}
 	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockRoomStateForTerminalLot(ctx, tx, lot); err != nil {
+			return err
+		}
+		var current AuctionLotModel
+		if err := tx.WithContext(ctx).
+			Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ?", lot.Id).
+			First(&current).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apperr.ErrNotFound
+			}
+			return err
+		}
+
+		offset, err := lockProjectionOffset(ctx, tx, lot.Id, lot.RoomId, current.Version, projection.RuntimeStreamID, bid.CreatedAtUnixMs)
+		if err != nil {
+			return err
+		}
+		if projection.LotVersion <= offset.LastProjectedVersion {
+			exists, err := runtimeProjectionBidExists(ctx, tx, bid.Id, bid.LotId, bid.UserId, idempotencyKey)
+			if err != nil {
+				return err
+			}
+			if !exists {
+				outcome.Conflict = true
+				return apperr.ErrRuntimeProjectionConflict
+			}
+			outcome.AlreadyProjected = true
+			return nil
+		}
+		if offset.LastProjectedVersion != projection.PreviousLotVersion || current.Version != projection.PreviousLotVersion {
+			outcome.Gap = true
+			return apperr.ErrRuntimeProjectionGap
+		}
 		lotUpdate := tx.Model(&AuctionLotModel{}).
-			Where("id = ? AND version < ?", lot.Id, lot.Version).
+			Where("id = ? AND version = ?", lot.Id, projection.PreviousLotVersion).
 			Select("*").
 			Omit("created_at").
 			Updates(lotModel)
@@ -121,13 +184,19 @@ func (s *Store) ProjectRuntimeBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, 
 			return lotUpdate.Error
 		}
 		if lotUpdate.RowsAffected == 0 {
-			var existing int64
-			if err := tx.Model(&AuctionLotModel{}).Where("id = ?", lot.Id).Count(&existing).Error; err != nil {
+			exists, err := runtimeProjectionBidExists(ctx, tx, bid.Id, bid.LotId, bid.UserId, idempotencyKey)
+			if err != nil {
 				return err
 			}
-			if existing == 0 {
-				return apperr.ErrNotFound
+			if exists {
+				outcome.AlreadyProjected = true
+				return nil
 			}
+			outcome.Conflict = true
+			return apperr.ErrRuntimeProjectionConflict
+		}
+		if err := releaseActiveLotIfTerminal(ctx, tx, lot); err != nil {
+			return err
 		}
 
 		bidCreate := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(bidModel)
@@ -135,26 +204,85 @@ func (s *Store) ProjectRuntimeBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, 
 			return bidCreate.Error
 		}
 		if bidCreate.RowsAffected > 0 {
-			projected = true
+			outcome.Projected = true
 			if err := projectStatsForInsertedBid(ctx, tx, bid, lot); err != nil {
 				return err
 			}
 		} else {
-			return nil
+			outcome.AlreadyProjected = true
 		}
 		if orderModel != nil {
 			if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(orderModel).Error; err != nil {
 				return err
 			}
 		}
-		return createEventModelsIgnoringDuplicates(ctx, tx, events)
+		if err := createEventModelsIgnoringDuplicates(ctx, tx, events); err != nil {
+			return err
+		}
+		return tx.WithContext(ctx).
+			Model(&AuctionRuntimeProjectionOffsetModel{}).
+			Where("lot_id = ?", lot.Id).
+			Updates(map[string]any{
+				"room_id":                lot.RoomId,
+				"last_projected_version": projection.LotVersion,
+				"last_stream_id":         projection.RuntimeStreamID,
+				"updated_at_unix_ms":     bid.CreatedAtUnixMs,
+			}).Error
 	}); err != nil {
-		return err
+		return outcome, err
 	}
-	if !projected {
-		return nil
+	if outcome.AlreadyProjected && !outcome.Projected {
+		return outcome, nil
 	}
-	return s.streamEvents(ctx, events)
+	return outcome, s.streamEvents(ctx, events)
+}
+
+func lockProjectionOffset(ctx context.Context, tx *gorm.DB, lotID, roomID string, currentVersion int64, streamID string, nowMs int64) (AuctionRuntimeProjectionOffsetModel, error) {
+	if nowMs <= 0 {
+		nowMs = time.Now().UnixMilli()
+	}
+	offset := AuctionRuntimeProjectionOffsetModel{}
+	err := tx.WithContext(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("lot_id = ?", lotID).
+		First(&offset).Error
+	if err == nil {
+		return offset, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return offset, err
+	}
+	offset = AuctionRuntimeProjectionOffsetModel{
+		LotID:                lotID,
+		RoomID:               roomID,
+		LastProjectedVersion: currentVersion,
+		LastStreamID:         streamID,
+		UpdatedAtUnixMs:      nowMs,
+	}
+	if err := tx.WithContext(ctx).Create(&offset).Error; err != nil {
+		return offset, err
+	}
+	return offset, nil
+}
+
+func runtimeProjectionBidExists(ctx context.Context, tx *gorm.DB, bidID, lotID, userID, idempotencyKey string) (bool, error) {
+	var count int64
+	query := tx.WithContext(ctx).Model(&AuctionBidModel{}).Where("id = ?", bidID)
+	if err := query.Count(&count).Error; err != nil {
+		return false, err
+	}
+	if count > 0 {
+		return true, nil
+	}
+	if lotID == "" || userID == "" || idempotencyKey == "" {
+		return false, nil
+	}
+	if err := tx.WithContext(ctx).Model(&AuctionBidModel{}).
+		Where("lot_id = ? AND user_id = ? AND idempotency_key = ?", lotID, userID, idempotencyKey).
+		Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 
 func projectStatsForInsertedBid(ctx context.Context, tx *gorm.DB, bid v1.Bid, lot *v1.Lot) error {

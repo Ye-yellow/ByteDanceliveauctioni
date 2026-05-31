@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
@@ -28,6 +29,21 @@ func (s *Store) CreateOrderForSettledLot(ctx context.Context, order auction.Orde
 		return err
 	}
 	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockRoomStateForTerminalLot(ctx, tx, lot); err != nil {
+			return err
+		}
+		var current AuctionLotModel
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ?", lot.Id).
+			First(&current).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apperr.ErrNotFound
+			}
+			return err
+		}
+		if current.Version != expectedLotVersion {
+			return apperr.ErrLotVersionConflict
+		}
 		result := tx.Model(&AuctionLotModel{}).
 			Where("id = ? AND version = ?", lot.Id, expectedLotVersion).
 			Select("*").
@@ -38,6 +54,9 @@ func (s *Store) CreateOrderForSettledLot(ctx context.Context, order auction.Orde
 		}
 		if result.RowsAffected == 0 {
 			return apperr.ErrLotVersionConflict
+		}
+		if err := releaseActiveLotIfTerminal(ctx, tx, lot); err != nil {
+			return err
 		}
 		if err := tx.Create(orderModel).Error; err != nil {
 			return err

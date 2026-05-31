@@ -19,6 +19,18 @@ CREATE TABLE IF NOT EXISTS auction_rooms (
   INDEX idx_platform_room (platform_room_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS auction_room_states (
+  room_id VARCHAR(64) PRIMARY KEY,
+  main_account_id VARCHAR(64) NOT NULL,
+  active_lot_id VARCHAR(64) NOT NULL DEFAULT '',
+  active_lot_version BIGINT NOT NULL DEFAULT 0,
+  next_queue_position INT NOT NULL DEFAULT 1,
+  updated_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
+  INDEX idx_room_state_main (main_account_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS auction_lots (
   id VARCHAR(64) PRIMARY KEY,
   main_account_id VARCHAR(64) NOT NULL,
@@ -55,6 +67,18 @@ CREATE TABLE IF NOT EXISTS auction_lots (
   version BIGINT NOT NULL,
   playbook_stage INT NOT NULL,
   payload JSON NOT NULL,
+  active_room_key VARCHAR(64) GENERATED ALWAYS AS (
+    CASE
+      WHEN status IN (2, 7) THEN room_id
+      ELSE NULL
+    END
+  ) STORED,
+  queued_room_position_key VARCHAR(96) GENERATED ALWAYS AS (
+    CASE
+      WHEN queue_status IN (2, 3) AND queue_position > 0 THEN CONCAT(room_id, '#', queue_position)
+      ELSE NULL
+    END
+  ) STORED,
   created_at DATETIME(3) NULL,
   updated_at DATETIME(3) NULL,
   INDEX idx_lot_main_room_status (main_account_id, room_id, status),
@@ -63,7 +87,9 @@ CREATE TABLE IF NOT EXISTS auction_lots (
   INDEX idx_room_status (room_id, status),
   INDEX idx_room_queue (room_id, queue_status, queue_position),
   INDEX idx_room_updated (room_id, updated_at),
-  INDEX idx_status_ends_at (status, ends_at_unix_ms)
+  INDEX idx_status_ends_at (status, ends_at_unix_ms),
+  UNIQUE INDEX uidx_one_active_lot_per_room (active_room_key),
+  UNIQUE INDEX uidx_one_queued_position_per_room (queued_room_position_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS auction_bids (
@@ -112,6 +138,26 @@ CREATE TABLE IF NOT EXISTS auction_lot_participants (
   PRIMARY KEY (lot_id, user_id),
   INDEX idx_lot_participants_room (room_id),
   INDEX idx_lot_participants_main_room (main_account_id, room_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS auction_runtime_projection_offsets (
+  lot_id VARCHAR(64) PRIMARY KEY,
+  room_id VARCHAR(64) NOT NULL,
+  last_projected_version BIGINT NOT NULL DEFAULT 0,
+  last_stream_id VARCHAR(64) NOT NULL DEFAULT '',
+  updated_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
+  INDEX idx_runtime_projection_room (room_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS auction_runtime_projection_shard_offsets (
+  shard_id INT NOT NULL PRIMARY KEY,
+  last_stream_id VARCHAR(64) NOT NULL DEFAULT '0-0',
+  last_projected_at_unix_ms BIGINT NOT NULL DEFAULT 0,
+  updated_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS auction_events (

@@ -74,6 +74,21 @@ func (s *Store) Save(ctx context.Context, lot *v1.Lot, expectedVersion int64, ev
 		return err
 	}
 	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockRoomStateForTerminalLot(ctx, tx, lot); err != nil {
+			return err
+		}
+		var current AuctionLotModel
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ?", lot.Id).
+			First(&current).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apperr.ErrNotFound
+			}
+			return err
+		}
+		if current.Version != expectedVersion {
+			return apperr.ErrLotVersionConflict
+		}
 		result := tx.
 			Model(&AuctionLotModel{}).
 			Where("id = ? AND version = ?", lot.Id, expectedVersion).
@@ -85,6 +100,9 @@ func (s *Store) Save(ctx context.Context, lot *v1.Lot, expectedVersion int64, ev
 		}
 		if result.RowsAffected == 0 {
 			return apperr.ErrLotVersionConflict
+		}
+		if err := releaseActiveLotIfTerminal(ctx, tx, lot); err != nil {
+			return err
 		}
 		lot.UpdatedAtUnixMs = time.Now().UnixMilli()
 		return createEventModels(ctx, tx, events)
@@ -281,12 +299,14 @@ func (s *Store) ListExpiredOpen(ctx context.Context, nowMs int64, limit int) ([]
 		limit = 100
 	}
 	var models []AuctionLotModel
-	if err := s.db.WithContext(ctx).
-		Where("status IN ? AND ends_at_unix_ms > 0 AND ends_at_unix_ms <= ?", []int32{int32(v1.LotStatus_LOT_STATUS_LIVE), int32(v1.LotStatus_LOT_STATUS_EXTENDED)}, nowMs).
-		Order("ends_at_unix_ms ASC").
-		Order("id ASC").
-		Limit(limit).
-		Find(&models).Error; err != nil {
+	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
+			Where("status IN ? AND ends_at_unix_ms > 0 AND ends_at_unix_ms <= ?", []int32{int32(v1.LotStatus_LOT_STATUS_LIVE), int32(v1.LotStatus_LOT_STATUS_EXTENDED)}, nowMs).
+			Order("ends_at_unix_ms ASC").
+			Order("id ASC").
+			Limit(limit).
+			Find(&models).Error
+	}); err != nil {
 		return nil, err
 	}
 	lots := make([]*v1.Lot, 0, len(models))

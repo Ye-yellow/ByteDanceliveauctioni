@@ -3,10 +3,13 @@ package service
 import (
 	"context"
 	"errors"
+	"log/slog"
+	"time"
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
+	"live-auction-bid/backend/app/auction/service/internal/observability"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
 )
 
@@ -156,20 +159,52 @@ func (s *AuctionService) StartLot(ctx context.Context, req *v1.StartLotRequest) 
 }
 
 func (s *AuctionService) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest) (*v1.PlaceBidReply, error) {
+	start := time.Now()
 	claims, authErr := auth.RequirePermission(ctx, userbiz.PermissionBidPlace)
 	if authErr != nil {
 		result := ErrorResult(ctx, authErr)
+		observability.RecordBid("rejected", result.GetMessage(), time.Since(start))
+		slog.Warn("auction bid rejected",
+			"trace_id", result.GetTraceId(),
+			"lot_id", req.GetLotId(),
+			"user_id", "",
+			"idempotency_key", req.GetIdempotencyKey(),
+			"reason", result.GetMessage(),
+		)
 		return &v1.PlaceBidReply{Result: result, Accepted: false, RejectReason: result.GetMessage()}, nil
 	}
 	lot, bid, ranking, err := s.auction.PlaceBid(ctx, req, claims.UserID, claims.Nickname)
 	if err != nil {
 		result := ErrorResult(ctx, err)
 		viewer := lotResultViewerFromContext(ctx)
+		observability.RecordBid("rejected", result.GetMessage(), time.Since(start))
+		slog.Warn("auction bid rejected",
+			"trace_id", result.GetTraceId(),
+			"room_id", lot.GetRoomId(),
+			"lot_id", req.GetLotId(),
+			"main_account_id", auth.EffectiveMainAccountID(claims),
+			"user_id", claims.UserID,
+			"idempotency_key", req.GetIdempotencyKey(),
+			"lot_version", lot.GetVersion(),
+			"reason", result.GetMessage(),
+		)
 		return &v1.PlaceBidReply{Result: result, Accepted: false, Lot: auction.LotForViewer(lot, viewer), Ranking: auction.RankingForViewer(ranking, viewer), RejectReason: result.GetMessage()}, nil
 	}
 	viewer := lotResultViewerFromContext(ctx)
+	result := okResult(ctx)
+	observability.RecordBid("accepted", MessageOK, time.Since(start))
+	slog.Info("auction bid accepted",
+		"trace_id", result.GetTraceId(),
+		"room_id", lot.GetRoomId(),
+		"lot_id", lot.GetId(),
+		"main_account_id", auth.EffectiveMainAccountID(claims),
+		"user_id", claims.UserID,
+		"idempotency_key", req.GetIdempotencyKey(),
+		"event_id", "",
+		"lot_version", lot.GetVersion(),
+	)
 	return &v1.PlaceBidReply{
-		Result:   okResult(ctx),
+		Result:   result,
 		Accepted: true,
 		Lot:      auction.LotForViewer(lot, viewer),
 		Bid:      auction.BidForViewer(bid, viewer),

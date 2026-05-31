@@ -21,3 +21,28 @@ func newAuctionEvent(typ v1.AuctionEventType, lot *v1.Lot) v1.AuctionEvent {
 		Lot:              proto.Clone(lot).(*v1.Lot),
 	}
 }
+
+func NewAuctionEvent(typ v1.AuctionEventType, lot *v1.Lot) v1.AuctionEvent {
+	return newAuctionEvent(typ, lot)
+}
+
+func newAuctionEventWithID(id string, typ v1.AuctionEventType, lot *v1.Lot, occurredAtUnixMs int64) v1.AuctionEvent {
+	if occurredAtUnixMs <= 0 {
+		occurredAtUnixMs = clock.NowMs()
+	}
+	if id == "" {
+		id = idgen.New("evt")
+	}
+	if lot == nil {
+		return v1.AuctionEvent{Id: id, Type: typ, OccurredAtUnixMs: occurredAtUnixMs}
+	}
+	return v1.AuctionEvent{
+		Id:               id,
+		Type:             typ,
+		RoomId:           lot.RoomId,
+		LotId:            lot.Id,
+		MainAccountId:    lot.GetMainAccountId(),
+		OccurredAtUnixMs: occurredAtUnixMs,
+		Lot:              proto.Clone(lot).(*v1.Lot),
+	}
+}

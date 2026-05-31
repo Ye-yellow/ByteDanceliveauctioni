@@ -30,6 +30,9 @@ func (s *Store) EnsureDefaultRoom(ctx context.Context, mainAccountID, createdByU
 		Order("id ASC").
 		First(&model).Error
 	if err == nil {
+		if err := ensureRoomStateRecord(ctx, s.db, model.ID, model.MainAccountID, nowMs); err != nil {
+			return nil, err
+		}
 		room, _, err := s.roomFromModelWithProfile(ctx, &model, false)
 		return room, err
 	}
@@ -58,6 +61,9 @@ func (s *Store) EnsureDefaultRoom(ctx context.Context, mainAccountID, createdByU
 		Order("id ASC").
 		First(&model).Error
 	if err != nil {
+		return nil, err
+	}
+	if err := ensureRoomStateRecord(ctx, s.db, model.ID, model.MainAccountID, nowMs); err != nil {
 		return nil, err
 	}
 	roomOut, _, err := s.roomFromModelWithProfile(ctx, &model, false)

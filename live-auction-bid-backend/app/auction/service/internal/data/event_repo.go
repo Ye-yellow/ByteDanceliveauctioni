@@ -170,6 +170,17 @@ func (s *Store) RepairEventStreamOutbox(ctx context.Context, limit int) error {
 	return nil
 }
 
+func (s *Store) CountPendingEventOutbox(ctx context.Context) (int64, error) {
+	var count int64
+	if err := s.db.WithContext(ctx).
+		Model(&AuctionEventModel{}).
+		Where("streamed_at_unix_ms = 0").
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 func (s *Store) writeEventToStream(ctx context.Context, event v1.AuctionEvent, payload string) (string, error) {
 	return s.redis.XAdd(ctx, &redis.XAddArgs{
 		Stream: eventStreamKey(event.RoomId),

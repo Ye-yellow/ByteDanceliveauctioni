@@ -18,6 +18,19 @@ type AuctionRoomModel struct {
 
 func (AuctionRoomModel) TableName() string { return "auction_rooms" }
 
+type AuctionRoomStateModel struct {
+	RoomID            string `gorm:"column:room_id;type:varchar(64);primaryKey"`
+	MainAccountID     string `gorm:"column:main_account_id;type:varchar(64);not null;index:idx_room_state_main"`
+	ActiveLotID       string `gorm:"column:active_lot_id;type:varchar(64);not null;default:''"`
+	ActiveLotVersion  int64  `gorm:"column:active_lot_version;not null;default:0"`
+	NextQueuePosition int32  `gorm:"column:next_queue_position;type:int;not null;default:1"`
+	UpdatedAtUnixMs   int64  `gorm:"column:updated_at_unix_ms;not null"`
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}
+
+func (AuctionRoomStateModel) TableName() string { return "auction_room_states" }
+
 type AuctionLotModel struct {
 	ID                     string `gorm:"column:id;type:varchar(64);primaryKey"`
 	MainAccountID          string `gorm:"column:main_account_id;type:varchar(64);not null;index:idx_lot_main_room_status,priority:1;index:idx_lot_main_updated,priority:1;index:idx_lot_main_room_queue,priority:1"`
@@ -103,6 +116,33 @@ type AuctionLotParticipantModel struct {
 }
 
 func (AuctionLotParticipantModel) TableName() string { return "auction_lot_participants" }
+
+type AuctionRuntimeProjectionOffsetModel struct {
+	LotID                string `gorm:"column:lot_id;type:varchar(64);primaryKey"`
+	RoomID               string `gorm:"column:room_id;type:varchar(64);not null;index:idx_runtime_projection_room"`
+	LastProjectedVersion int64  `gorm:"column:last_projected_version;not null;default:0"`
+	LastStreamID         string `gorm:"column:last_stream_id;type:varchar(64);not null;default:''"`
+	UpdatedAtUnixMs      int64  `gorm:"column:updated_at_unix_ms;not null"`
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
+}
+
+func (AuctionRuntimeProjectionOffsetModel) TableName() string {
+	return "auction_runtime_projection_offsets"
+}
+
+type AuctionRuntimeProjectionShardOffsetModel struct {
+	ShardID               int    `gorm:"column:shard_id;primaryKey"`
+	LastStreamID          string `gorm:"column:last_stream_id;type:varchar(64);not null;default:'0-0'"`
+	LastProjectedAtUnixMs int64  `gorm:"column:last_projected_at_unix_ms;not null;default:0"`
+	UpdatedAtUnixMs       int64  `gorm:"column:updated_at_unix_ms;not null"`
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
+}
+
+func (AuctionRuntimeProjectionShardOffsetModel) TableName() string {
+	return "auction_runtime_projection_shard_offsets"
+}
 
 type AuctionEventModel struct {
 	ID               string `gorm:"column:id;type:varchar(64);primaryKey"`

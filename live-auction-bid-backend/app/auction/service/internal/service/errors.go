@@ -10,19 +10,29 @@ import (
 )
 
 const (
-	ResultCodeOK                 int32 = 0
-	ResultCodeInvalidArgument    int32 = 400001
-	ResultCodeLoginRequired      int32 = 401001
-	ResultCodeTokenExpired       int32 = 401002
-	ResultCodeTokenInvalid       int32 = 401003
-	ResultCodeSessionExpired     int32 = 401004
-	ResultCodeInvalidCredentials int32 = 401005
-	ResultCodeForbidden          int32 = 403001
-	ResultCodeAccountDisabled    int32 = 403002
-	ResultCodeLotVersionConflict int32 = 409001
-	ResultCodeUsernameTaken      int32 = 409002
-	ResultCodeUserNotFound       int32 = 404001
-	ResultCodeInternalError      int32 = 500000
+	ResultCodeOK                    int32 = 0
+	ResultCodeInvalidArgument       int32 = 400001
+	ResultCodeLoginRequired         int32 = 401001
+	ResultCodeTokenExpired          int32 = 401002
+	ResultCodeTokenInvalid          int32 = 401003
+	ResultCodeSessionExpired        int32 = 401004
+	ResultCodeInvalidCredentials    int32 = 401005
+	ResultCodeForbidden             int32 = 403001
+	ResultCodeAccountDisabled       int32 = 403002
+	ResultCodeLotVersionConflict    int32 = 409001
+	ResultCodeUsernameTaken         int32 = 409002
+	ResultCodeRoomActiveLotExists   int32 = 409003
+	ResultCodeQueuePositionConflict int32 = 409004
+	ResultCodeBidTooLow             int32 = 409101
+	ResultCodeBidNotLive            int32 = 409102
+	ResultCodeBidEnded              int32 = 409103
+	ResultCodeBidAlreadyLeading     int32 = 409104
+	ResultCodeBidCurrencyMismatch   int32 = 409105
+	ResultCodeBidVersionStale       int32 = 409106
+	ResultCodeLotCancelled          int32 = 409107
+	ResultCodeProjectionPending     int32 = 409108
+	ResultCodeUserNotFound          int32 = 404001
+	ResultCodeInternalError         int32 = 500000
 
 	ResultCodeUnauthenticated  = ResultCodeLoginRequired
 	ResultCodeInvalidToken     = ResultCodeTokenInvalid
@@ -30,11 +40,13 @@ const (
 )
 
 const (
-	MessageOK                 = "ok"
-	MessageLotVersionConflict = "lot state changed, please refresh and retry"
-	MessageInternalError      = "internal error, please try again later"
-	MessageTokenExpired       = "access token expired, please refresh"
-	MessageSessionExpired     = "session expired, please login again"
+	MessageOK                    = "ok"
+	MessageLotVersionConflict    = string(apperr.CodeBidVersionStale)
+	MessageRoomActiveLotExists   = string(apperr.CodeRoomActiveLotExists)
+	MessageQueuePositionConflict = "当前直播间队列正在更新，请刷新后重试"
+	MessageInternalError         = "internal error, please try again later"
+	MessageTokenExpired          = "access token expired, please refresh"
+	MessageSessionExpired        = "session expired, please login again"
 )
 
 func OKResult(ctx context.Context) *v1.ReplyResult {
@@ -50,8 +62,17 @@ func ErrorResult(ctx context.Context, err error) *v1.ReplyResult {
 		return okResult(ctx)
 	}
 	traceID := requestctx.TraceID(ctx)
+	if code := apperr.BusinessCodeForError(err); code != "" {
+		return &v1.ReplyResult{Code: resultCodeForBusinessCode(code), Message: string(code), TraceId: traceID}
+	}
 	if apperr.IsLotVersionConflict(err) {
 		return &v1.ReplyResult{Code: ResultCodeLotVersionConflict, Message: MessageLotVersionConflict, TraceId: traceID}
+	}
+	if apperr.IsRoomActiveLotExists(err) {
+		return &v1.ReplyResult{Code: ResultCodeRoomActiveLotExists, Message: MessageRoomActiveLotExists, TraceId: traceID}
+	}
+	if apperr.IsQueuePositionConflict(err) {
+		return &v1.ReplyResult{Code: ResultCodeQueuePositionConflict, Message: MessageQueuePositionConflict, TraceId: traceID}
 	}
 	if apperr.IsInvalidArgument(err) {
 		return &v1.ReplyResult{Code: ResultCodeInvalidArgument, Message: invalidArgumentMessage(err), TraceId: traceID}
@@ -89,6 +110,31 @@ func ErrorResult(ctx context.Context, err error) *v1.ReplyResult {
 	return &v1.ReplyResult{Code: ResultCodeInternalError, Message: MessageInternalError, TraceId: traceID}
 }
 
+func resultCodeForBusinessCode(code apperr.BusinessCode) int32 {
+	switch code {
+	case apperr.CodeBidTooLow:
+		return ResultCodeBidTooLow
+	case apperr.CodeBidNotLive:
+		return ResultCodeBidNotLive
+	case apperr.CodeBidEnded:
+		return ResultCodeBidEnded
+	case apperr.CodeBidAlreadyLeading:
+		return ResultCodeBidAlreadyLeading
+	case apperr.CodeBidCurrencyMismatch:
+		return ResultCodeBidCurrencyMismatch
+	case apperr.CodeBidVersionStale:
+		return ResultCodeBidVersionStale
+	case apperr.CodeLotCancelled:
+		return ResultCodeLotCancelled
+	case apperr.CodeRoomActiveLotExists:
+		return ResultCodeRoomActiveLotExists
+	case apperr.CodeProjectionPending:
+		return ResultCodeProjectionPending
+	default:
+		return ResultCodeInvalidArgument
+	}
+}
+
 func invalidArgumentMessage(err error) string {
 	message := strings.TrimSpace(err.Error())
 	message = strings.TrimPrefix(message, apperr.ErrInvalidArgument.Error()+": ")
@@ -103,6 +149,22 @@ func invalidArgumentMessage(err error) string {
 		return "出价币种异常，请刷新后重试"
 	case strings.Contains(message, "runtime state is missing"):
 		return "竞拍状态正在同步，请稍后重试"
+	case strings.Contains(message, "lot title"):
+		return "拍品标题不能为空"
+	case strings.Contains(message, "lot image url"):
+		return "拍品图片不能为空"
+	case strings.Contains(message, "bid rule, start price and min increment"):
+		return "请填写起拍价和最低加价"
+	case strings.Contains(message, "start price and min increment currency are required"):
+		return "起拍价和最低加价币种不能为空"
+	case strings.Contains(message, "currency must match"):
+		return "价格币种必须一致"
+	case strings.Contains(message, "start price amount"):
+		return "起拍价不能小于 0"
+	case strings.Contains(message, "min increment amount"):
+		return "最低加价必须大于 0"
+	case strings.Contains(message, "duration seconds"):
+		return "竞拍时长不能少于 60 秒"
 	}
-	return message
+	return "参数不正确，请检查后重试"
 }

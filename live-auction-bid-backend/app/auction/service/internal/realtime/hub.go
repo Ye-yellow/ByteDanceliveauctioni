@@ -10,6 +10,7 @@ import (
 
 	auctionbiz "live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
+	"live-auction-bid/backend/app/auction/service/internal/observability"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/clock"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
@@ -144,7 +145,9 @@ func (h *Hub) ServeRoom(w http.ResponseWriter, r *http.Request, roomID string) {
 		done:    make(chan struct{}),
 	}
 	h.join(client)
+	observability.IncWSConnection(roomID, scope)
 	defer func() {
+		observability.DecWSConnection(roomID, scope)
 		h.leave(client)
 		client.close()
 	}()
@@ -417,6 +420,7 @@ func (c *connection) writePump() {
 			if err := c.conn.WriteMessage(websocket.TextMessage, payload); err != nil {
 				return
 			}
+			observability.RecordWSEventSent(event.GetType().String())
 		case <-ticker.C:
 			_ = c.conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {

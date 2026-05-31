@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"strconv"
 	"time"
 
@@ -12,12 +13,14 @@ import (
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
+	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
 )
 
 const (
-	runtimeIdempotencyTTL = 24 * time.Hour
-	runtimeStateTTL       = 7 * 24 * time.Hour
-	runtimeRecentLimit    = int64(20)
+	runtimeIdempotencyTTL          = 24 * time.Hour
+	runtimeStateTTL                = 7 * 24 * time.Hour
+	runtimeRecentLimit             = int64(20)
+	defaultRuntimeProjectionShards = 16
 )
 
 var runtimePlaceBidScript = redis.NewScript(`
@@ -27,6 +30,9 @@ local rankmeta_key = KEYS[3]
 local participants_key = KEYS[4]
 local recent_key = KEYS[5]
 local idem_key = KEYS[6]
+local event_stream_key = KEYS[7]
+local event_shards_key = KEYS[8]
+local metric_xadd_key = KEYS[9]
 
 local bid_id = ARGV[1]
 local user_id = ARGV[2]
@@ -42,6 +48,11 @@ local status_settled = tonumber(ARGV[11])
 local stage_bidding = tonumber(ARGV[12])
 local stage_duel = tonumber(ARGV[13])
 local stage_settle = tonumber(ARGV[14])
+local runtime_event_id = ARGV[15]
+local idempotency_key = ARGV[16]
+local order_id = ARGV[17]
+local ranking_limit = tonumber(ARGV[18])
+local event_shard = ARGV[19]
 
 local replay = redis.call('GET', idem_key)
 if replay then
@@ -52,39 +63,40 @@ end
 
 local lot_id = redis.call('HGET', state_key, 'lot_id')
 if not lot_id then
-  return cjson.encode({ ok = false, message = 'lot runtime state is missing' })
+  return cjson.encode({ ok = false, code = 'PROJECTION_PENDING', message = 'PROJECTION_PENDING' })
 end
 
 local status = tonumber(redis.call('HGET', state_key, 'status') or '0')
 if status ~= status_live and status ~= status_extended then
-  return cjson.encode({ ok = false, message = 'lot is not live' })
+  return cjson.encode({ ok = false, code = 'BID_NOT_LIVE', message = 'BID_NOT_LIVE' })
 end
 
 local ends_at = tonumber(redis.call('HGET', state_key, 'ends_at_unix_ms') or '0')
 if ends_at > 0 and now_ms > ends_at then
-  return cjson.encode({ ok = false, message = 'auction has ended' })
+  return cjson.encode({ ok = false, code = 'BID_ENDED', message = 'BID_ENDED' })
 end
 
 local current_amount = tonumber(redis.call('HGET', state_key, 'current_amount') or '0')
 local current_currency = redis.call('HGET', state_key, 'current_currency') or ''
 local min_increment_amount = tonumber(redis.call('HGET', state_key, 'min_increment_amount') or '0')
 if currency == '' then
-  return cjson.encode({ ok = false, message = 'bid amount and currency are required' })
+  return cjson.encode({ ok = false, code = 'INVALID_ARGUMENT', message = 'INVALID_ARGUMENT' })
 end
 if currency ~= current_currency then
-  return cjson.encode({ ok = false, message = 'bid currency must match lot currency' })
+  return cjson.encode({ ok = false, code = 'BID_CURRENCY_MISMATCH', message = 'BID_CURRENCY_MISMATCH' })
 end
 
 local previous_leader_id = redis.call('HGET', state_key, 'leading_user_id') or ''
 if previous_leader_id ~= '' and previous_leader_id == user_id then
-  return cjson.encode({ ok = false, message = '你当前已经是最高价，等其他人出价后再加价' })
+  return cjson.encode({ ok = false, code = 'BID_ALREADY_LEADING', message = 'BID_ALREADY_LEADING' })
 end
 if amount < current_amount + min_increment_amount then
-  return cjson.encode({ ok = false, message = 'bid amount is lower than current price plus min increment' })
+  return cjson.encode({ ok = false, code = 'BID_TOO_LOW', message = 'BID_TOO_LOW' })
 end
 
 local room_id = redis.call('HGET', state_key, 'room_id') or ''
-local version = tonumber(redis.call('HGET', state_key, 'version') or '0') + 1
+local previous_version = tonumber(redis.call('HGET', state_key, 'version') or '0')
+local version = previous_version + 1
 local ends_before_bid = ends_at
 local extend_count = tonumber(redis.call('HGET', state_key, 'duel_extend_count') or '0')
 local extend_count_before = extend_count
@@ -107,7 +119,7 @@ local cap_amount = tonumber(cap_amount_raw or '0')
 local cap_currency = redis.call('HGET', state_key, 'cap_currency') or ''
 if cap_amount > 0 then
   if currency ~= cap_currency then
-    return cjson.encode({ ok = false, message = 'bid currency must match cap price currency' })
+    return cjson.encode({ ok = false, code = 'BID_CURRENCY_MISMATCH', message = 'BID_CURRENCY_MISMATCH' })
   end
   if amount >= cap_amount then
     status = status_settled
@@ -239,6 +251,53 @@ local lot = {
   bid_count = bid_count,
   participant_count = participant_count
 }
+local ranking_top = {}
+local ranking_rows = redis.call('ZREVRANGE', ranking_key, 0, ranking_limit - 1, 'WITHSCORES')
+local rank = 1
+for i = 1, #ranking_rows, 2 do
+  local ranking_user_id = ranking_rows[i]
+  local ranking_amount = tonumber(ranking_rows[i + 1] or '0')
+  local ranking_meta = cjson.decode(redis.call('HGET', rankmeta_key, ranking_user_id) or '{}')
+  table.insert(ranking_top, {
+    rank = rank,
+    user_id = ranking_user_id,
+    nickname = ranking_meta.nickname or '',
+    amount = ranking_amount,
+    currency = ranking_meta.currency or currency,
+    bid_at_unix_ms = tonumber(ranking_meta.bid_at_unix_ms or '0'),
+    bid_id = ranking_meta.bid_id or ''
+  })
+  rank = rank + 1
+end
+local projected_order_id = ''
+if status == status_settled then
+  projected_order_id = order_id
+end
+local runtime_event = {
+  event_id = runtime_event_id,
+  room_id = room_id,
+  lot_id = lot_id,
+  event_type = 'BID_ACCEPTED',
+  bid = bid,
+  updated_lot = lot,
+  ranking_top = ranking_top,
+  idempotency_key = idempotency_key,
+  previous_leader_id = previous_leader_id,
+  ends_before_bid = ends_before_bid,
+  extend_count_before = extend_count_before,
+  previous_lot_version = previous_version,
+  lot_version = version,
+  occurred_at_unix_ms = now_ms,
+  order_id = projected_order_id
+}
+local stream_id = redis.call('XADD', event_stream_key, '*',
+  'event_id', runtime_event_id,
+  'lot_id', lot_id,
+  'lot_version', tostring(version),
+  'payload', cjson.encode(runtime_event)
+)
+redis.call('SADD', event_shards_key, event_shard)
+redis.call('INCR', metric_xadd_key)
 local response = {
   ok = true,
   replayed = false,
@@ -246,10 +305,43 @@ local response = {
   lot = lot,
   previous_leader_id = previous_leader_id,
   ends_before_bid = ends_before_bid,
-  extend_count_before = extend_count_before
+  extend_count_before = extend_count_before,
+  runtime_event_id = runtime_event_id,
+  runtime_stream_id = stream_id,
+  previous_lot_version = previous_version,
+  lot_version = version,
+  order_id = projected_order_id
 }
 redis.call('SET', idem_key, cjson.encode(response), 'EX', idem_ttl)
 return cjson.encode(response)
+`)
+
+var runtimeCancelLotScript = redis.NewScript(`
+local state_key = KEYS[1]
+
+local reason = ARGV[1]
+local now_ms = tonumber(ARGV[2])
+local operator_id = ARGV[3]
+local status_cancelled = tonumber(ARGV[4])
+local stage_unspecified = tonumber(ARGV[5])
+
+local lot_id = redis.call('HGET', state_key, 'lot_id')
+if not lot_id then
+  return cjson.encode({ ok = false, code = 'PROJECTION_PENDING', message = 'PROJECTION_PENDING' })
+end
+
+local version = tonumber(redis.call('HGET', state_key, 'version') or '0') + 1
+redis.call('HMSET', state_key,
+  'status', status_cancelled,
+  'cancel_reason', reason,
+  'cancelled_at_unix_ms', now_ms,
+  'cancelled_by_user_id', operator_id,
+  'duel_active', 0,
+  'playbook_stage', stage_unspecified,
+  'version', version
+)
+redis.call('EXPIRE', state_key, 604800)
+return cjson.encode({ ok = true, version = version })
 `)
 
 type runtimeBidJSON struct {
@@ -263,6 +355,16 @@ type runtimeBidJSON struct {
 }
 
 type runtimeRankMetaJSON struct {
+	UserID      string `json:"user_id"`
+	Nickname    string `json:"nickname"`
+	Amount      int64  `json:"amount"`
+	Currency    string `json:"currency"`
+	BidAtUnixMs int64  `json:"bid_at_unix_ms"`
+	BidID       string `json:"bid_id"`
+}
+
+type runtimeRankingItemJSON struct {
+	Rank        int32  `json:"rank"`
 	UserID      string `json:"user_id"`
 	Nickname    string `json:"nickname"`
 	Amount      int64  `json:"amount"`
@@ -302,14 +404,46 @@ type runtimeLotJSON struct {
 }
 
 type runtimePlaceBidReply struct {
-	OK                bool           `json:"ok"`
-	Replayed          bool           `json:"replayed"`
-	Message           string         `json:"message"`
-	Bid               runtimeBidJSON `json:"bid"`
-	Lot               runtimeLotJSON `json:"lot"`
-	PreviousLeaderID  string         `json:"previous_leader_id"`
-	EndsBeforeBid     int64          `json:"ends_before_bid"`
-	ExtendCountBefore int32          `json:"extend_count_before"`
+	OK                 bool           `json:"ok"`
+	Replayed           bool           `json:"replayed"`
+	Code               string         `json:"code"`
+	Message            string         `json:"message"`
+	Bid                runtimeBidJSON `json:"bid"`
+	Lot                runtimeLotJSON `json:"lot"`
+	PreviousLeaderID   string         `json:"previous_leader_id"`
+	EndsBeforeBid      int64          `json:"ends_before_bid"`
+	ExtendCountBefore  int32          `json:"extend_count_before"`
+	RuntimeEventID     string         `json:"runtime_event_id"`
+	RuntimeStreamID    string         `json:"runtime_stream_id"`
+	PreviousLotVersion int64          `json:"previous_lot_version"`
+	LotVersion         int64          `json:"lot_version"`
+	OrderID            string         `json:"order_id"`
+}
+
+type runtimeProjectionEventPayload struct {
+	EventID            string                   `json:"event_id"`
+	RoomID             string                   `json:"room_id"`
+	LotID              string                   `json:"lot_id"`
+	EventType          string                   `json:"event_type"`
+	Bid                runtimeBidJSON           `json:"bid"`
+	UpdatedLot         runtimeLotJSON           `json:"updated_lot"`
+	RankingTop         []runtimeRankingItemJSON `json:"ranking_top"`
+	IdempotencyKey     string                   `json:"idempotency_key"`
+	PreviousLeaderID   string                   `json:"previous_leader_id"`
+	EndsBeforeBid      int64                    `json:"ends_before_bid"`
+	ExtendCountBefore  int32                    `json:"extend_count_before"`
+	PreviousLotVersion int64                    `json:"previous_lot_version"`
+	LotVersion         int64                    `json:"lot_version"`
+	OccurredAtUnixMs   int64                    `json:"occurred_at_unix_ms"`
+	OrderID            string                   `json:"order_id"`
+}
+
+type runtimeCancelLotReply struct {
+	OK               bool   `json:"ok"`
+	Code             string `json:"code"`
+	Message          string `json:"message"`
+	AlreadyCancelled bool   `json:"already_cancelled"`
+	Version          int64  `json:"version"`
 }
 
 func (s *Store) HydrateLotRuntime(ctx context.Context, lot *v1.Lot) error {
@@ -320,6 +454,56 @@ func (s *Store) SyncLotRuntime(ctx context.Context, lot *v1.Lot) error {
 	return s.syncLotRuntime(ctx, lot, true)
 }
 
+func (s *Store) CancelLotRuntime(ctx context.Context, lot *v1.Lot, reason, operatorID string, nowMs int64) (*v1.Lot, []*v1.RankingItem, error) {
+	if lot == nil {
+		return nil, nil, fmt.Errorf("%w: lot is required", apperr.ErrInvalidArgument)
+	}
+	if lot.Status != v1.LotStatus_LOT_STATUS_CANCELLED {
+		return nil, nil, fmt.Errorf("%w: cancelled lot is required", apperr.ErrInvalidArgument)
+	}
+	stateKey := runtimeStateKey(lot.Id)
+	exists, err := s.redis.Exists(ctx, stateKey).Result()
+	if err != nil {
+		return nil, nil, err
+	}
+	if exists == 0 {
+		if err := s.SyncLotRuntime(ctx, lot); err != nil {
+			return nil, nil, err
+		}
+	} else {
+		raw, err := runtimeCancelLotScript.Run(ctx, s.redis, []string{stateKey},
+			reason,
+			strconv.FormatInt(nowMs, 10),
+			operatorID,
+			strconv.Itoa(int(v1.LotStatus_LOT_STATUS_CANCELLED)),
+			strconv.Itoa(int(v1.PlaybookStage_PLAYBOOK_STAGE_UNSPECIFIED)),
+		).Text()
+		if err != nil {
+			return nil, nil, err
+		}
+		var reply runtimeCancelLotReply
+		if err := json.Unmarshal([]byte(raw), &reply); err != nil {
+			return nil, nil, err
+		}
+		if !reply.OK {
+			code := reply.Code
+			if code == "" {
+				code = reply.Message
+			}
+			return nil, nil, fmt.Errorf("%w: %s", apperr.ErrorForBusinessCode(code), code)
+		}
+	}
+	updated, err := s.loadRuntimeLot(ctx, lot)
+	if err != nil {
+		return nil, nil, err
+	}
+	ranking, err := s.RankingRuntime(ctx, lot.Id, auction.RealtimeRankingLimit())
+	if err != nil {
+		return nil, nil, err
+	}
+	return updated, ranking, nil
+}
+
 func (s *Store) PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceBidRequest, bidderID, nickname, bidID string, nowMs int64) (auction.RuntimeBidResult, error) {
 	if lot == nil {
 		return auction.RuntimeBidResult{}, fmt.Errorf("%w: lot is required", apperr.ErrInvalidArgument)
@@ -327,6 +511,9 @@ func (s *Store) PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceB
 	if err := s.HydrateLotRuntime(ctx, lot); err != nil {
 		return auction.RuntimeBidResult{}, err
 	}
+	runtimeEventID := idgen.New("rte")
+	orderID := idgen.New("order")
+	shard := s.runtimeProjectionShard(lot.Id)
 	keys := []string{
 		runtimeStateKey(lot.Id),
 		runtimeRankingKey(lot.Id),
@@ -334,6 +521,9 @@ func (s *Store) PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceB
 		runtimeParticipantsKey(lot.Id),
 		runtimeRecentKey(lot.Id),
 		runtimeIdemKey(lot.Id, bidderID, req.GetIdempotencyKey()),
+		runtimeEventShardStreamKey(shard),
+		runtimeEventShardsKey(),
+		runtimeMetricKey("runtime_event_xadd_total"),
 	}
 	raw, err := runtimePlaceBidScript.Run(ctx, s.redis, keys,
 		bidID,
@@ -350,6 +540,11 @@ func (s *Store) PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceB
 		strconv.Itoa(int(v1.PlaybookStage_PLAYBOOK_STAGE_BIDDING_ACTIVE)),
 		strconv.Itoa(int(v1.PlaybookStage_PLAYBOOK_STAGE_DUEL_MODE)),
 		strconv.Itoa(int(v1.PlaybookStage_PLAYBOOK_STAGE_SETTLE_READY)),
+		runtimeEventID,
+		req.GetIdempotencyKey(),
+		orderID,
+		strconv.FormatInt(auction.RealtimeRankingLimit(), 10),
+		strconv.Itoa(shard),
 	).Text()
 	if err != nil {
 		return auction.RuntimeBidResult{}, err
@@ -359,7 +554,11 @@ func (s *Store) PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceB
 		return auction.RuntimeBidResult{}, err
 	}
 	if !reply.OK {
-		return auction.RuntimeBidResult{}, fmt.Errorf("%w: %s", apperr.ErrInvalidArgument, reply.Message)
+		code := reply.Code
+		if code == "" {
+			code = reply.Message
+		}
+		return auction.RuntimeBidResult{}, fmt.Errorf("%w: %s", apperr.ErrorForBusinessCode(code), code)
 	}
 	bid := runtimeJSONToBid(reply.Bid)
 	updatedLot := runtimeJSONToLot(lot, reply.Lot)
@@ -368,6 +567,12 @@ func (s *Store) PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceB
 		if err == nil {
 			updatedLot = currentLot
 		}
+	}
+	if reply.LotVersion == 0 && updatedLot != nil {
+		reply.LotVersion = updatedLot.GetVersion()
+	}
+	if reply.PreviousLotVersion == 0 && reply.LotVersion > 0 {
+		reply.PreviousLotVersion = reply.LotVersion - 1
 	}
 	ranking, err := s.RankingRuntime(ctx, lot.Id, auction.RealtimeRankingLimit())
 	if err != nil {
@@ -378,14 +583,19 @@ func (s *Store) PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceB
 		return auction.RuntimeBidResult{}, err
 	}
 	return auction.RuntimeBidResult{
-		Lot:               updatedLot,
-		Bid:               bid,
-		Ranking:           ranking,
-		RecentBids:        recentBids,
-		PreviousLeaderID:  reply.PreviousLeaderID,
-		EndsBeforeBid:     reply.EndsBeforeBid,
-		ExtendCountBefore: reply.ExtendCountBefore,
-		Replayed:          reply.Replayed,
+		Lot:                updatedLot,
+		Bid:                bid,
+		Ranking:            ranking,
+		RecentBids:         recentBids,
+		PreviousLeaderID:   reply.PreviousLeaderID,
+		EndsBeforeBid:      reply.EndsBeforeBid,
+		ExtendCountBefore:  reply.ExtendCountBefore,
+		RuntimeEventID:     reply.RuntimeEventID,
+		RuntimeStreamID:    reply.RuntimeStreamID,
+		PreviousLotVersion: reply.PreviousLotVersion,
+		LotVersion:         reply.LotVersion,
+		OrderID:            reply.OrderID,
+		Replayed:           reply.Replayed,
 	}, nil
 }
 
@@ -644,6 +854,8 @@ func runtimeStateMap(lot *v1.Lot) map[string]any {
 		"started_at_unix_ms":        lot.StartedAtUnixMs,
 		"ends_at_unix_ms":           lot.EndsAtUnixMs,
 		"settled_at_unix_ms":        lot.SettledAtUnixMs,
+		"cancel_reason":             lot.CancelReason,
+		"cancelled_at_unix_ms":      lot.CancelledAtUnixMs,
 		"winner_user_id":            lot.WinnerUserId,
 		"winner_nickname":           lot.WinnerNickname,
 		"final_amount":              final.GetAmount(),
@@ -679,6 +891,8 @@ func runtimeStateToLot(base *v1.Lot, values map[string]string) *v1.Lot {
 	lot.StartedAtUnixMs = parseInt64(values["started_at_unix_ms"])
 	lot.EndsAtUnixMs = parseInt64(values["ends_at_unix_ms"])
 	lot.SettledAtUnixMs = parseInt64(values["settled_at_unix_ms"])
+	lot.CancelReason = values["cancel_reason"]
+	lot.CancelledAtUnixMs = parseInt64(values["cancelled_at_unix_ms"])
 	lot.WinnerUserId = values["winner_user_id"]
 	lot.WinnerNickname = values["winner_nickname"]
 	lot.FinalPrice = &v1.Money{Amount: parseInt64(values["final_amount"]), Currency: values["final_currency"]}
@@ -796,6 +1010,47 @@ func runtimeLockKey(lotID string) string {
 
 func runtimeIdemKey(lotID, userID, key string) string {
 	return runtimeTag(lotID) + ":idem:" + userID + ":" + key
+}
+
+func runtimeEventStreamKey(roomID string) string {
+	return "auction:runtime_events:" + roomID
+}
+
+func runtimeEventRoomsKey() string {
+	return "auction:runtime_event_rooms"
+}
+
+func runtimeEventShardStreamKey(shard int) string {
+	return "auction:runtime_events:shard:" + strconv.Itoa(shard)
+}
+
+func runtimeEventShardsKey() string {
+	return "auction:runtime_event_shards"
+}
+
+func runtimeProjectionShardLeaseKey(shard int) string {
+	return "auction:lease:runtime-projector:shard:" + strconv.Itoa(shard)
+}
+
+func (s *Store) runtimeProjectionShard(lotID string) int {
+	count := s.runtimeProjectionShards
+	if count <= 0 {
+		count = defaultRuntimeProjectionShards
+	}
+	return runtimeProjectionShard(lotID, count)
+}
+
+func runtimeProjectionShard(lotID string, shardCount int) int {
+	if shardCount <= 0 {
+		shardCount = defaultRuntimeProjectionShards
+	}
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(lotID))
+	return int(h.Sum32() % uint32(shardCount))
+}
+
+func runtimeMetricKey(name string) string {
+	return "auction:metrics:" + name
 }
 
 func boolInt(value bool) int {

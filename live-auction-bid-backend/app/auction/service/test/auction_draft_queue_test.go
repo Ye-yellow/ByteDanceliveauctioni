@@ -35,7 +35,7 @@ func TestAuctionDraftAutosaveAndQueueFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("queue incomplete draft returned transport error: %v", err)
 	}
-	if incompleteQueue.GetResult().GetCode() == appsvc.ResultCodeOK || !strings.Contains(incompleteQueue.GetResult().GetMessage(), "lot title") {
+	if incompleteQueue.GetResult().GetCode() == appsvc.ResultCodeOK || !strings.Contains(incompleteQueue.GetResult().GetMessage(), "拍品标题") {
 		t.Fatalf("incomplete draft must not enter queue: %+v", incompleteQueue.GetResult())
 	}
 
@@ -102,7 +102,7 @@ func TestQueueLotRejectsInvalidRule(t *testing.T) {
 	if err != nil {
 		t.Fatalf("queue invalid rule returned transport error: %v", err)
 	}
-	if queued.GetResult().GetCode() == appsvc.ResultCodeOK || !strings.Contains(queued.GetResult().GetMessage(), "min increment") {
+	if queued.GetResult().GetCode() == appsvc.ResultCodeOK || !strings.Contains(queued.GetResult().GetMessage(), "最低加价") {
 		t.Fatalf("invalid rule must be rejected by queue endpoint: %+v", queued.GetResult())
 	}
 }

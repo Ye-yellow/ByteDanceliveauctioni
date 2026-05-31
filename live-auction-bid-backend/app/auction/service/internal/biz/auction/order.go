@@ -64,6 +64,15 @@ type Room struct {
 	UpdatedAtUnixMs int64      `json:"updatedAtUnixMs"`
 }
 
+type RoomState struct {
+	RoomID            string `json:"roomId"`
+	MainAccountID     string `json:"mainAccountId"`
+	ActiveLotID       string `json:"activeLotId,omitempty"`
+	ActiveLotVersion  int64  `json:"activeLotVersion,omitempty"`
+	NextQueuePosition int32  `json:"nextQueuePosition"`
+	UpdatedAtUnixMs   int64  `json:"updatedAtUnixMs"`
+}
+
 type RoomQuery struct {
 	MainAccountID     string `json:"mainAccountId,omitempty"`
 	PublicOnly        bool   `json:"publicOnly,omitempty"`

@@ -256,6 +256,52 @@ func TestHubPublicAuthCannotEscalateToAdminPrivateData(t *testing.T) {
 	}
 }
 
+func TestHubPublicBuyerAuthSeesOnlyOwnIdentity(t *testing.T) {
+	hub, manager, server := newRealtimeTestServer(t)
+	defer server.Close()
+	hub.BindSnapshotProvider(testSnapshotProvider{snapshot: testBuyerScopedSnapshot()})
+
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL(server.URL, "/ws/rooms/room1?scope=public"), allowedOriginHeader())
+	if err != nil {
+		t.Fatalf("dial public websocket: %v", err)
+	}
+	defer conn.Close()
+	_ = readAuctionEvent(t, conn)
+
+	token := issueAccessToken(t, manager, &v1.User{
+		Id:              "buyer1",
+		Username:        "buyer",
+		Nickname:        "张三",
+		RoleCodes:       []string{userbiz.RoleBuyer},
+		PermissionCodes: userbiz.PermissionsForRole(userbiz.RoleBuyer),
+		Status:          v1.UserStatus_USER_STATUS_ACTIVE,
+	})
+	if err := conn.WriteJSON(map[string]string{"type": "AUTH", "accessToken": token}); err != nil {
+		t.Fatalf("send buyer AUTH: %v", err)
+	}
+	event := readAuctionEvent(t, conn)
+	snapshot := event.GetSnapshot()
+	lot := snapshot.GetCurrentLot()
+	if lot.GetMainAccountId() != "" {
+		t.Fatalf("buyer public snapshot must not expose main account id: %+v", lot)
+	}
+	if lot.GetLeadingUserId() != "buyer1" || lot.GetLeadingNickname() != "张三" {
+		t.Fatalf("buyer should see own leading identity: %+v", lot)
+	}
+	if got := snapshot.GetRanking()[0]; got.GetUserId() != "buyer1" || got.GetNickname() != "张三" {
+		t.Fatalf("buyer should see own ranking identity: %+v", got)
+	}
+	if got := snapshot.GetRanking()[1]; got.GetUserId() != "" || got.GetNickname() != "李***" {
+		t.Fatalf("buyer should not see other ranking identity: %+v", got)
+	}
+	if got := snapshot.GetRecentBids()[0]; got.GetUserId() != "buyer1" || got.GetNickname() != "张三" {
+		t.Fatalf("buyer should see own recent bid identity: %+v", got)
+	}
+	if got := snapshot.GetRecentBids()[1]; got.GetUserId() != "" || got.GetNickname() != "李***" {
+		t.Fatalf("buyer should not see other recent bid identity: %+v", got)
+	}
+}
+
 func TestRealtimeConfigProdRequiresAllowedOrigins(t *testing.T) {
 	if _, err := NormalizeConfig(Config{Environment: "prod", TicketSecret: "secret"}); err == nil {
 		t.Fatal("prod websocket config should require allowed origins")
@@ -309,6 +355,47 @@ func testSnapshot() *v1.RoomSnapshot {
 			Nickname: "张三",
 			Amount:   &v1.Money{Amount: 12000, Currency: "CNY"},
 		}},
+	}
+}
+
+func testBuyerScopedSnapshot() *v1.RoomSnapshot {
+	return &v1.RoomSnapshot{
+		RoomId: "room1",
+		CurrentLot: &v1.Lot{
+			Id:              "lot1",
+			RoomId:          "room1",
+			MainAccountId:   "main1",
+			Status:          v1.LotStatus_LOT_STATUS_LIVE,
+			LeadingUserId:   "buyer1",
+			LeadingNickname: "张三",
+			CurrentPrice:    &v1.Money{Amount: 12000, Currency: "CNY"},
+		},
+		Ranking: []*v1.RankingItem{
+			{
+				Rank:     1,
+				UserId:   "buyer1",
+				Nickname: "张三",
+				Amount:   &v1.Money{Amount: 12000, Currency: "CNY"},
+			},
+			{
+				Rank:     2,
+				UserId:   "buyer2",
+				Nickname: "李四",
+				Amount:   &v1.Money{Amount: 11000, Currency: "CNY"},
+			},
+		},
+		RecentBids: []*v1.Bid{
+			{
+				UserId:   "buyer1",
+				Nickname: "张三",
+				Amount:   &v1.Money{Amount: 12000, Currency: "CNY"},
+			},
+			{
+				UserId:   "buyer2",
+				Nickname: "李四",
+				Amount:   &v1.Money{Amount: 11000, Currency: "CNY"},
+			},
+		},
 	}
 }
 

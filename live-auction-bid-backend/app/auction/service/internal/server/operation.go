@@ -9,17 +9,30 @@ import (
 	"time"
 
 	httptransport "github.com/go-kratos/kratos/v2/transport/http"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 )
 
 type HealthChecker interface {
 	Ping(ctx context.Context) error
 }
 
+type RuntimeProjectionMetricsProvider interface {
+	MetricsSnapshot(ctx context.Context) map[string]any
+}
+
+type WorkerSnapshotProvider interface {
+	WorkerSnapshot(ctx context.Context) map[string]any
+}
+
 type Readiness struct {
-	Store        HealthChecker
-	Outbox       HealthChecker
-	AuctionClose HealthChecker
-	Consul       HealthChecker
+	Store             HealthChecker
+	Outbox            HealthChecker
+	AuctionClose      HealthChecker
+	RuntimeProjection HealthChecker
+	ProjectionMetrics RuntimeProjectionMetricsProvider
+	WorkerStatuses    []auction.WorkerStatusProvider
+	Consul            HealthChecker
 }
 
 func (r Readiness) Ping(ctx context.Context) error {
@@ -30,10 +43,11 @@ func (r Readiness) Ping(ctx context.Context) error {
 		{name: "store", checker: r.Store},
 		{name: "event_outbox_worker", checker: r.Outbox},
 		{name: "auction_close_worker", checker: r.AuctionClose},
+		{name: "runtime_projection_worker", checker: r.RuntimeProjection},
 		{name: "consul_registration", checker: r.Consul},
 	}
 	for _, check := range checks {
-		if check.checker == nil && check.name == "auction_close_worker" {
+		if check.checker == nil && (check.name == "auction_close_worker" || check.name == "runtime_projection_worker") {
 			continue
 		}
 		if check.checker == nil {
@@ -46,7 +60,30 @@ func (r Readiness) Ping(ctx context.Context) error {
 	return nil
 }
 
+func (r Readiness) MetricsSnapshot(ctx context.Context) map[string]any {
+	if r.ProjectionMetrics == nil {
+		return map[string]any{"status": "runtime projection metrics unavailable"}
+	}
+	return r.ProjectionMetrics.MetricsSnapshot(ctx)
+}
+
+func (r Readiness) WorkerSnapshot(ctx context.Context) map[string]any {
+	workers := make(map[string]auction.WorkerStatus, len(r.WorkerStatuses))
+	for _, provider := range r.WorkerStatuses {
+		if provider == nil {
+			continue
+		}
+		status := provider.WorkerStatus(ctx)
+		workers[status.Name] = status
+	}
+	return map[string]any{
+		"ok":      true,
+		"workers": workers,
+	}
+}
+
 func registerOperationHTTP(srv *httptransport.Server, health HealthChecker) {
+	srv.Handle("/metrics", promhttp.Handler())
 	srv.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 	})
@@ -63,6 +100,26 @@ func registerOperationHTTP(srv *httptransport.Server, health HealthChecker) {
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+	})
+	srv.HandleFunc("/metrics/runtime-projection", func(w http.ResponseWriter, r *http.Request) {
+		provider, ok := health.(RuntimeProjectionMetricsProvider)
+		if !ok || provider == nil {
+			writeJSON(w, http.StatusNotFound, map[string]string{"status": "runtime projection metrics unavailable"})
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		writeJSON(w, http.StatusOK, provider.MetricsSnapshot(ctx))
+	})
+	srv.HandleFunc("/workerz", func(w http.ResponseWriter, r *http.Request) {
+		provider, ok := health.(WorkerSnapshotProvider)
+		if !ok || provider == nil {
+			writeJSON(w, http.StatusNotFound, map[string]string{"status": "worker status unavailable"})
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		writeJSON(w, http.StatusOK, provider.WorkerSnapshot(ctx))
 	})
 	srv.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"service": "auction-backend", "transport": "kratos-http", "status": "ok"})

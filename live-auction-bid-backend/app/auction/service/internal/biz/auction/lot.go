@@ -382,10 +382,17 @@ func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 		return fmt.Errorf("%w: lot rule, min increment and current price are required", apperr.ErrInvalidArgument)
 	}
 	if !IsAuctionOpenStatus(lot.Status) {
-		return fmt.Errorf("%w: lot is not live", apperr.ErrInvalidArgument)
+		switch lot.Status {
+		case v1.LotStatus_LOT_STATUS_CANCELLED:
+			return apperr.ErrLotCancelled
+		case v1.LotStatus_LOT_STATUS_SETTLED, v1.LotStatus_LOT_STATUS_FAILED:
+			return apperr.ErrBidEnded
+		default:
+			return apperr.ErrBidNotLive
+		}
 	}
 	if lot.EndsAtUnixMs > 0 && nowMs > lot.EndsAtUnixMs {
-		return fmt.Errorf("%w: auction has ended", apperr.ErrInvalidArgument)
+		return apperr.ErrBidEnded
 	}
 	if bid.GetAmount() == nil || bid.GetAmount().GetCurrency() == "" {
 		return fmt.Errorf("%w: bid amount and currency are required", apperr.ErrInvalidArgument)
@@ -394,13 +401,13 @@ func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 		return fmt.Errorf("%w: bid user id and nickname are required", apperr.ErrInvalidArgument)
 	}
 	if bid.GetAmount().GetCurrency() != lot.GetCurrentPrice().GetCurrency() {
-		return fmt.Errorf("%w: bid currency must match lot currency", apperr.ErrInvalidArgument)
+		return apperr.ErrBidCurrencyMismatch
 	}
 	if lot.GetLeadingUserId() != "" && lot.GetLeadingUserId() == bid.GetUserId() {
-		return fmt.Errorf("%w: 你当前已经是最高价，等其他人出价后再加价", apperr.ErrInvalidArgument)
+		return apperr.ErrBidAlreadyLeading
 	}
 	if bid.GetAmount().GetAmount() < lot.GetCurrentPrice().GetAmount()+lot.GetRule().GetMinIncrement().GetAmount() {
-		return fmt.Errorf("%w: bid amount is lower than current price plus min increment", apperr.ErrInvalidArgument)
+		return apperr.ErrBidTooLow
 	}
 	lot.CurrentPrice = bid.GetAmount()
 	lot.LeadingUserId = bid.UserId
@@ -408,7 +415,7 @@ func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 	lot.PlaybookStage = v1.PlaybookStage_PLAYBOOK_STAGE_BIDDING_ACTIVE
 	if lot.GetRule().GetCapPrice() != nil {
 		if bid.GetAmount().GetCurrency() != lot.GetRule().GetCapPrice().GetCurrency() {
-			return fmt.Errorf("%w: bid currency must match cap price currency", apperr.ErrInvalidArgument)
+			return apperr.ErrBidCurrencyMismatch
 		}
 		if bid.GetAmount().GetAmount() >= lot.GetRule().GetCapPrice().GetAmount() {
 			lot.Status = v1.LotStatus_LOT_STATUS_SETTLED
@@ -559,9 +566,18 @@ func CancelLot(lot *v1.Lot, reason string, nowMs int64) error {
 	if lot == nil {
 		return fmt.Errorf("%w: lot is required", apperr.ErrInvalidArgument)
 	}
-	if !IsPreStartCancellableStatus(lot.Status) {
-		return fmt.Errorf("%w: only draft, ready, or queued lot can be cancelled, current status: %s", apperr.ErrInvalidArgument, lot.Status)
+	switch lot.Status {
+	case v1.LotStatus_LOT_STATUS_DRAFT, v1.LotStatus_LOT_STATUS_READY, v1.LotStatus_LOT_STATUS_QUEUED, v1.LotStatus_LOT_STATUS_LIVE, v1.LotStatus_LOT_STATUS_EXTENDED:
+	case v1.LotStatus_LOT_STATUS_SETTLED:
+		return fmt.Errorf("%w: settled lot cannot be cancelled", apperr.ErrInvalidArgument)
+	case v1.LotStatus_LOT_STATUS_CANCELLED:
+		return fmt.Errorf("%w: lot is already cancelled", apperr.ErrInvalidArgument)
+	case v1.LotStatus_LOT_STATUS_FAILED:
+		return fmt.Errorf("%w: failed lot cannot be cancelled", apperr.ErrInvalidArgument)
+	default:
+		return fmt.Errorf("%w: lot cannot be cancelled, current status: %s", apperr.ErrInvalidArgument, lot.Status)
 	}
+	reason = strings.TrimSpace(reason)
 	if reason == "" {
 		return fmt.Errorf("%w: cancel reason is required", apperr.ErrInvalidArgument)
 	}

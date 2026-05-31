@@ -12,9 +12,10 @@ import (
 )
 
 type Config struct {
-	MySQLDSN      string
-	RedisAddr     string
-	RedisPassword string
+	MySQLDSN                string
+	RedisAddr               string
+	RedisPassword           string
+	RuntimeProjectionShards int
 }
 
 // Store is the single production data path for the auction service.
@@ -24,8 +25,9 @@ type Config struct {
 // - MySQL keeps accepted bids and durable idempotency keys; Redis caches idempotency lookups.
 // - There is intentionally no in-memory or database/sql fallback.
 type Store struct {
-	db    *gorm.DB
-	redis *redis.Client
+	db                      *gorm.DB
+	redis                   *redis.Client
+	runtimeProjectionShards int
 }
 
 func NewStore(ctx context.Context, cfg Config) (*Store, error) {
@@ -61,7 +63,10 @@ func NewStore(ctx context.Context, cfg Config) (*Store, error) {
 		return nil, err
 	}
 
-	store := &Store{db: db, redis: rdb}
+	if cfg.RuntimeProjectionShards <= 0 {
+		cfg.RuntimeProjectionShards = defaultRuntimeProjectionShards
+	}
+	store := &Store{db: db, redis: rdb, runtimeProjectionShards: cfg.RuntimeProjectionShards}
 	if err := store.migrate(ctx); err != nil {
 		_ = store.Close()
 		return nil, err
@@ -100,10 +105,13 @@ func (s *Store) Close() error {
 func (s *Store) migrate(ctx context.Context) error {
 	if err := s.db.WithContext(ctx).AutoMigrate(
 		&AuctionRoomModel{},
+		&AuctionRoomStateModel{},
 		&AuctionLotModel{},
 		&AuctionBidModel{},
 		&AuctionLotStatsModel{},
 		&AuctionLotParticipantModel{},
+		&AuctionRuntimeProjectionOffsetModel{},
+		&AuctionRuntimeProjectionShardOffsetModel{},
 		&AuctionOrderModel{},
 		&AuctionPaymentModel{},
 		&AuctionEventModel{},

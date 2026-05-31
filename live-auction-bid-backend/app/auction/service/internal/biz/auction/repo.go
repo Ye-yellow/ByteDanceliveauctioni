@@ -11,10 +11,14 @@ import (
 type LotRepository interface {
 	Create(ctx context.Context, lot *v1.Lot, ownerUserID string, events []v1.AuctionEvent) error
 	Save(ctx context.Context, lot *v1.Lot, expectedVersion int64, events []v1.AuctionEvent) error
+	QueueLotAsNext(ctx context.Context, lotID, mainAccountID, ownerUserID string, nowMs int64) (*v1.Lot, int32, []v1.AuctionEvent, error)
+	StartLotAsOnlyActive(ctx context.Context, lot *v1.Lot, expectedVersion int64, events []v1.AuctionEvent) error
 	AttachAssets(ctx context.Context, ownerUserID string, lot *v1.Lot) error
 	FindByID(ctx context.Context, lotID string) (*v1.Lot, error)
 	List(ctx context.Context, roomID string, status v1.LotStatus) ([]*v1.Lot, error)
 	ListLots(ctx context.Context, query LotQuery) (LotList, error)
+	FindOrCreateRoomState(ctx context.Context, roomID, mainAccountID string, nowMs int64) (*RoomState, error)
+	RepairRoomActiveLot(ctx context.Context, roomID, activeLotID string, nowMs int64) error
 }
 
 type RoomRepository interface {
@@ -38,19 +42,51 @@ type BidRepository interface {
 }
 
 type RuntimeBidResult struct {
-	Lot               *v1.Lot
-	Bid               *v1.Bid
-	Ranking           []*v1.RankingItem
-	RecentBids        []*v1.Bid
-	PreviousLeaderID  string
-	EndsBeforeBid     int64
-	ExtendCountBefore int32
-	Replayed          bool
+	Lot                *v1.Lot
+	Bid                *v1.Bid
+	Ranking            []*v1.RankingItem
+	RecentBids         []*v1.Bid
+	PreviousLeaderID   string
+	EndsBeforeBid      int64
+	ExtendCountBefore  int32
+	RuntimeEventID     string
+	RuntimeStreamID    string
+	PreviousLotVersion int64
+	LotVersion         int64
+	OrderID            string
+	Replayed           bool
+}
+
+type RuntimeProjectionEvent struct {
+	RuntimeEventID     string
+	RuntimeStreamID    string
+	RoomID             string
+	LotID              string
+	EventType          string
+	IdempotencyKey     string
+	Bid                v1.Bid
+	Lot                *v1.Lot
+	Ranking            []*v1.RankingItem
+	PreviousLeaderID   string
+	EndsBeforeBid      int64
+	ExtendCountBefore  int32
+	PreviousLotVersion int64
+	LotVersion         int64
+	OccurredAtUnixMs   int64
+	OrderID            string
+}
+
+type RuntimeProjectionOutcome struct {
+	Projected        bool
+	AlreadyProjected bool
+	Gap              bool
+	Conflict         bool
 }
 
 type AuctionRuntime interface {
 	HydrateLotRuntime(ctx context.Context, lot *v1.Lot) error
 	SyncLotRuntime(ctx context.Context, lot *v1.Lot) error
+	CancelLotRuntime(ctx context.Context, lot *v1.Lot, reason, operatorID string, nowMs int64) (*v1.Lot, []*v1.RankingItem, error)
 	PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceBidRequest, bidderID, nickname, bidID string, nowMs int64) (RuntimeBidResult, error)
 	SnapshotRuntime(ctx context.Context, current *v1.Lot) (*v1.RoomSnapshot, error)
 	RankingRuntime(ctx context.Context, lotID string, limit int64) ([]*v1.RankingItem, error)
