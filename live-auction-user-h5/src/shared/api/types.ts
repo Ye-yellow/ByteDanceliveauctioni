@@ -93,15 +93,22 @@ export const AUCTION_EVENT_TYPE = {
 
 export type AuctionEventType = (typeof AUCTION_EVENT_TYPE)[keyof typeof AUCTION_EVENT_TYPE];
 
-export const USER_ROLE = {
-  UNSPECIFIED: 'USER_ROLE_UNSPECIFIED',
-  BUYER: 'USER_ROLE_BUYER',
-  ANCHOR: 'USER_ROLE_ANCHOR',
-  OPERATOR: 'USER_ROLE_OPERATOR',
-  MAIN_ACCOUNT: 'USER_ROLE_MAIN_ACCOUNT',
+export const ROLE_CODE = {
+  MERCHANT_OWNER: 'merchant_owner',
+  ANCHOR: 'anchor',
+  OPERATOR: 'operator',
+  BUYER: 'buyer',
 } as const;
 
-export type UserRole = (typeof USER_ROLE)[keyof typeof USER_ROLE];
+export type RoleCode = (typeof ROLE_CODE)[keyof typeof ROLE_CODE];
+
+export const PERMISSION_CODE = {
+  BID_PLACE: 'bid.place',
+  ORDER_PAY: 'order.pay',
+  ORDER_VIEW_OWN: 'order.view_own',
+} as const;
+
+export type PermissionCode = (typeof PERMISSION_CODE)[keyof typeof PERMISSION_CODE];
 
 export const USER_STATUS = {
   UNSPECIFIED: 'USER_STATUS_UNSPECIFIED',
@@ -115,7 +122,8 @@ export type User = {
   id: string;
   username: string;
   nickname?: string;
-  role: UserRole;
+  roleCodes: RoleCode[];
+  permissionCodes: PermissionCode[];
   mainAccountId: string;
   createdByUserId: string;
   status: UserStatus;
@@ -123,8 +131,12 @@ export type User = {
   updatedAtUnixMs?: number | string;
 };
 
-export function isBuyerUser(user?: Pick<User, 'role' | 'status'> | null): boolean {
-  return Boolean(user && user.role === USER_ROLE.BUYER && user.status === USER_STATUS.ACTIVE);
+export function hasPermission(user: Pick<User, 'permissionCodes'> | undefined | null, permissionCode: PermissionCode | string): boolean {
+  return Boolean(user?.permissionCodes?.some((item) => item === permissionCode));
+}
+
+export function isBuyerUser(user?: Pick<User, 'permissionCodes' | 'status'> | null): boolean {
+  return Boolean(user && hasPermission(user, PERMISSION_CODE.BID_PLACE) && user.status === USER_STATUS.ACTIVE);
 }
 
 export type AuthTokens = {

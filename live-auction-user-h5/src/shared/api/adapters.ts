@@ -2,7 +2,8 @@ import {
   AUCTION_EVENT_TYPE,
   LOT_QUEUE_STATUS,
   LOT_STATUS,
-  USER_ROLE,
+  PERMISSION_CODE,
+  ROLE_CODE,
   USER_STATUS,
   type AuctionEventType,
   type AuctionSocketEvent,
@@ -23,7 +24,8 @@ import {
   type Room,
   type RoomSnapshot,
   type User,
-  type UserRole,
+  type PermissionCode,
+  type RoleCode,
   type UserStatus,
 } from './types';
 
@@ -46,7 +48,8 @@ function numberValue(value: unknown, fallback = 0): number {
   return Number.isFinite(next) ? next : fallback;
 }
 
-const userRoleValues = new Set<UserRole>(Object.values(USER_ROLE));
+const roleCodeValues = new Set<RoleCode>(Object.values(ROLE_CODE));
+const permissionCodeValues = new Set<PermissionCode>(Object.values(PERMISSION_CODE));
 const userStatusValues = new Set<UserStatus>(Object.values(USER_STATUS));
 const lotStatusValues = new Set<LotStatus>(Object.values(LOT_STATUS));
 const lotQueueStatusValues = new Set<LotQueueStatus>(Object.values(LOT_QUEUE_STATUS));
@@ -54,6 +57,10 @@ const auctionEventTypeValues = new Set<AuctionEventType>(Object.values(AUCTION_E
 
 function normalizeEnum<T extends string>(value: unknown, values: Set<T>, fallback: T): T {
   return typeof value === 'string' && values.has(value as T) ? value as T : fallback;
+}
+
+function normalizeEnumArray<T extends string>(value: unknown, values: Set<T>): T[] {
+  return Array.isArray(value) ? value.filter((item): item is T => typeof item === 'string' && values.has(item as T)) : [];
 }
 
 export function normalizeMoney(value: MoneyInput): Money {
@@ -88,7 +95,8 @@ export function normalizeUser(input: unknown): User {
     id: stringValue(raw.id),
     username: stringValue(raw.username),
     nickname: stringValue(raw.nickname),
-    role: normalizeUserRole(raw.role),
+    roleCodes: normalizeEnumArray(pick(raw, 'roleCodes', 'role_codes'), roleCodeValues),
+    permissionCodes: normalizeEnumArray(pick(raw, 'permissionCodes', 'permission_codes'), permissionCodeValues),
     mainAccountId: stringValue(pick(raw, 'mainAccountId', 'main_account_id')),
     createdByUserId: stringValue(pick(raw, 'createdByUserId', 'created_by_user_id')),
     status: normalizeUserStatus(pick(raw, 'status')),
@@ -110,10 +118,6 @@ export function normalizeRoom(input: unknown): Room {
     createdAtUnixMs: pick(raw, 'createdAtUnixMs', 'created_at_unix_ms'),
     updatedAtUnixMs: pick(raw, 'updatedAtUnixMs', 'updated_at_unix_ms'),
   };
-}
-
-function normalizeUserRole(value: unknown): UserRole {
-  return normalizeEnum(value, userRoleValues, USER_ROLE.UNSPECIFIED);
 }
 
 function normalizeUserStatus(value: unknown): UserStatus {
