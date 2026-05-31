@@ -12,7 +12,7 @@ BEGIN
     code VARCHAR(64) PRIMARY KEY,
     name VARCHAR(128) NOT NULL,
     description VARCHAR(512) NOT NULL DEFAULT '',
-    system BOOLEAN NOT NULL DEFAULT TRUE,
+    `system` BOOLEAN NOT NULL DEFAULT TRUE,
     created_at_unix_ms BIGINT NOT NULL,
     updated_at_unix_ms BIGINT NOT NULL,
     created_at DATETIME(3) NULL,
@@ -72,7 +72,7 @@ BEGIN
     INDEX idx_user_permission_permission (permission_code)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-  INSERT INTO auction_roles (code, name, description, system, created_at_unix_ms, updated_at_unix_ms, created_at, updated_at)
+  INSERT INTO auction_roles (code, name, description, `system`, created_at_unix_ms, updated_at_unix_ms, created_at, updated_at)
   VALUES
     ('merchant_owner', '商家主账号', '商家/主播空间主账号', TRUE, @now_ms, @now_ms, NOW(3), NOW(3)),
     ('anchor', '主播/场控', '直播控场子账号', TRUE, @now_ms, @now_ms, NOW(3), NOW(3)),
@@ -81,7 +81,7 @@ BEGIN
   ON DUPLICATE KEY UPDATE
     name = VALUES(name),
     description = VALUES(description),
-    system = VALUES(system),
+    `system` = VALUES(`system`),
     updated_at_unix_ms = VALUES(updated_at_unix_ms),
     updated_at = NOW(3);
 

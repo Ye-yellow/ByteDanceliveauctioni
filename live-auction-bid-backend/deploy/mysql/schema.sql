@@ -212,7 +212,7 @@ CREATE TABLE IF NOT EXISTS auction_roles (
   code VARCHAR(64) PRIMARY KEY,
   name VARCHAR(128) NOT NULL,
   description VARCHAR(512) NOT NULL DEFAULT '',
-  system BOOLEAN NOT NULL DEFAULT TRUE,
+  `system` BOOLEAN NOT NULL DEFAULT TRUE,
   created_at_unix_ms BIGINT NOT NULL,
   updated_at_unix_ms BIGINT NOT NULL,
   created_at DATETIME(3) NULL,
