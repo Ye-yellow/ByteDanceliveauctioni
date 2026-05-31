@@ -14,6 +14,7 @@ SSH_KEY_SOURCE="${SSH_KEY:-/home/ye/OpenClaw/workspace/plans/yexieer.pem}"
 SSH_KEY_RUNTIME="${SSH_KEY_RUNTIME:-/tmp/live-auction-yexieer.pem}"
 WORK_DIR="${WORK_DIR:-/tmp/live-auction-deploy-fast}"
 INSTALL_NGINX_CONF="${INSTALL_NGINX_CONF:-0}"
+INCLUDE_OBSERVABILITY_IMAGES="${INCLUDE_OBSERVABILITY_IMAGES:-1}"
 
 RUN_BACKEND=1
 RUN_ADMIN=1
@@ -36,6 +37,7 @@ Environment:
   SERVER_USER=root
   SERVER_DIR=/opt/live-auction
   INSTALL_NGINX_CONF=1
+  INCLUDE_OBSERVABILITY_IMAGES=1
 EOF
 }
 
@@ -117,6 +119,9 @@ prepare_packages() {
     run docker tag live-auction-bid-backend:local live-auction-bid-backend:prod
     run git -C "$BACKEND_DIR" archive --format=tar.gz -o "$WORK_DIR/backend-src.tar.gz" HEAD
     run bash -lc "docker save live-auction-bid-backend:prod | gzip -1 > '$WORK_DIR/backend-image.tar.gz'"
+    if [[ "$INCLUDE_OBSERVABILITY_IMAGES" == "1" ]]; then
+      run bash -lc "docker save prom/prometheus:v2.53.1 grafana/grafana:11.1.4 | gzip -1 > '$WORK_DIR/observability-images.tar.gz'"
+    fi
   fi
 
   if [[ "$RUN_ADMIN" -eq 1 ]]; then
@@ -137,6 +142,7 @@ deploy_remote() {
 
   local upload_files=()
   [[ "$RUN_BACKEND" -eq 1 ]] && upload_files+=("$WORK_DIR/backend-src.tar.gz" "$WORK_DIR/backend-image.tar.gz")
+  [[ "$RUN_BACKEND" -eq 1 && "$INCLUDE_OBSERVABILITY_IMAGES" == "1" ]] && upload_files+=("$WORK_DIR/observability-images.tar.gz")
   [[ "$RUN_ADMIN" -eq 1 ]] && upload_files+=("$WORK_DIR/admin-dist.tar.gz")
   [[ "$RUN_H5" -eq 1 ]] && upload_files+=("$WORK_DIR/h5-dist.tar.gz")
 
@@ -152,6 +158,9 @@ if [[ $RUN_BACKEND -eq 1 ]]; then
   mkdir -p backend.new
   tar -xzf uploads/backend-src.tar.gz -C backend.new
   gzip -dc uploads/backend-image.tar.gz | docker load
+  if [[ '$INCLUDE_OBSERVABILITY_IMAGES' == '1' && -f uploads/observability-images.tar.gz ]]; then
+    gzip -dc uploads/observability-images.tar.gz | docker load
+  fi
   cp backend.new/deploy/prod/docker-compose.yml docker-compose.yml
   cp backend.new/deploy/.env .env
   cp backend.new/deploy/prod/live-auction.nginx.conf live-auction.nginx.conf
