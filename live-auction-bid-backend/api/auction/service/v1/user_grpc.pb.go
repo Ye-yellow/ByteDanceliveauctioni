@@ -35,7 +35,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// UserService 管理直播竞拍账号、登录态和基础角色权限。
+// UserService 管理直播竞拍账号、登录态和 RBAC 权限。
 type UserServiceClient interface {
 	// 公开注册买家账号。
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterReply, error)
@@ -171,7 +171,7 @@ func (c *userServiceClient) AdminUpdateUserStatus(ctx context.Context, in *Admin
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility
 //
-// UserService 管理直播竞拍账号、登录态和基础角色权限。
+// UserService 管理直播竞拍账号、登录态和 RBAC 权限。
 type UserServiceServer interface {
 	// 公开注册买家账号。
 	Register(context.Context, *RegisterRequest) (*RegisterReply, error)

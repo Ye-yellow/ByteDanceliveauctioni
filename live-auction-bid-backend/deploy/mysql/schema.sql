@@ -195,7 +195,6 @@ CREATE TABLE IF NOT EXISTS auction_users (
   username VARCHAR(64) NOT NULL,
   nickname VARCHAR(128) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  role INT NOT NULL,
   main_account_id VARCHAR(64) NOT NULL DEFAULT '',
   created_by_user_id VARCHAR(64) NOT NULL DEFAULT '',
   status INT NOT NULL DEFAULT 1,
@@ -204,10 +203,73 @@ CREATE TABLE IF NOT EXISTS auction_users (
   created_at DATETIME(3) NULL,
   updated_at DATETIME(3) NULL,
   UNIQUE INDEX idx_username (username),
-  INDEX idx_role (role),
-  INDEX idx_user_main_role (main_account_id, role, status),
+  INDEX idx_user_main_status (main_account_id, status),
   INDEX idx_user_created_by (created_by_user_id),
   INDEX idx_user_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS auction_roles (
+  code VARCHAR(64) PRIMARY KEY,
+  name VARCHAR(128) NOT NULL,
+  description VARCHAR(512) NOT NULL DEFAULT '',
+  system BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at_unix_ms BIGINT NOT NULL,
+  updated_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS auction_permissions (
+  code VARCHAR(96) PRIMARY KEY,
+  name VARCHAR(128) NOT NULL,
+  module VARCHAR(64) NOT NULL,
+  description VARCHAR(512) NOT NULL DEFAULT '',
+  created_at_unix_ms BIGINT NOT NULL,
+  updated_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
+  INDEX idx_permission_module (module)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS auction_user_roles (
+  id VARCHAR(64) PRIMARY KEY,
+  user_id VARCHAR(64) NOT NULL,
+  role_code VARCHAR(64) NOT NULL,
+  main_account_id VARCHAR(64) NOT NULL DEFAULT '',
+  granted_by_user_id VARCHAR(64) NOT NULL DEFAULT '',
+  created_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
+  UNIQUE INDEX uk_user_role_scope (user_id, role_code, main_account_id),
+  INDEX idx_user_role_user (user_id),
+  INDEX idx_user_role_role (role_code),
+  INDEX idx_user_role_main (main_account_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS auction_role_permissions (
+  id VARCHAR(64) PRIMARY KEY,
+  role_code VARCHAR(64) NOT NULL,
+  permission_code VARCHAR(96) NOT NULL,
+  created_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
+  UNIQUE INDEX uk_role_permission (role_code, permission_code),
+  INDEX idx_role_permission_role (role_code),
+  INDEX idx_role_permission_permission (permission_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS auction_user_permissions (
+  id VARCHAR(64) PRIMARY KEY,
+  user_id VARCHAR(64) NOT NULL,
+  permission_code VARCHAR(96) NOT NULL,
+  effect VARCHAR(16) NOT NULL DEFAULT 'allow',
+  granted_by_user_id VARCHAR(64) NOT NULL DEFAULT '',
+  created_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
+  UNIQUE INDEX uk_user_permission (user_id, permission_code),
+  INDEX idx_user_permission_user (user_id),
+  INDEX idx_user_permission_permission (permission_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS auction_user_sessions (

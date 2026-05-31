@@ -7,7 +7,7 @@ option go_package = "live-auction-bid/backend/api/auction/service/v1;v1";
 import "api/auction/service/v1/auction.proto";
 import "google/api/annotations.proto";
 
-// UserService 管理直播竞拍账号、登录态和基础角色权限。
+// UserService 管理直播竞拍账号、登录态和 RBAC 权限。
 service UserService {
   // 公开注册买家账号。
   rpc Register(RegisterRequest) returns (RegisterReply) {
@@ -89,14 +89,6 @@ service UserService {
   }
 }
 
-enum UserRole {
-  USER_ROLE_UNSPECIFIED = 0;
-  USER_ROLE_BUYER = 1;
-  USER_ROLE_ANCHOR = 2;
-  USER_ROLE_OPERATOR = 3;
-  USER_ROLE_MAIN_ACCOUNT = 4;
-}
-
 enum UserStatus {
   USER_STATUS_UNSPECIFIED = 0;
   USER_STATUS_ACTIVE = 1;
@@ -107,12 +99,13 @@ message User {
   string id = 1;
   string username = 2;
   string nickname = 3;
-  UserRole role = 4;
   int64 created_at_unix_ms = 5;
   int64 updated_at_unix_ms = 6;
   string main_account_id = 7;
   string created_by_user_id = 8;
   UserStatus status = 9;
+  repeated string role_codes = 10;
+  repeated string permission_codes = 11;
 }
 
 message AuthTokens {
@@ -138,6 +131,7 @@ message RegisterMerchantRequest {
   string username = 1;
   string password = 2;
   string nickname = 3;
+  string merchant_name = 4;
 }
 
 message RegisterMerchantReply {
@@ -195,7 +189,7 @@ message AdminCreateUserRequest {
   string username = 1;
   string password = 2;
   string nickname = 3;
-  UserRole role = 4;
+  string role_code = 4;
 }
 
 message AdminCreateUserReply {
@@ -205,7 +199,7 @@ message AdminCreateUserReply {
 
 message AdminUpdateUserRoleRequest {
   string user_id = 1;
-  UserRole role = 2;
+  string role_code = 2;
 }
 
 message AdminUpdateUserRoleReply {

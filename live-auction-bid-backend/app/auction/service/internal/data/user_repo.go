@@ -3,23 +3,54 @@ package data
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/user"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
+	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
 )
 
-func (s *Store) CreateUser(ctx context.Context, user *v1.User, passwordHash string) error {
-	if user == nil {
+func (s *Store) CreateUser(ctx context.Context, next *v1.User, passwordHash string) error {
+	if next == nil {
 		return errors.New("user is required")
 	}
-	model := userToModel(user, passwordHash)
-	if err := s.db.WithContext(ctx).Create(model).Error; err != nil {
-		if isDuplicateKey(err) {
-			return apperr.ErrUsernameTaken
+	if len(next.GetRoleCodes()) == 0 {
+		return errors.New("user role codes are required")
+	}
+	model := userToModel(next, passwordHash)
+	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(model).Error; err != nil {
+			if isDuplicateKey(err) {
+				return apperr.ErrUsernameTaken
+			}
+			return err
 		}
+		for _, roleCode := range next.GetRoleCodes() {
+			roleCode = user.NormalizeRoleCode(roleCode)
+			if roleCode == "" {
+				continue
+			}
+			row := AuctionUserRoleModel{
+				ID:              idgen.New("ur"),
+				UserID:          next.GetId(),
+				RoleCode:        roleCode,
+				MainAccountID:   next.GetMainAccountId(),
+				GrantedByUserID: next.GetCreatedByUserId(),
+				CreatedAtUnixMs: next.GetCreatedAtUnixMs(),
+			}
+			if err := tx.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "user_id"}, {Name: "role_code"}, {Name: "main_account_id"}},
+				DoNothing: true,
+			}).Create(&row).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
 		return err
 	}
 	return nil
@@ -36,7 +67,8 @@ func (s *Store) FindUserByID(ctx context.Context, userID string) (*v1.User, stri
 		}
 		return nil, "", err
 	}
-	return modelToUser(&model), model.PasswordHash, nil
+	next, err := s.modelToUser(ctx, &model)
+	return next, model.PasswordHash, err
 }
 
 func (s *Store) FindUserByUsername(ctx context.Context, username string) (*v1.User, string, error) {
@@ -50,35 +82,38 @@ func (s *Store) FindUserByUsername(ctx context.Context, username string) (*v1.Us
 		}
 		return nil, "", err
 	}
-	return modelToUser(&model), model.PasswordHash, nil
+	next, err := s.modelToUser(ctx, &model)
+	return next, model.PasswordHash, err
 }
 
 func (s *Store) ListUsers(ctx context.Context, query user.ListUsersQuery) (user.ListUsersResult, error) {
 	query.Page, query.PageSize = normalizeUserPagination(query.Page, query.PageSize)
 	db := s.db.WithContext(ctx).Model(&AuctionUserModel{})
-	if query.MainAccountID != "" {
-		db = db.Where("main_account_id = ?", query.MainAccountID)
-	}
-	if query.Role != v1.UserRole_USER_ROLE_UNSPECIFIED {
-		db = db.Where("role = ?", int32(query.Role))
+	roleCode := user.NormalizeRoleCode(query.RoleCode)
+	if roleCode != "" {
+		db = db.Joins("JOIN auction_user_roles ON auction_user_roles.user_id = auction_users.id AND auction_user_roles.role_code = ?", roleCode)
 	} else {
-		db = db.Where("role IN ?", []int32{
-			int32(v1.UserRole_USER_ROLE_ANCHOR),
-			int32(v1.UserRole_USER_ROLE_OPERATOR),
+		db = db.Joins("JOIN auction_user_roles ON auction_user_roles.user_id = auction_users.id AND auction_user_roles.role_code IN ?", []string{
+			user.RoleAnchor,
+			user.RoleOperator,
 		})
+	}
+	if query.MainAccountID != "" {
+		db = db.Where("auction_users.main_account_id = ?", query.MainAccountID)
 	}
 	if keyword := strings.TrimSpace(query.Keyword); keyword != "" {
 		like := "%" + strings.ToLower(keyword) + "%"
-		db = db.Where("LOWER(id) LIKE ? OR LOWER(username) LIKE ? OR LOWER(nickname) LIKE ?", like, like, like)
+		db = db.Where("LOWER(auction_users.id) LIKE ? OR LOWER(auction_users.username) LIKE ? OR LOWER(auction_users.nickname) LIKE ?", like, like, like)
 	}
 	var total int64
-	if err := db.Count(&total).Error; err != nil {
+	if err := db.Session(&gorm.Session{}).Distinct("auction_users.id").Count(&total).Error; err != nil {
 		return user.ListUsersResult{}, err
 	}
 	var models []AuctionUserModel
 	if err := db.
-		Order("created_at_unix_ms DESC").
-		Order("id ASC").
+		Distinct("auction_users.*").
+		Order("auction_users.created_at_unix_ms DESC").
+		Order("auction_users.id ASC").
 		Offset((query.Page - 1) * query.PageSize).
 		Limit(query.PageSize).
 		Find(&models).Error; err != nil {
@@ -86,27 +121,53 @@ func (s *Store) ListUsers(ctx context.Context, query user.ListUsersQuery) (user.
 	}
 	users := make([]*v1.User, 0, len(models))
 	for i := range models {
-		users = append(users, modelToUser(&models[i]))
+		next, err := s.modelToUser(ctx, &models[i])
+		if err != nil {
+			return user.ListUsersResult{}, err
+		}
+		users = append(users, next)
 	}
 	return user.ListUsersResult{Users: users, Total: total, Page: query.Page, PageSize: query.PageSize}, nil
 }
 
-func (s *Store) UpdateUserRole(ctx context.Context, userID string, mainAccountID string, role v1.UserRole, updatedAtUnixMs int64) (*v1.User, error) {
+func (s *Store) UpdateUserRole(ctx context.Context, userID string, mainAccountID string, roleCode string, updatedAtUnixMs int64) (*v1.User, error) {
 	if userID == "" {
 		return nil, errors.New("user id is required")
 	}
-	result := s.db.WithContext(ctx).
-		Model(&AuctionUserModel{}).
-		Where("id = ? AND main_account_id = ?", userID, mainAccountID).
-		Updates(map[string]any{"role": int32(role), "updated_at_unix_ms": updatedAtUnixMs})
-	if result.Error != nil {
-		return nil, result.Error
+	roleCode = user.NormalizeRoleCode(roleCode)
+	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var count int64
+		if err := tx.Model(&AuctionUserModel{}).
+			Joins("JOIN auction_user_roles ON auction_user_roles.user_id = auction_users.id AND auction_user_roles.role_code IN ?", []string{user.RoleAnchor, user.RoleOperator}).
+			Where("auction_users.id = ? AND auction_users.main_account_id = ?", userID, mainAccountID).
+			Count(&count).Error; err != nil {
+			return err
+		}
+		if count == 0 {
+			return apperr.ErrPermissionDenied
+		}
+		if err := tx.Where("user_id = ? AND role_code IN ?", userID, []string{user.RoleAnchor, user.RoleOperator}).Delete(&AuctionUserRoleModel{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "user_id"}, {Name: "role_code"}, {Name: "main_account_id"}},
+			DoNothing: true,
+		}).Create(&AuctionUserRoleModel{
+			ID:              idgen.New("ur"),
+			UserID:          userID,
+			RoleCode:        roleCode,
+			MainAccountID:   mainAccountID,
+			GrantedByUserID: mainAccountID,
+			CreatedAtUnixMs: updatedAtUnixMs,
+		}).Error; err != nil {
+			return err
+		}
+		return tx.Model(&AuctionUserModel{}).Where("id = ?", userID).Update("updated_at_unix_ms", updatedAtUnixMs).Error
+	}); err != nil {
+		return nil, err
 	}
-	if result.RowsAffected == 0 {
-		return nil, apperr.ErrPermissionDenied
-	}
-	user, _, err := s.FindUserByID(ctx, userID)
-	return user, err
+	next, _, err := s.FindUserByID(ctx, userID)
+	return next, err
 }
 
 func (s *Store) UpdateUserStatus(ctx context.Context, userID string, mainAccountID string, status v1.UserStatus, updatedAtUnixMs int64) (*v1.User, error) {
@@ -115,7 +176,7 @@ func (s *Store) UpdateUserStatus(ctx context.Context, userID string, mainAccount
 	}
 	result := s.db.WithContext(ctx).
 		Model(&AuctionUserModel{}).
-		Where("id = ? AND main_account_id = ?", userID, mainAccountID).
+		Where("id = ? AND main_account_id = ? AND EXISTS (SELECT 1 FROM auction_user_roles WHERE auction_user_roles.user_id = auction_users.id AND auction_user_roles.role_code IN ?)", userID, mainAccountID, []string{user.RoleAnchor, user.RoleOperator}).
 		Updates(map[string]any{"status": int32(status), "updated_at_unix_ms": updatedAtUnixMs})
 	if result.Error != nil {
 		return nil, result.Error
@@ -123,8 +184,8 @@ func (s *Store) UpdateUserStatus(ctx context.Context, userID string, mainAccount
 	if result.RowsAffected == 0 {
 		return nil, apperr.ErrPermissionDenied
 	}
-	user, _, err := s.FindUserByID(ctx, userID)
-	return user, err
+	next, _, err := s.FindUserByID(ctx, userID)
+	return next, err
 }
 
 func (s *Store) UpdatePasswordByUsername(ctx context.Context, username string, passwordHash string, updatedAtUnixMs int64) (*v1.User, error) {
@@ -141,8 +202,8 @@ func (s *Store) UpdatePasswordByUsername(ctx context.Context, username string, p
 	if result.RowsAffected == 0 {
 		return nil, apperr.ErrUserNotFound
 	}
-	user, _, err := s.FindUserByUsername(ctx, username)
-	return user, err
+	next, _, err := s.FindUserByUsername(ctx, username)
+	return next, err
 }
 
 func (s *Store) CreateSession(ctx context.Context, session user.Session) error {
@@ -188,33 +249,96 @@ func (s *Store) RevokeSessionsByUserID(ctx context.Context, userID string, revok
 		Error
 }
 
-func userToModel(user *v1.User, passwordHash string) *AuctionUserModel {
+func userToModel(next *v1.User, passwordHash string) *AuctionUserModel {
 	return &AuctionUserModel{
-		ID:              user.Id,
-		Username:        user.Username,
-		Nickname:        user.Nickname,
+		ID:              next.Id,
+		Username:        next.Username,
+		Nickname:        next.Nickname,
 		PasswordHash:    passwordHash,
-		Role:            int32(user.Role),
-		MainAccountID:   user.MainAccountId,
-		CreatedByUserID: user.CreatedByUserId,
-		Status:          int32(user.Status),
-		CreatedAtUnixMs: user.CreatedAtUnixMs,
-		UpdatedAtUnixMs: user.UpdatedAtUnixMs,
+		MainAccountID:   next.MainAccountId,
+		CreatedByUserID: next.CreatedByUserId,
+		Status:          int32(effectiveUserModelStatus(next.Status)),
+		CreatedAtUnixMs: next.CreatedAtUnixMs,
+		UpdatedAtUnixMs: next.UpdatedAtUnixMs,
 	}
 }
 
-func modelToUser(model *AuctionUserModel) *v1.User {
+func (s *Store) modelToUser(ctx context.Context, model *AuctionUserModel) (*v1.User, error) {
+	roleCodes, err := s.userRoleCodes(ctx, model.ID)
+	if err != nil {
+		return nil, err
+	}
+	permissionCodes, err := s.userPermissionCodes(ctx, model.ID)
+	if err != nil {
+		return nil, err
+	}
 	return &v1.User{
 		Id:              model.ID,
 		Username:        model.Username,
 		Nickname:        model.Nickname,
-		Role:            v1.UserRole(model.Role),
 		MainAccountId:   model.MainAccountID,
 		CreatedByUserId: model.CreatedByUserID,
-		Status:          v1.UserStatus(model.Status),
+		Status:          effectiveUserModelStatus(v1.UserStatus(model.Status)),
 		CreatedAtUnixMs: model.CreatedAtUnixMs,
 		UpdatedAtUnixMs: model.UpdatedAtUnixMs,
+		RoleCodes:       roleCodes,
+		PermissionCodes: permissionCodes,
+	}, nil
+}
+
+func (s *Store) userRoleCodes(ctx context.Context, userID string) ([]string, error) {
+	var codes []string
+	if err := s.db.WithContext(ctx).Model(&AuctionUserRoleModel{}).
+		Where("user_id = ?", userID).
+		Order("role_code ASC").
+		Pluck("role_code", &codes).Error; err != nil {
+		return nil, err
 	}
+	return codes, nil
+}
+
+func (s *Store) userPermissionCodes(ctx context.Context, userID string) ([]string, error) {
+	var rolePermissions []string
+	if err := s.db.WithContext(ctx).Model(&AuctionRolePermissionModel{}).
+		Joins("JOIN auction_user_roles ON auction_user_roles.role_code = auction_role_permissions.role_code AND auction_user_roles.user_id = ?", userID).
+		Pluck("auction_role_permissions.permission_code", &rolePermissions).Error; err != nil {
+		return nil, err
+	}
+	var userAllows []string
+	if err := s.db.WithContext(ctx).Model(&AuctionUserPermissionModel{}).
+		Where("user_id = ? AND effect = ?", userID, "allow").
+		Pluck("permission_code", &userAllows).Error; err != nil {
+		return nil, err
+	}
+	var userDenies []string
+	if err := s.db.WithContext(ctx).Model(&AuctionUserPermissionModel{}).
+		Where("user_id = ? AND effect = ?", userID, "deny").
+		Pluck("permission_code", &userDenies).Error; err != nil {
+		return nil, err
+	}
+	deny := make(map[string]struct{}, len(userDenies))
+	for _, code := range userDenies {
+		deny[code] = struct{}{}
+	}
+	all := append(rolePermissions, userAllows...)
+	slices.Sort(all)
+	out := make([]string, 0, len(all))
+	for _, code := range all {
+		if _, denied := deny[code]; denied {
+			continue
+		}
+		if len(out) == 0 || out[len(out)-1] != code {
+			out = append(out, code)
+		}
+	}
+	return out, nil
+}
+
+func effectiveUserModelStatus(status v1.UserStatus) v1.UserStatus {
+	if status == v1.UserStatus_USER_STATUS_UNSPECIFIED {
+		return v1.UserStatus_USER_STATUS_ACTIVE
+	}
+	return status
 }
 
 func sessionToModel(session user.Session) *AuctionUserSessionModel {

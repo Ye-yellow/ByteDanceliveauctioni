@@ -6,6 +6,7 @@ import (
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
+	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
 )
 
@@ -36,13 +37,14 @@ func lotResultViewerFromContext(ctx context.Context) auction.LotResultViewer {
 	if claims, ok := auth.ClaimsFromContext(ctx); ok {
 		viewer.UserID = claims.UserID
 		viewer.MainAccountID = auth.EffectiveMainAccountID(claims)
-		viewer.Role = claims.Role
+		viewer.RoleCodes = append([]string(nil), claims.RoleCodes...)
+		viewer.PermissionCodes = append([]string(nil), claims.PermissionCodes...)
 	}
 	return viewer
 }
 
-func requireBackofficeMainAccount(ctx context.Context) (*auth.Claims, string, error) {
-	claims, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_MAIN_ACCOUNT)
+func requirePermissionMainAccount(ctx context.Context, permissionCode string) (*auth.Claims, string, error) {
+	claims, err := auth.RequirePermission(ctx, permissionCode)
 	if err != nil {
 		return nil, "", err
 	}
@@ -54,7 +56,7 @@ func requireBackofficeMainAccount(ctx context.Context) (*auth.Claims, string, er
 }
 
 func (s *AuctionService) CreateLot(ctx context.Context, req *v1.CreateLotRequest) (*v1.CreateLotReply, error) {
-	claims, mainAccountID, err := requireBackofficeMainAccount(ctx)
+	claims, mainAccountID, err := requirePermissionMainAccount(ctx, userbiz.PermissionLotCreate)
 	if err != nil {
 		return &v1.CreateLotReply{Result: ErrorResult(ctx, err)}, nil
 	}
@@ -66,7 +68,7 @@ func (s *AuctionService) CreateLot(ctx context.Context, req *v1.CreateLotRequest
 }
 
 func (s *AuctionService) CreateLotDraft(ctx context.Context, req *v1.CreateLotRequest) (*v1.CreateLotReply, error) {
-	claims, mainAccountID, err := requireBackofficeMainAccount(ctx)
+	claims, mainAccountID, err := requirePermissionMainAccount(ctx, userbiz.PermissionLotCreate)
 	if err != nil {
 		return &v1.CreateLotReply{Result: ErrorResult(ctx, err)}, nil
 	}
@@ -78,7 +80,7 @@ func (s *AuctionService) CreateLotDraft(ctx context.Context, req *v1.CreateLotRe
 }
 
 func (s *AuctionService) PatchLotDraft(ctx context.Context, req *v1.PatchLotDraftRequest) (*v1.PatchLotDraftReply, error) {
-	claims, mainAccountID, err := requireBackofficeMainAccount(ctx)
+	claims, mainAccountID, err := requirePermissionMainAccount(ctx, userbiz.PermissionLotUpdate)
 	if err != nil {
 		return &v1.PatchLotDraftReply{Result: ErrorResult(ctx, err)}, nil
 	}
@@ -90,7 +92,7 @@ func (s *AuctionService) PatchLotDraft(ctx context.Context, req *v1.PatchLotDraf
 }
 
 func (s *AuctionService) QueueLot(ctx context.Context, req *v1.QueueLotRequest) (*v1.QueueLotReply, error) {
-	claims, mainAccountID, err := requireBackofficeMainAccount(ctx)
+	claims, mainAccountID, err := requirePermissionMainAccount(ctx, userbiz.PermissionLotQueue)
 	if err != nil {
 		return &v1.QueueLotReply{Result: ErrorResult(ctx, err)}, nil
 	}
@@ -118,7 +120,7 @@ func (s *AuctionService) ListLots(ctx context.Context, req *v1.ListLotsRequest) 
 }
 
 func (s *AuctionService) ListAdminLots(ctx context.Context, query auction.LotQuery) (auction.LotList, error) {
-	_, mainAccountID, err := requireBackofficeMainAccount(ctx)
+	_, mainAccountID, err := requirePermissionMainAccount(ctx, userbiz.PermissionLotViewAdmin)
 	if err != nil {
 		return auction.LotList{}, err
 	}
@@ -127,7 +129,7 @@ func (s *AuctionService) ListAdminLots(ctx context.Context, query auction.LotQue
 }
 
 func (s *AuctionService) ListAdminRooms(ctx context.Context) ([]auction.Room, error) {
-	claims, mainAccountID, err := requireBackofficeMainAccount(ctx)
+	claims, mainAccountID, err := requirePermissionMainAccount(ctx, userbiz.PermissionRealtimeView)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +144,7 @@ func (s *AuctionService) ListPublicRooms(ctx context.Context) ([]auction.Room, e
 }
 
 func (s *AuctionService) StartLot(ctx context.Context, req *v1.StartLotRequest) (*v1.StartLotReply, error) {
-	_, mainAccountID, err := requireBackofficeMainAccount(ctx)
+	_, mainAccountID, err := requirePermissionMainAccount(ctx, userbiz.PermissionAuctionControl)
 	if err != nil {
 		return &v1.StartLotReply{Result: ErrorResult(ctx, err)}, nil
 	}
@@ -154,7 +156,7 @@ func (s *AuctionService) StartLot(ctx context.Context, req *v1.StartLotRequest) 
 }
 
 func (s *AuctionService) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest) (*v1.PlaceBidReply, error) {
-	claims, authErr := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_BUYER)
+	claims, authErr := auth.RequirePermission(ctx, userbiz.PermissionBidPlace)
 	if authErr != nil {
 		result := ErrorResult(ctx, authErr)
 		return &v1.PlaceBidReply{Result: result, Accepted: false, RejectReason: result.GetMessage()}, nil
@@ -176,7 +178,7 @@ func (s *AuctionService) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest) 
 }
 
 func (s *AuctionService) RevealTrustCard(ctx context.Context, req *v1.RevealTrustCardRequest) (*v1.RevealTrustCardReply, error) {
-	_, mainAccountID, err := requireBackofficeMainAccount(ctx)
+	_, mainAccountID, err := requirePermissionMainAccount(ctx, userbiz.PermissionAuctionControl)
 	if err != nil {
 		return &v1.RevealTrustCardReply{Result: ErrorResult(ctx, err)}, nil
 	}
@@ -188,7 +190,7 @@ func (s *AuctionService) RevealTrustCard(ctx context.Context, req *v1.RevealTrus
 }
 
 func (s *AuctionService) StartDuel(ctx context.Context, req *v1.StartDuelRequest) (*v1.StartDuelReply, error) {
-	_, mainAccountID, err := requireBackofficeMainAccount(ctx)
+	_, mainAccountID, err := requirePermissionMainAccount(ctx, userbiz.PermissionAuctionControl)
 	if err != nil {
 		return &v1.StartDuelReply{Result: ErrorResult(ctx, err)}, nil
 	}
@@ -200,7 +202,7 @@ func (s *AuctionService) StartDuel(ctx context.Context, req *v1.StartDuelRequest
 }
 
 func (s *AuctionService) SettleLot(ctx context.Context, req *v1.SettleLotRequest) (*v1.SettleLotReply, error) {
-	_, mainAccountID, err := requireBackofficeMainAccount(ctx)
+	_, mainAccountID, err := requirePermissionMainAccount(ctx, userbiz.PermissionAuctionControl)
 	if err != nil {
 		return &v1.SettleLotReply{Result: ErrorResult(ctx, err)}, nil
 	}
@@ -212,7 +214,7 @@ func (s *AuctionService) SettleLot(ctx context.Context, req *v1.SettleLotRequest
 }
 
 func (s *AuctionService) CancelLot(ctx context.Context, req *v1.CancelLotRequest) (*v1.CancelLotReply, error) {
-	_, mainAccountID, err := requireBackofficeMainAccount(ctx)
+	_, mainAccountID, err := requirePermissionMainAccount(ctx, userbiz.PermissionAuctionControl)
 	if err != nil {
 		return &v1.CancelLotReply{Result: ErrorResult(ctx, err)}, nil
 	}
@@ -232,7 +234,7 @@ func (s *AuctionService) GetRoomSnapshot(ctx context.Context, req *v1.GetRoomSna
 }
 
 func (s *AuctionService) GetRoomPresence(ctx context.Context, req *v1.GetRoomPresenceRequest) (*v1.GetRoomPresenceReply, error) {
-	_, mainAccountID, err := requireBackofficeMainAccount(ctx)
+	_, mainAccountID, err := requirePermissionMainAccount(ctx, userbiz.PermissionRealtimeView)
 	if err != nil {
 		return &v1.GetRoomPresenceReply{Result: ErrorResult(ctx, err)}, nil
 	}
@@ -250,7 +252,7 @@ func (s *AuctionService) GetRoomPresence(ctx context.Context, req *v1.GetRoomPre
 }
 
 func (s *AuctionService) ListRoomEvents(ctx context.Context, req *v1.ListRoomEventsRequest) (*v1.ListRoomEventsReply, error) {
-	_, mainAccountID, err := requireBackofficeMainAccount(ctx)
+	_, mainAccountID, err := requirePermissionMainAccount(ctx, userbiz.PermissionRealtimeView)
 	if err != nil {
 		return &v1.ListRoomEventsReply{Result: ErrorResult(ctx, err)}, nil
 	}
@@ -271,7 +273,7 @@ func (s *AuctionService) GetLotResult(ctx context.Context, lotID string) (*aucti
 }
 
 func (s *AuctionService) ListMyOrders(ctx context.Context, queries ...auction.OrderQuery) ([]auction.OrderSummary, error) {
-	claims, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_BUYER)
+	claims, err := auth.RequirePermission(ctx, userbiz.PermissionOrderViewOwn)
 	if err != nil {
 		return nil, err
 	}
@@ -286,7 +288,7 @@ func (s *AuctionService) ListMyOrders(ctx context.Context, queries ...auction.Or
 }
 
 func (s *AuctionService) ListMyOrdersPage(ctx context.Context, query auction.OrderQuery) (auction.OrderList, error) {
-	claims, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_BUYER)
+	claims, err := auth.RequirePermission(ctx, userbiz.PermissionOrderViewOwn)
 	if err != nil {
 		return auction.OrderList{}, err
 	}
@@ -294,7 +296,7 @@ func (s *AuctionService) ListMyOrdersPage(ctx context.Context, query auction.Ord
 }
 
 func (s *AuctionService) ListOrders(ctx context.Context, query auction.OrderQuery) (auction.OrderList, error) {
-	_, mainAccountID, err := requireBackofficeMainAccount(ctx)
+	_, mainAccountID, err := requirePermissionMainAccount(ctx, userbiz.PermissionOrderManage)
 	if err != nil {
 		return auction.OrderList{}, err
 	}
@@ -303,7 +305,7 @@ func (s *AuctionService) ListOrders(ctx context.Context, query auction.OrderQuer
 }
 
 func (s *AuctionService) ListMyBids(ctx context.Context, query auction.BidRecordQuery) (auction.BidRecordList, error) {
-	claims, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_BUYER)
+	claims, err := auth.RequirePermission(ctx, userbiz.PermissionOrderViewOwn)
 	if err != nil {
 		return auction.BidRecordList{}, err
 	}
@@ -311,7 +313,7 @@ func (s *AuctionService) ListMyBids(ctx context.Context, query auction.BidRecord
 }
 
 func (s *AuctionService) MockPayOrder(ctx context.Context, orderID string, req auction.MockPayRequest) (*auction.PaymentResult, error) {
-	claims, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_BUYER)
+	claims, err := auth.RequirePermission(ctx, userbiz.PermissionOrderPay)
 	if err != nil {
 		return nil, err
 	}

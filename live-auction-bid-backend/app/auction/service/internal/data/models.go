@@ -172,10 +172,9 @@ type AuctionUserModel struct {
 	Username        string `gorm:"column:username;type:varchar(64);not null;uniqueIndex:idx_username"`
 	Nickname        string `gorm:"column:nickname;type:varchar(128);not null"`
 	PasswordHash    string `gorm:"column:password_hash;type:varchar(255);not null"`
-	Role            int32  `gorm:"column:role;type:int;not null;index:idx_role;index:idx_user_main_role,priority:2"`
-	MainAccountID   string `gorm:"column:main_account_id;type:varchar(64);not null;default:'';index:idx_user_main_role,priority:1"`
+	MainAccountID   string `gorm:"column:main_account_id;type:varchar(64);not null;default:'';index:idx_user_main_status,priority:1"`
 	CreatedByUserID string `gorm:"column:created_by_user_id;type:varchar(64);not null;default:'';index:idx_user_created_by"`
-	Status          int32  `gorm:"column:status;type:int;not null;default:1;index:idx_user_main_role,priority:3;index:idx_user_status"`
+	Status          int32  `gorm:"column:status;type:int;not null;default:1;index:idx_user_main_status,priority:2;index:idx_user_status"`
 	CreatedAtUnixMs int64  `gorm:"column:created_at_unix_ms;not null"`
 	UpdatedAtUnixMs int64  `gorm:"column:updated_at_unix_ms;not null"`
 	CreatedAt       time.Time
@@ -183,6 +182,69 @@ type AuctionUserModel struct {
 }
 
 func (AuctionUserModel) TableName() string { return "auction_users" }
+
+type AuctionRoleModel struct {
+	Code            string `gorm:"column:code;type:varchar(64);primaryKey"`
+	Name            string `gorm:"column:name;type:varchar(128);not null"`
+	Description     string `gorm:"column:description;type:varchar(512);not null;default:''"`
+	System          bool   `gorm:"column:system;not null;default:true"`
+	CreatedAtUnixMs int64  `gorm:"column:created_at_unix_ms;not null"`
+	UpdatedAtUnixMs int64  `gorm:"column:updated_at_unix_ms;not null"`
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+func (AuctionRoleModel) TableName() string { return "auction_roles" }
+
+type AuctionPermissionModel struct {
+	Code            string `gorm:"column:code;type:varchar(96);primaryKey"`
+	Name            string `gorm:"column:name;type:varchar(128);not null"`
+	Module          string `gorm:"column:module;type:varchar(64);not null;index:idx_permission_module"`
+	Description     string `gorm:"column:description;type:varchar(512);not null;default:''"`
+	CreatedAtUnixMs int64  `gorm:"column:created_at_unix_ms;not null"`
+	UpdatedAtUnixMs int64  `gorm:"column:updated_at_unix_ms;not null"`
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+func (AuctionPermissionModel) TableName() string { return "auction_permissions" }
+
+type AuctionUserRoleModel struct {
+	ID              string `gorm:"column:id;type:varchar(64);primaryKey"`
+	UserID          string `gorm:"column:user_id;type:varchar(64);not null;uniqueIndex:uk_user_role_scope,priority:1;index:idx_user_role_user"`
+	RoleCode        string `gorm:"column:role_code;type:varchar(64);not null;uniqueIndex:uk_user_role_scope,priority:2;index:idx_user_role_role"`
+	MainAccountID   string `gorm:"column:main_account_id;type:varchar(64);not null;default:'';uniqueIndex:uk_user_role_scope,priority:3;index:idx_user_role_main"`
+	GrantedByUserID string `gorm:"column:granted_by_user_id;type:varchar(64);not null;default:''"`
+	CreatedAtUnixMs int64  `gorm:"column:created_at_unix_ms;not null"`
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+func (AuctionUserRoleModel) TableName() string { return "auction_user_roles" }
+
+type AuctionRolePermissionModel struct {
+	ID              string `gorm:"column:id;type:varchar(64);primaryKey"`
+	RoleCode        string `gorm:"column:role_code;type:varchar(64);not null;uniqueIndex:uk_role_permission,priority:1;index:idx_role_permission_role"`
+	PermissionCode  string `gorm:"column:permission_code;type:varchar(96);not null;uniqueIndex:uk_role_permission,priority:2;index:idx_role_permission_permission"`
+	CreatedAtUnixMs int64  `gorm:"column:created_at_unix_ms;not null"`
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+func (AuctionRolePermissionModel) TableName() string { return "auction_role_permissions" }
+
+type AuctionUserPermissionModel struct {
+	ID              string `gorm:"column:id;type:varchar(64);primaryKey"`
+	UserID          string `gorm:"column:user_id;type:varchar(64);not null;uniqueIndex:uk_user_permission,priority:1;index:idx_user_permission_user"`
+	PermissionCode  string `gorm:"column:permission_code;type:varchar(96);not null;uniqueIndex:uk_user_permission,priority:2;index:idx_user_permission_permission"`
+	Effect          string `gorm:"column:effect;type:varchar(16);not null;default:'allow'"`
+	GrantedByUserID string `gorm:"column:granted_by_user_id;type:varchar(64);not null;default:''"`
+	CreatedAtUnixMs int64  `gorm:"column:created_at_unix_ms;not null"`
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+func (AuctionUserPermissionModel) TableName() string { return "auction_user_permissions" }
 
 type AuctionUserSessionModel struct {
 	ID                     string `gorm:"column:id;type:varchar(64);primaryKey"`

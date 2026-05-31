@@ -16,6 +16,7 @@ import (
 	"time"
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
+	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 	"live-auction-bid/backend/app/auction/service/internal/data"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
@@ -249,7 +250,7 @@ func (h *uploadHandler) authenticate(ctx context.Context, r *http.Request) (cont
 		value = r.Header.Get("authorization")
 	}
 	ctx = h.auth.WithAuthContextFromBearer(ctx, value)
-	claims, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_MAIN_ACCOUNT)
+	claims, err := auth.RequirePermission(ctx, userbiz.PermissionUploadImage)
 	if err != nil {
 		return ctx, nil, err
 	}

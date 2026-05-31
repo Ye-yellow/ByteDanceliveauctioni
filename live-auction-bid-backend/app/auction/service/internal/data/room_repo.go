@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm/clause"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
+	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
 )
 
@@ -163,7 +164,16 @@ func (s *Store) roomFromModelWithProfile(ctx context.Context, model *AuctionRoom
 		}
 		return nil, false, err
 	}
-	if main.Role != int32(v1.UserRole_USER_ROLE_MAIN_ACCOUNT) || main.Status != int32(v1.UserStatus_USER_STATUS_ACTIVE) {
+	if main.Status != int32(v1.UserStatus_USER_STATUS_ACTIVE) {
+		return room, !publicOnly, nil
+	}
+	var roleCount int64
+	if err := s.db.WithContext(ctx).Model(&AuctionUserRoleModel{}).
+		Where("user_id = ? AND role_code = ?", main.ID, userbiz.RoleMerchantOwner).
+		Count(&roleCount).Error; err != nil {
+		return nil, false, err
+	}
+	if roleCount == 0 {
 		return room, !publicOnly, nil
 	}
 	room.Name = mainAccountRoomName(&main)

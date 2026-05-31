@@ -9,6 +9,7 @@ import (
 	"time"
 
 	auctionbiz "live-auction-bid/backend/app/auction/service/internal/biz/auction"
+	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/clock"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
@@ -275,12 +276,7 @@ func (c *connection) canReceivePrivateEvents() bool {
 	if c.authCtx.TokenStatus != auth.TokenStatusValid || c.authCtx.Claims == nil {
 		return false
 	}
-	switch c.authCtx.Claims.Role {
-	case v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR, v1.UserRole_USER_ROLE_MAIN_ACCOUNT:
-		return true
-	default:
-		return false
-	}
+	return auth.HasAnyPermission(c.authCtx.Claims, userbiz.PermissionRealtimeView, userbiz.PermissionAuctionControl, userbiz.PermissionLotViewAdmin)
 }
 
 func (c *connection) writePump() {
@@ -334,8 +330,10 @@ func (c *connection) lotResultViewer() auctionbiz.LotResultViewer {
 		return auctionbiz.LotResultViewer{}
 	}
 	return auctionbiz.LotResultViewer{
-		UserID: c.authCtx.Claims.UserID,
-		Role:   c.authCtx.Claims.Role,
+		UserID:          c.authCtx.Claims.UserID,
+		MainAccountID:   auth.EffectiveMainAccountID(c.authCtx.Claims),
+		RoleCodes:       append([]string(nil), c.authCtx.Claims.RoleCodes...),
+		PermissionCodes: append([]string(nil), c.authCtx.Claims.PermissionCodes...),
 	}
 }
 

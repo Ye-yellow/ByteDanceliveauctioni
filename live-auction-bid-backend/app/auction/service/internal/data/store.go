@@ -98,7 +98,7 @@ func (s *Store) Close() error {
 }
 
 func (s *Store) migrate(ctx context.Context) error {
-	return s.db.WithContext(ctx).AutoMigrate(
+	if err := s.db.WithContext(ctx).AutoMigrate(
 		&AuctionRoomModel{},
 		&AuctionLotModel{},
 		&AuctionBidModel{},
@@ -109,6 +109,14 @@ func (s *Store) migrate(ctx context.Context) error {
 		&AuctionEventModel{},
 		&AssetFileModel{},
 		&AuctionUserModel{},
+		&AuctionRoleModel{},
+		&AuctionPermissionModel{},
+		&AuctionUserRoleModel{},
+		&AuctionRolePermissionModel{},
+		&AuctionUserPermissionModel{},
 		&AuctionUserSessionModel{},
-	)
+	); err != nil {
+		return err
+	}
+	return s.EnsureRBACDefaults(ctx)
 }

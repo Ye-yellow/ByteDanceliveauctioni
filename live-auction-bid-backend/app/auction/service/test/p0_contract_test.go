@@ -11,7 +11,6 @@ import (
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/transport"
 
-	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/requestctx"
@@ -39,7 +38,7 @@ func TestP0AuthContextDistinguishesNoneInvalidExpiredAndValid(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new manager: %v", err)
 	}
-	user := &v1.User{Id: "u1", Username: "buyer", Nickname: "买家", Role: v1.UserRole_USER_ROLE_BUYER}
+	user := buyerUserForTest("u1", "buyer", "买家")
 	tokens, err := manager.IssueTokenPair(user)
 	if err != nil {
 		t.Fatalf("issue tokens: %v", err)

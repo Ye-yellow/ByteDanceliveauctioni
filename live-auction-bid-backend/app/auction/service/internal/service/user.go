@@ -80,7 +80,7 @@ func (s *UserService) AdminCreateUser(ctx context.Context, req *v1.AdminCreateUs
 }
 
 func (s *UserService) AdminUpdateUserRole(ctx context.Context, req *v1.AdminUpdateUserRoleRequest) (*v1.AdminUpdateUserRoleReply, error) {
-	user, err := s.users.AdminUpdateUserRole(ctx, req.GetUserId(), req.GetRole())
+	user, err := s.users.AdminUpdateUserRole(ctx, req.GetUserId(), req.GetRoleCode())
 	if err != nil {
 		return &v1.AdminUpdateUserRoleReply{Result: ErrorResult(ctx, err)}, nil
 	}

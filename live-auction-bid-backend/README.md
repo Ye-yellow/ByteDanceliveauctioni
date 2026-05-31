@@ -21,8 +21,8 @@ P0 硬点：0 元起拍、固定加价、封顶价自动成交、10-30 秒自动
 - 本地基础设施：Docker Compose 启动 backend / MySQL / Redis / Consul。
 - 服务注册：启动时向 Consul 注册 `auction-backend`，使用 `/readyz` 作为 Consul HTTP health check。
 - 事件流：伴随拍品/出价状态变更的领域事件与业务状态写入同一个 MySQL 事务；事务提交后写 Redis Stream，Stream 写入确认/错误回写 MySQL，后台 outbox worker 会重推未确认事件。
-- 用户系统：自建 username/password 账号，用户 ID 使用雪花字符串；JWT access token + refresh session 支持注册、登录、刷新、登出、me 和 admin 角色管理。
-- 鉴权权限：公开读接口可匿名访问；出价必须是 buyer；创建/开拍/揭示/Duel/落锤必须是 anchor/operator/admin；admin 接口仅 admin 可用。
+- 用户系统：自建 username/password 账号，用户 ID 使用雪花字符串；JWT access token + refresh session 支持注册、登录、刷新、登出、me 和 RBAC 团队账号管理。
+- 鉴权权限：公开读接口可匿名访问；出价走 `bid.place`，后台操作按 `lot.*`、`auction.control`、`order.manage`、`team.user.*` 等权限码判断，不再使用旧角色枚举做运行时鉴权。
 - 健康检查：`/healthz` 存活检查，`/readyz` 检查 MySQL + Redis、事件 outbox worker 最近修复状态、Consul 注册可观测状态。
 - 统一响应：service 对外只用 reply.result 表达业务成功/失败；Go `error` 不再承载可预期业务错误，避免前端同时解析 body 和 transport error。
 
@@ -41,11 +41,11 @@ docker compose up --build
 
 后端默认使用 TOS 作为图片存储。Docker Compose 启动前必须复制 `deploy/.env.example` 为 `deploy/.env` 并填写 TOS 配置；如果 `AUCTION_STORAGE_PROVIDER=tos` 且 endpoint、region、bucket、access key、secret key 任一缺失，Compose 或后端会 fail fast，不会等到 upload 接口才返回 `storage not configured`。
 
-Docker Compose 默认创建本地 admin：
+Docker Compose 默认创建本地主账号：
 
 ```text
-username: admin
-password: admin_dev_password
+username: main
+password: main_dev_password
 ```
 
 常用检查：
@@ -65,14 +65,15 @@ docker compose down -v
 docker compose up --build
 ```
 
-如果继续使用 P2/P3-0 之前的旧 Docker volume，需要手动在 MySQL 中执行以下 migration，完成订单/支付表、出价幂等索引和 `auction_bids.idempotency_key NOT NULL` 调整：
+如果继续使用旧 Docker volume，需要手动在 MySQL 中执行以下 migration，完成订单/支付表、出价幂等索引、`auction_bids.idempotency_key NOT NULL` 和 RBAC 全量替换：
 
 ```bash
 deploy/mysql/migrations/20260523_audit_fix.sql
 deploy/mysql/migrations/20260523_p3_0_bid_idempotency_required.sql
+deploy/mysql/migrations/20260531_full_rbac_replace.sql
 ```
 
-旧库的索引调整不会只靠重新启动自动补齐；必须执行 migration 或清库重建。
+旧库的索引和 `auction_users.role` 删除不会只靠重新启动自动补齐；必须执行 migration 或清库重建。
 
 ### 火山引擎 TOS 图片上传配置
 

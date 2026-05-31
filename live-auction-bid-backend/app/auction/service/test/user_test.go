@@ -29,7 +29,7 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("register failed: %v", err)
 	}
-	if registered.GetId() == "" || registered.GetUsername() != "buyer_one" || registered.GetRole() != v1.UserRole_USER_ROLE_BUYER {
+	if registered.GetId() == "" || registered.GetUsername() != "buyer_one" || !hasRoleForTest(registered, userbiz.RoleBuyer) {
 		t.Fatalf("registered user mismatch: %+v", registered)
 	}
 	if tokens.GetAccessToken() == "" || tokens.GetRefreshToken() == "" {
@@ -111,7 +111,7 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("register main account failed: %v", err)
 	}
-	if mainAccount.GetRole() != v1.UserRole_USER_ROLE_MAIN_ACCOUNT ||
+	if !hasRoleForTest(mainAccount, userbiz.RoleMerchantOwner) ||
 		mainAccount.GetMainAccountId() != mainAccount.GetId() ||
 		mainAccount.GetStatus() != v1.UserStatus_USER_STATUS_ACTIVE ||
 		mainAccount.GetNickname() != "merchant_a" {
@@ -136,18 +136,18 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 		Username: "anchor1",
 		Password: "anchorpass123",
 		Nickname: "主播",
-		Role:     v1.UserRole_USER_ROLE_ANCHOR,
+		RoleCode: userbiz.RoleAnchor,
 	})
 	if err != nil {
 		t.Fatalf("main account create user failed: %v", err)
 	}
-	if anchor.GetRole() != v1.UserRole_USER_ROLE_ANCHOR ||
+	if !hasRoleForTest(anchor, userbiz.RoleAnchor) ||
 		anchor.GetMainAccountId() != mainAccount.GetId() ||
 		anchor.GetCreatedByUserId() != mainAccount.GetId() ||
 		anchor.GetStatus() != v1.UserStatus_USER_STATUS_ACTIVE {
 		t.Fatalf("expected anchor role, got %+v", anchor)
 	}
-	if _, err := uc.AdminCreateUser(mainCtx, &v1.AdminCreateUserRequest{Username: "buyer_from_main", Password: "password123", Nickname: "后台买家", Role: v1.UserRole_USER_ROLE_BUYER}); !apperr.IsInvalidArgument(err) {
+	if _, err := uc.AdminCreateUser(mainCtx, &v1.AdminCreateUserRequest{Username: "buyer_from_main", Password: "password123", Nickname: "后台买家", RoleCode: userbiz.RoleBuyer}); !apperr.IsInvalidArgument(err) {
 		t.Fatalf("expected invalid argument for main account creating buyer, got %v", err)
 	}
 	if _, err := uc.AdminCreateUser(mainCtx, &v1.AdminCreateUserRequest{Username: "missing_role", Password: "password123", Nickname: "缺少角色"}); !apperr.IsInvalidArgument(err) {
@@ -157,32 +157,32 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 	if _, err := uc.AdminCreateUser(anchorCtx, &v1.AdminCreateUserRequest{Username: "anchor_child", Password: "password123", Nickname: "主播子账号"}); !apperr.IsPermissionDenied(err) {
 		t.Fatalf("expected permission denied for anchor team create, got %v", err)
 	}
-	operator, err := uc.AdminUpdateUserRole(mainCtx, anchor.GetId(), v1.UserRole_USER_ROLE_OPERATOR)
+	operator, err := uc.AdminUpdateUserRole(mainCtx, anchor.GetId(), userbiz.RoleOperator)
 	if err != nil {
 		t.Fatalf("main account update role failed: %v", err)
 	}
-	if operator.GetRole() != v1.UserRole_USER_ROLE_OPERATOR {
+	if !hasRoleForTest(operator, userbiz.RoleOperator) {
 		t.Fatalf("expected operator role, got %+v", operator)
 	}
-	if _, err := uc.AdminUpdateUserRole(mainCtx, registered.GetId(), v1.UserRole_USER_ROLE_BUYER); !apperr.IsInvalidArgument(err) {
+	if _, err := uc.AdminUpdateUserRole(mainCtx, registered.GetId(), userbiz.RoleBuyer); !apperr.IsInvalidArgument(err) {
 		t.Fatalf("expected invalid argument for main account updating role to buyer, got %v", err)
 	}
 	operatorCtx := auth.WithClaims(ctx, claimsForUser(operator))
-	if _, err := uc.AdminUpdateUserRole(operatorCtx, registered.GetId(), v1.UserRole_USER_ROLE_ANCHOR); !apperr.IsPermissionDenied(err) {
+	if _, err := uc.AdminUpdateUserRole(operatorCtx, registered.GetId(), userbiz.RoleAnchor); !apperr.IsPermissionDenied(err) {
 		t.Fatalf("expected permission denied for operator role update, got %v", err)
 	}
 	buyerCtx := auth.WithClaims(ctx, claimsForUser(registered))
 	if _, err := uc.AdminCreateUser(buyerCtx, &v1.AdminCreateUserRequest{Username: "xuser", Password: "password123", Nickname: "x"}); !apperr.IsPermissionDenied(err) {
 		t.Fatalf("expected permission denied for buyer team create, got %v", err)
 	}
-	userList, err := uc.ListUsers(mainCtx, userbiz.ListUsersQuery{Role: v1.UserRole_USER_ROLE_OPERATOR, Keyword: "anchor", Page: 1, PageSize: 10})
+	userList, err := uc.ListUsers(mainCtx, userbiz.ListUsersQuery{RoleCode: userbiz.RoleOperator, Keyword: "anchor", Page: 1, PageSize: 10})
 	if err != nil {
 		t.Fatalf("main account list users failed: %v", err)
 	}
-	if userList.Total != 1 || len(userList.Users) != 1 || userList.Users[0].GetRole() != v1.UserRole_USER_ROLE_OPERATOR {
+	if userList.Total != 1 || len(userList.Users) != 1 || !hasRoleForTest(userList.Users[0], userbiz.RoleOperator) {
 		t.Fatalf("expected filtered operator user list, got %+v", userList)
 	}
-	if _, err := uc.ListUsers(mainCtx, userbiz.ListUsersQuery{Role: v1.UserRole_USER_ROLE_BUYER, Page: 1, PageSize: 10}); !apperr.IsInvalidArgument(err) {
+	if _, err := uc.ListUsers(mainCtx, userbiz.ListUsersQuery{RoleCode: userbiz.RoleBuyer, Page: 1, PageSize: 10}); !apperr.IsInvalidArgument(err) {
 		t.Fatalf("expected invalid argument for main account listing buyer users, got %v", err)
 	}
 	backofficeList, err := uc.ListUsers(mainCtx, userbiz.ListUsersQuery{Page: 1, PageSize: 10})
@@ -190,7 +190,7 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 		t.Fatalf("main account list team users failed: %v", err)
 	}
 	for _, user := range backofficeList.Users {
-		if !isManagedTeamRoleForTest(user.GetRole()) || user.GetMainAccountId() != mainAccount.GetId() {
+		if !isManagedTeamUserForTest(user) || user.GetMainAccountId() != mainAccount.GetId() {
 			t.Fatalf("main account list users must only return own subaccounts: %+v", backofficeList)
 		}
 	}
@@ -219,11 +219,11 @@ func TestUserUsecaseMainAccountScopeAndStatus(t *testing.T) {
 	ctxA := auth.WithClaims(ctx, claimsForUser(mainA))
 	ctxB := auth.WithClaims(ctx, claimsForUser(mainB))
 
-	anchorA, err := uc.AdminCreateUser(ctxA, &v1.AdminCreateUserRequest{Username: "anchor_a", Password: "anchorpass123", Nickname: "Anchor A", Role: v1.UserRole_USER_ROLE_ANCHOR})
+	anchorA, err := uc.AdminCreateUser(ctxA, &v1.AdminCreateUserRequest{Username: "anchor_a", Password: "anchorpass123", Nickname: "Anchor A", RoleCode: userbiz.RoleAnchor})
 	if err != nil {
 		t.Fatalf("main a create anchor failed: %v", err)
 	}
-	operatorB, err := uc.AdminCreateUser(ctxB, &v1.AdminCreateUserRequest{Username: "operator_b", Password: "operatorpass123", Nickname: "Operator B", Role: v1.UserRole_USER_ROLE_OPERATOR})
+	operatorB, err := uc.AdminCreateUser(ctxB, &v1.AdminCreateUserRequest{Username: "operator_b", Password: "operatorpass123", Nickname: "Operator B", RoleCode: userbiz.RoleOperator})
 	if err != nil {
 		t.Fatalf("main b create operator failed: %v", err)
 	}
@@ -234,7 +234,7 @@ func TestUserUsecaseMainAccountScopeAndStatus(t *testing.T) {
 	if listA.Total != 1 || listA.Users[0].GetId() != anchorA.GetId() {
 		t.Fatalf("main a list leaked or missed scoped subaccounts: %+v", listA)
 	}
-	if _, err := uc.AdminUpdateUserRole(ctxA, operatorB.GetId(), v1.UserRole_USER_ROLE_ANCHOR); !apperr.IsPermissionDenied(err) {
+	if _, err := uc.AdminUpdateUserRole(ctxA, operatorB.GetId(), userbiz.RoleAnchor); !apperr.IsPermissionDenied(err) {
 		t.Fatalf("main a must not update main b subaccount role, got %v", err)
 	}
 	if _, err := uc.AdminUpdateUserStatus(ctxA, operatorB.GetId(), v1.UserStatus_USER_STATUS_DISABLED); !apperr.IsPermissionDenied(err) {
@@ -282,7 +282,7 @@ func TestAuthManagerAccessTokenAndPasswordHash(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new auth manager failed: %v", err)
 	}
-	user := &v1.User{Id: "u1", Username: "buyer", Nickname: "买家", Role: v1.UserRole_USER_ROLE_BUYER}
+	user := &v1.User{Id: "u1", Username: "buyer", Nickname: "买家", RoleCodes: []string{userbiz.RoleBuyer}, PermissionCodes: userbiz.PermissionsForRole(userbiz.RoleBuyer), Status: v1.UserStatus_USER_STATUS_ACTIVE}
 	pair, err := manager.IssueTokenPair(user)
 	if err != nil {
 		t.Fatalf("issue tokens failed: %v", err)
@@ -291,7 +291,7 @@ func TestAuthManagerAccessTokenAndPasswordHash(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse access token failed: %v", err)
 	}
-	if claims.UserID != "u1" || claims.Role != v1.UserRole_USER_ROLE_BUYER || claims.RoleName != "buyer" {
+	if claims.UserID != "u1" || !auth.HasRoleCode(claims, userbiz.RoleBuyer) || !auth.HasPermission(claims, userbiz.PermissionBidPlace) {
 		t.Fatalf("claims mismatch: %+v", claims)
 	}
 	wrongManager, err := auth.NewManager(auth.Config{Secret: "other", Issuer: "auction"})
@@ -371,10 +371,10 @@ func (r *testUserRepo) ListUsers(ctx context.Context, query userbiz.ListUsersQue
 	users := make([]*v1.User, 0, len(r.usersByID))
 	keyword := strings.ToLower(strings.TrimSpace(query.Keyword))
 	for _, user := range r.usersByID {
-		if query.Role != v1.UserRole_USER_ROLE_UNSPECIFIED && user.Role != query.Role {
+		if query.RoleCode != "" && !hasRoleForTest(user, query.RoleCode) {
 			continue
 		}
-		if query.Role == v1.UserRole_USER_ROLE_UNSPECIFIED && !isManagedTeamRoleForTest(user.Role) {
+		if query.RoleCode == "" && !isManagedTeamUserForTest(user) {
 			continue
 		}
 		if query.MainAccountID != "" && user.GetMainAccountId() != query.MainAccountID {
@@ -398,7 +398,7 @@ func (r *testUserRepo) ListUsers(ctx context.Context, query userbiz.ListUsersQue
 	return userbiz.ListUsersResult{Users: users[start:end], Total: total, Page: query.Page, PageSize: query.PageSize}, nil
 }
 
-func (r *testUserRepo) UpdateUserRole(ctx context.Context, userID string, mainAccountID string, role v1.UserRole, updatedAtUnixMs int64) (*v1.User, error) {
+func (r *testUserRepo) UpdateUserRole(ctx context.Context, userID string, mainAccountID string, roleCode string, updatedAtUnixMs int64) (*v1.User, error) {
 	user, found := r.usersByID[userID]
 	if !found {
 		return nil, apperr.ErrUserNotFound
@@ -407,7 +407,8 @@ func (r *testUserRepo) UpdateUserRole(ctx context.Context, userID string, mainAc
 		return nil, apperr.ErrPermissionDenied
 	}
 	next := proto.Clone(user).(*v1.User)
-	next.Role = role
+	next.RoleCodes = []string{userbiz.NormalizeRoleCode(roleCode)}
+	next.PermissionCodes = userbiz.PermissionsForRole(roleCode)
 	next.UpdatedAtUnixMs = updatedAtUnixMs
 	r.usersByID[userID] = next
 	return proto.Clone(next).(*v1.User), nil
@@ -480,17 +481,22 @@ func (r *testUserRepo) RevokeSessionsByUserID(ctx context.Context, userID string
 
 func claimsForUser(user *v1.User) *auth.Claims {
 	return &auth.Claims{
-		UserID:        user.GetId(),
-		Username:      user.GetUsername(),
-		Nickname:      user.GetNickname(),
-		Role:          user.GetRole(),
-		MainAccountID: user.GetMainAccountId(),
-		Status:        user.GetStatus(),
+		UserID:          user.GetId(),
+		Username:        user.GetUsername(),
+		Nickname:        user.GetNickname(),
+		RoleCodes:       append([]string(nil), user.GetRoleCodes()...),
+		PermissionCodes: append([]string(nil), user.GetPermissionCodes()...),
+		MainAccountID:   user.GetMainAccountId(),
+		Status:          user.GetStatus(),
 	}
 }
 
-func isManagedTeamRoleForTest(role v1.UserRole) bool {
-	return role == v1.UserRole_USER_ROLE_ANCHOR || role == v1.UserRole_USER_ROLE_OPERATOR
+func hasRoleForTest(next *v1.User, roleCode string) bool {
+	return userbiz.UserHasRole(next, roleCode)
+}
+
+func isManagedTeamUserForTest(next *v1.User) bool {
+	return hasRoleForTest(next, userbiz.RoleAnchor) || hasRoleForTest(next, userbiz.RoleOperator)
 }
 
 func newTestAuthManager(t *testing.T) *auth.Manager {

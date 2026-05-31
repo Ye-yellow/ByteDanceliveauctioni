@@ -5,15 +5,11 @@ import (
 
 	"google.golang.org/protobuf/proto"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
+	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 )
 
 func (v LotResultViewer) CanViewPrivateAuctionData() bool {
-	switch v.Role {
-	case v1.UserRole_USER_ROLE_MAIN_ACCOUNT, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR:
-		return true
-	default:
-		return false
-	}
+	return v.hasAnyPermission(userbiz.PermissionLotViewAdmin, userbiz.PermissionAuctionControl, userbiz.PermissionOrderManage)
 }
 
 func (v LotResultViewer) CanViewMainAccountPrivate(mainAccountID string) bool {
@@ -24,14 +20,15 @@ func (v LotResultViewer) CanViewBuyerIdentity(userID string) bool {
 	if v.CanViewPrivateAuctionData() {
 		return true
 	}
-	return v.Role == v1.UserRole_USER_ROLE_BUYER && v.UserID != "" && v.UserID == userID
+	return v.hasPermission(userbiz.PermissionOrderViewOwn) && v.UserID != "" && v.UserID == userID
 }
 
 func viewerForMainAccount(viewer LotResultViewer, mainAccountID string) LotResultViewer {
 	if !viewer.CanViewPrivateAuctionData() || viewer.CanViewMainAccountPrivate(mainAccountID) {
 		return viewer
 	}
-	viewer.Role = v1.UserRole_USER_ROLE_UNSPECIFIED
+	viewer.RoleCodes = nil
+	viewer.PermissionCodes = nil
 	viewer.MainAccountID = ""
 	return viewer
 }

@@ -16,11 +16,11 @@ type Session struct {
 }
 
 type ListUsersQuery struct {
-	Page          int         `json:"page"`
-	PageSize      int         `json:"pageSize"`
-	Role          v1.UserRole `json:"role,omitempty"`
-	Keyword       string      `json:"keyword,omitempty"`
-	MainAccountID string      `json:"mainAccountId,omitempty"`
+	Page          int    `json:"page"`
+	PageSize      int    `json:"pageSize"`
+	RoleCode      string `json:"roleCode,omitempty"`
+	Keyword       string `json:"keyword,omitempty"`
+	MainAccountID string `json:"mainAccountId,omitempty"`
 }
 
 type ListUsersResult struct {
@@ -36,7 +36,7 @@ type Repository interface {
 	FindUserByUsername(ctx context.Context, username string) (*v1.User, string, error)
 	ListUsers(ctx context.Context, query ListUsersQuery) (ListUsersResult, error)
 	UpdatePasswordByUsername(ctx context.Context, username string, passwordHash string, updatedAtUnixMs int64) (*v1.User, error)
-	UpdateUserRole(ctx context.Context, userID string, mainAccountID string, role v1.UserRole, updatedAtUnixMs int64) (*v1.User, error)
+	UpdateUserRole(ctx context.Context, userID string, mainAccountID string, roleCode string, updatedAtUnixMs int64) (*v1.User, error)
 	UpdateUserStatus(ctx context.Context, userID string, mainAccountID string, status v1.UserStatus, updatedAtUnixMs int64) (*v1.User, error)
 	CreateSession(ctx context.Context, session Session) error
 	FindSessionByRefreshHash(ctx context.Context, refreshTokenHash string) (Session, bool, error)

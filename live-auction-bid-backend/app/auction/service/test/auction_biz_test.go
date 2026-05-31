@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
+	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/clock"
 )
@@ -245,7 +246,7 @@ func TestEventForViewerRedactsPublicSettlementAndBuyerIdentity(t *testing.T) {
 		t.Fatalf("public ranking should mask buyer identity: %+v", publicEvent.GetRanking())
 	}
 
-	winnerEvent := auction.EventForViewer(event, auction.LotResultViewer{UserID: "buyer1", Role: v1.UserRole_USER_ROLE_BUYER})
+	winnerEvent := auction.EventForViewer(event, auction.LotResultViewer{UserID: "buyer1", RoleCodes: []string{userbiz.RoleBuyer}, PermissionCodes: userbiz.PermissionsForRole(userbiz.RoleBuyer)})
 	if winnerEvent.GetLot().GetWinnerUserId() != "buyer1" || winnerEvent.GetBid().GetUserId() != "buyer1" || winnerEvent.GetRanking()[0].GetUserId() != "buyer1" {
 		t.Fatalf("winning buyer should see own identity: lot=%+v bid=%+v ranking=%+v", winnerEvent.GetLot(), winnerEvent.GetBid(), winnerEvent.GetRanking())
 	}
@@ -1948,7 +1949,7 @@ func TestCapPriceCreatesOrderAndMockPaymentIsIdempotent(t *testing.T) {
 	if err != nil || len(orders) != 1 || orders[0].Status != auction.OrderStatusPaid {
 		t.Fatalf("buyer orders mismatch: orders=%+v err=%v", orders, err)
 	}
-	result, err := uc.GetLotResult(ctx, lot.Id, auction.LotResultViewer{UserID: "buyer1", Role: v1.UserRole_USER_ROLE_BUYER})
+	result, err := uc.GetLotResult(ctx, lot.Id, auction.LotResultViewer{UserID: "buyer1", RoleCodes: []string{userbiz.RoleBuyer}, PermissionCodes: userbiz.PermissionsForRole(userbiz.RoleBuyer)})
 	if err != nil || result.Order == nil || result.Order.ID != order.ID || result.AuctionState != auction.AuctionStateSettled {
 		t.Fatalf("lot result mismatch: result=%+v err=%v", result, err)
 	}

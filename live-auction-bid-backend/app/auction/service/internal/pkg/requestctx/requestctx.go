@@ -37,7 +37,7 @@ type RequestContext struct {
 	IP           string
 	UserAgent    string
 	UserID       string
-	UserRole     string
+	UserRoleCode string
 	ServerTimeMs int64
 }
 
@@ -81,21 +81,21 @@ func UserID(ctx context.Context) string {
 	return ""
 }
 
-func UserRole(ctx context.Context) string {
+func UserRoleCode(ctx context.Context) string {
 	if rc, ok := FromContext(ctx); ok {
-		return rc.UserRole
+		return rc.UserRoleCode
 	}
 	return ""
 }
 
-func WithUser(ctx context.Context, userID, userRole string) context.Context {
+func WithUser(ctx context.Context, userID, userRoleCode string) context.Context {
 	rc, ok := FromContext(ctx)
 	if !ok {
 		rc = RequestContext{RequestID: newID(), TraceID: "", ClientType: ClientTypeUnknown, ServerTimeMs: time.Now().UnixMilli()}
 		rc.TraceID = rc.RequestID
 	}
 	rc.UserID = strings.TrimSpace(userID)
-	rc.UserRole = strings.TrimSpace(userRole)
+	rc.UserRoleCode = strings.TrimSpace(userRoleCode)
 	return WithRequestContext(ctx, rc)
 }
 

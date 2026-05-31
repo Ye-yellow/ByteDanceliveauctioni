@@ -2,8 +2,10 @@ package auction
 
 import (
 	"fmt"
+	"strings"
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
+	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/clock"
 )
@@ -235,23 +237,39 @@ type LotResult struct {
 }
 
 type LotResultViewer struct {
-	UserID        string
-	MainAccountID string
-	Role          v1.UserRole
+	UserID          string
+	MainAccountID   string
+	RoleCodes       []string
+	PermissionCodes []string
 }
 
 func (v LotResultViewer) CanViewOrder(order *Order) bool {
 	if order == nil {
 		return false
 	}
-	switch v.Role {
-	case v1.UserRole_USER_ROLE_MAIN_ACCOUNT, v1.UserRole_USER_ROLE_ANCHOR, v1.UserRole_USER_ROLE_OPERATOR:
+	if v.hasAnyPermission(userbiz.PermissionOrderManage, userbiz.PermissionLotViewAdmin, userbiz.PermissionAuctionControl) {
 		return v.MainAccountID != "" && v.MainAccountID == order.MainAccountID
-	case v1.UserRole_USER_ROLE_BUYER:
-		return v.UserID != "" && v.UserID == order.BuyerUserID
-	default:
-		return false
 	}
+	return v.hasPermission(userbiz.PermissionOrderViewOwn) && v.UserID != "" && v.UserID == order.BuyerUserID
+}
+
+func (v LotResultViewer) hasPermission(permissionCode string) bool {
+	permissionCode = strings.TrimSpace(permissionCode)
+	for _, got := range v.PermissionCodes {
+		if strings.TrimSpace(got) == permissionCode {
+			return true
+		}
+	}
+	return false
+}
+
+func (v LotResultViewer) hasAnyPermission(permissionCodes ...string) bool {
+	for _, permissionCode := range permissionCodes {
+		if v.hasPermission(permissionCode) {
+			return true
+		}
+	}
+	return false
 }
 
 type MockPayRequest struct {

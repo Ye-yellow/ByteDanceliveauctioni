@@ -32,7 +32,7 @@ func (uc *Usecase) Register(ctx context.Context, req *v1.RegisterRequest) (*v1.U
 	if len(username) < 6 {
 		return nil, nil, fmt.Errorf("%w: username must be 6-64 characters", apperr.ErrInvalidArgument)
 	}
-	return uc.createUserWithTokens(ctx, username, password, nickname, v1.UserRole_USER_ROLE_BUYER, "", "")
+	return uc.createUserWithTokens(ctx, username, password, nickname, RoleBuyer, "", "")
 }
 
 func (uc *Usecase) RegisterMerchant(ctx context.Context, req *v1.RegisterMerchantRequest) (*v1.User, *v1.AuthTokens, error) {
@@ -44,7 +44,7 @@ func (uc *Usecase) RegisterMerchant(ctx context.Context, req *v1.RegisterMerchan
 	if err != nil {
 		return nil, nil, err
 	}
-	return uc.createUserWithTokens(ctx, username, password, nickname, v1.UserRole_USER_ROLE_MAIN_ACCOUNT, "", "")
+	return uc.createUserWithTokens(ctx, username, password, nickname, RoleMerchantOwner, "", "")
 }
 
 func (uc *Usecase) Login(ctx context.Context, username, password string) (*v1.User, *v1.AuthTokens, error) {
@@ -162,7 +162,7 @@ func (uc *Usecase) GetMe(ctx context.Context) (*v1.User, error) {
 }
 
 func (uc *Usecase) AdminCreateUser(ctx context.Context, req *v1.AdminCreateUserRequest) (*v1.User, error) {
-	claims, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_MAIN_ACCOUNT)
+	claims, err := auth.RequirePermission(ctx, PermissionTeamUserCreate)
 	if err != nil {
 		return nil, err
 	}
@@ -170,19 +170,19 @@ func (uc *Usecase) AdminCreateUser(ctx context.Context, req *v1.AdminCreateUserR
 	if err != nil {
 		return nil, err
 	}
-	role := req.GetRole()
-	if !isManagedTeamRole(role) {
+	roleCode := NormalizeRoleCode(req.GetRoleCode())
+	if !IsManagedTeamRole(roleCode) {
 		return nil, fmt.Errorf("%w: main account can only create team subaccounts", apperr.ErrInvalidArgument)
 	}
-	user, _, err := uc.createUser(ctx, username, password, nickname, role, mainAccountIDFromClaims(claims), claims.UserID)
+	user, _, err := uc.createUser(ctx, username, password, nickname, roleCode, mainAccountIDFromClaims(claims), claims.UserID)
 	if err != nil {
 		return nil, err
 	}
 	return cloneUser(user), nil
 }
 
-func (uc *Usecase) AdminUpdateUserRole(ctx context.Context, userID string, role v1.UserRole) (*v1.User, error) {
-	claims, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_MAIN_ACCOUNT)
+func (uc *Usecase) AdminUpdateUserRole(ctx context.Context, userID string, roleCode string) (*v1.User, error) {
+	claims, err := auth.RequirePermission(ctx, PermissionTeamUserUpdateRole)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +190,8 @@ func (uc *Usecase) AdminUpdateUserRole(ctx context.Context, userID string, role 
 	if userID == "" {
 		return nil, fmt.Errorf("%w: user id is required", apperr.ErrInvalidArgument)
 	}
-	if !isManagedTeamRole(role) {
+	roleCode = NormalizeRoleCode(roleCode)
+	if !IsManagedTeamRole(roleCode) {
 		return nil, fmt.Errorf("%w: main account can only update team subaccount roles", apperr.ErrInvalidArgument)
 	}
 	mainAccountID := mainAccountIDFromClaims(claims)
@@ -201,7 +202,7 @@ func (uc *Usecase) AdminUpdateUserRole(ctx context.Context, userID string, role 
 	if err := ensureManagedSubaccountInScope(target, mainAccountID); err != nil {
 		return nil, err
 	}
-	user, err := uc.repo.UpdateUserRole(ctx, userID, mainAccountID, role, uc.now().UnixMilli())
+	user, err := uc.repo.UpdateUserRole(ctx, userID, mainAccountID, roleCode, uc.now().UnixMilli())
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +210,7 @@ func (uc *Usecase) AdminUpdateUserRole(ctx context.Context, userID string, role 
 }
 
 func (uc *Usecase) AdminUpdateUserStatus(ctx context.Context, userID string, status v1.UserStatus) (*v1.User, error) {
-	claims, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_MAIN_ACCOUNT)
+	claims, err := auth.RequirePermission(ctx, PermissionTeamUserUpdateStatus)
 	if err != nil {
 		return nil, err
 	}
@@ -242,12 +243,13 @@ func (uc *Usecase) AdminUpdateUserStatus(ctx context.Context, userID string, sta
 }
 
 func (uc *Usecase) ListUsers(ctx context.Context, query ListUsersQuery) (ListUsersResult, error) {
-	claims, err := auth.RequireRole(ctx, v1.UserRole_USER_ROLE_MAIN_ACCOUNT)
+	claims, err := auth.RequirePermission(ctx, PermissionTeamUserList)
 	if err != nil {
 		return ListUsersResult{}, err
 	}
 	query.Page, query.PageSize = normalizePagination(query.Page, query.PageSize)
-	if query.Role != v1.UserRole_USER_ROLE_UNSPECIFIED && !isManagedTeamRole(query.Role) {
+	query.RoleCode = NormalizeRoleCode(query.RoleCode)
+	if query.RoleCode != "" && !IsManagedTeamRole(query.RoleCode) {
 		return ListUsersResult{}, fmt.Errorf("%w: team users query only supports subaccount roles", apperr.ErrInvalidArgument)
 	}
 	query.MainAccountID = mainAccountIDFromClaims(claims)
@@ -270,20 +272,20 @@ func (uc *Usecase) BootstrapMainAccount(ctx context.Context, username, password,
 	}
 	existing, _, err := uc.repo.FindUserByUsername(ctx, username)
 	if err == nil {
-		if existing.GetRole() == v1.UserRole_USER_ROLE_MAIN_ACCOUNT {
+		if UserHasRole(existing, RoleMerchantOwner) {
 			return nil
 		}
-		return fmt.Errorf("bootstrap main account username %q already exists with role %s", username, existing.GetRole())
+		return fmt.Errorf("bootstrap main account username %q already exists without merchant owner role", username)
 	}
 	if !apperr.IsUserNotFound(err) {
 		return err
 	}
-	_, _, err = uc.createUser(ctx, username, password, nickname, v1.UserRole_USER_ROLE_MAIN_ACCOUNT, "", "")
+	_, _, err = uc.createUser(ctx, username, password, nickname, RoleMerchantOwner, "", "")
 	return err
 }
 
-func (uc *Usecase) createUserWithTokens(ctx context.Context, username, password, nickname string, role v1.UserRole, mainAccountID string, createdByUserID string) (*v1.User, *v1.AuthTokens, error) {
-	user, _, err := uc.createUser(ctx, username, password, nickname, role, mainAccountID, createdByUserID)
+func (uc *Usecase) createUserWithTokens(ctx context.Context, username, password, nickname string, roleCode string, mainAccountID string, createdByUserID string) (*v1.User, *v1.AuthTokens, error) {
+	user, _, err := uc.createUser(ctx, username, password, nickname, roleCode, mainAccountID, createdByUserID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -294,11 +296,12 @@ func (uc *Usecase) createUserWithTokens(ctx context.Context, username, password,
 	return cloneUser(user), tokens, nil
 }
 
-func (uc *Usecase) createUser(ctx context.Context, username, password, nickname string, role v1.UserRole, mainAccountID string, createdByUserID string) (*v1.User, string, error) {
-	if !isValidRole(role) {
-		return nil, "", fmt.Errorf("%w: invalid user role", apperr.ErrInvalidArgument)
+func (uc *Usecase) createUser(ctx context.Context, username, password, nickname string, roleCode string, mainAccountID string, createdByUserID string) (*v1.User, string, error) {
+	roleCode = NormalizeRoleCode(roleCode)
+	if !IsKnownRole(roleCode) {
+		return nil, "", fmt.Errorf("%w: invalid user role code", apperr.ErrInvalidArgument)
 	}
-	if isManagedTeamRole(role) && strings.TrimSpace(mainAccountID) == "" {
+	if IsManagedTeamRole(roleCode) && strings.TrimSpace(mainAccountID) == "" {
 		return nil, "", fmt.Errorf("%w: main account id is required for team subaccounts", apperr.ErrInvalidArgument)
 	}
 	hash, err := auth.HashPassword(password)
@@ -309,11 +312,11 @@ func (uc *Usecase) createUser(ctx context.Context, username, password, nickname 
 	userID := idgen.NewUserID()
 	mainAccountID = strings.TrimSpace(mainAccountID)
 	createdByUserID = strings.TrimSpace(createdByUserID)
-	if role == v1.UserRole_USER_ROLE_MAIN_ACCOUNT {
+	if roleCode == RoleMerchantOwner {
 		mainAccountID = userID
 		createdByUserID = ""
 	}
-	if role == v1.UserRole_USER_ROLE_BUYER {
+	if roleCode == RoleBuyer {
 		mainAccountID = ""
 		createdByUserID = ""
 	}
@@ -321,12 +324,13 @@ func (uc *Usecase) createUser(ctx context.Context, username, password, nickname 
 		Id:              userID,
 		Username:        username,
 		Nickname:        nickname,
-		Role:            role,
 		CreatedAtUnixMs: nowMs,
 		UpdatedAtUnixMs: nowMs,
 		MainAccountId:   mainAccountID,
 		CreatedByUserId: createdByUserID,
 		Status:          v1.UserStatus_USER_STATUS_ACTIVE,
+		RoleCodes:       []string{roleCode},
+		PermissionCodes: PermissionsForRole(roleCode),
 	}
 	if err := uc.repo.CreateUser(ctx, user, hash); err != nil {
 		if errors.Is(err, apperr.ErrUsernameTaken) {
@@ -389,28 +393,6 @@ func normalizeUsername(username string) string {
 	return strings.ToLower(strings.TrimSpace(username))
 }
 
-func isValidRole(role v1.UserRole) bool {
-	switch role {
-	case v1.UserRole_USER_ROLE_BUYER,
-		v1.UserRole_USER_ROLE_ANCHOR,
-		v1.UserRole_USER_ROLE_OPERATOR,
-		v1.UserRole_USER_ROLE_MAIN_ACCOUNT:
-		return true
-	default:
-		return false
-	}
-}
-
-func isManagedTeamRole(role v1.UserRole) bool {
-	switch role {
-	case v1.UserRole_USER_ROLE_ANCHOR,
-		v1.UserRole_USER_ROLE_OPERATOR:
-		return true
-	default:
-		return false
-	}
-}
-
 func normalizePagination(page, pageSize int) (int, int) {
 	if page <= 0 {
 		page = 1
@@ -425,23 +407,14 @@ func normalizePagination(page, pageSize int) (int, int) {
 }
 
 func mainAccountIDFromClaims(claims *auth.Claims) string {
-	if claims == nil {
-		return ""
-	}
-	if strings.TrimSpace(claims.MainAccountID) != "" {
-		return strings.TrimSpace(claims.MainAccountID)
-	}
-	if claims.Role == v1.UserRole_USER_ROLE_MAIN_ACCOUNT {
-		return strings.TrimSpace(claims.UserID)
-	}
-	return ""
+	return auth.EffectiveMainAccountID(claims)
 }
 
 func ensureManagedSubaccountInScope(user *v1.User, mainAccountID string) error {
 	if user == nil {
 		return apperr.ErrUserNotFound
 	}
-	if !isManagedTeamRole(user.GetRole()) {
+	if !UserHasRole(user, RoleAnchor) && !UserHasRole(user, RoleOperator) {
 		return fmt.Errorf("%w: only team subaccounts can be managed here", apperr.ErrInvalidArgument)
 	}
 	if strings.TrimSpace(mainAccountID) == "" || user.GetMainAccountId() != strings.TrimSpace(mainAccountID) {

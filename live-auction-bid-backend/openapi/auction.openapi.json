@@ -94,9 +94,9 @@
           { "$ref": "#/components/parameters/Page" },
           { "$ref": "#/components/parameters/PageSize" },
           {
-            "name": "role",
+            "name": "roleCode",
             "in": "query",
-            "schema": { "$ref": "#/components/schemas/UserRole" }
+            "schema": { "type": "string", "enum": ["anchor", "operator"] }
           },
           {
             "name": "keyword",
@@ -289,16 +289,6 @@
           "LOT_STATUS_FAILED"
         ]
       },
-      "UserRole": {
-        "type": "string",
-        "enum": [
-          "USER_ROLE_UNSPECIFIED",
-          "USER_ROLE_BUYER",
-          "USER_ROLE_ANCHOR",
-          "USER_ROLE_OPERATOR",
-          "USER_ROLE_MAIN_ACCOUNT"
-        ]
-      },
       "UserStatus": {
         "type": "string",
         "enum": [
@@ -322,12 +312,13 @@
       "User": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["id", "username", "nickname", "role", "mainAccountId", "createdByUserId", "status"],
+        "required": ["id", "username", "nickname", "roleCodes", "permissionCodes", "mainAccountId", "createdByUserId", "status"],
         "properties": {
           "id": { "type": "string" },
           "username": { "type": "string" },
           "nickname": { "type": "string" },
-          "role": { "$ref": "#/components/schemas/UserRole" },
+          "roleCodes": { "type": "array", "items": { "type": "string" } },
+          "permissionCodes": { "type": "array", "items": { "type": "string" } },
           "mainAccountId": { "type": "string" },
           "createdByUserId": { "type": "string" },
           "status": { "$ref": "#/components/schemas/UserStatus" },

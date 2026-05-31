@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -24,6 +25,8 @@ import (
 const (
 	DefaultAccessTTL  = 15 * time.Minute
 	DefaultRefreshTTL = 7 * 24 * time.Hour
+
+	RoleMerchantOwner = "merchant_owner"
 )
 
 type contextKey struct{}
@@ -46,7 +49,7 @@ type AuthContext struct {
 	TokenStatus TokenStatus
 	RawToken    string
 	UserID      string
-	UserRole    string
+	RoleCodes   []string
 }
 
 type Config struct {
@@ -75,18 +78,18 @@ func WithNow(now func() time.Time) Option {
 }
 
 type Claims struct {
-	UserID        string        `json:"sub"`
-	Username      string        `json:"username"`
-	Nickname      string        `json:"nickname"`
-	Role          v1.UserRole   `json:"-"`
-	RoleName      string        `json:"role"`
-	MainAccountID string        `json:"main_account_id,omitempty"`
-	Status        v1.UserStatus `json:"-"`
-	StatusName    string        `json:"status"`
-	TokenType     string        `json:"typ"`
-	Issuer        string        `json:"iss"`
-	IssuedAt      int64         `json:"iat"`
-	ExpiresAt     int64         `json:"exp"`
+	UserID          string        `json:"sub"`
+	Username        string        `json:"username"`
+	Nickname        string        `json:"nickname"`
+	RoleCodes       []string      `json:"role_codes"`
+	PermissionCodes []string      `json:"permission_codes"`
+	MainAccountID   string        `json:"main_account_id,omitempty"`
+	Status          v1.UserStatus `json:"-"`
+	StatusName      string        `json:"status"`
+	TokenType       string        `json:"typ"`
+	Issuer          string        `json:"iss"`
+	IssuedAt        int64         `json:"iat"`
+	ExpiresAt       int64         `json:"exp"`
 }
 
 type TokenPair struct {
@@ -133,6 +136,9 @@ func (m *Manager) IssueTokenPair(user *v1.User) (TokenPair, error) {
 	if user == nil || user.GetId() == "" {
 		return TokenPair{}, fmt.Errorf("%w: user is required", apperr.ErrInvalidArgument)
 	}
+	if len(user.GetRoleCodes()) == 0 {
+		return TokenPair{}, fmt.Errorf("%w: user role codes are required", apperr.ErrInvalidArgument)
+	}
 	now := m.now()
 	accessExpiresAt := now.Add(m.accessTTL)
 	refreshExpiresAt := now.Add(m.refreshTTL)
@@ -169,7 +175,7 @@ func (m *Manager) ParseAccessToken(token string) (*Claims, error) {
 	if err := json.Unmarshal(payload, &claims); err != nil {
 		return nil, apperr.ErrInvalidToken
 	}
-	if claims.TokenType != "access" || claims.UserID == "" {
+	if claims.TokenType != "access" || claims.UserID == "" || len(claims.RoleCodes) == 0 {
 		return nil, apperr.ErrInvalidToken
 	}
 	if m.issuer != "" && claims.Issuer != m.issuer {
@@ -178,11 +184,8 @@ func (m *Manager) ParseAccessToken(token string) (*Claims, error) {
 	if claims.ExpiresAt <= m.now().Unix() {
 		return nil, apperr.ErrTokenExpired
 	}
-	role, ok := RoleFromName(claims.RoleName)
-	if !ok {
-		return nil, apperr.ErrInvalidToken
-	}
-	claims.Role = role
+	claims.RoleCodes = normalizeCodes(claims.RoleCodes)
+	claims.PermissionCodes = normalizeCodes(claims.PermissionCodes)
 	status, ok := StatusFromName(claims.StatusName)
 	if !ok {
 		return nil, apperr.ErrInvalidToken
@@ -225,7 +228,7 @@ func (m *Manager) AuthContextFromBearer(authorization string) AuthContext {
 		authCtx.Claims = claims
 		authCtx.TokenStatus = TokenStatusValid
 		authCtx.UserID = claims.UserID
-		authCtx.UserRole = RoleName(claims.Role)
+		authCtx.RoleCodes = slices.Clone(claims.RoleCodes)
 	case apperr.IsTokenExpired(err):
 		authCtx.TokenStatus = TokenStatusExpired
 	default:
@@ -236,16 +239,17 @@ func (m *Manager) AuthContextFromBearer(authorization string) AuthContext {
 
 func (m *Manager) signAccessToken(user *v1.User, issuedAt, expiresAt time.Time) (string, error) {
 	claims := Claims{
-		UserID:        user.GetId(),
-		Username:      user.GetUsername(),
-		Nickname:      user.GetNickname(),
-		RoleName:      RoleName(user.GetRole()),
-		MainAccountID: user.GetMainAccountId(),
-		StatusName:    StatusName(effectiveStatus(user.GetStatus())),
-		TokenType:     "access",
-		Issuer:        m.issuer,
-		IssuedAt:      issuedAt.Unix(),
-		ExpiresAt:     expiresAt.Unix(),
+		UserID:          user.GetId(),
+		Username:        user.GetUsername(),
+		Nickname:        user.GetNickname(),
+		RoleCodes:       normalizeCodes(user.GetRoleCodes()),
+		PermissionCodes: normalizeCodes(user.GetPermissionCodes()),
+		MainAccountID:   user.GetMainAccountId(),
+		StatusName:      StatusName(effectiveStatus(user.GetStatus())),
+		TokenType:       "access",
+		Issuer:          m.issuer,
+		IssuedAt:        issuedAt.Unix(),
+		ExpiresAt:       expiresAt.Unix(),
 	}
 	header := map[string]string{"alg": "HS256", "typ": "JWT"}
 	headerJSON, err := json.Marshal(header)
@@ -294,7 +298,7 @@ func HashRefreshToken(token string) string {
 func WithClaims(ctx context.Context, claims *Claims) context.Context {
 	ctx = context.WithValue(ctx, contextKey{}, claims)
 	if claims != nil {
-		ctx = WithAuthContext(ctx, AuthContext{Claims: claims, TokenStatus: TokenStatusValid, UserID: claims.UserID, UserRole: RoleName(claims.Role)})
+		ctx = WithAuthContext(ctx, AuthContext{Claims: claims, TokenStatus: TokenStatusValid, UserID: claims.UserID, RoleCodes: slices.Clone(claims.RoleCodes)})
 	}
 	return ctx
 }
@@ -302,8 +306,8 @@ func WithClaims(ctx context.Context, claims *Claims) context.Context {
 func WithAuthContext(ctx context.Context, authCtx AuthContext) context.Context {
 	if authCtx.TokenStatus == TokenStatusValid && authCtx.Claims != nil {
 		authCtx.UserID = authCtx.Claims.UserID
-		authCtx.UserRole = RoleName(authCtx.Claims.Role)
-		ctx = requestctx.WithUser(ctx, authCtx.UserID, authCtx.UserRole)
+		authCtx.RoleCodes = slices.Clone(authCtx.Claims.RoleCodes)
+		ctx = requestctx.WithUser(ctx, authCtx.UserID, primaryRoleCode(authCtx.RoleCodes))
 	}
 	return context.WithValue(ctx, authContextKey{}, authCtx)
 }
@@ -350,17 +354,50 @@ func RequireUser(ctx context.Context) (*Claims, error) {
 	return claims, nil
 }
 
-func RequireRole(ctx context.Context, roles ...v1.UserRole) (*Claims, error) {
+func RequirePermission(ctx context.Context, permissionCode string) (*Claims, error) {
 	claims, err := RequireUser(ctx)
 	if err != nil {
 		return nil, err
 	}
-	for _, role := range roles {
-		if claims.Role == role {
-			return claims, nil
-		}
+	if HasPermission(claims, permissionCode) {
+		return claims, nil
 	}
 	return nil, apperr.ErrPermissionDenied
+}
+
+func HasPermission(claims *Claims, permissionCode string) bool {
+	if claims == nil {
+		return false
+	}
+	permissionCode = normalizeCode(permissionCode)
+	for _, got := range claims.PermissionCodes {
+		if normalizeCode(got) == permissionCode {
+			return true
+		}
+	}
+	return false
+}
+
+func HasAnyPermission(claims *Claims, permissionCodes ...string) bool {
+	for _, permissionCode := range permissionCodes {
+		if HasPermission(claims, permissionCode) {
+			return true
+		}
+	}
+	return false
+}
+
+func HasRoleCode(claims *Claims, roleCode string) bool {
+	if claims == nil {
+		return false
+	}
+	roleCode = normalizeCode(roleCode)
+	for _, got := range claims.RoleCodes {
+		if normalizeCode(got) == roleCode {
+			return true
+		}
+	}
+	return false
 }
 
 func EffectiveMainAccountID(claims *Claims) string {
@@ -370,40 +407,10 @@ func EffectiveMainAccountID(claims *Claims) string {
 	if strings.TrimSpace(claims.MainAccountID) != "" {
 		return strings.TrimSpace(claims.MainAccountID)
 	}
-	if claims.Role == v1.UserRole_USER_ROLE_MAIN_ACCOUNT {
+	if HasRoleCode(claims, RoleMerchantOwner) {
 		return strings.TrimSpace(claims.UserID)
 	}
 	return ""
-}
-
-func RoleName(role v1.UserRole) string {
-	switch role {
-	case v1.UserRole_USER_ROLE_BUYER:
-		return "buyer"
-	case v1.UserRole_USER_ROLE_ANCHOR:
-		return "anchor"
-	case v1.UserRole_USER_ROLE_OPERATOR:
-		return "operator"
-	case v1.UserRole_USER_ROLE_MAIN_ACCOUNT:
-		return "main_account"
-	default:
-		return "unspecified"
-	}
-}
-
-func RoleFromName(name string) (v1.UserRole, bool) {
-	switch strings.ToLower(strings.TrimSpace(name)) {
-	case "buyer":
-		return v1.UserRole_USER_ROLE_BUYER, true
-	case "anchor":
-		return v1.UserRole_USER_ROLE_ANCHOR, true
-	case "operator":
-		return v1.UserRole_USER_ROLE_OPERATOR, true
-	case "main_account":
-		return v1.UserRole_USER_ROLE_MAIN_ACCOUNT, true
-	default:
-		return v1.UserRole_USER_ROLE_UNSPECIFIED, false
-	}
 }
 
 func StatusName(status v1.UserStatus) string {
@@ -455,4 +462,40 @@ func BearerToken(value string) string {
 		return ""
 	}
 	return strings.TrimSpace(strings.TrimPrefix(value, prefix))
+}
+
+func normalizeCodes(values []string) []string {
+	out := make([]string, 0, len(values))
+	seen := map[string]struct{}{}
+	for _, value := range values {
+		next := normalizeCode(value)
+		if next == "" {
+			continue
+		}
+		if _, ok := seen[next]; ok {
+			continue
+		}
+		seen[next] = struct{}{}
+		out = append(out, next)
+	}
+	slices.Sort(out)
+	return out
+}
+
+func normalizeCode(value string) string {
+	return strings.ToLower(strings.TrimSpace(value))
+}
+
+func primaryRoleCode(roleCodes []string) string {
+	if len(roleCodes) == 0 {
+		return ""
+	}
+	for _, preferred := range []string{RoleMerchantOwner, "anchor", "operator", "buyer"} {
+		for _, got := range roleCodes {
+			if normalizeCode(got) == preferred {
+				return preferred
+			}
+		}
+	}
+	return normalizeCode(roleCodes[0])
 }
