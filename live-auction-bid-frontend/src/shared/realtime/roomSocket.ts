@@ -1,7 +1,7 @@
-import { authSession } from '../auth/authSession';
 import { WS_BASE } from '../config/env';
 import { normalizeAuctionEvent } from '../api/result';
 import type { AuctionEvent, EventType, RoomSnapshot } from '../api/types';
+import { getWsTicket } from './wsTicket';
 
 export type RoomSocketStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 
@@ -31,9 +31,11 @@ function reconnectDelay(attempt: number) {
   return base + Math.floor(Math.random() * 400);
 }
 
-function roomURL(roomId: string) {
+function roomURL(roomId: string, ticket: string) {
   const url = new URL(`${WS_BASE}/ws/rooms/${encodeURIComponent(roomId)}`);
   url.searchParams.set('client_app', 'admin-web');
+  url.searchParams.set('scope', 'admin');
+  url.searchParams.set('ticket', ticket);
   return url.toString();
 }
 
@@ -78,11 +80,13 @@ export class RoomSocket {
     this.reconnectTimer = 0;
   }
 
-  private open(status: RoomSocketStatus) {
+  private async open(status: RoomSocketStatus) {
     if (this.closed) return;
     this.emitStatus(status);
     try {
-      this.socket = new WebSocket(roomURL(this.options.roomId));
+      const ticket = await getWsTicket({ roomId: this.options.roomId, scope: 'admin' });
+      if (this.closed) return;
+      this.socket = new WebSocket(roomURL(this.options.roomId, ticket));
     } catch (error) {
       this.options.onError?.(error);
       this.scheduleReconnect();
@@ -92,9 +96,6 @@ export class RoomSocket {
     this.socket.onopen = () => {
       this.attempt = 0;
       this.emitStatus('connected');
-      void authSession.getValidAccessToken().then((token) => {
-        if (token) this.send({ type: 'AUTH', accessToken: token });
-      });
       void this.recoverSnapshot();
     };
     this.socket.onmessage = (message) => {
@@ -150,10 +151,6 @@ export class RoomSocket {
     }
   }
 
-  private send(payload: unknown) {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
-    this.socket.send(JSON.stringify(payload));
-  }
 }
 
 export function roomSocketStatusLabel(status: RoomSocketStatus) {

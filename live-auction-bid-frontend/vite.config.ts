@@ -19,15 +19,15 @@ export default defineConfig({
     allowedHosts: ['.ngrok-free.dev'],
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:18080',
+        target: process.env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:18080',
         changeOrigin: true,
       },
       '/healthz': {
-        target: 'http://127.0.0.1:18080',
+        target: process.env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:18080',
         changeOrigin: true,
       },
       '/ws': {
-        target: 'ws://127.0.0.1:18080',
+        target: process.env.VITE_DEV_WS_PROXY_TARGET || 'ws://127.0.0.1:18080',
         ws: true,
         changeOrigin: true,
       },
