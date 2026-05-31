@@ -142,8 +142,6 @@ export interface components {
         /** @enum {string} */
         LotStatus: "LOT_STATUS_UNSPECIFIED" | "LOT_STATUS_DRAFT" | "LOT_STATUS_READY" | "LOT_STATUS_QUEUED" | "LOT_STATUS_LIVE" | "LOT_STATUS_EXTENDED" | "LOT_STATUS_SETTLED" | "LOT_STATUS_CANCELLED" | "LOT_STATUS_FAILED";
         /** @enum {string} */
-        UserRole: "USER_ROLE_UNSPECIFIED" | "USER_ROLE_BUYER" | "USER_ROLE_ANCHOR" | "USER_ROLE_OPERATOR" | "USER_ROLE_MAIN_ACCOUNT";
-        /** @enum {string} */
         UserStatus: "USER_STATUS_UNSPECIFIED" | "USER_STATUS_ACTIVE" | "USER_STATUS_DISABLED";
         /** @enum {string} */
         AuctionState: "DRAFT" | "QUEUED" | "LIVE" | "EXTENDED" | "SETTLED" | "CANCELLED" | "FAILED";
@@ -155,7 +153,8 @@ export interface components {
             id: string;
             username: string;
             nickname: string;
-            role: components["schemas"]["UserRole"];
+            roleCodes: string[];
+            permissionCodes: string[];
             mainAccountId: string;
             createdByUserId: string;
             status: components["schemas"]["UserStatus"];
@@ -376,7 +375,7 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                role?: components["schemas"]["UserRole"];
+                roleCode?: "anchor" | "operator";
                 keyword?: string;
             };
             header?: never;

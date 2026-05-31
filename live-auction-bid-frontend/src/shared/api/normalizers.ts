@@ -9,8 +9,10 @@ import type {
   LotQueueStatus,
   LotStatus,
   Money,
+  PermissionCode,
   PlaybookStage,
   RankingItem,
+  RoleCode,
   Room,
   RoomPresence,
   RoomSnapshot,
@@ -18,7 +20,6 @@ import type {
   TrustRevealCard,
   UploadedAsset,
   User,
-  UserRole,
   UserStatus,
 } from './types';
 
@@ -84,12 +85,29 @@ const eventTypeValues = new Set<EventType>([
   'AUCTION_EVENT_TYPE_PAYMENT_SUCCESS',
 ]);
 
-const userRoleValues = new Set<UserRole>([
-  'USER_ROLE_UNSPECIFIED',
-  'USER_ROLE_BUYER',
-  'USER_ROLE_ANCHOR',
-  'USER_ROLE_OPERATOR',
-  'USER_ROLE_MAIN_ACCOUNT',
+const roleCodeValues = new Set<RoleCode>([
+  'merchant_owner',
+  'anchor',
+  'operator',
+  'buyer',
+]);
+
+const permissionCodeValues = new Set<PermissionCode>([
+  'team.user.create',
+  'team.user.list',
+  'team.user.update_role',
+  'team.user.update_status',
+  'lot.create',
+  'lot.update',
+  'lot.queue',
+  'lot.view_admin',
+  'auction.control',
+  'order.manage',
+  'realtime.view',
+  'upload.image',
+  'bid.place',
+  'order.pay',
+  'order.view_own',
 ]);
 
 const userStatusValues = new Set<UserStatus>([
@@ -143,6 +161,10 @@ function arrayValue(value: unknown, name: string): unknown[] {
 
 function normalizeStringArray(value: unknown, name: string) {
   return arrayValue(value, name).map((item) => String(item));
+}
+
+function normalizeEnumArray<T extends string>(value: unknown, name: string, allowed: Set<T>): T[] {
+  return normalizeStringArray(value, name).map((item) => normalizeEnum(item, name, allowed));
 }
 
 function normalizeEnum<T extends string>(value: unknown, name: string, allowed: Set<T>, fallback?: T): T {
@@ -350,7 +372,8 @@ export function normalizeUser(input: unknown): User {
     id: stringValue(requiredField(field(raw, 'id'), 'user.id')),
     username: stringValue(requiredField(field(raw, 'username'), 'user.username')),
     nickname: stringValue(field(raw, 'nickname')),
-    role: normalizeEnum(field(raw, 'role'), 'user.role', userRoleValues),
+    roleCodes: normalizeEnumArray(field(raw, 'roleCodes', 'role_codes'), 'user.roleCodes', roleCodeValues),
+    permissionCodes: normalizeEnumArray(field(raw, 'permissionCodes', 'permission_codes'), 'user.permissionCodes', permissionCodeValues),
     mainAccountId: stringValue(field(raw, 'mainAccountId', 'main_account_id')),
     createdByUserId: stringValue(field(raw, 'createdByUserId', 'created_by_user_id')),
     status: normalizeEnum(field(raw, 'status'), 'user.status', userStatusValues),

@@ -3,7 +3,8 @@ import { login, logout } from '../api/authApi';
 import { currentAuth } from '../api/authApi';
 import { resultMessage } from '../../../shared/api/result';
 import { canAccessBackoffice } from '../../../shared/api/types';
-import type { User, UserRole } from '../../../shared/api/types';
+import type { User } from '../../../shared/api/types';
+import { primaryRoleCode, roleCodeMeta } from '../../../entities/user/model/userRole';
 
 type Props = {
   onUserChange?: (user: User | null) => void;
@@ -13,13 +14,9 @@ function roleAllowed(user?: User | null) {
   return canAccessBackoffice(user);
 }
 
-function roleLabel(role?: UserRole) {
-  switch (role) {
-    case 'USER_ROLE_ANCHOR': return '主播';
-    case 'USER_ROLE_OPERATOR': return '运营';
-    case 'USER_ROLE_MAIN_ACCOUNT': return '主账号';
-    default: return role ? '非后台角色（不可操作后台）' : '未登录';
-  }
+function userRoleLabel(user?: User | null) {
+  if (!user) return '未登录';
+  return roleCodeMeta(primaryRoleCode(user.roleCodes)).label;
 }
 
 export function AuthPanel({ onUserChange }: Props) {
@@ -66,8 +63,8 @@ export function AuthPanel({ onUserChange }: Props) {
       <h2>后台账号</h2>
       {user ? (
         <>
-          <p><strong>{user.nickname}</strong> · {roleLabel(user.role)}</p>
-          <p className="meta">当前操作会使用 JWT access token，后端按角色做权限判断。</p>
+          <p><strong>{user.nickname}</strong> · {userRoleLabel(user)}</p>
+          <p className="meta">当前操作会使用 JWT access token，后端按 RBAC 权限码判断。</p>
           {!roleAllowed(user) && <p className="formError">当前角色不能操作主播团队工作台，请退出后切换主账号、场控、商品助理或订单客服账号。</p>}
           <button className="ghostButton" disabled={busy} onClick={doLogout}>退出登录</button>
         </>

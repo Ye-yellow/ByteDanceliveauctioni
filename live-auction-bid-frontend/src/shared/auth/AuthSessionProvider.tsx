@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { me } from '../../features/auth/api/authApi';
 import { resultMessage } from '../api/result';
-import type { UserRole } from '../api/types';
+import { hasPermission, type PermissionCode } from '../api/types';
 import { authSession } from './authSession';
 import type { AuthState } from './authStorage';
 
@@ -82,12 +82,13 @@ export function useAuthSession() {
   return value;
 }
 
-export function ProtectedRoute({ children, requiredRoles }: { children: ReactNode; requiredRoles?: UserRole[] }) {
+export function ProtectedRoute({ children, requiredPermissions }: { children: ReactNode; requiredPermissions?: PermissionCode[] }) {
   const { session } = useAuthSession();
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState('');
   const [denied, setDenied] = useState(false);
-  const requiredRolesKey = requiredRoles?.join('|') ?? '';
+  const requiredPermissionsKey = requiredPermissions?.join('|') ?? '';
+  const userPermissionsKey = session.user?.permissionCodes?.join('|') ?? '';
 
   useEffect(() => {
     let cancelled = false;
@@ -112,9 +113,9 @@ export function ProtectedRoute({ children, requiredRoles }: { children: ReactNod
           redirectToLogin(true);
           return;
         }
-        if (requiredRoles?.length && !requiredRoles.includes(user.role)) {
+        if (requiredPermissions?.length && !requiredPermissions.some((permissionCode) => hasPermission(user, permissionCode))) {
           authSession.clear();
-          setError('该账号无后台访问权限');
+          setDenied(true);
           return;
         }
       } catch (e) {
@@ -127,7 +128,7 @@ export function ProtectedRoute({ children, requiredRoles }: { children: ReactNod
     return () => {
       cancelled = true;
     };
-  }, [session.tokens?.accessToken, session.tokens?.refreshToken, session.user?.role, requiredRolesKey]);
+  }, [session.tokens?.accessToken, session.tokens?.refreshToken, userPermissionsKey, requiredPermissionsKey]);
 
   if (checking) return <main className="routeLoading" aria-busy="true"><span>LiveAuction Studio</span><b>正在验证登录态...</b></main>;
   if (denied) return <main className="routeLoading"><span>LiveAuction Studio</span><b>当前账号无权访问管理后台</b></main>;

@@ -18,15 +18,34 @@ export type TrustCardType = 'TRUST_CARD_TYPE_UNSPECIFIED' | 'TRUST_CARD_TYPE_CER
 export type PlaybookStage = 'PLAYBOOK_STAGE_UNSPECIFIED' | 'PLAYBOOK_STAGE_WARM_UP' | 'PLAYBOOK_STAGE_TRUST_BLOCKED' | 'PLAYBOOK_STAGE_BIDDING_ACTIVE' | 'PLAYBOOK_STAGE_DUEL_READY' | 'PLAYBOOK_STAGE_DUEL_MODE' | 'PLAYBOOK_STAGE_SETTLE_READY';
 export type EventType = 'AUCTION_EVENT_TYPE_UNSPECIFIED' | 'AUCTION_EVENT_TYPE_ROOM_SNAPSHOT' | 'AUCTION_EVENT_TYPE_LOT_CREATED' | 'AUCTION_EVENT_TYPE_LOT_STARTED' | 'AUCTION_EVENT_TYPE_LOT_UPDATED' | 'AUCTION_EVENT_TYPE_BID_ACCEPTED' | 'AUCTION_EVENT_TYPE_BID_REJECTED' | 'AUCTION_EVENT_TYPE_RANKING_UPDATED' | 'AUCTION_EVENT_TYPE_TRUST_REVEALED' | 'AUCTION_EVENT_TYPE_DUEL_STARTED' | 'AUCTION_EVENT_TYPE_DUEL_ENDED' | 'AUCTION_EVENT_TYPE_LOT_SETTLED' | 'AUCTION_EVENT_TYPE_LOT_CANCELLED' | 'AUCTION_EVENT_TYPE_LOT_QUEUED' | 'AUCTION_EVENT_TYPE_BID_OUTBID' | 'AUCTION_EVENT_TYPE_AUCTION_EXTENDED' | 'AUCTION_EVENT_TYPE_AUCTION_CLOSED' | 'AUCTION_EVENT_TYPE_ORDER_CREATED' | 'AUCTION_EVENT_TYPE_PAYMENT_SUCCESS';
 
-export const USER_ROLE = {
-  UNSPECIFIED: 'USER_ROLE_UNSPECIFIED',
-  BUYER: 'USER_ROLE_BUYER',
-  ANCHOR: 'USER_ROLE_ANCHOR',
-  OPERATOR: 'USER_ROLE_OPERATOR',
-  MAIN_ACCOUNT: 'USER_ROLE_MAIN_ACCOUNT',
+export const ROLE_CODE = {
+  MERCHANT_OWNER: 'merchant_owner',
+  ANCHOR: 'anchor',
+  OPERATOR: 'operator',
+  BUYER: 'buyer',
 } as const;
 
-export type UserRole = (typeof USER_ROLE)[keyof typeof USER_ROLE];
+export type RoleCode = (typeof ROLE_CODE)[keyof typeof ROLE_CODE];
+
+export const PERMISSION_CODE = {
+  TEAM_USER_CREATE: 'team.user.create',
+  TEAM_USER_LIST: 'team.user.list',
+  TEAM_USER_UPDATE_ROLE: 'team.user.update_role',
+  TEAM_USER_UPDATE_STATUS: 'team.user.update_status',
+  LOT_CREATE: 'lot.create',
+  LOT_UPDATE: 'lot.update',
+  LOT_QUEUE: 'lot.queue',
+  LOT_VIEW_ADMIN: 'lot.view_admin',
+  AUCTION_CONTROL: 'auction.control',
+  ORDER_MANAGE: 'order.manage',
+  REALTIME_VIEW: 'realtime.view',
+  UPLOAD_IMAGE: 'upload.image',
+  BID_PLACE: 'bid.place',
+  ORDER_PAY: 'order.pay',
+  ORDER_VIEW_OWN: 'order.view_own',
+} as const;
+
+export type PermissionCode = (typeof PERMISSION_CODE)[keyof typeof PERMISSION_CODE];
 
 export const USER_STATUS = {
   UNSPECIFIED: 'USER_STATUS_UNSPECIFIED',
@@ -35,25 +54,34 @@ export const USER_STATUS = {
 } as const;
 
 export type UserStatus = (typeof USER_STATUS)[keyof typeof USER_STATUS];
-export const BACKOFFICE_ACCESS_ROLES: UserRole[] = [USER_ROLE.MAIN_ACCOUNT, USER_ROLE.ANCHOR, USER_ROLE.OPERATOR];
+export const BACKOFFICE_ACCESS_PERMISSIONS: PermissionCode[] = [PERMISSION_CODE.LOT_VIEW_ADMIN, PERMISSION_CODE.AUCTION_CONTROL, PERMISSION_CODE.REALTIME_VIEW, PERMISSION_CODE.ORDER_MANAGE];
 
-export function canAccessBackoffice(user?: Pick<User, 'role' | 'status'> | null) {
-  return Boolean(user && user.status === USER_STATUS.ACTIVE && BACKOFFICE_ACCESS_ROLES.includes(user.role));
+export function hasRoleCode(user: Pick<User, 'roleCodes'> | undefined | null, roleCode: RoleCode | string) {
+  return Boolean(user?.roleCodes?.some((item) => item === roleCode));
 }
 
-export function isMainAccount(user?: Pick<User, 'role'> | null) {
-  return user?.role === USER_ROLE.MAIN_ACCOUNT;
+export function hasPermission(user: Pick<User, 'permissionCodes'> | undefined | null, permissionCode: PermissionCode | string) {
+  return Boolean(user?.permissionCodes?.some((item) => item === permissionCode));
 }
 
-export function isManagedTeamRole(role?: UserRole | null) {
-  return role === USER_ROLE.ANCHOR || role === USER_ROLE.OPERATOR;
+export function canAccessBackoffice(user?: Pick<User, 'permissionCodes' | 'status'> | null) {
+  return Boolean(user && user.status === USER_STATUS.ACTIVE && BACKOFFICE_ACCESS_PERMISSIONS.some((permission) => hasPermission(user, permission)));
+}
+
+export function isMerchantOwner(user?: Pick<User, 'roleCodes'> | null) {
+  return hasRoleCode(user, ROLE_CODE.MERCHANT_OWNER);
+}
+
+export function isManagedTeamRole(roleCode?: RoleCode | string | null) {
+  return roleCode === ROLE_CODE.ANCHOR || roleCode === ROLE_CODE.OPERATOR;
 }
 
 export type User = {
   id: string;
   username: string;
   nickname: string;
-  role: UserRole;
+  roleCodes: RoleCode[];
+  permissionCodes: PermissionCode[];
   mainAccountId: string;
   createdByUserId: string;
   status: UserStatus;

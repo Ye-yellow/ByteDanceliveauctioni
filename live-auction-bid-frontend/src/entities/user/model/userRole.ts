@@ -1,29 +1,37 @@
-import type { UserRole, UserStatus } from '../../../shared/api/types';
-import { USER_ROLE, USER_STATUS } from '../../../shared/api/types';
+import type { RoleCode, UserStatus } from '../../../shared/api/types';
+import { ROLE_CODE, USER_STATUS } from '../../../shared/api/types';
 import type { StudioTone } from '../../../pages/host-console/components/studio-ui';
 
-export const USER_ROLE_FILTERS: Array<{ label: string; value: UserRole | '' }> = [
+export const ROLE_CODE_FILTERS: Array<{ label: string; value: RoleCode | '' }> = [
   { label: '全部团队子账号', value: '' },
-  { label: '主播 / 场控', value: USER_ROLE.ANCHOR },
-  { label: '运营子账号', value: USER_ROLE.OPERATOR },
+  { label: '主播 / 场控', value: ROLE_CODE.ANCHOR },
+  { label: '运营子账号', value: ROLE_CODE.OPERATOR },
 ];
 
-export const USER_ROLE_OPTIONS: Array<{ role: UserRole; label: string; hint: string; tone: StudioTone }> = [
-  { role: USER_ROLE.MAIN_ACCOUNT, label: '主账号', hint: '对应一个主播或商家主体，可管理自己的团队子账号', tone: 'purple' },
-  { role: USER_ROLE.ANCHOR, label: '主播 / 场控', hint: '可进入工作台并执行开拍、控场、落锤等操作', tone: 'success' },
-  { role: USER_ROLE.OPERATOR, label: '运营子账号', hint: '可进入工作台并协助拍品、队列和成交处理', tone: 'info' },
-  { role: USER_ROLE.BUYER, label: '买家（H5）', hint: '只属于用户 H5，不允许进入或由后台创建', tone: 'warning' },
+export const ROLE_CODE_OPTIONS: Array<{ roleCode: RoleCode; label: string; hint: string; tone: StudioTone }> = [
+  { roleCode: ROLE_CODE.MERCHANT_OWNER, label: '主账号', hint: '对应一个主播或商家主体，可管理自己的团队子账号', tone: 'purple' },
+  { roleCode: ROLE_CODE.ANCHOR, label: '主播 / 场控', hint: '可进入工作台并执行开拍、控场、落锤等操作', tone: 'success' },
+  { roleCode: ROLE_CODE.OPERATOR, label: '运营子账号', hint: '可进入后台协助拍品、队列和成交处理', tone: 'info' },
+  { roleCode: ROLE_CODE.BUYER, label: '买家（H5）', hint: '只属于用户 H5，不允许进入或由后台创建', tone: 'warning' },
 ];
 
 export const TEAM_ACCOUNT_ROLE_OPTIONS = [
-  { role: USER_ROLE.ANCHOR, label: '主播 / 场控', hint: '协助直播中开拍、控场、落锤和异常处理', tone: 'success' as StudioTone },
-  { role: USER_ROLE.OPERATOR, label: '运营子账号', hint: '协助拍品准备、队列维护和成交处理', tone: 'info' as StudioTone },
+  { roleCode: ROLE_CODE.ANCHOR, label: '主播 / 场控', hint: '协助直播中开拍、控场、落锤和异常处理', tone: 'success' as StudioTone },
+  { roleCode: ROLE_CODE.OPERATOR, label: '运营子账号', hint: '协助拍品准备、队列维护和成交处理', tone: 'info' as StudioTone },
 ];
 
-export function userRoleMeta(role?: UserRole | string | null) {
-  return USER_ROLE_OPTIONS.find((item) => item.role === role) ?? {
-    role: String(role || USER_ROLE.UNSPECIFIED),
-    label: String(role || '未知角色'),
+export function primaryRoleCode(roleCodes?: readonly string[] | null): string {
+  if (!roleCodes?.length) return '';
+  for (const roleCode of [ROLE_CODE.MERCHANT_OWNER, ROLE_CODE.ANCHOR, ROLE_CODE.OPERATOR, ROLE_CODE.BUYER]) {
+    if (roleCodes.includes(roleCode)) return roleCode;
+  }
+  return roleCodes[0] || '';
+}
+
+export function roleCodeMeta(roleCode?: RoleCode | string | null) {
+  return ROLE_CODE_OPTIONS.find((item) => item.roleCode === roleCode) ?? {
+    roleCode: String(roleCode || ''),
+    label: String(roleCode || '未知角色'),
     hint: '后端返回的未识别角色',
     tone: 'neutral' as StudioTone,
   };

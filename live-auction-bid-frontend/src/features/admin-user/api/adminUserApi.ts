@@ -2,12 +2,12 @@ import { apiRequest } from '../../../shared/api/httpClient';
 import { normalizeUser } from '../../../shared/api/normalizers';
 import { toQueryString } from '../../../shared/api/query';
 import { assertOkResult } from '../../../shared/api/result';
-import type { ReplyResult, User, UserRole, UserStatus } from '../../../shared/api/types';
+import type { ReplyResult, RoleCode, User, UserStatus } from '../../../shared/api/types';
 
 export type AdminUsersQuery = {
   page?: number;
   pageSize?: number;
-  role?: UserRole | '';
+  roleCode?: RoleCode | '';
   keyword?: string;
 };
 
@@ -46,7 +46,7 @@ function requiredValue<T>(value: T | undefined | null, field: string): T {
   return value;
 }
 
-export async function adminCreateUser(payload: { username: string; password: string; nickname: string; role: UserRole }) {
+export async function adminCreateUser(payload: { username: string; password: string; nickname: string; roleCode: RoleCode }) {
   return requireUser(assertOkResult(await apiRequest<AdminUserReply>({
     path: '/api/admin/users',
     method: 'POST',
@@ -62,7 +62,7 @@ export async function listAdminUsers(query: AdminUsersQuery = {}): Promise<Admin
     path: `/api/admin/users${toQueryString({
       page,
       pageSize,
-      role: query.role,
+      roleCode: query.roleCode,
       keyword: query.keyword?.trim(),
     })}`,
     method: 'GET',
@@ -76,11 +76,11 @@ export async function listAdminUsers(query: AdminUsersQuery = {}): Promise<Admin
   };
 }
 
-export async function adminUpdateUserRole(userId: string, role: UserRole) {
+export async function adminUpdateUserRole(userId: string, roleCode: RoleCode) {
   return requireUser(assertOkResult(await apiRequest<AdminUserReply>({
     path: `/api/admin/users/${encodeURIComponent(userId)}/role`,
     method: 'POST',
-    body: { userId, role },
+    body: { userId, roleCode },
     operation: 'admin-update-user-role',
   })));
 }

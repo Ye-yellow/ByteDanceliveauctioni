@@ -1,1 +1,1 @@
-export type { AuctionEvent, AuthTokens, Bid, BidRule, CreateLotRequest, DuelState, EventType, Lot, LotStatus, Money, PlaceBidRequest, PlaybookStage, RankingItem, ReplyResult, RoomSnapshot, TrustCardType, TrustRevealCard, User, UserRole } from '../api/types';
+export type { AuctionEvent, AuthTokens, Bid, BidRule, CreateLotRequest, DuelState, EventType, Lot, LotStatus, Money, PermissionCode, PlaceBidRequest, PlaybookStage, RankingItem, ReplyResult, RoleCode, RoomSnapshot, TrustCardType, TrustRevealCard, User } from '../api/types';
