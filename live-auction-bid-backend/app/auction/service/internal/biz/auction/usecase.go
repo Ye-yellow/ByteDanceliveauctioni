@@ -34,6 +34,8 @@ type AuctionUsecase struct {
 	payments    PaymentRepository
 	eventsStore EventRepository
 	events      EventPublisher
+
+	syncRuntimeProjection bool
 }
 
 type CloseExpiredSummary struct {
@@ -160,6 +162,14 @@ func NewAuctionUsecase(lots LotRepository, bids BidRepository, eventStore EventR
 	} else if repo, ok := lots.(RuntimeProjectionRepository); ok {
 		uc.projector = repo
 	}
+	return uc
+}
+
+func (uc *AuctionUsecase) SetSyncRuntimeProjection(enabled bool) *AuctionUsecase {
+	if uc == nil {
+		return nil
+	}
+	uc.syncRuntimeProjection = enabled
 	return uc
 }
 
@@ -537,17 +547,8 @@ func (uc *AuctionUsecase) placeBidRuntime(ctx context.Context, req *v1.PlaceBidR
 	if guardErr == nil {
 		baseLot = guardLot
 		if !IsAuctionOpenStatus(guardLot.Status) {
-			bids, listErr := uc.bids.ListByLot(ctx, guardLot.Id)
-			if listErr != nil {
-				return nil, nil, nil, listErr
-			}
-			ranking := BuildRealtimeRanking(bids)
 			err := closedLotBidRejectError(guardLot)
-			event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_REJECTED, guardLot)
-			event.Reason = bidRejectReason(err)
-			event.Ranking = ranking
-			uc.publishBidRejectedBestEffort(ctx, event)
-			return proto.Clone(guardLot).(*v1.Lot), nil, ranking, err
+			return proto.Clone(guardLot).(*v1.Lot), nil, nil, err
 		}
 	} else if guardCtxErr == nil && apperr.IsNotFound(guardErr) {
 		return nil, nil, nil, guardErr
@@ -555,19 +556,11 @@ func (uc *AuctionUsecase) placeBidRuntime(ctx context.Context, req *v1.PlaceBidR
 	lot := &v1.Lot{Id: req.GetLotId()}
 	result, err := uc.runtime.PlaceBidRuntime(ctx, lot, req, bidderID, nickname, idgen.New("bid"), nowMs)
 	if err != nil {
-		ranking := []*v1.RankingItem{}
 		rejectLot := lot
-		if snapshot, snapshotErr := uc.runtime.SnapshotRuntime(ctx, lot); snapshotErr == nil && snapshot != nil {
-			ranking = snapshot.Ranking
-			if snapshot.CurrentLot != nil {
-				rejectLot = snapshot.CurrentLot
-			}
+		if reject, ok := RuntimeBidRejectFromError(err); ok {
+			rejectLot = reject.Lot(req.GetLotId(), req.GetAmount())
 		}
-		event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_REJECTED, rejectLot)
-		event.Reason = bidRejectReason(err)
-		event.Ranking = ranking
-		uc.publishBidRejectedBestEffort(ctx, event)
-		return proto.Clone(rejectLot).(*v1.Lot), nil, ranking, err
+		return proto.Clone(rejectLot).(*v1.Lot), nil, nil, err
 	}
 	if result.Replayed {
 		replayLot, replayBid, replayRanking, found, replayErr := uc.replayBidByIdempotencyKey(ctx, lot.Id, bidderID, req.GetIdempotencyKey())
@@ -586,6 +579,10 @@ func (uc *AuctionUsecase) placeBidRuntime(ctx context.Context, req *v1.PlaceBidR
 		return nil, nil, nil, errors.New("runtime bid result is incomplete")
 	}
 	bid := *result.Bid
+	uc.bids.CacheIdempotencyKey(ctx, lot.Id, bidderID, req.GetIdempotencyKey(), bid)
+	if !uc.syncRuntimeProjection {
+		return proto.Clone(result.Lot).(*v1.Lot), &bid, result.Ranking, nil
+	}
 	if baseLot == nil {
 		var baseErr error
 		baseLot, baseErr = uc.lots.FindCoreByID(ctx, req.GetLotId())
@@ -634,7 +631,6 @@ func (uc *AuctionUsecase) placeBidRuntime(ctx context.Context, req *v1.PlaceBidR
 		)
 		return proto.Clone(result.Lot).(*v1.Lot), &bid, result.Ranking, nil
 	}
-	uc.bids.CacheIdempotencyKey(ctx, lot.Id, bidderID, req.GetIdempotencyKey(), bid)
 	if err := uc.broadcast(ctx, commitEvents...); err != nil {
 		return nil, nil, nil, err
 	}

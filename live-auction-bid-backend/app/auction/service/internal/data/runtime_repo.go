@@ -67,36 +67,53 @@ if not lot_id then
 end
 
 local status = tonumber(redis.call('HGET', state_key, 'status') or '0')
-if status ~= status_live and status ~= status_extended then
-  return cjson.encode({ ok = false, code = 'BID_NOT_LIVE', message = 'BID_NOT_LIVE' })
-end
-
 local ends_at = tonumber(redis.call('HGET', state_key, 'ends_at_unix_ms') or '0')
-if ends_at > 0 and now_ms > ends_at then
-  return cjson.encode({ ok = false, code = 'BID_ENDED', message = 'BID_ENDED' })
-end
-
 local current_amount = tonumber(redis.call('HGET', state_key, 'current_amount') or '0')
 local current_currency = redis.call('HGET', state_key, 'current_currency') or ''
 local min_increment_amount = tonumber(redis.call('HGET', state_key, 'min_increment_amount') or '0')
-if currency == '' then
-  return cjson.encode({ ok = false, code = 'INVALID_ARGUMENT', message = 'INVALID_ARGUMENT' })
+local previous_version = tonumber(redis.call('HGET', state_key, 'version') or '0')
+local previous_leader_id = redis.call('HGET', state_key, 'leading_user_id') or ''
+local previous_leader_nickname = redis.call('HGET', state_key, 'leading_nickname') or ''
+local function reject(code)
+  local next_bid_amount = current_amount + min_increment_amount
+  return cjson.encode({
+    ok = false,
+    code = code,
+    message = code,
+    current_amount = current_amount,
+    current_currency = current_currency,
+    min_increment_amount = min_increment_amount,
+    next_bid_amount = next_bid_amount,
+    lot_version = previous_version,
+    leading_user_id = previous_leader_id,
+    leading_nickname = previous_leader_nickname,
+    ends_at_unix_ms = ends_at
+  })
 end
-if currency ~= current_currency then
-  return cjson.encode({ ok = false, code = 'BID_CURRENCY_MISMATCH', message = 'BID_CURRENCY_MISMATCH' })
+if status ~= status_live and status ~= status_extended then
+  return reject('BID_NOT_LIVE')
 end
 
-local previous_leader_id = redis.call('HGET', state_key, 'leading_user_id') or ''
+if ends_at > 0 and now_ms > ends_at then
+  return reject('BID_ENDED')
+end
+
+if currency == '' then
+  return reject('INVALID_ARGUMENT')
+end
+if currency ~= current_currency then
+  return reject('BID_CURRENCY_MISMATCH')
+end
+
 if previous_leader_id ~= '' and previous_leader_id == user_id then
-  return cjson.encode({ ok = false, code = 'BID_ALREADY_LEADING', message = 'BID_ALREADY_LEADING' })
+  return reject('BID_ALREADY_LEADING')
 end
 if amount < current_amount + min_increment_amount then
-  return cjson.encode({ ok = false, code = 'BID_TOO_LOW', message = 'BID_TOO_LOW' })
+  return reject('BID_TOO_LOW')
 end
 
 local room_id = redis.call('HGET', state_key, 'room_id') or ''
 local main_account_id = redis.call('HGET', state_key, 'main_account_id') or ''
-local previous_version = tonumber(redis.call('HGET', state_key, 'version') or '0')
 local version = previous_version + 1
 local ends_before_bid = ends_at
 local extend_count = tonumber(redis.call('HGET', state_key, 'duel_extend_count') or '0')
@@ -120,7 +137,7 @@ local cap_amount = tonumber(cap_amount_raw or '0')
 local cap_currency = redis.call('HGET', state_key, 'cap_currency') or ''
 if cap_amount > 0 then
   if currency ~= cap_currency then
-    return cjson.encode({ ok = false, code = 'BID_CURRENCY_MISMATCH', message = 'BID_CURRENCY_MISMATCH' })
+    return reject('BID_CURRENCY_MISMATCH')
   end
   if amount >= cap_amount then
     status = status_settled
@@ -312,7 +329,8 @@ local response = {
   runtime_stream_id = stream_id,
   previous_lot_version = previous_version,
   lot_version = version,
-  order_id = projected_order_id
+  order_id = projected_order_id,
+  ranking_top = ranking_top
 }
 redis.call('SET', idem_key, cjson.encode(response), 'EX', idem_ttl)
 return cjson.encode(response)
@@ -407,20 +425,29 @@ type runtimeLotJSON struct {
 }
 
 type runtimePlaceBidReply struct {
-	OK                 bool           `json:"ok"`
-	Replayed           bool           `json:"replayed"`
-	Code               string         `json:"code"`
-	Message            string         `json:"message"`
-	Bid                runtimeBidJSON `json:"bid"`
-	Lot                runtimeLotJSON `json:"lot"`
-	PreviousLeaderID   string         `json:"previous_leader_id"`
-	EndsBeforeBid      int64          `json:"ends_before_bid"`
-	ExtendCountBefore  int32          `json:"extend_count_before"`
-	RuntimeEventID     string         `json:"runtime_event_id"`
-	RuntimeStreamID    string         `json:"runtime_stream_id"`
-	PreviousLotVersion int64          `json:"previous_lot_version"`
-	LotVersion         int64          `json:"lot_version"`
-	OrderID            string         `json:"order_id"`
+	OK                 bool                     `json:"ok"`
+	Replayed           bool                     `json:"replayed"`
+	Code               string                   `json:"code"`
+	Message            string                   `json:"message"`
+	Bid                runtimeBidJSON           `json:"bid"`
+	Lot                runtimeLotJSON           `json:"lot"`
+	RankingTop         []runtimeRankingItemJSON `json:"ranking_top"`
+	PreviousLeaderID   string                   `json:"previous_leader_id"`
+	EndsBeforeBid      int64                    `json:"ends_before_bid"`
+	ExtendCountBefore  int32                    `json:"extend_count_before"`
+	RuntimeEventID     string                   `json:"runtime_event_id"`
+	RuntimeStreamID    string                   `json:"runtime_stream_id"`
+	PreviousLotVersion int64                    `json:"previous_lot_version"`
+	LotVersion         int64                    `json:"lot_version"`
+	OrderID            string                   `json:"order_id"`
+
+	CurrentAmount      int64  `json:"current_amount"`
+	CurrentCurrency    string `json:"current_currency"`
+	MinIncrementAmount int64  `json:"min_increment_amount"`
+	NextBidAmount      int64  `json:"next_bid_amount"`
+	LeadingUserID      string `json:"leading_user_id"`
+	LeadingNickname    string `json:"leading_nickname"`
+	EndsAtUnixMs       int64  `json:"ends_at_unix_ms"`
 }
 
 type runtimeProjectionEventPayload struct {
@@ -572,7 +599,18 @@ func (s *Store) PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceB
 		if code == "" {
 			code = reply.Message
 		}
-		return auction.RuntimeBidResult{}, fmt.Errorf("%w: %s", apperr.ErrorForBusinessCode(code), code)
+		return auction.RuntimeBidResult{}, &auction.RuntimeBidRejectError{
+			Code:               code,
+			CurrentAmount:      reply.CurrentAmount,
+			CurrentCurrency:    reply.CurrentCurrency,
+			MinIncrementAmount: reply.MinIncrementAmount,
+			NextBidAmount:      reply.NextBidAmount,
+			LeadingUserID:      reply.LeadingUserID,
+			LeadingNickname:    reply.LeadingNickname,
+			LotVersion:         reply.LotVersion,
+			EndsAtUnixMs:       reply.EndsAtUnixMs,
+			Cause:              apperr.ErrorForBusinessCode(code),
+		}
 	}
 	bid := runtimeJSONToBid(reply.Bid)
 	updatedLot := runtimeJSONToLot(lot, reply.Lot)
@@ -588,19 +626,11 @@ func (s *Store) PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceB
 	if reply.PreviousLotVersion == 0 && reply.LotVersion > 0 {
 		reply.PreviousLotVersion = reply.LotVersion - 1
 	}
-	ranking, err := s.RankingRuntime(ctx, lot.Id, auction.RealtimeRankingLimit())
-	if err != nil {
-		return auction.RuntimeBidResult{}, err
-	}
-	recentBids, err := s.recentRuntimeBids(ctx, lot.Id, runtimeRecentLimit)
-	if err != nil {
-		return auction.RuntimeBidResult{}, err
-	}
+	ranking := runtimeJSONToRanking(reply.RankingTop)
 	return auction.RuntimeBidResult{
 		Lot:                updatedLot,
 		Bid:                bid,
 		Ranking:            ranking,
-		RecentBids:         recentBids,
 		PreviousLeaderID:   reply.PreviousLeaderID,
 		EndsBeforeBid:      reply.EndsBeforeBid,
 		ExtendCountBefore:  reply.ExtendCountBefore,
@@ -1027,6 +1057,20 @@ func runtimeJSONToBid(payload runtimeBidJSON) *v1.Bid {
 		Amount:          &v1.Money{Amount: payload.Amount, Currency: payload.Currency},
 		CreatedAtUnixMs: payload.CreatedAtUnixMs,
 	}
+}
+
+func runtimeJSONToRanking(items []runtimeRankingItemJSON) []*v1.RankingItem {
+	ranking := make([]*v1.RankingItem, 0, len(items))
+	for _, item := range items {
+		ranking = append(ranking, &v1.RankingItem{
+			Rank:        item.Rank,
+			UserId:      item.UserID,
+			Nickname:    item.Nickname,
+			Amount:      &v1.Money{Amount: item.Amount, Currency: item.Currency},
+			BidAtUnixMs: item.BidAtUnixMs,
+		})
+	}
+	return ranking
 }
 
 func runtimeTag(lotID string) string {

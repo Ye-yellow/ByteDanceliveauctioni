@@ -9,6 +9,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"live-auction-bid/backend/app/auction/service/internal/observability"
 )
 
 type Config struct {
@@ -16,6 +17,12 @@ type Config struct {
 	RedisAddr               string
 	RedisPassword           string
 	RuntimeProjectionShards int
+	DBMaxOpenConns          int
+	DBMaxIdleConns          int
+	DBConnMaxLifetime       time.Duration
+	DBConnMaxIdleTime       time.Duration
+	RedisPoolSize           int
+	RedisMinIdleConns       int
 }
 
 // Store is the single production data path for the auction service.
@@ -48,15 +55,35 @@ func NewStore(ctx context.Context, cfg Config) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	sqlDB.SetMaxOpenConns(20)
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetConnMaxLifetime(30 * time.Minute)
+	if cfg.DBMaxOpenConns <= 0 {
+		cfg.DBMaxOpenConns = 20
+	}
+	if cfg.DBMaxIdleConns <= 0 {
+		cfg.DBMaxIdleConns = cfg.DBMaxOpenConns / 2
+	}
+	if cfg.DBConnMaxLifetime <= 0 {
+		cfg.DBConnMaxLifetime = 30 * time.Minute
+	}
+	if cfg.DBConnMaxIdleTime <= 0 {
+		cfg.DBConnMaxIdleTime = 2 * time.Minute
+	}
+	sqlDB.SetMaxOpenConns(cfg.DBMaxOpenConns)
+	sqlDB.SetMaxIdleConns(cfg.DBMaxIdleConns)
+	sqlDB.SetConnMaxLifetime(cfg.DBConnMaxLifetime)
+	sqlDB.SetConnMaxIdleTime(cfg.DBConnMaxIdleTime)
 	if err := sqlDB.PingContext(ctx); err != nil {
 		_ = sqlDB.Close()
 		return nil, err
 	}
 
-	rdb := redis.NewClient(&redis.Options{Addr: cfg.RedisAddr, Password: cfg.RedisPassword})
+	redisOptions := &redis.Options{Addr: cfg.RedisAddr, Password: cfg.RedisPassword}
+	if cfg.RedisPoolSize > 0 {
+		redisOptions.PoolSize = cfg.RedisPoolSize
+	}
+	if cfg.RedisMinIdleConns > 0 {
+		redisOptions.MinIdleConns = cfg.RedisMinIdleConns
+	}
+	rdb := redis.NewClient(redisOptions)
 	if err := rdb.Ping(ctx).Err(); err != nil {
 		_ = sqlDB.Close()
 		_ = rdb.Close()
@@ -66,6 +93,18 @@ func NewStore(ctx context.Context, cfg Config) (*Store, error) {
 	if cfg.RuntimeProjectionShards <= 0 {
 		cfg.RuntimeProjectionShards = defaultRuntimeProjectionShards
 	}
+	observability.BindDBStatsProvider(sqlDB.Stats)
+	observability.BindRedisPoolStatsProvider(func() observability.RedisPoolStats {
+		stats := rdb.PoolStats()
+		return observability.RedisPoolStats{
+			Hits:       stats.Hits,
+			Misses:     stats.Misses,
+			Timeouts:   stats.Timeouts,
+			TotalConns: stats.TotalConns,
+			IdleConns:  stats.IdleConns,
+			StaleConns: stats.StaleConns,
+		}
+	})
 	store := &Store{db: db, redis: rdb, runtimeProjectionShards: cfg.RuntimeProjectionShards}
 	if err := store.migrate(ctx); err != nil {
 		_ = store.Close()

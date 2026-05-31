@@ -27,6 +27,7 @@ const (
 	pingInterval         = 20 * time.Second
 	pongTimeout          = 60 * time.Second
 	connectionSendBuffer = 32
+	roomCoalesceDelay    = 75 * time.Millisecond
 )
 
 var eventJSONMarshal = protojson.MarshalOptions{
@@ -45,6 +46,8 @@ type RoomAccessValidator interface {
 type Hub struct {
 	mu             sync.RWMutex
 	rooms          map[string]map[*connection]struct{}
+	coalesceMu     sync.Mutex
+	coalescedRooms map[string]*coalescedRoomEvents
 	snapshot       SnapshotProvider
 	roomAccess     RoomAccessValidator
 	auth           *auth.Manager
@@ -52,6 +55,12 @@ type Hub struct {
 	allowedOrigins map[string]struct{}
 	tickets        wsTicketCodec
 	upgrader       websocket.Upgrader
+}
+
+type coalescedRoomEvents struct {
+	timer  *time.Timer
+	order  []v1.AuctionEventType
+	events map[v1.AuctionEventType]v1.AuctionEvent
 }
 
 type connection struct {
@@ -89,6 +98,7 @@ func NewHub(snapshot SnapshotProvider, configs ...Config) *Hub {
 	}
 	h := &Hub{
 		rooms:          make(map[string]map[*connection]struct{}),
+		coalescedRooms: make(map[string]*coalescedRoomEvents),
 		snapshot:       snapshot,
 		config:         normalized,
 		allowedOrigins: allowedOrigins,
@@ -111,16 +121,107 @@ func (h *Hub) BindRoomAccessValidator(validator RoomAccessValidator) {
 }
 
 func (h *Hub) Publish(ctx context.Context, event v1.AuctionEvent) error {
+	if isPrivateRejectEvent(event.GetType()) {
+		observability.RecordWSEventDropped(event.GetType().String())
+		return nil
+	}
+	if isImmediateEvent(event.GetType()) {
+		h.flushCoalescedRoom(event.GetRoomId())
+		return h.deliver(ctx, event)
+	}
+	if isCoalescibleEvent(event.GetType()) && event.GetRoomId() != "" {
+		h.enqueueCoalesced(event)
+		return nil
+	}
+	return h.deliver(ctx, event)
+}
+
+func (h *Hub) deliver(_ context.Context, event v1.AuctionEvent) error {
 	for _, conn := range h.roomConnections(event.RoomId) {
 		select {
 		case conn.send <- event:
 		case <-conn.done:
 		default:
+			observability.RecordWSEventDropped(event.GetType().String())
 			h.leave(conn)
 			conn.close()
 		}
 	}
 	return nil
+}
+
+func (h *Hub) enqueueCoalesced(event v1.AuctionEvent) {
+	roomID := event.GetRoomId()
+	eventType := event.GetType()
+	h.coalesceMu.Lock()
+	pending := h.coalescedRooms[roomID]
+	if pending == nil {
+		pending = &coalescedRoomEvents{events: make(map[v1.AuctionEventType]v1.AuctionEvent)}
+		h.coalescedRooms[roomID] = pending
+		pending.timer = time.AfterFunc(roomCoalesceDelay, func() {
+			h.flushCoalescedRoom(roomID)
+		})
+	}
+	if _, exists := pending.events[eventType]; exists {
+		observability.RecordWSEventCoalesced(eventType.String())
+	} else {
+		pending.order = append(pending.order, eventType)
+	}
+	pending.events[eventType] = event
+	h.coalesceMu.Unlock()
+}
+
+func (h *Hub) flushCoalescedRoom(roomID string) {
+	if roomID == "" {
+		return
+	}
+	h.coalesceMu.Lock()
+	pending := h.coalescedRooms[roomID]
+	if pending == nil {
+		h.coalesceMu.Unlock()
+		return
+	}
+	delete(h.coalescedRooms, roomID)
+	if pending.timer != nil {
+		pending.timer.Stop()
+	}
+	events := make([]v1.AuctionEvent, 0, len(pending.events))
+	for _, eventType := range pending.order {
+		if event, ok := pending.events[eventType]; ok {
+			events = append(events, event)
+		}
+	}
+	h.coalesceMu.Unlock()
+	for _, event := range events {
+		_ = h.deliver(context.Background(), event)
+	}
+}
+
+func isPrivateRejectEvent(eventType v1.AuctionEventType) bool {
+	return eventType == v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_REJECTED
+}
+
+func isCoalescibleEvent(eventType v1.AuctionEventType) bool {
+	switch eventType {
+	case v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_ACCEPTED,
+		v1.AuctionEventType_AUCTION_EVENT_TYPE_RANKING_UPDATED,
+		v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_UPDATED:
+		return true
+	default:
+		return false
+	}
+}
+
+func isImmediateEvent(eventType v1.AuctionEventType) bool {
+	switch eventType {
+	case v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_SETTLED,
+		v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CANCELLED,
+		v1.AuctionEventType_AUCTION_EVENT_TYPE_AUCTION_CLOSED,
+		v1.AuctionEventType_AUCTION_EVENT_TYPE_ORDER_CREATED:
+		return true
+	default:
+		return false
+	}
 }
 
 func (h *Hub) ServeRoom(w http.ResponseWriter, r *http.Request, roomID string) {

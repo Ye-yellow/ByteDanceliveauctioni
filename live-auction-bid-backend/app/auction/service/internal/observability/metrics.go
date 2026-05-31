@@ -1,6 +1,8 @@
 package observability
 
 import (
+	"database/sql"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -18,6 +20,9 @@ var (
 	runtimeEventXAddTotal  atomic.Int64
 	activeLotMu            sync.Mutex
 	activeLotCounts        = make(map[string]int64)
+	statsMu                sync.RWMutex
+	dbStatsProvider        func() sql.DBStats
+	redisStatsProvider     func() RedisPoolStats
 
 	bidRequests = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "auction_bid_requests_total",
@@ -44,6 +49,14 @@ var (
 		Name: "auction_ws_events_sent_total",
 		Help: "Total websocket auction events sent by type.",
 	}, []string{"type"})
+	wsEventsCoalesced = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "auction_ws_events_coalesced_total",
+		Help: "Total websocket auction events replaced by room-level coalescing.",
+	}, []string{"type"})
+	wsEventsDropped = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "auction_ws_events_dropped_total",
+		Help: "Total websocket auction events dropped because a client send queue was full.",
+	}, []string{"type"})
 	outboxPendingCount = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "auction_outbox_pending_count",
 		Help: "Current number of persisted auction events pending Redis stream delivery.",
@@ -60,7 +73,21 @@ var (
 		Name: "auction_order_created_total",
 		Help: "Total order-created auction events broadcast after settlement.",
 	})
+	projectionBatchDurationMs = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "auction_projection_batch_duration_ms",
+		Help:    "Runtime projection shard batch duration in milliseconds.",
+		Buckets: []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000},
+	}, []string{"shard"})
 )
+
+type RedisPoolStats struct {
+	Hits       uint32
+	Misses     uint32
+	Timeouts   uint32
+	TotalConns uint32
+	IdleConns  uint32
+	StaleConns uint32
+}
 
 func init() {
 	prometheus.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{
@@ -93,6 +120,78 @@ func init() {
 	}, func() float64 {
 		return float64(runtimeEventXAddTotal.Load())
 	}))
+	prometheus.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "auction_db_pool_open_connections",
+		Help: "Current open MySQL connections.",
+	}, func() float64 { return float64(currentDBStats().OpenConnections) }))
+	prometheus.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "auction_db_pool_in_use",
+		Help: "Current in-use MySQL connections.",
+	}, func() float64 { return float64(currentDBStats().InUse) }))
+	prometheus.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "auction_db_pool_idle",
+		Help: "Current idle MySQL connections.",
+	}, func() float64 { return float64(currentDBStats().Idle) }))
+	prometheus.MustRegister(prometheus.NewCounterFunc(prometheus.CounterOpts{
+		Name: "auction_db_pool_wait_count_total",
+		Help: "Total MySQL connection pool waits.",
+	}, func() float64 { return float64(currentDBStats().WaitCount) }))
+	prometheus.MustRegister(prometheus.NewCounterFunc(prometheus.CounterOpts{
+		Name: "auction_db_pool_wait_duration_ms_total",
+		Help: "Total MySQL connection pool wait duration in milliseconds.",
+	}, func() float64 { return float64(currentDBStats().WaitDuration.Milliseconds()) }))
+	prometheus.MustRegister(prometheus.NewCounterFunc(prometheus.CounterOpts{
+		Name: "auction_redis_pool_hits_total",
+		Help: "Total Redis pool hits.",
+	}, func() float64 { return float64(currentRedisStats().Hits) }))
+	prometheus.MustRegister(prometheus.NewCounterFunc(prometheus.CounterOpts{
+		Name: "auction_redis_pool_misses_total",
+		Help: "Total Redis pool misses.",
+	}, func() float64 { return float64(currentRedisStats().Misses) }))
+	prometheus.MustRegister(prometheus.NewCounterFunc(prometheus.CounterOpts{
+		Name: "auction_redis_pool_timeouts_total",
+		Help: "Total Redis pool timeouts.",
+	}, func() float64 { return float64(currentRedisStats().Timeouts) }))
+	prometheus.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "auction_redis_pool_total_conns",
+		Help: "Current Redis pool total connections.",
+	}, func() float64 { return float64(currentRedisStats().TotalConns) }))
+	prometheus.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "auction_redis_pool_idle_conns",
+		Help: "Current Redis pool idle connections.",
+	}, func() float64 { return float64(currentRedisStats().IdleConns) }))
+}
+
+func BindDBStatsProvider(provider func() sql.DBStats) {
+	statsMu.Lock()
+	defer statsMu.Unlock()
+	dbStatsProvider = provider
+}
+
+func BindRedisPoolStatsProvider(provider func() RedisPoolStats) {
+	statsMu.Lock()
+	defer statsMu.Unlock()
+	redisStatsProvider = provider
+}
+
+func currentDBStats() sql.DBStats {
+	statsMu.RLock()
+	provider := dbStatsProvider
+	statsMu.RUnlock()
+	if provider == nil {
+		return sql.DBStats{}
+	}
+	return provider()
+}
+
+func currentRedisStats() RedisPoolStats {
+	statsMu.RLock()
+	provider := redisStatsProvider
+	statsMu.RUnlock()
+	if provider == nil {
+		return RedisPoolStats{}
+	}
+	return provider()
 }
 
 func RecordBid(result, reason string, duration time.Duration) {
@@ -120,12 +219,24 @@ func RecordWSEventSent(eventType string) {
 	wsEventsSent.WithLabelValues(cleanLabel(eventType, "unknown")).Inc()
 }
 
+func RecordWSEventCoalesced(eventType string) {
+	wsEventsCoalesced.WithLabelValues(cleanLabel(eventType, "unknown")).Inc()
+}
+
+func RecordWSEventDropped(eventType string) {
+	wsEventsDropped.WithLabelValues(cleanLabel(eventType, "unknown")).Inc()
+}
+
 func SetRuntimeProjectionMetrics(xaddTotal, pending, lagMs, failedTotal, gapTotal int64) {
 	runtimeEventXAddTotal.Store(nonNegative(xaddTotal))
 	projectionPendingCount.Store(nonNegative(pending))
 	projectionLagMs.Store(nonNegative(lagMs))
 	projectionFailedTotal.Store(nonNegative(failedTotal))
 	projectionGapTotal.Store(nonNegative(gapTotal))
+}
+
+func RecordProjectionBatchDuration(shard int, duration time.Duration) {
+	projectionBatchDurationMs.WithLabelValues(strconv.Itoa(shard)).Observe(float64(duration.Milliseconds()))
 }
 
 func SetOutboxPendingCount(count int64) {

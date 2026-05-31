@@ -2,8 +2,10 @@ package auction
 
 import (
 	"context"
+	"errors"
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
+	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 )
 
 // LotRepository 管理拍品聚合持久化。
@@ -56,6 +58,75 @@ type RuntimeBidResult struct {
 	LotVersion         int64
 	OrderID            string
 	Replayed           bool
+}
+
+type RuntimeBidRejectError struct {
+	Code               string
+	CurrentAmount      int64
+	CurrentCurrency    string
+	MinIncrementAmount int64
+	NextBidAmount      int64
+	LeadingUserID      string
+	LeadingNickname    string
+	LotVersion         int64
+	EndsAtUnixMs       int64
+	Cause              error
+}
+
+func (e *RuntimeBidRejectError) Error() string {
+	if e == nil {
+		return ""
+	}
+	if e.Code != "" {
+		return e.Code
+	}
+	if e.Cause != nil {
+		return e.Cause.Error()
+	}
+	return string(apperr.CodeBidRejected)
+}
+
+func (e *RuntimeBidRejectError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.Cause
+}
+
+func RuntimeBidRejectFromError(err error) (*RuntimeBidRejectError, bool) {
+	var reject *RuntimeBidRejectError
+	if errors.As(err, &reject) {
+		return reject, true
+	}
+	return nil, false
+}
+
+func (e *RuntimeBidRejectError) Lot(lotID string, fallbackAmount *v1.Money) *v1.Lot {
+	if e == nil {
+		return &v1.Lot{Id: lotID}
+	}
+	currency := e.CurrentCurrency
+	if currency == "" && fallbackAmount != nil {
+		currency = fallbackAmount.GetCurrency()
+	}
+	lot := &v1.Lot{
+		Id:              lotID,
+		CurrentPrice:    &v1.Money{Amount: e.CurrentAmount, Currency: currency},
+		LeadingUserId:   e.LeadingUserID,
+		LeadingNickname: e.LeadingNickname,
+		EndsAtUnixMs:    e.EndsAtUnixMs,
+		Version:         e.LotVersion,
+		Rule: &v1.BidRule{
+			MinIncrement: &v1.Money{Amount: e.MinIncrementAmount, Currency: currency},
+		},
+	}
+	switch apperr.BusinessCode(e.Code) {
+	case apperr.CodeLotCancelled:
+		lot.Status = v1.LotStatus_LOT_STATUS_CANCELLED
+	case apperr.CodeBidEnded:
+		lot.Status = v1.LotStatus_LOT_STATUS_SETTLED
+	}
+	return lot
 }
 
 type RuntimeProjectionEvent struct {

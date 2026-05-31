@@ -31,6 +31,12 @@ func main() {
 		RedisAddr:               getenv("AUCTION_REDIS_ADDR", "127.0.0.1:16379"),
 		RedisPassword:           getenv("AUCTION_REDIS_PASSWORD", "auction_redis"),
 		RuntimeProjectionShards: getenvInt("AUCTION_RUNTIME_PROJECTION_SHARDS", 16),
+		DBMaxOpenConns:          getenvInt("AUCTION_DB_MAX_OPEN_CONNS", 20),
+		DBMaxIdleConns:          getenvInt("AUCTION_DB_MAX_IDLE_CONNS", 10),
+		DBConnMaxLifetime:       getenvDuration("AUCTION_DB_CONN_MAX_LIFETIME", 30*time.Minute),
+		DBConnMaxIdleTime:       getenvDuration("AUCTION_DB_CONN_MAX_IDLE_TIME", 2*time.Minute),
+		RedisPoolSize:           getenvInt("AUCTION_REDIS_POOL_SIZE", 0),
+		RedisMinIdleConns:       getenvInt("AUCTION_REDIS_MIN_IDLE_CONNS", 0),
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -74,7 +80,8 @@ func main() {
 	hub := realtime.NewHub(nil, realtimeConfig)
 	hub.BindAuthManager(authManager)
 	eventPublisher := realtime.NewPublisher(hub)
-	auctionUsecase := auction.NewAuctionUsecase(store, store, store, eventPublisher)
+	auctionUsecase := auction.NewAuctionUsecase(store, store, store, eventPublisher).
+		SetSyncRuntimeProjection(getenvBool("AUCTION_BID_SYNC_PROJECTION", false))
 	runtimeProjectionWorker := data.NewRuntimeProjectionWorker(store, eventPublisher, 2*time.Second, 100)
 	runtimeProjectionWorker.BindLease(leaseProvider, instanceID, leaseTTL, leaseRenewInterval)
 	runtimeProjectionWorker.Start(ctx)

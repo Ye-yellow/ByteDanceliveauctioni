@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	"live-auction-bid/backend/app/auction/service/internal/observability"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
@@ -40,13 +39,15 @@ func (m *RuntimeProjectionMetrics) Snapshot(xaddTotal int64) map[string]any {
 }
 
 type RuntimeProjectionWorker struct {
-	store     *Store
-	publisher auction.EventPublisher
-	interval  time.Duration
-	limit     int
-	consumer  string
-	metrics   RuntimeProjectionMetrics
-	shards    int
+	store                *Store
+	publisher            auction.EventPublisher
+	interval             time.Duration
+	limit                int
+	consumer             string
+	metrics              RuntimeProjectionMetrics
+	shards               int
+	projectLegacyStreams bool
+	maxDrainBatches      int
 
 	leaseProvider auction.LeaseProvider
 	instanceID    string
@@ -79,6 +80,10 @@ func NewRuntimeProjectionWorker(store *Store, publisher auction.EventPublisher, 
 	if limit <= 0 {
 		limit = 100
 	}
+	maxDrainBatches := projectionEnvInt("AUCTION_RUNTIME_PROJECTION_DRAIN_BATCHES", 8)
+	if maxDrainBatches <= 0 {
+		maxDrainBatches = 8
+	}
 	hostname, _ := os.Hostname()
 	if hostname == "" {
 		hostname = "local"
@@ -88,14 +93,43 @@ func NewRuntimeProjectionWorker(store *Store, publisher auction.EventPublisher, 
 		shards = store.runtimeProjectionShards
 	}
 	return &RuntimeProjectionWorker{
-		store:       store,
-		publisher:   publisher,
-		interval:    interval,
-		limit:       limit,
-		consumer:    fmt.Sprintf("%s-%d", hostname, os.Getpid()),
-		shards:      shards,
-		shardStates: make(map[int]*runtimeProjectionShardState),
+		store:                store,
+		publisher:            publisher,
+		interval:             interval,
+		limit:                limit,
+		consumer:             fmt.Sprintf("%s-%d", hostname, os.Getpid()),
+		shards:               shards,
+		projectLegacyStreams: projectionEnvBool("AUCTION_RUNTIME_PROJECT_LEGACY_STREAMS", false),
+		maxDrainBatches:      maxDrainBatches,
+		shardStates:          make(map[int]*runtimeProjectionShardState),
 	}
+}
+
+func projectionEnvBool(key string, fallback bool) bool {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	switch strings.ToLower(value) {
+	case "1", "true", "yes", "on":
+		return true
+	case "0", "false", "no", "off":
+		return false
+	default:
+		return fallback
+	}
+}
+
+func projectionEnvInt(key string, fallback int) int {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
 }
 
 func (w *RuntimeProjectionWorker) BindLease(provider auction.LeaseProvider, instanceID string, ttl, renewInterval time.Duration) *RuntimeProjectionWorker {
@@ -241,32 +275,50 @@ func (w *RuntimeProjectionWorker) projectReadyShards(ctx context.Context) error 
 		return errors.New("runtime projection store is required")
 	}
 	totalPending := int64(0)
+	var firstErr error
 	for shard := 0; shard < w.shards; shard++ {
 		if !w.ensureShardLease(ctx, shard) {
 			continue
 		}
-		state := w.getShardState(shard)
-		if state != nil && !state.lastRun.IsZero() && time.Since(state.lastRun) < w.interval {
+		shardPending := int64(0)
+		var shardErr error
+		for batch := 0; batch < w.maxDrainBatches; batch++ {
+			batchStartedAt := time.Now()
+			pending, err := w.projectShardOnce(ctx, shard)
+			observability.RecordProjectionBatchDuration(shard, time.Since(batchStartedAt))
+			shardPending += pending
+			if err != nil {
+				shardErr = err
+				break
+			}
+			if pending < int64(w.limit) {
+				break
+			}
+		}
+		w.recordShardAttempt(shard, shardErr)
+		if shardErr != nil {
+			w.releaseShardLease(ctx, shard)
+			if firstErr == nil {
+				firstErr = shardErr
+			}
+			totalPending += shardPending
 			continue
 		}
-		pending, err := w.projectShardOnce(ctx, shard)
-		w.recordShardAttempt(shard, err)
-		if err != nil {
-			w.releaseShardLease(ctx, shard)
-			return err
-		}
-		totalPending += pending
-		if shard == 0 {
+		totalPending += shardPending
+		if shard == 0 && w.projectLegacyStreams {
 			if err := w.projectLegacyRoomStreams(ctx); err != nil {
 				w.recordShardAttempt(shard, err)
 				w.releaseShardLease(ctx, shard)
-				return err
+				if firstErr == nil {
+					firstErr = err
+				}
+				continue
 			}
 		}
 	}
 	w.metrics.projectionPendingCount.Store(totalPending)
 	w.syncPrometheusMetricsFromStore(ctx)
-	return nil
+	return firstErr
 }
 
 func (w *RuntimeProjectionWorker) projectLegacyRoomStreams(ctx context.Context) error {
@@ -312,12 +364,19 @@ func (w *RuntimeProjectionWorker) projectShardOnce(ctx context.Context, shard in
 		return 0, err
 	}
 	var processed int64
+	lastID := ""
 	for _, message := range messages {
 		if err := w.projectMessage(ctx, stream, message, false); err != nil {
+			if lastID != "" {
+				_ = w.store.saveRuntimeProjectionShardOffset(ctx, shard, lastID, time.Now().UnixMilli())
+			}
 			return processed, err
 		}
 		processed++
-		if err := w.store.saveRuntimeProjectionShardOffset(ctx, shard, message.ID, time.Now().UnixMilli()); err != nil {
+		lastID = message.ID
+	}
+	if lastID != "" {
+		if err := w.store.saveRuntimeProjectionShardOffset(ctx, shard, lastID, time.Now().UnixMilli()); err != nil {
 			return processed, err
 		}
 	}
@@ -612,16 +671,7 @@ func (w *RuntimeProjectionWorker) decodeRuntimeProjection(ctx context.Context, m
 	}
 	lot := runtimeJSONToLot(baseLot, payload.UpdatedLot)
 	bid := runtimeJSONToBid(payload.Bid)
-	ranking := make([]*v1.RankingItem, 0, len(payload.RankingTop))
-	for _, item := range payload.RankingTop {
-		ranking = append(ranking, &v1.RankingItem{
-			Rank:        item.Rank,
-			UserId:      item.UserID,
-			Nickname:    item.Nickname,
-			Amount:      &v1.Money{Amount: item.Amount, Currency: item.Currency},
-			BidAtUnixMs: item.BidAtUnixMs,
-		})
-	}
+	ranking := runtimeJSONToRanking(payload.RankingTop)
 	return auction.RuntimeProjectionEvent{
 		RuntimeEventID:     payload.EventID,
 		RuntimeStreamID:    message.ID,
