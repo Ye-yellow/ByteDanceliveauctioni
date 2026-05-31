@@ -10,6 +10,7 @@ import (
 )
 
 func registerRealtimeHTTP(srv *httptransport.Server, hub *realtime.Hub) {
+	srv.HandleFunc("/api/realtime/ws-ticket", hub.ServeTicket)
 	srv.HandlePrefix("/ws/rooms/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		roomID := strings.Trim(strings.TrimPrefix(r.URL.Path, "/ws/rooms/"), "/")
 		if roomID == "" {

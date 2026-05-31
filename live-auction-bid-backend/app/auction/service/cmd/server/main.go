@@ -59,10 +59,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	hub := realtime.NewHub(nil)
+	realtimeConfig, err := realtime.ConfigFromEnv(os.Getenv)
+	if err != nil {
+		log.Fatal(err)
+	}
+	hub := realtime.NewHub(nil, realtimeConfig)
 	hub.BindAuthManager(authManager)
 	eventPublisher := realtime.NewPublisher(hub)
 	auctionUsecase := auction.NewAuctionUsecase(store, store, store, eventPublisher)
+	hub.BindRoomAccessValidator(auctionUsecase)
 	auctionCloseWorker := auction.NewAuctionCloseWorker(auctionUsecase, getenvDuration("AUCTION_CLOSE_WORKER_INTERVAL", 2*time.Second), 100)
 	auctionCloseWorker.Start(ctx)
 	hub.BindSnapshotProvider(auctionUsecase)

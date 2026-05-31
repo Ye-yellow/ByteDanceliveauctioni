@@ -7,6 +7,10 @@ services:
     container_name: live-auction-bid-backend
     environment:
       AUCTION_HTTP_ADDR: ":18080"
+      AUCTION_ENV: "${AUCTION_ENV:-dev}"
+      AUCTION_WS_ALLOWED_ORIGINS: "${AUCTION_WS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174}"
+      AUCTION_WS_ALLOW_MISSING_ORIGIN: "${AUCTION_WS_ALLOW_MISSING_ORIGIN:-true}"
+      AUCTION_WS_TICKET_TTL: "${AUCTION_WS_TICKET_TTL:-60s}"
       AUCTION_MYSQL_DSN: "auction:auction_dev@tcp(mysql:3306)/live_auction?parseTime=true&charset=utf8mb4&loc=Local"
       AUCTION_REDIS_ADDR: "redis:6379"
       AUCTION_REDIS_PASSWORD: "auction_redis"
