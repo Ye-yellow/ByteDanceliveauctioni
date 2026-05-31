@@ -554,7 +554,7 @@ func (uc *AuctionUsecase) placeBidRuntime(ctx context.Context, req *v1.PlaceBidR
 			}
 			return proto.Clone(guardLot).(*v1.Lot), nil, ranking, err
 		}
-	} else if guardCtxErr == nil && !errors.Is(guardErr, context.DeadlineExceeded) && !errors.Is(guardErr, context.Canceled) {
+	} else if guardCtxErr == nil && apperr.IsNotFound(guardErr) {
 		return nil, nil, nil, guardErr
 	}
 	lot := &v1.Lot{Id: req.GetLotId()}
@@ -581,11 +581,15 @@ func (uc *AuctionUsecase) placeBidRuntime(ctx context.Context, req *v1.PlaceBidR
 	}
 	if result.Replayed {
 		replayLot, replayBid, replayRanking, found, replayErr := uc.replayBidByIdempotencyKey(ctx, lot.Id, bidderID, req.GetIdempotencyKey())
-		if replayErr != nil {
-			return nil, nil, nil, replayErr
-		}
-		if found {
+		if replayErr == nil && found {
 			return replayLot, replayBid, replayRanking, nil
+		}
+		if replayErr != nil {
+			slog.Warn("runtime replay lookup failed; returning cached runtime result",
+				"lot_id", lot.Id,
+				"idempotency_key", req.GetIdempotencyKey(),
+				"error", replayErr,
+			)
 		}
 	}
 	if result.Lot == nil || result.Bid == nil {
@@ -621,11 +625,16 @@ func (uc *AuctionUsecase) placeBidRuntime(ctx context.Context, req *v1.PlaceBidR
 	}
 	if err := uc.projector.ProjectRuntimeBid(ctx, bid, result.Lot, req.GetIdempotencyKey(), order, commitEvents); err != nil {
 		replayLot, replayBid, replayRanking, found, replayErr := uc.replayBidByIdempotencyKey(ctx, lot.Id, bidderID, req.GetIdempotencyKey())
-		if replayErr != nil {
-			return nil, nil, nil, replayErr
-		}
-		if found {
+		if replayErr == nil && found {
 			return replayLot, replayBid, replayRanking, nil
+		}
+		if replayErr != nil {
+			slog.Warn("runtime bid accepted but replay lookup failed; worker will retry",
+				"lot_id", lot.Id,
+				"runtime_event_id", result.RuntimeEventID,
+				"stream_id", result.RuntimeStreamID,
+				"error", replayErr,
+			)
 		}
 		slog.Warn("runtime bid accepted but synchronous projection failed; worker will retry",
 			"lot_id", lot.Id,
