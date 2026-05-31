@@ -606,7 +606,7 @@ func (w *RuntimeProjectionWorker) decodeRuntimeProjection(ctx context.Context, m
 	if err := json.Unmarshal([]byte(payloadText), &payload); err != nil {
 		return auction.RuntimeProjectionEvent{}, err
 	}
-	baseLot, err := w.store.FindByID(ctx, payload.LotID)
+	baseLot, err := w.store.FindCoreByID(ctx, payload.LotID)
 	if err != nil {
 		return auction.RuntimeProjectionEvent{}, err
 	}

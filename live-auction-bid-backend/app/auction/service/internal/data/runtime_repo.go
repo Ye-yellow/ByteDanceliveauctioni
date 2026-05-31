@@ -95,6 +95,7 @@ if amount < current_amount + min_increment_amount then
 end
 
 local room_id = redis.call('HGET', state_key, 'room_id') or ''
+local main_account_id = redis.call('HGET', state_key, 'main_account_id') or ''
 local previous_version = tonumber(redis.call('HGET', state_key, 'version') or '0')
 local version = previous_version + 1
 local ends_before_bid = ends_at
@@ -224,6 +225,7 @@ redis.call('EXPIRE', recent_key, 604800)
 
 local lot = {
   lot_id = lot_id,
+  main_account_id = main_account_id,
   room_id = room_id,
   status = status,
   current_amount = amount,
@@ -375,6 +377,7 @@ type runtimeRankingItemJSON struct {
 
 type runtimeLotJSON struct {
 	LotID               string `json:"lot_id"`
+	MainAccountID       string `json:"main_account_id"`
 	RoomID              string `json:"room_id"`
 	Status              int32  `json:"status"`
 	CurrentAmount       int64  `json:"current_amount"`
@@ -508,8 +511,19 @@ func (s *Store) PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceB
 	if lot == nil {
 		return auction.RuntimeBidResult{}, fmt.Errorf("%w: lot is required", apperr.ErrInvalidArgument)
 	}
-	if err := s.HydrateLotRuntime(ctx, lot); err != nil {
-		return auction.RuntimeBidResult{}, err
+	if shouldHydrateRuntimeLot(lot) {
+		if err := s.HydrateLotRuntime(ctx, lot); err != nil {
+			return auction.RuntimeBidResult{}, err
+		}
+	}
+	if lot.Id == "" {
+		return auction.RuntimeBidResult{}, fmt.Errorf("%w: lot id is required", apperr.ErrInvalidArgument)
+	}
+	if req.GetIdempotencyKey() == "" {
+		return auction.RuntimeBidResult{}, fmt.Errorf("%w: idempotency key is required", apperr.ErrInvalidArgument)
+	}
+	if req.GetAmount() == nil {
+		return auction.RuntimeBidResult{}, fmt.Errorf("%w: bid amount is required", apperr.ErrInvalidArgument)
 	}
 	runtimeEventID := idgen.New("rte")
 	orderID := idgen.New("order")
@@ -603,8 +617,10 @@ func (s *Store) SnapshotRuntime(ctx context.Context, current *v1.Lot) (*v1.RoomS
 	if current == nil {
 		return nil, fmt.Errorf("%w: current lot is required", apperr.ErrInvalidArgument)
 	}
-	if err := s.HydrateLotRuntime(ctx, current); err != nil {
-		return nil, err
+	if shouldHydrateRuntimeLot(current) {
+		if err := s.HydrateLotRuntime(ctx, current); err != nil {
+			return nil, err
+		}
 	}
 	lot, err := s.loadRuntimeLot(ctx, current)
 	if err != nil {
@@ -845,6 +861,7 @@ func runtimeStateMap(lot *v1.Lot) map[string]any {
 	}
 	return map[string]any{
 		"lot_id":                    lot.Id,
+		"main_account_id":           lot.MainAccountId,
 		"room_id":                   lot.RoomId,
 		"status":                    int32(lot.Status),
 		"current_amount":            current.GetAmount(),
@@ -884,6 +901,9 @@ func runtimeStateMap(lot *v1.Lot) map[string]any {
 
 func runtimeStateToLot(base *v1.Lot, values map[string]string) *v1.Lot {
 	lot := proto.Clone(base).(*v1.Lot)
+	lot.Id = firstNonEmpty(values["lot_id"], lot.Id)
+	lot.MainAccountId = firstNonEmpty(values["main_account_id"], lot.MainAccountId)
+	lot.RoomId = firstNonEmpty(values["room_id"], lot.RoomId)
 	lot.Status = v1.LotStatus(parseInt32(values["status"]))
 	lot.CurrentPrice = &v1.Money{Amount: parseInt64(values["current_amount"]), Currency: values["current_currency"]}
 	lot.LeadingUserId = values["leading_user_id"]
@@ -919,6 +939,15 @@ func runtimeStateToLot(base *v1.Lot, values map[string]string) *v1.Lot {
 
 func runtimeJSONToLot(base *v1.Lot, payload runtimeLotJSON) *v1.Lot {
 	lot := proto.Clone(base).(*v1.Lot)
+	if payload.LotID != "" {
+		lot.Id = payload.LotID
+	}
+	if payload.MainAccountID != "" {
+		lot.MainAccountId = payload.MainAccountID
+	}
+	if payload.RoomID != "" {
+		lot.RoomId = payload.RoomID
+	}
 	lot.Status = v1.LotStatus(payload.Status)
 	lot.CurrentPrice = &v1.Money{Amount: payload.CurrentAmount, Currency: payload.CurrentCurrency}
 	lot.LeadingUserId = payload.LeadingUserID
@@ -945,6 +974,26 @@ func runtimeJSONToLot(base *v1.Lot, payload runtimeLotJSON) *v1.Lot {
 		MaxExtendCount:  payload.DuelMaxExtendCount,
 	}
 	return lot
+}
+
+func shouldHydrateRuntimeLot(lot *v1.Lot) bool {
+	if lot == nil {
+		return false
+	}
+	return lot.RoomId != "" ||
+		lot.MainAccountId != "" ||
+		lot.Status != v1.LotStatus_LOT_STATUS_UNSPECIFIED ||
+		lot.Rule != nil ||
+		lot.CurrentPrice != nil
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func runtimeStatsFromBids(bids []v1.Bid) *v1.LotStats {
