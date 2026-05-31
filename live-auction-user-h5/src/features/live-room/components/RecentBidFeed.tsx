@@ -1,4 +1,5 @@
 import { maskPublicBuyerName } from '../../../entities/order/model/privacy';
+import { businessErrorMessage } from '../../../shared/api/errors';
 import type { BidEvent } from '../../../shared/api/types';
 import { formatMoney } from '../../../shared/lib/money';
 import { formatEventTime } from '../../../shared/lib/time';
@@ -13,7 +14,7 @@ export function RecentBidFeed({ bids, meId }: { bids: BidEvent[]; meId: string }
             <span>{bid.userId === meId ? bid.nickname || '我' : maskPublicBuyerName(bid.nickname || bid.userId)}</span>
             <b className="scrollAmount" title={formatMoney(bid.amount)}>{formatMoney(bid.amount)}</b>
             <small>
-              {bid.accepted === false ? bid.rejectReason || '出价失败' : '有效出价'} · {formatEventTime(bid.createdAtUnixMs)}
+              {bid.accepted === false ? businessErrorMessage(bid.rejectReason) || '出价失败' : '有效出价'} · {formatEventTime(bid.createdAtUnixMs)}
             </small>
           </div>
         ))

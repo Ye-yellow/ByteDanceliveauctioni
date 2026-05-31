@@ -3,7 +3,7 @@ import { isOrderFailed, isOrderPaid, isOrderPaying, ORDER_PAYMENT_WINDOW_MS } fr
 import { LOT_STATUS, type Lot, type OrderSummary } from '../../../shared/api/types';
 import { moneyNumber } from '../../../shared/lib/money';
 
-export type LotDisplayState = 'upcoming' | 'live' | 'pendingPayment' | 'finished' | 'failed' | 'syncing';
+export type LotDisplayState = 'upcoming' | 'live' | 'pendingPayment' | 'finished' | 'failed' | 'cancelled' | 'syncing';
 
 export function lotIsDisplayable(lot: Lot): boolean {
   return lot.status !== LOT_STATUS.DRAFT;
@@ -46,11 +46,8 @@ export function deriveLotDisplayState(
 
   if (options.paymentKnownPaid || isOrderPaid(order)) return 'finished';
   if (isOrderFailed(order, nowMs)) return 'failed';
-  if (
-    lot.status === LOT_STATUS.CANCELLED ||
-    lot.status === LOT_STATUS.FAILED ||
-    Number(lot.cancelledAtUnixMs || 0) > 0
-  ) return 'failed';
+  if (lot.status === LOT_STATUS.CANCELLED) return 'cancelled';
+  if (lot.status === LOT_STATUS.FAILED || Number(lot.cancelledAtUnixMs || 0) > 0) return 'failed';
 
   if (lotHasLockedResult(lot)) {
     if (!lotHasBid(lot)) return 'failed';

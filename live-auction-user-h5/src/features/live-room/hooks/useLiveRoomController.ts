@@ -4,7 +4,7 @@ import { ownOrderForLot } from '../../../entities/order/model/privacy';
 import { listPublicRooms, listRoomLots, placeBid } from '../../auction/api/auctionApi';
 import { createIdempotencyKey } from '../../../shared/lib/idempotency';
 import { normalizeMoney } from '../../../shared/api/adapters';
-import { AuthExpiredError } from '../../../shared/api/errors';
+import { AuthExpiredError, businessErrorMessageFromUnknown } from '../../../shared/api/errors';
 import { AUCTION_EVENT_TYPE, type AuctionSocketEvent, type Lot, type OrderSummary, type PaymentSummary } from '../../../shared/api/types';
 import { normalizeBuyerUsername, validateBuyerCredentials } from '../../../shared/auth/credentialRules';
 import { useAuthSession } from '../../../shared/auth/useAuthSession';
@@ -23,13 +23,16 @@ type DepositPrompt = {
   userId: string;
 };
 
-function bidFailureMessage(reason: unknown): string {
+function bidFailureMessage(reason: unknown, lot?: Lot): string {
+  const businessMessage = businessErrorMessageFromUnknown(reason, { lot });
+  if (businessMessage) return businessMessage;
   const rawMessage = reason instanceof Error ? reason.message : typeof reason === 'string' ? reason : '请稍后重试';
   const message = rawMessage
     .replace(/^invalid argument:\s*/i, '')
     .replace(/^操作失败：\s*/i, '');
 
   if (message.includes('leading bidder must wait') || message.includes('最高价')) return '你当前已经是最高价，等其他人出价后再加价';
+  if (message.includes('主播取消') || message.includes('already cancelled')) return message.includes('本件拍品') ? message : '本件拍品已由主播取消，无法继续出价';
   if (message.includes('bid amount is lower')) return '出价金额太低，请按当前加价幅度重新出价';
   if (message.includes('lot is not live') || message.includes('auction has ended')) return '当前商品还未开始或已结束';
   if (message.includes('currency')) return '出价币种异常，请刷新后重试';
@@ -60,6 +63,11 @@ function eventMayChangeLotList(event: AuctionSocketEvent): boolean {
     event.type === AUCTION_EVENT_TYPE.LOT_CANCELLED ||
     event.type === AUCTION_EVENT_TYPE.ORDER_CREATED ||
     event.type === AUCTION_EVENT_TYPE.PAYMENT_SUCCESS;
+}
+
+function isCancellationEvent(event: AuctionSocketEvent): boolean {
+  return event.type === AUCTION_EVENT_TYPE.LOT_CANCELLED ||
+    (event.type === AUCTION_EVENT_TYPE.AUCTION_CLOSED && event.lot?.status === 'LOT_STATUS_CANCELLED');
 }
 
 function depositConfirmKey(roomId: string, lotId: string, userId: string): string {
@@ -217,16 +225,25 @@ export function useLiveRoomController(roomId: string) {
 
     const notice = noticeForAuctionEvent(event, meId, previousLeaderId);
     if (notice) pushNotice(notice);
+    const cancellationEvent = isCancellationEvent(event);
+    if (cancellationEvent) {
+      const message = businessErrorMessageFromUnknown(event.reason, { lot: event.lot || currentLot || undefined }) || (event.reason ? `本件拍品已由主播取消，原因：${event.reason}` : '本件拍品已由主播取消');
+      setBidding(false);
+      setAuthPanelForcedOpen(false);
+      setDepositPrompt(null);
+      setBidError(message);
+      pushNotice(message);
+    }
     if (eventMayChangeLotList(event)) void refreshRoomLots().catch(() => undefined);
 
-    if (isSettlementEventType(event.type)) {
+    if (!cancellationEvent && isSettlementEventType(event.type)) {
       const lotId = lotIdFromPublicEvent(event, resultLot?.id || currentLot?.id || '');
       void syncPrivateResult(lotId, {
         showModal: true,
         refreshOrderList: isPrivateRefreshEventType(event.type),
       });
     }
-  }, [applyEvent, currentLot?.id, meId, pushNotice, refreshRoomLots, resultLot?.id, room.currentLot?.leadingUserId, roomId, syncPrivateResult]);
+  }, [applyEvent, currentLot, meId, pushNotice, refreshRoomLots, resultLot?.id, room.currentLot?.leadingUserId, roomId, syncPrivateResult]);
 
   const wsState = useAuctionSocket(roomId, handleSocketEvent, recoverRealtimeState);
 
@@ -311,7 +328,7 @@ export function useLiveRoomController(roomId: string) {
     try {
       session = await ensureReadyForBid();
     } catch (e) {
-      const message = bidFailureMessage(e);
+      const message = bidFailureMessage(e, currentLot);
       setBidError(message);
       if (shouldOpenBuyerAuth(e)) openBuyerAuthPanel();
       pushNotice(message);
@@ -349,12 +366,12 @@ export function useLiveRoomController(roomId: string) {
         });
         pushNotice(res.lot?.leadingUserId === session.user.id || res.bid?.userId === session.user.id ? '已记录你的商品互动' : '互动成功，等待同步');
       } else {
-        const message = bidFailureMessage(res.rejectReason || '后端未接受本次操作');
+        const message = bidFailureMessage(res.rejectReason || '后端未接受本次操作', res.lot || currentLot);
         setBidError(message);
         pushNotice(message);
       }
     } catch (e) {
-      const message = bidFailureMessage(e);
+      const message = bidFailureMessage(e, currentLot);
       setBidError(message);
       if (shouldOpenBuyerAuth(e)) openBuyerAuthPanel();
       pushNotice(message);

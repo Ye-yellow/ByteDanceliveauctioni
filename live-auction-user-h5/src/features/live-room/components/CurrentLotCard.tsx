@@ -16,6 +16,7 @@ const cardCopyByState: Record<LotDisplayState, { status: string; label: string; 
   pendingPayment: { status: '截拍中', label: '竞拍已结束', value: '截拍中', className: 'isClosed' },
   finished: { status: '竞拍结束', label: '竞拍已结束', value: '已结束', className: 'isClosed' },
   failed: { status: '竞拍结束', label: '竞拍已结束', value: '已结束', className: 'isClosed' },
+  cancelled: { status: '已取消', label: '主播已取消本件', value: '已取消', className: 'isClosed' },
   syncing: { status: '待同步', label: '等待状态同步', value: '同步中', className: 'isWaiting' },
 };
 
@@ -33,6 +34,7 @@ function lotPersonText(lot: Lot, state: LotDisplayState) {
   if (state === 'pendingPayment') return winnerName ? `成交用户：${winnerName}` : '等待截拍确认';
   if (state === 'finished') return winnerName ? `成交用户：${winnerName}` : '成交用户待同步';
   if (state === 'failed') return lotHasBid(lot) ? '付款超时，竞拍结束' : '本轮无人出价';
+  if (state === 'cancelled') return lot.cancelReason ? `取消原因：${lot.cancelReason}` : '本件拍品已由主播取消';
   if (state === 'upcoming') return '等待主播开拍';
   return '状态同步中';
 }
@@ -41,12 +43,13 @@ function primaryPriceLabel(lot: Lot, state: LotDisplayState) {
   if (state === 'finished') return '落槌价';
   if (state === 'pendingPayment') return '落槌价';
   if (state === 'failed') return lotHasBid(lot) ? '落槌价' : '起拍价';
+  if (state === 'cancelled') return lotHasBid(lot) ? '取消前价格' : '起拍价';
   if (state === 'live') return lotHasBid(lot) ? '当前最高价' : '起拍价';
   return '起拍价';
 }
 
 function primaryPrice(lot: Lot, state: LotDisplayState) {
-  if (state === 'finished' || state === 'pendingPayment' || (state === 'failed' && lot.stats?.bidCount)) {
+  if (state === 'finished' || state === 'pendingPayment' || (state === 'failed' && lot.stats?.bidCount) || (state === 'cancelled' && lotHasBid(lot))) {
     if (moneyNumber(lot.finalPrice) > 0) return lot.finalPrice;
     if (moneyNumber(lot.currentPrice) > 0) return lot.currentPrice;
     return lot.rule.startPrice;

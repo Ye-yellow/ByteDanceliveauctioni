@@ -3,6 +3,7 @@ import { LivePlayer } from '../../live/components/LivePlayer';
 import { DepositPayModal } from '../../payment-flow/components/DepositPayModal';
 import { MockPayModal } from '../../payment-flow/components/MockPayModal';
 import { ResultModal } from '../../result-modal/components/ResultModal';
+import { businessErrorMessage } from '../../../shared/api/errors';
 import { navigateTo } from '../../../shared/navigation';
 import type { LiveRoomController } from '../hooks/useLiveRoomController';
 import { AuctionDrawer } from './AuctionDrawer';
@@ -128,7 +129,7 @@ function LiveRoomEffectsLayer({ controller, giftBurst }: { controller: LiveRoomC
     id: bid.id || `${bid.userId}-${index}`,
     name: bid.nickname || `拍友${bid.userId.slice(-4)}`,
     text: bid.accepted === false
-      ? bid.rejectReason || '刚刚互动未成功'
+      ? businessErrorMessage(bid.rejectReason, { lot: currentLot || undefined }) || '刚刚互动未成功'
       : `刚刚关注了这件商品`,
   }));
   const messages: ChatMessage[] = seededMessages.length ? seededMessages : [
@@ -261,7 +262,7 @@ function commentsForRoom(controller: LiveRoomController) {
     avatar: (bid.nickname || bid.userId || '拍').slice(0, 1),
     name: bid.nickname || `拍友${bid.userId.slice(-4)}`,
     text: bid.accepted === false
-      ? bid.rejectReason || '刚刚互动未成功，准备再试一次'
+      ? businessErrorMessage(bid.rejectReason, { lot: controller.currentLot || undefined }) || '刚刚互动未成功，准备再试一次'
       : `关注了这件商品，挺有意思`,
     meta: index < 2 ? '刚刚' : `${index + 1}分钟前`,
     count: Math.max(3, 168 - index * 17),

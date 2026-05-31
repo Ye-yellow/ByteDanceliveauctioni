@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { orderStatusLabel } from '../../../entities/order/model/privacy';
 import { LOT_STATUS, type OrderSummary } from '../../../shared/api/types';
 import { formatMoney } from '../../../shared/lib/money';
 import { formatEventTime, getServerNowMs } from '../../../shared/lib/time';
 import type { AuctionPanelTab, LiveRoomController } from '../hooks/useLiveRoomController';
-import { BidPanel } from '../../bid-panel/components/BidPanel';
+import { BidPanel } from '../../auction-bid/components/BidPanel';
 import { BuyerAuthPanel } from './BuyerAuthPanel';
 import { CurrentLotCard } from './CurrentLotCard';
 import { LotQueueList } from './LotQueueList';
@@ -122,6 +122,12 @@ function CurrentAuctionPanel({ controller }: { controller: LiveRoomController })
   }) : undefined;
   const sheetCanBid = Boolean(sheetLot && sheetIsCurrent && sheetDisplayState === 'live');
 
+  useEffect(() => {
+    if (currentLot?.status !== LOT_STATUS.CANCELLED) return undefined;
+    const timer = window.setTimeout(() => setSheetLotId(''), 0);
+    return () => window.clearTimeout(timer);
+  }, [currentLot?.id, currentLot?.status]);
+
   return (
     <section className="currentAuctionPanel">
       {accountRoleMessage ? <section className="emptyState error">{accountRoleMessage}</section> : null}
@@ -175,7 +181,7 @@ function CurrentAuctionPanel({ controller }: { controller: LiveRoomController })
         </p>
       ) : null}
 
-      {currentLot?.status === LOT_STATUS.CANCELLED ? <div className="cancelBanner">本场商品已下架</div> : null}
+      {currentLot?.status === LOT_STATUS.CANCELLED ? <div className="cancelBanner">{currentLot.cancelReason ? `本件拍品已由主播取消，原因：${currentLot.cancelReason}` : '本件拍品已由主播取消'}</div> : null}
     </section>
   );
 }

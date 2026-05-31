@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { listPublicRooms } from '../features/auction/api/auctionApi';
-import { LiveRoomView } from '../features/auction-room/components/LiveRoomView';
-import { useLiveRoomController } from '../features/auction-room/hooks/useLiveRoomController';
+import { LiveRoomView } from '../features/live-room/components/LiveRoomView';
+import { useLiveRoomController } from '../features/live-room/hooks/useLiveRoomController';
 import { navigateTo } from '../shared/navigation';
 
 export function LiveRoomPage({ roomId }: { roomId: string }) {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useReducer, useState } from 'react';
 import { getLotResult, getRoomSnapshot, listMyOrders } from '../../auction/api/auctionApi';
-import { auctionRoomReducer, createInitialAuctionRoomState } from '../model/roomState';
+import { auctionRoomReducer, createInitialAuctionRoomState } from '../model/auctionRoomReducer';
 import type { AuctionSocketEvent, Money, MyOrdersQuery, OrderSummary, PaymentSummary } from '../../../shared/api/types';
 
 export function useAuctionRoom(roomId: string) {

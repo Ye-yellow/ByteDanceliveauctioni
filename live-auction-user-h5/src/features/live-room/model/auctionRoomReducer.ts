@@ -133,9 +133,12 @@ function applyPublicEvent(state: AuctionRoomState, event: AuctionSocketEvent): A
     event.type === AUCTION_EVENT_TYPE.LOT_CANCELLED ||
     event.type === AUCTION_EVENT_TYPE.ORDER_CREATED
   ) {
+    const cancelled = event.type === AUCTION_EVENT_TYPE.LOT_CANCELLED ||
+      (event.type === AUCTION_EVENT_TYPE.AUCTION_CLOSED && event.lot?.status === 'LOT_STATUS_CANCELLED');
     return {
       ...base,
       ...withLot(base, event.lot),
+      localOptimistic: cancelled ? { ...base.localOptimistic, pendingBid: undefined } : base.localOptimistic,
     };
   }
 

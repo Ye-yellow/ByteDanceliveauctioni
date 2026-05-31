@@ -33,6 +33,7 @@ const statusClassByState: Record<LotDisplayState, string> = {
   pendingPayment: 'isPendingPayment',
   finished: 'isFinished',
   failed: 'isFailed',
+  cancelled: 'isCancelled',
   syncing: 'isUpcoming',
 };
 
@@ -50,6 +51,8 @@ function queueLotView(lot: Lot, order: OrderSummary | null, paymentKnownPaid: bo
     ? '落槌价'
     : displayState === 'pendingPayment'
       ? '落槌价'
+      : displayState === 'cancelled'
+        ? hasBid ? '取消前价格' : '起拍价'
       : displayState === 'failed' && hasBid
         ? '落槌价'
         : displayState === 'upcoming' || displayState === 'syncing' || (displayState === 'failed' && !hasBid)
@@ -68,6 +71,8 @@ function queueLotView(lot: Lot, order: OrderSummary | null, paymentKnownPaid: bo
       ? '即将开拍'
       : displayState === 'pendingPayment'
         ? '截拍中'
+        : displayState === 'cancelled'
+          ? '已取消'
         : displayState === 'failed' && !hasBid
           ? '竞拍未成交'
           : '竞拍结束';
@@ -76,8 +81,8 @@ function queueLotView(lot: Lot, order: OrderSummary | null, paymentKnownPaid: bo
     statusClass: statusClassByState[displayState],
     priceLabel,
     priceValue,
-    actionText: displayState === 'live' ? '立即出价' : displayState === 'upcoming' || displayState === 'syncing' ? '去看看' : displayState === 'pendingPayment' ? '截拍中' : '已结束',
-    actionDisabled: displayState === 'finished' || displayState === 'failed',
+    actionText: displayState === 'live' ? '立即出价' : displayState === 'upcoming' || displayState === 'syncing' ? '去看看' : displayState === 'pendingPayment' ? '截拍中' : displayState === 'cancelled' ? '已取消' : '已结束',
+    actionDisabled: displayState === 'finished' || displayState === 'failed' || displayState === 'cancelled',
   };
 }
 
@@ -157,6 +162,7 @@ function lotSortScore(lot: Lot, order: OrderSummary | null, paymentKnownPaid: bo
   }
   if (displayState === 'pendingPayment') return 4;
   if (displayState === 'finished') return 5;
+  if (displayState === 'cancelled') return 6;
   if (displayState === 'failed') return 6;
   return 6;
 }
