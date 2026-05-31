@@ -77,7 +77,7 @@ end
 
 local previous_leader_id = redis.call('HGET', state_key, 'leading_user_id') or ''
 if previous_leader_id ~= '' and previous_leader_id == user_id then
-  return cjson.encode({ ok = false, message = 'leading bidder must wait for another bidder before bidding again' })
+  return cjson.encode({ ok = false, message = '你当前已经是最高价，等其他人出价后再加价' })
 end
 if amount < current_amount + min_increment_amount then
   return cjson.encode({ ok = false, message = 'bid amount is lower than current price plus min increment' })

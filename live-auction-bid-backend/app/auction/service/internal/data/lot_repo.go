@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"gorm.io/gorm"
@@ -12,6 +13,8 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 )
+
+const missingLotCreatedAtFallback = 24 * time.Hour
 
 func (s *Store) Create(ctx context.Context, lot *v1.Lot, ownerUserID string, events []v1.AuctionEvent) error {
 	if lot == nil {
@@ -25,6 +28,8 @@ func (s *Store) Create(ctx context.Context, lot *v1.Lot, ownerUserID string, eve
 		if err := tx.Create(model).Error; err != nil {
 			return err
 		}
+		lot.CreatedAtUnixMs = modelTimeUnixMsOr(model.CreatedAt, time.Now().Add(-missingLotCreatedAtFallback).UnixMilli())
+		lot.UpdatedAtUnixMs = modelTimeUnixMsOr(model.UpdatedAt, lot.CreatedAtUnixMs)
 		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&AuctionLotStatsModel{
 			LotID:           lot.Id,
 			MainAccountID:   lot.GetMainAccountId(),
@@ -81,6 +86,7 @@ func (s *Store) Save(ctx context.Context, lot *v1.Lot, expectedVersion int64, ev
 		if result.RowsAffected == 0 {
 			return apperr.ErrLotVersionConflict
 		}
+		lot.UpdatedAtUnixMs = time.Now().UnixMilli()
 		return createEventModels(ctx, tx, events)
 	}); err != nil {
 		return err
@@ -376,6 +382,13 @@ func normalizeQueueStatus(status v1.LotQueueStatus) v1.LotQueueStatus {
 	return status
 }
 
+func modelTimeUnixMsOr(value time.Time, fallback int64) int64 {
+	if value.IsZero() {
+		return fallback
+	}
+	return value.UnixMilli()
+}
+
 func modelToLot(model *AuctionLotModel) (*v1.Lot, error) {
 	lot := &v1.Lot{}
 	if err := protojson.Unmarshal([]byte(model.Payload), lot); err != nil {
@@ -390,6 +403,8 @@ func modelToLot(model *AuctionLotModel) (*v1.Lot, error) {
 	lot.QueueStatus = normalizeQueueStatus(v1.LotQueueStatus(model.QueueStatus))
 	lot.QueuePosition = model.QueuePosition
 	lot.MainAccountId = model.MainAccountID
+	lot.CreatedAtUnixMs = modelTimeUnixMsOr(model.CreatedAt, time.Now().Add(-missingLotCreatedAtFallback).UnixMilli())
+	lot.UpdatedAtUnixMs = modelTimeUnixMsOr(model.UpdatedAt, lot.CreatedAtUnixMs)
 	if model.CapPriceAmount != nil {
 		lot.Rule.CapPrice = &v1.Money{Amount: *model.CapPriceAmount, Currency: model.CapPriceCurrency}
 	} else {

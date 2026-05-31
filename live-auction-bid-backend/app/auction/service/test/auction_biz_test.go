@@ -53,7 +53,7 @@ func TestLotStateMachine(t *testing.T) {
 	if lot.GetCurrentPrice().GetAmount() != 11000 || lot.LeadingUserId != "u1" {
 		t.Fatalf("出价后领先状态错误：%+v", lot)
 	}
-	if err := auction.AcceptBid(lot, v1.Bid{UserId: "u1", Nickname: "用户1", Amount: &v1.Money{Amount: 12000, Currency: "CNY"}}, 2100); err == nil || !strings.Contains(err.Error(), "leading bidder must wait") {
+	if err := auction.AcceptBid(lot, v1.Bid{UserId: "u1", Nickname: "用户1", Amount: &v1.Money{Amount: 12000, Currency: "CNY"}}, 2100); err == nil || !strings.Contains(err.Error(), "你当前已经是最高价") {
 		t.Fatalf("领先者不应该能连续给自己加价，实际错误：%v", err)
 	}
 	if lot.GetCurrentPrice().GetAmount() != 11000 || lot.LeadingUserId != "u1" {
@@ -927,7 +927,7 @@ func TestPlaceBidStatsOnlyCountAcceptedBidsAndUniqueParticipants(t *testing.T) {
 	if _, bid, _, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{LotId: lot.Id, Amount: &v1.Money{Amount: 11000, Currency: "CNY"}, IdempotencyKey: "stats-1"}, "u1", "用户1"); err != nil || bid == nil {
 		t.Fatalf("first bid failed: bid=%+v err=%v", bid, err)
 	}
-	if _, _, _, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{LotId: lot.Id, Amount: &v1.Money{Amount: 12000, Currency: "CNY"}, IdempotencyKey: "stats-leading-repeat"}, "u1", "用户1"); err == nil || !strings.Contains(err.Error(), "leading bidder must wait") {
+	if _, _, _, err := uc.PlaceBid(ctx, &v1.PlaceBidRequest{LotId: lot.Id, Amount: &v1.Money{Amount: 12000, Currency: "CNY"}, IdempotencyKey: "stats-leading-repeat"}, "u1", "用户1"); err == nil || !strings.Contains(err.Error(), "你当前已经是最高价") {
 		t.Fatalf("leading bidder repeat should be rejected, got %v", err)
 	}
 	snapshot, err := uc.Snapshot(ctx, "room_stats")

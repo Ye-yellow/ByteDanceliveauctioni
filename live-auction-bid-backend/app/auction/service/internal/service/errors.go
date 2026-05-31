@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
@@ -53,7 +54,7 @@ func ErrorResult(ctx context.Context, err error) *v1.ReplyResult {
 		return &v1.ReplyResult{Code: ResultCodeLotVersionConflict, Message: MessageLotVersionConflict, TraceId: traceID}
 	}
 	if apperr.IsInvalidArgument(err) {
-		return &v1.ReplyResult{Code: ResultCodeInvalidArgument, Message: err.Error(), TraceId: traceID}
+		return &v1.ReplyResult{Code: ResultCodeInvalidArgument, Message: invalidArgumentMessage(err), TraceId: traceID}
 	}
 	if apperr.IsUnauthenticated(err) {
 		return &v1.ReplyResult{Code: ResultCodeLoginRequired, Message: "login required", TraceId: traceID}
@@ -86,4 +87,22 @@ func ErrorResult(ctx context.Context, err error) *v1.ReplyResult {
 		return &v1.ReplyResult{Code: ResultCodeUserNotFound, Message: "not found", TraceId: traceID}
 	}
 	return &v1.ReplyResult{Code: ResultCodeInternalError, Message: MessageInternalError, TraceId: traceID}
+}
+
+func invalidArgumentMessage(err error) string {
+	message := strings.TrimSpace(err.Error())
+	message = strings.TrimPrefix(message, apperr.ErrInvalidArgument.Error()+": ")
+	switch {
+	case strings.Contains(message, "leading bidder must wait") || strings.Contains(message, "最高价"):
+		return "你当前已经是最高价，等其他人出价后再加价"
+	case strings.Contains(message, "bid amount is lower"):
+		return "出价金额太低，请按当前加价幅度重新出价"
+	case strings.Contains(message, "lot is not live"), strings.Contains(message, "auction has ended"):
+		return "当前商品还未开始或已结束"
+	case strings.Contains(message, "currency"):
+		return "出价币种异常，请刷新后重试"
+	case strings.Contains(message, "runtime state is missing"):
+		return "竞拍状态正在同步，请稍后重试"
+	}
+	return message
 }
