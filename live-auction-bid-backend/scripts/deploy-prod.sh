@@ -100,14 +100,10 @@ prepare_ssh_key() {
 
 remote() {
   local attempt
+  local ssh_opts
+  mapfile -t ssh_opts < <(ssh_common_options)
   for attempt in 1 2 3; do
-    if ssh -i "$SSH_KEY_RUNTIME" \
-      -o IdentitiesOnly=yes \
-      -o BatchMode=yes \
-      -o ConnectTimeout=15 \
-      -o ServerAliveInterval=5 \
-      -o ServerAliveCountMax=2 \
-      "$SERVER_USER@$SERVER_HOST" "$@"; then
+    if ssh "${ssh_opts[@]}" "$SERVER_USER@$SERVER_HOST" "$@"; then
       return 0
     fi
     sleep 5
@@ -117,19 +113,28 @@ remote() {
 
 upload() {
   local attempt
+  local ssh_opts
+  mapfile -t ssh_opts < <(ssh_common_options)
   for attempt in 1 2 3; do
-    if scp -i "$SSH_KEY_RUNTIME" \
-      -o IdentitiesOnly=yes \
-      -o BatchMode=yes \
-      -o ConnectTimeout=15 \
-      -o ServerAliveInterval=5 \
-      -o ServerAliveCountMax=2 \
-      "$@" "$SERVER_USER@$SERVER_HOST:$SERVER_DIR/uploads/"; then
+    if scp "${ssh_opts[@]}" "$@" "$SERVER_USER@$SERVER_HOST:$SERVER_DIR/uploads/"; then
       return 0
     fi
     sleep 5
   done
   return 1
+}
+
+ssh_common_options() {
+  printf '%s\n' \
+    -i "$SSH_KEY_RUNTIME" \
+    -o IdentitiesOnly=yes \
+    -o BatchMode=yes \
+    -o ConnectTimeout=15 \
+    -o ServerAliveInterval=5 \
+    -o ServerAliveCountMax=2 \
+    -o ControlMaster=auto \
+    -o ControlPersist=10m \
+    -o ControlPath="$WORK_DIR/ssh-control-%r@%h:%p"
 }
 
 prepare_packages() {
