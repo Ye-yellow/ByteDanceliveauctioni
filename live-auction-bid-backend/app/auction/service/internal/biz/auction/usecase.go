@@ -527,7 +527,7 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest,
 }
 
 func (uc *AuctionUsecase) placeBidRuntime(ctx context.Context, req *v1.PlaceBidRequest, bidderID, nickname string) (*v1.Lot, *v1.Bid, []*v1.RankingItem, error) {
-	lot, err := uc.lots.FindByID(ctx, req.GetLotId())
+	lot, err := uc.lots.FindCoreByID(ctx, req.GetLotId())
 	if err != nil {
 		return nil, nil, nil, err
 	}

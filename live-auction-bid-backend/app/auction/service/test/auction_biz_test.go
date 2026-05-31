@@ -1393,6 +1393,10 @@ func (s *testStore) AttachAssets(ctx context.Context, ownerUserID string, lot *v
 }
 
 func (s *testStore) FindByID(ctx context.Context, lotID string) (*v1.Lot, error) {
+	return s.FindCoreByID(ctx, lotID)
+}
+
+func (s *testStore) FindCoreByID(ctx context.Context, lotID string) (*v1.Lot, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	lot, ok := s.lots[lotID]

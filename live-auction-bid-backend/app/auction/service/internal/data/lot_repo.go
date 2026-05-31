@@ -122,6 +122,14 @@ func (s *Store) AttachAssets(ctx context.Context, ownerUserID string, lot *v1.Lo
 }
 
 func (s *Store) FindByID(ctx context.Context, lotID string) (*v1.Lot, error) {
+	return s.findByID(ctx, lotID, true)
+}
+
+func (s *Store) FindCoreByID(ctx context.Context, lotID string) (*v1.Lot, error) {
+	return s.findByID(ctx, lotID, false)
+}
+
+func (s *Store) findByID(ctx context.Context, lotID string, includeStats bool) (*v1.Lot, error) {
 	if lotID == "" {
 		return nil, errors.New("lot id is required")
 	}
@@ -135,6 +143,9 @@ func (s *Store) FindByID(ctx context.Context, lotID string) (*v1.Lot, error) {
 	lot, err := modelToLot(&model)
 	if err != nil {
 		return nil, err
+	}
+	if !includeStats {
+		return lot, nil
 	}
 	if err := s.attachStats(ctx, []*v1.Lot{lot}); err != nil {
 		return nil, err
