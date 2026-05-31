@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, Clock3, ListChecks, MonitorDot, Package, Radio, RefreshCw, ShieldAlert, Trophy, Wifi } from 'lucide-react';
+import { AlertTriangle, Clock3, ListChecks, Package, Radio, RefreshCw, ShieldAlert, Trophy, Wifi } from 'lucide-react';
 import { getRoomSnapshot, listAdminLots, revealTrustCard, settleLot, startDuel } from '../auction/api/auctionApi';
 import { isLiveLot, isQueueReadyLot, lotStatusLabel, lotStatusTone } from '../../entities/auction/model/auctionStatus';
-import type { AuctionEvent, Bid, Lot, RoomSnapshot } from '../../shared/api/types';
+import type { Bid, Lot, RoomSnapshot } from '../../shared/api/types';
 import { resultMessage } from '../../shared/api/result';
 import { formatDateTimeText, formatMoneyText } from '../../shared/lib/format';
 import { formatAuctionLeftMs, getLotLeftMs, getServerOffsetMs } from '../../shared/lib/time';
@@ -10,7 +10,6 @@ import { HTTP_REFRESH_EVENTS, REALTIME_CONSOLE_EVENTS, REALTIME_EVENT } from '..
 import { roomSocketStatusLabel, useRoomSocket } from '../../shared/realtime/useRoomSocket';
 import { StudioBadge, StudioButton, StudioCard, StudioEmptyState, StudioMetricCard, StudioPageHeader, StudioTable, StudioTableSkeleton } from '../../pages/host-console/components/studio-ui';
 
-type ControlLog = { id: string; time: string; type: string; detail: string; level?: 'info' | 'warning' | 'danger' | 'success' };
 type LinkEvent = { seq: number; time: string; type: string; lotId?: string; detail: string };
 
 export function LiveControlPage({ roomId }: { roomId: string }) {
@@ -18,10 +17,7 @@ export function LiveControlPage({ roomId }: { roomId: string }) {
   const [lots, setLots] = useState<Lot[]>([]);
   const [lot, setLot] = useState<Lot | null>(null);
   const [error, setError] = useState('');
-  const [logs, setLogs] = useState<ControlLog[]>([]);
   const [working, setWorking] = useState('');
-
-  const appendLog = (entry: Omit<ControlLog, 'id' | 'time'>) => setLogs((current) => [{ ...entry, id: `${Date.now()}-${Math.random()}`, time: nowText() }, ...current].slice(0, 30));
 
   const syncRoom = async (): Promise<RoomSnapshot | void> => {
     setError('');
@@ -30,12 +26,10 @@ export function LiveControlPage({ roomId }: { roomId: string }) {
       setSnapshot(nextSnapshot);
       setLots(page.lots);
       setLot(nextSnapshot.currentLot || page.lots.find(isLiveLot) || null);
-      appendLog({ type: '房间快照同步', detail: '已刷新 currentLot / ranking / recentBids', level: 'success' });
       return nextSnapshot;
     } catch (e) {
       const message = resultMessage(e);
       setError(message);
-      appendLog({ type: '房间快照同步失败', detail: message, level: 'danger' });
     }
   };
 
@@ -43,24 +37,19 @@ export function LiveControlPage({ roomId }: { roomId: string }) {
     roomId,
     handledEventTypes: REALTIME_CONSOLE_EVENTS,
     recoverSnapshot: syncRoom,
-    onStatusChange: (status) => {
-      if (status === 'connected') appendLog({ type: '实时链路连接', detail: '当前直播间已连接', level: 'success' });
-      if (status === 'reconnecting') appendLog({ type: '实时链路重连', detail: '重连后自动恢复房间快照', level: 'warning' });
-    },
     onEvent: (event) => {
       if (event.snapshot) {
         setSnapshot(event.snapshot);
         setLot(event.snapshot.currentLot || null);
       }
       if (event.lot) setLot(event.lot as Lot);
-      appendLog(logFromEvent(event));
       if (HTTP_REFRESH_EVENTS.has(event.type)) void syncRoom();
     },
     onSnapshot: (nextSnapshot) => {
       setSnapshot(nextSnapshot);
       setLot(nextSnapshot.currentLot || null);
     },
-    onError: (e) => appendLog({ type: '实时链路异常', detail: resultMessage(e), level: 'danger' }),
+    onError: (e) => setError(resultMessage(e)),
   });
 
   useEffect(() => { void syncRoom(); }, [roomId]);
@@ -73,12 +62,10 @@ export function LiveControlPage({ roomId }: { roomId: string }) {
     setError('');
     try {
       await fn();
-      appendLog({ type: name, detail: '操作已提交，正在刷新房间状态', level: 'success' });
       await syncRoom();
     } catch (e) {
       const message = resultMessage(e);
       setError(message);
-      appendLog({ type: `${name}失败`, detail: message, level: 'danger' });
     } finally {
       setWorking('');
     }
@@ -100,7 +87,7 @@ export function LiveControlPage({ roomId }: { roomId: string }) {
       <main className="controlCenterRail"><PriceCommandBoard lot={lot} snapshot={snapshot} /><ControlActionDeck lot={lot} working={working} onDuel={() => void action('进入决胜', () => startDuel(lot.id))} onSettle={() => void action('落锤成交', () => settleLot(lot.id))} /></main>
       <aside className="controlRightRail"><RealtimeBidFeedPanel bids={snapshot?.recentBids || []} /><LiveRankingBoard ranking={snapshot?.ranking || []} leadingUserId={lot.leadingUserId} /></aside>
     </div>}
-    <div className="controlBottomGrid"><NextLotQueue lot={nextLot} /><ControlEventLog logs={logs} /></div>
+    <NextLotQueue lot={nextLot} />
   </section>;
 }
 
@@ -197,13 +184,6 @@ function nowText() {
   return new Date().toLocaleTimeString('zh-CN', { hour12: false });
 }
 
-function logFromEvent(event: AuctionEvent): Omit<ControlLog, 'id' | 'time'> {
-  const success = event.type === REALTIME_EVENT.BID_ACCEPTED || event.type === REALTIME_EVENT.ORDER_CREATED || event.type === REALTIME_EVENT.PAYMENT_SUCCESS || event.type === REALTIME_EVENT.LOT_SETTLED;
-  const warning = event.type === REALTIME_EVENT.AUCTION_EXTENDED || event.type === REALTIME_EVENT.BID_OUTBID;
-  const danger = event.type === REALTIME_EVENT.BID_REJECTED || event.type === REALTIME_EVENT.LOT_CANCELLED;
-  return { type: event.type, detail: event.bid ? `${event.bid.nickname || event.bid.userId} ${formatMoneyText(event.bid.amount)}` : event.reason || event.lot?.title || event.lotId || '房间事件', level: danger ? 'danger' : success ? 'success' : warning ? 'warning' : 'info' };
-}
-
 function PreparedStage({ nextLot, onSync }: { nextLot: Lot | null; onSync: () => void }) {
   return <section className="preparedControlStage"><StudioCard title="当前无 LIVE" subtitle="Ready"><StudioEmptyState icon={<Radio size={30} />} title="等待开拍" description={nextLot ? `下一件拍品：${nextLot.title}` : '队列中没有待开拍拍品。'} action={<><a className="studioButton studioButton-primary studioButton-md" href="/admin/auctions">查看本场队列</a><StudioButton type="button" variant="secondary" onClick={onSync}>同步房间状态</StudioButton></>} /></StudioCard></section>;
 }
@@ -239,8 +219,4 @@ function LiveRankingBoard({ ranking, leadingUserId }: { ranking: RoomSnapshot['r
 
 function NextLotQueue({ lot }: { lot: Lot | null }) {
   return <section className="controlBottomCard"><h3>下一场待开拍</h3>{lot ? <div className="nextQueueItem"><b>{lot.title}</b><span>起拍 {formatMoneyText(lot.rule.startPrice)} · 加价 {formatMoneyText(lot.rule.minIncrement)}</span><a className="studioButton studioButton-secondary studioButton-sm" href="/admin/auctions">回队列开拍</a></div> : <StudioEmptyState compact icon={<Package size={24} />} title="暂无下一场待开拍" description="可以回到本场队列调整顺序，或添加新拍品。" />}</section>;
-}
-
-function ControlEventLog({ logs }: { logs: ControlLog[] }) {
-  return <section className="controlBottomCard"><h3>控场事件日志</h3><div className="controlEventLog">{logs.length ? logs.map((log) => <div key={log.id} className={log.level}><span>{log.time}</span><b>{log.type}</b><small>{log.detail}</small></div>) : <StudioEmptyState compact icon={<MonitorDot size={24} />} title="等待控场操作和系统事件" description="同步、开拍、讲解卡展示、落锤等动作会记录在这里。" />}</div></section>;
 }

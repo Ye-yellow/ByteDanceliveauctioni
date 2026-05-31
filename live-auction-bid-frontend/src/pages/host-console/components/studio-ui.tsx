@@ -1,4 +1,5 @@
 import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 export type StudioTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'purple';
 export type StudioButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'soft';
@@ -107,7 +108,8 @@ export function StudioToast({ tone = 'info', title, description, action, classNa
 
 export function StudioToastViewport({ toasts, className = '' }: { toasts: StudioToastItem[]; className?: string }) {
   if (!toasts.length) return null;
-  return <div className={`studioToastViewport ${className}`.trim()}>{toasts.map((toast) => <StudioToast key={toast.id} tone={toast.tone || 'info'} title={toast.title} description={toast.description} action={toast.action} />)}</div>;
+  const viewport = <div className={`studioToastViewport ${className}`.trim()}>{toasts.map((toast) => <StudioToast key={toast.id} tone={toast.tone || 'info'} title={toast.title} description={toast.description} action={toast.action} />)}</div>;
+  return typeof document === 'undefined' ? viewport : createPortal(viewport, document.body);
 }
 
 export function useStudioToast(timeoutMs = 4200) {

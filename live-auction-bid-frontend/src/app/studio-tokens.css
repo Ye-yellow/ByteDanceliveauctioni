@@ -6783,3 +6783,67 @@ html body .loginPage.adminOnlyLogin .authFormPanel-reset .loginHint {
     justify-content: space-between;
   }
 }
+
+/* Studio toast portal guard: toast is rendered under body, so it must not depend on shell stacking contexts. */
+html body .studioToastViewport {
+  z-index: 10000 !important;
+  pointer-events: none;
+}
+
+html body .studioToastViewport .studioToast {
+  pointer-events: auto;
+}
+
+html body .auctionCreateToastViewport {
+  position: fixed !important;
+  left: 50% !important;
+  top: 58px !important;
+  right: auto !important;
+  width: min(620px, calc(100vw - 48px)) !important;
+  transform: translateX(-50%) !important;
+  place-items: center !important;
+}
+
+html body .auctionCreateToastViewport .studioToast {
+  width: 100% !important;
+  min-height: 72px !important;
+  padding: 18px 24px !important;
+  border-radius: 26px !important;
+  gap: 14px !important;
+  box-shadow: var(--create-toast-top-shadow) !important;
+}
+
+html body .auctionCreateToastViewport .studioToast > i {
+  width: 12px !important;
+  height: 12px !important;
+  box-shadow: var(--create-toast-top-icon-ring) !important;
+}
+
+html body .auctionCreateToastViewport .studioToast strong {
+  font-size: 20px !important;
+  line-height: 1.28 !important;
+}
+
+html body .auctionCreateToastViewport .studioToast span {
+  font-size: 15px !important;
+  line-height: 1.45 !important;
+}
+
+@media (max-width: 720px) {
+  html body .auctionCreateToastViewport {
+    left: 16px !important;
+    right: 16px !important;
+    top: 64px !important;
+    width: auto !important;
+    transform: none !important;
+  }
+}
+
+/* History detail drawer must cover the sticky studio topbar. */
+html body .laAdminShell .studioContent:has(.historyDetailOverlay) {
+  z-index: calc(var(--studio-z-modal) + 1) !important;
+}
+
+html body .laAdminShell .historyDetailOverlay {
+  z-index: calc(var(--studio-z-modal) + 1) !important;
+}
