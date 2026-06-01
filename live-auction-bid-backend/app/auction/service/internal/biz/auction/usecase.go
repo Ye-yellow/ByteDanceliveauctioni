@@ -36,6 +36,7 @@ type AuctionUsecase struct {
 	events      EventPublisher
 
 	syncRuntimeProjection bool
+	bidDBGuardMode        bidDBGuardMode
 }
 
 type CloseExpiredSummary struct {
@@ -50,6 +51,13 @@ const (
 	orderCreatedPublicReason   = "order_created"
 	paymentSuccessPublicReason = "payment_success"
 	fallbackBidMaxRetries      = 128
+)
+
+type bidDBGuardMode string
+
+const (
+	bidDBGuardRuntimeFirst bidDBGuardMode = "runtime-first"
+	bidDBGuardAlways       bidDBGuardMode = "always"
 )
 
 func (uc *AuctionUsecase) EnsureDefaultRoom(ctx context.Context, mainAccountID, createdByUserID string) (*Room, error) {
@@ -170,6 +178,19 @@ func (uc *AuctionUsecase) SetSyncRuntimeProjection(enabled bool) *AuctionUsecase
 		return nil
 	}
 	uc.syncRuntimeProjection = enabled
+	return uc
+}
+
+func (uc *AuctionUsecase) SetBidDBGuardMode(mode string) *AuctionUsecase {
+	if uc == nil {
+		return nil
+	}
+	switch bidDBGuardMode(strings.TrimSpace(strings.ToLower(mode))) {
+	case bidDBGuardAlways:
+		uc.bidDBGuardMode = bidDBGuardAlways
+	default:
+		uc.bidDBGuardMode = bidDBGuardRuntimeFirst
+	}
 	return uc
 }
 
@@ -540,21 +561,38 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest,
 func (uc *AuctionUsecase) placeBidRuntime(ctx context.Context, req *v1.PlaceBidRequest, bidderID, nickname string) (*v1.Lot, *v1.Bid, []*v1.RankingItem, error) {
 	nowMs := clock.NowMs()
 	var baseLot *v1.Lot
-	guardCtx, cancelGuard := context.WithTimeout(ctx, 50*time.Millisecond)
-	guardLot, guardErr := uc.lots.FindCoreByID(guardCtx, req.GetLotId())
-	guardCtxErr := guardCtx.Err()
-	cancelGuard()
-	if guardErr == nil {
-		baseLot = guardLot
-		if !IsAuctionOpenStatus(guardLot.Status) {
-			err := closedLotBidRejectError(guardLot)
-			return proto.Clone(guardLot).(*v1.Lot), nil, nil, err
+	if uc.bidDBGuardMode == bidDBGuardAlways {
+		guardLot, guardErr, checked := uc.readBidGuardLot(ctx, req.GetLotId())
+		if guardErr != nil {
+			return guardLot, nil, nil, guardErr
 		}
-	} else if guardCtxErr == nil && apperr.IsNotFound(guardErr) {
-		return nil, nil, nil, guardErr
+		if checked {
+			baseLot = guardLot
+			if !IsAuctionOpenStatus(guardLot.Status) {
+				err := closedLotBidRejectError(guardLot)
+				return proto.Clone(guardLot).(*v1.Lot), nil, nil, err
+			}
+		}
 	}
 	lot := &v1.Lot{Id: req.GetLotId()}
-	result, err := uc.runtime.PlaceBidRuntime(ctx, lot, req, bidderID, nickname, idgen.New("bid"), nowMs)
+	bidID := idgen.New("bid")
+	result, err := uc.runtime.PlaceBidRuntime(ctx, lot, req, bidderID, nickname, bidID, nowMs)
+	if err != nil {
+		if uc.bidDBGuardMode != bidDBGuardAlways && isRuntimeProjectionPending(err) {
+			guardLot, guardErr, checked := uc.readBidGuardLot(ctx, req.GetLotId())
+			if guardErr != nil {
+				return guardLot, nil, nil, guardErr
+			}
+			if checked {
+				baseLot = guardLot
+				if !IsAuctionOpenStatus(guardLot.Status) {
+					err := closedLotBidRejectError(guardLot)
+					return proto.Clone(guardLot).(*v1.Lot), nil, nil, err
+				}
+				result, err = uc.runtime.PlaceBidRuntime(ctx, proto.Clone(guardLot).(*v1.Lot), req, bidderID, nickname, bidID, nowMs)
+			}
+		}
+	}
 	if err != nil {
 		rejectLot := lot
 		if reject, ok := RuntimeBidRejectFromError(err); ok {
@@ -635,6 +673,32 @@ func (uc *AuctionUsecase) placeBidRuntime(ctx context.Context, req *v1.PlaceBidR
 		return nil, nil, nil, err
 	}
 	return proto.Clone(result.Lot).(*v1.Lot), &bid, result.Ranking, nil
+}
+
+func (uc *AuctionUsecase) readBidGuardLot(ctx context.Context, lotID string) (*v1.Lot, error, bool) {
+	guardCtx, cancelGuard := context.WithTimeout(ctx, 50*time.Millisecond)
+	defer cancelGuard()
+	guardLot, guardErr := uc.lots.FindCoreByID(guardCtx, lotID)
+	if guardErr == nil {
+		return guardLot, nil, true
+	}
+	if guardCtx.Err() != nil {
+		return nil, nil, false
+	}
+	return nil, guardErr, true
+}
+
+func isRuntimeProjectionPending(err error) bool {
+	if err == nil {
+		return false
+	}
+	if code := apperr.BusinessCodeForError(err); code == apperr.CodeProjectionPending {
+		return true
+	}
+	if reject, ok := RuntimeBidRejectFromError(err); ok {
+		return reject.Code == string(apperr.CodeProjectionPending)
+	}
+	return false
 }
 
 func closedLotBidRejectError(lot *v1.Lot) error {

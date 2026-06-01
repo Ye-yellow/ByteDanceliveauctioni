@@ -81,7 +81,8 @@ func main() {
 	hub.BindAuthManager(authManager)
 	eventPublisher := realtime.NewPublisher(hub)
 	auctionUsecase := auction.NewAuctionUsecase(store, store, store, eventPublisher).
-		SetSyncRuntimeProjection(getenvBool("AUCTION_BID_SYNC_PROJECTION", false))
+		SetSyncRuntimeProjection(getenvBool("AUCTION_BID_SYNC_PROJECTION", false)).
+		SetBidDBGuardMode(getenv("AUCTION_BID_DB_GUARD_MODE", "runtime-first"))
 	runtimeProjectionWorker := data.NewRuntimeProjectionWorker(
 		store,
 		eventPublisher,
@@ -95,7 +96,8 @@ func main() {
 	auctionCloseWorker.BindLease(leaseProvider, "auction:lease:auction-close-worker", instanceID, leaseTTL, leaseRenewInterval)
 	auctionCloseWorker.Start(ctx)
 	hub.BindSnapshotProvider(auctionUsecase)
-	auctionService := appsvc.NewAuctionService(auctionUsecase, hub)
+	auctionService := appsvc.NewAuctionService(auctionUsecase, hub).
+		SetVerboseBidLog(getenvBool("AUCTION_VERBOSE_BID_LOG", false))
 	userService := appsvc.NewUserService(userUsecase)
 	consulRegistration, err := server.RegisterConsulService(context.Background(), server.ConsulConfig{
 		Addr:           getenv("AUCTION_CONSUL_ADDR", "127.0.0.1:18500"),

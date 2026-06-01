@@ -10,6 +10,7 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 	"live-auction-bid/backend/app/auction/service/internal/observability"
+	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
 )
 
@@ -19,8 +20,9 @@ import (
 // 分层规则：这里只做 proto 入参组装、调用 usecase、包装 proto reply，不写竞拍业务规则。
 type AuctionService struct {
 	v1.UnimplementedAuctionServiceServer
-	auction  *auction.AuctionUsecase
-	presence RoomPresenceProvider
+	auction       *auction.AuctionUsecase
+	presence      RoomPresenceProvider
+	verboseBidLog bool
 }
 
 type RoomPresenceProvider interface {
@@ -32,6 +34,14 @@ func NewAuctionService(auction *auction.AuctionUsecase, presence ...RoomPresence
 	if len(presence) > 0 {
 		s.presence = presence[0]
 	}
+	return s
+}
+
+func (s *AuctionService) SetVerboseBidLog(enabled bool) *AuctionService {
+	if s == nil {
+		return nil
+	}
+	s.verboseBidLog = enabled
 	return s
 }
 
@@ -178,31 +188,35 @@ func (s *AuctionService) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest) 
 		result := ErrorResult(ctx, err)
 		viewer := lotResultViewerFromContext(ctx)
 		observability.RecordBid("rejected", result.GetMessage(), time.Since(start))
-		slog.Warn("auction bid rejected",
-			"trace_id", result.GetTraceId(),
-			"room_id", lot.GetRoomId(),
-			"lot_id", req.GetLotId(),
-			"main_account_id", auth.EffectiveMainAccountID(claims),
-			"user_id", claims.UserID,
-			"idempotency_key", req.GetIdempotencyKey(),
-			"lot_version", lot.GetVersion(),
-			"reason", result.GetMessage(),
-		)
+		if s.verboseBidLog || shouldWarnBidReject(err) {
+			slog.Warn("auction bid rejected",
+				"trace_id", result.GetTraceId(),
+				"room_id", lot.GetRoomId(),
+				"lot_id", req.GetLotId(),
+				"main_account_id", auth.EffectiveMainAccountID(claims),
+				"user_id", claims.UserID,
+				"idempotency_key", req.GetIdempotencyKey(),
+				"lot_version", lot.GetVersion(),
+				"reason", result.GetMessage(),
+			)
+		}
 		return &v1.PlaceBidReply{Result: result, Accepted: false, Lot: auction.LotForViewer(lot, viewer), Ranking: auction.RankingForViewer(ranking, viewer), RejectReason: result.GetMessage()}, nil
 	}
 	viewer := lotResultViewerFromContext(ctx)
 	result := okResult(ctx)
 	observability.RecordBid("accepted", MessageOK, time.Since(start))
-	slog.Info("auction bid accepted",
-		"trace_id", result.GetTraceId(),
-		"room_id", lot.GetRoomId(),
-		"lot_id", lot.GetId(),
-		"main_account_id", auth.EffectiveMainAccountID(claims),
-		"user_id", claims.UserID,
-		"idempotency_key", req.GetIdempotencyKey(),
-		"event_id", "",
-		"lot_version", lot.GetVersion(),
-	)
+	if s.verboseBidLog {
+		slog.Info("auction bid accepted",
+			"trace_id", result.GetTraceId(),
+			"room_id", lot.GetRoomId(),
+			"lot_id", lot.GetId(),
+			"main_account_id", auth.EffectiveMainAccountID(claims),
+			"user_id", claims.UserID,
+			"idempotency_key", req.GetIdempotencyKey(),
+			"event_id", "",
+			"lot_version", lot.GetVersion(),
+		)
+	}
 	return &v1.PlaceBidReply{
 		Result:   result,
 		Accepted: true,
@@ -210,6 +224,20 @@ func (s *AuctionService) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest) 
 		Bid:      auction.BidForViewer(bid, viewer),
 		Ranking:  auction.RankingForViewer(ranking, viewer),
 	}, nil
+}
+
+func shouldWarnBidReject(err error) bool {
+	switch apperr.BusinessCodeForError(err) {
+	case apperr.CodeBidTooLow,
+		apperr.CodeBidAlreadyLeading,
+		apperr.CodeBidNotLive,
+		apperr.CodeBidEnded,
+		apperr.CodeBidCurrencyMismatch,
+		apperr.CodeLotCancelled:
+		return false
+	default:
+		return true
+	}
 }
 
 func (s *AuctionService) RevealTrustCard(ctx context.Context, req *v1.RevealTrustCardRequest) (*v1.RevealTrustCardReply, error) {

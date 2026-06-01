@@ -2179,7 +2179,7 @@ func TestAuctionUsecaseCancelBidRaceDoesNotSettleCancelledLot(t *testing.T) {
 
 func TestRuntimePlaceBidChecksDBStatusBeforeRedisRuntime(t *testing.T) {
 	store := &runtimeGuardStore{testStore: newTestStore()}
-	uc := auction.NewAuctionUsecase(store, store, store, &testPublisher{})
+	uc := auction.NewAuctionUsecase(store, store, store, &testPublisher{}).SetBidDBGuardMode("always")
 	ctx := context.Background()
 
 	lot, err := uc.CreateLot(ctx, &v1.CreateLotRequest{
