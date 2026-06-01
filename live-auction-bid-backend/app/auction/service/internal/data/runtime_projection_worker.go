@@ -317,6 +317,9 @@ func (w *RuntimeProjectionWorker) projectReadyShards(ctx context.Context) error 
 		}
 	}
 	w.metrics.projectionPendingCount.Store(totalPending)
+	if totalPending == 0 {
+		w.metrics.projectionLagMs.Store(0)
+	}
 	w.syncPrometheusMetricsFromStore(ctx)
 	return firstErr
 }
