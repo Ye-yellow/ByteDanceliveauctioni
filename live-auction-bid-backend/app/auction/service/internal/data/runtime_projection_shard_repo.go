@@ -37,12 +37,21 @@ func (s *Store) saveRuntimeProjectionShardOffset(ctx context.Context, shard int,
 	if projectedAtUnixMs <= 0 {
 		projectedAtUnixMs = time.Now().UnixMilli()
 	}
+	nowMs := time.Now().UnixMilli()
+	offset := AuctionRuntimeProjectionShardOffsetModel{
+		ShardID:               shard,
+		LastStreamID:          streamID,
+		LastProjectedAtUnixMs: projectedAtUnixMs,
+		UpdatedAtUnixMs:       nowMs,
+	}
 	return s.db.WithContext(ctx).
-		Model(&AuctionRuntimeProjectionShardOffsetModel{}).
-		Where("shard_id = ?", shard).
-		Updates(map[string]any{
-			"last_stream_id":            streamID,
-			"last_projected_at_unix_ms": projectedAtUnixMs,
-			"updated_at_unix_ms":        time.Now().UnixMilli(),
-		}).Error
+		Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "shard_id"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"last_stream_id":            streamID,
+				"last_projected_at_unix_ms": projectedAtUnixMs,
+				"updated_at_unix_ms":        nowMs,
+			}),
+		}).
+		Create(&offset).Error
 }

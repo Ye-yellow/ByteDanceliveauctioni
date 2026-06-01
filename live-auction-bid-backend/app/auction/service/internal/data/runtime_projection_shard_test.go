@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
+
+	"gorm.io/gorm/schema"
 )
 
 func TestRuntimeProjectionShardStableAndInRange(t *testing.T) {
@@ -30,6 +32,20 @@ func TestStoreRuntimeProjectionShardUsesConfiguredShardCount(t *testing.T) {
 		if got < 0 || got >= 4 {
 			t.Fatalf("configured shard out of range: lot=%s got=%d", lotID, got)
 		}
+	}
+}
+
+func TestRuntimeProjectionShardOffsetShardIDDoesNotAutoIncrement(t *testing.T) {
+	parsed, err := schema.Parse(&AuctionRuntimeProjectionShardOffsetModel{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("parse shard offset schema: %v", err)
+	}
+	field := parsed.LookUpField("ShardID")
+	if field == nil {
+		t.Fatal("ShardID field should exist")
+	}
+	if field.AutoIncrement {
+		t.Fatal("ShardID must not auto-increment because shard 0 is a valid projection shard")
 	}
 }
 

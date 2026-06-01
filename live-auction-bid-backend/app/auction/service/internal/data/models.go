@@ -132,7 +132,7 @@ func (AuctionRuntimeProjectionOffsetModel) TableName() string {
 }
 
 type AuctionRuntimeProjectionShardOffsetModel struct {
-	ShardID               int    `gorm:"column:shard_id;primaryKey"`
+	ShardID               int    `gorm:"column:shard_id;primaryKey;autoIncrement:false"`
 	LastStreamID          string `gorm:"column:last_stream_id;type:varchar(64);not null;default:'0-0'"`
 	LastProjectedAtUnixMs int64  `gorm:"column:last_projected_at_unix_ms;not null;default:0"`
 	UpdatedAtUnixMs       int64  `gorm:"column:updated_at_unix_ms;not null"`
