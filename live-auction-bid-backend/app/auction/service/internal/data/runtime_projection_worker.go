@@ -631,7 +631,27 @@ func (w *RuntimeProjectionWorker) projectMessage(ctx context.Context, stream str
 		w.metrics.projectionFailedTotal.Add(1)
 		if apperr.IsRuntimeProjectionGap(err) {
 			w.metrics.projectionGapTotal.Add(1)
+			slog.Warn("runtime projection gap",
+				"stream", stream,
+				"stream_id", message.ID,
+				"lot_id", projection.LotID,
+				"previous_lot_version", projection.PreviousLotVersion,
+				"lot_version", projection.LotVersion,
+				"runtime_event_id", projection.RuntimeEventID,
+				"error", err,
+			)
+			return fmt.Errorf("%w: stream=%s stream_id=%s lot_id=%s previous_lot_version=%d lot_version=%d",
+				err, stream, message.ID, projection.LotID, projection.PreviousLotVersion, projection.LotVersion)
 		}
+		slog.Warn("runtime projection failed",
+			"stream", stream,
+			"stream_id", message.ID,
+			"lot_id", projection.LotID,
+			"previous_lot_version", projection.PreviousLotVersion,
+			"lot_version", projection.LotVersion,
+			"runtime_event_id", projection.RuntimeEventID,
+			"error", err,
+		)
 		return err
 	}
 	if ack {

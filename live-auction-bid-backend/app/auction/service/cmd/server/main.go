@@ -82,7 +82,12 @@ func main() {
 	eventPublisher := realtime.NewPublisher(hub)
 	auctionUsecase := auction.NewAuctionUsecase(store, store, store, eventPublisher).
 		SetSyncRuntimeProjection(getenvBool("AUCTION_BID_SYNC_PROJECTION", false))
-	runtimeProjectionWorker := data.NewRuntimeProjectionWorker(store, eventPublisher, 2*time.Second, 100)
+	runtimeProjectionWorker := data.NewRuntimeProjectionWorker(
+		store,
+		eventPublisher,
+		getenvDuration("AUCTION_RUNTIME_PROJECTION_INTERVAL", 2*time.Second),
+		getenvInt("AUCTION_RUNTIME_PROJECTION_BATCH_LIMIT", 100),
+	)
 	runtimeProjectionWorker.BindLease(leaseProvider, instanceID, leaseTTL, leaseRenewInterval)
 	runtimeProjectionWorker.Start(ctx)
 	hub.BindRoomAccessValidator(auctionUsecase)
