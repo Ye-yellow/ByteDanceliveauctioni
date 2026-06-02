@@ -97,6 +97,7 @@ const permissionCodeValues = new Set<PermissionCode>([
   'team.user.list',
   'team.user.update_role',
   'team.user.update_status',
+  'team.user.reset_password',
   'lot.create',
   'lot.update',
   'lot.queue',
