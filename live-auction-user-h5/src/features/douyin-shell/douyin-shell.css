@@ -12,6 +12,17 @@
   user-select: none;
 }
 
+#root > .mobileShell.dyHomeReplicaShell {
+  overflow: hidden;
+  overscroll-behavior: none;
+  scrollbar-width: none;
+}
+
+#root > .mobileShell.dyHomeReplicaShell::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 .dyHomeReplicaShell.isSheetOpen {
   cursor: default;
 }
@@ -1764,11 +1775,12 @@
 }
 
 .dyVideoReplicaSearch {
-  position: fixed;
+  position: absolute;
   z-index: var(--live-z-sticky);
   top: calc(8px + var(--live-safe-top));
   left: 0;
-  width: 100vw;
+  right: 0;
+  width: auto;
   box-sizing: border-box;
   display: flex;
   gap: 15px;

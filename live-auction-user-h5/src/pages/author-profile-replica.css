@@ -5,7 +5,22 @@
   overflow: auto;
   background: #111216;
   color: #fff;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
+}
+
+#root > .mobileShell.dyAuthorProfile {
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.dyAuthorProfile::-webkit-scrollbar,
+#root > .mobileShell.dyAuthorProfile::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .dyAuthorFloat {

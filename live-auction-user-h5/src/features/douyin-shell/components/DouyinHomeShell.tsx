@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode, type TouchEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode, type TouchEvent, type WheelEvent } from 'react';
 import { listPublicRooms } from '../../auction/api/auctionApi';
 import { resolveLivePlaylist } from '../../live/hooks/useLivePlayer';
 import type { Room } from '../../../shared/api/types';
@@ -115,6 +115,9 @@ const VIDEO_FEED_ITEMS = FEED_ITEMS.filter((item) => item.kind === 'video');
 const HORIZONTAL_SWIPE_DISTANCE = 44;
 const VERTICAL_SWIPE_DISTANCE = 44;
 const QUICK_SWIPE_MS = 280;
+const WHEEL_SWIPE_DISTANCE = 72;
+const WHEEL_LOCK_MS = 330;
+const WHEEL_STALE_MS = 180;
 const CHANNEL_VIDEO_WINDOW = 32;
 const HOME_RETURN_STATE_KEY = 'douyin-home-return-state';
 const HOME_RETURN_STATE_TTL_MS = 5 * 60 * 1000;
@@ -180,6 +183,20 @@ function shuffleItems<T>(items: T[]) {
 
 function swipeDistance(distance: number, elapsed: number, baseDistance: number) {
   return Math.abs(distance) > (elapsed < QUICK_SWIPE_MS ? baseDistance * 0.72 : baseDistance);
+}
+
+function shouldLetWheelScroll(target: EventTarget | null) {
+  if (!(target instanceof Element)) return false;
+  return Boolean(target.closest([
+    '.dyHomeReplicaSheet',
+    '.dyCommentSheet',
+    '.dyBottomSheet',
+    '.dyHomeReplicaSidebar',
+    '.dyHomeReplicaUserPanel',
+    'input',
+    'textarea',
+    'select',
+  ].join(',')));
 }
 
 function normalizeRemoteAsset(url?: string) {
@@ -912,6 +929,7 @@ export function DouyinHomeShell() {
   const [publicRooms, setPublicRooms] = useState<Room[]>([]);
   const [remoteVideoItems, setRemoteVideoItems] = useState<FeedItem[]>([]);
   const touchStart = useRef({ x: 0, y: 0, at: 0 });
+  const wheelGesture = useRef({ x: 0, y: 0, lastAt: 0, lockedUntil: 0 });
   const fallbackVideoItems = useMemo(() => shuffleItems(VIDEO_FEED_ITEMS), []);
   const videoItems = remoteVideoItems.length ? remoteVideoItems : fallbackVideoItems;
   const liveItems = useMemo(() => liveRoomFeedItems(publicRooms), [publicRooms]);
@@ -1002,6 +1020,43 @@ export function DouyinHomeShell() {
     }
   }
 
+  function handleWheel(event: WheelEvent<HTMLElement>) {
+    if (sheet || baseIndex !== 1 || shouldLetWheelScroll(event.target)) return;
+    event.preventDefault();
+
+    const now = Date.now();
+    const gesture = wheelGesture.current;
+    if (now < gesture.lockedUntil) return;
+    if (now - gesture.lastAt > WHEEL_STALE_MS) {
+      gesture.x = 0;
+      gesture.y = 0;
+    }
+
+    gesture.x += event.deltaX;
+    gesture.y += event.deltaY;
+    gesture.lastAt = now;
+
+    const absX = Math.abs(gesture.x);
+    const absY = Math.abs(gesture.y);
+    if (Math.max(absX, absY) < WHEEL_SWIPE_DISTANCE) return;
+
+    if (absY >= absX * 1.08) {
+      setCurrentItemIndex((current) => current + (gesture.y > 0 ? 1 : -1));
+    } else if (absX >= absY * 1.08) {
+      if (gesture.x > 0) {
+        if (channelIndex < CHANNELS.length - 1) setChannelIndex((current) => current + 1);
+        else setBaseIndex(2);
+      } else if (channelIndex > 0) {
+        setChannelIndex((current) => current - 1);
+      } else {
+        setBaseIndex(0);
+      }
+    }
+
+    setPausedId('');
+    wheelGesture.current = { x: 0, y: 0, lastAt: now, lockedUntil: now + WHEEL_LOCK_MS };
+  }
+
   function selectChannel(index: number) {
     setChannelIndex(index);
     setPausedId('');
@@ -1060,7 +1115,7 @@ export function DouyinHomeShell() {
   ].filter(Boolean).join(' ');
 
   return (
-    <main className={shellClassName} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+    <main className={shellClassName} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} onWheel={handleWheel}>
       <section className="dyHomeReplicaHorizontal" style={{ transform: `translateX(-${horizontalOffset}%)` }}>
         <Sidebar onClose={() => setBaseIndex(1)} />
         <section className="dyHomeReplicaMain">

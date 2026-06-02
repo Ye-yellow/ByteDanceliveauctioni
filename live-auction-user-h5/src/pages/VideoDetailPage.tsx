@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type TouchEvent } from 'react';
 import { DouyinCommentSheet } from '../shared/ui/DouyinCommentSheet';
 import { DouyinLoading } from '../shared/ui/DouyinLoading';
+import '../features/douyin-shell/douyin-shell.css';
 
 type RawAuthor = {
   uid?: string;
