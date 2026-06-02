@@ -42,6 +42,12 @@ export const USER_STATUS_OPTIONS: Array<{ status: UserStatus; label: string; hin
   { status: USER_STATUS.DISABLED, label: '已停用', hint: '不能登录，已有会话会被后端撤销', tone: 'danger' },
 ];
 
+export const USER_STATUS_FILTERS: Array<{ label: string; value: UserStatus | '' }> = [
+  { label: '全部状态', value: '' },
+  { label: '启用中', value: USER_STATUS.ACTIVE },
+  { label: '已停用', value: USER_STATUS.DISABLED },
+];
+
 export function userStatusMeta(status?: UserStatus | string | null) {
   return USER_STATUS_OPTIONS.find((item) => item.status === status) ?? {
     status: String(status || USER_STATUS.UNSPECIFIED),

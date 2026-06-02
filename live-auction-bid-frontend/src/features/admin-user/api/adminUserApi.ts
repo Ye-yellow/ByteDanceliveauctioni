@@ -8,6 +8,7 @@ export type AdminUsersQuery = {
   page?: number;
   pageSize?: number;
   roleCode?: RoleCode | '';
+  status?: UserStatus | '';
   keyword?: string;
 };
 
@@ -63,6 +64,7 @@ export async function listAdminUsers(query: AdminUsersQuery = {}): Promise<Admin
       page,
       pageSize,
       roleCode: query.roleCode,
+      status: query.status,
       keyword: query.keyword?.trim(),
     })}`,
     method: 'GET',
@@ -91,5 +93,14 @@ export async function adminUpdateUserStatus(userId: string, status: UserStatus) 
     method: 'POST',
     body: { userId, status },
     operation: 'admin-update-user-status',
+  })));
+}
+
+export async function adminResetUserPassword(userId: string, password: string) {
+  return requireUser(assertOkResult(await apiRequest<AdminUserReply>({
+    path: `/api/admin/users/${encodeURIComponent(userId)}/reset-password`,
+    method: 'POST',
+    body: { userId, password },
+    operation: 'admin-reset-user-password',
   })));
 }

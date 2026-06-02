@@ -41,6 +41,7 @@ export const PERMISSION_CODE = {
   TEAM_USER_LIST: 'team.user.list',
   TEAM_USER_UPDATE_ROLE: 'team.user.update_role',
   TEAM_USER_UPDATE_STATUS: 'team.user.update_status',
+  TEAM_USER_RESET_PASSWORD: 'team.user.reset_password',
   LOT_CREATE: 'lot.create',
   LOT_UPDATE: 'lot.update',
   LOT_QUEUE: 'lot.queue',

@@ -48,7 +48,59 @@ export interface paths {
         /** List team users for current main account */
         get: operations["listAdminUsers"];
         put?: never;
-        post?: never;
+        /** Create a scoped team user for current main account */
+        post: operations["adminCreateUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{user_id}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update a scoped team user's role */
+        post: operations["adminUpdateUserRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{user_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enable or disable a scoped team user */
+        post: operations["adminUpdateUserStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{user_id}/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset a scoped team user's password and revoke sessions */
+        post: operations["adminResetUserPassword"];
         delete?: never;
         options?: never;
         head?: never;
@@ -143,6 +195,8 @@ export interface components {
         LotStatus: "LOT_STATUS_UNSPECIFIED" | "LOT_STATUS_DRAFT" | "LOT_STATUS_READY" | "LOT_STATUS_QUEUED" | "LOT_STATUS_LIVE" | "LOT_STATUS_EXTENDED" | "LOT_STATUS_SETTLED" | "LOT_STATUS_CANCELLED" | "LOT_STATUS_FAILED";
         /** @enum {string} */
         UserStatus: "USER_STATUS_UNSPECIFIED" | "USER_STATUS_ACTIVE" | "USER_STATUS_DISABLED";
+        /** @enum {string} */
+        TeamRoleCode: "anchor" | "operator";
         /** @enum {string} */
         AuctionState: "DRAFT" | "QUEUED" | "LIVE" | "EXTENDED" | "SETTLED" | "CANCELLED" | "FAILED";
         /** @enum {string} */
@@ -278,6 +332,28 @@ export interface components {
             /** Format: int32 */
             pageSize: number;
         };
+        AdminUserResponse: {
+            result: components["schemas"]["ReplyResult"];
+            user: components["schemas"]["User"];
+        };
+        AdminCreateUserRequest: {
+            username: string;
+            password: string;
+            nickname: string;
+            roleCode: components["schemas"]["TeamRoleCode"];
+        };
+        AdminUpdateUserRoleRequest: {
+            userId: string;
+            roleCode: components["schemas"]["TeamRoleCode"];
+        };
+        AdminUpdateUserStatusRequest: {
+            userId: string;
+            status: components["schemas"]["UserStatus"];
+        };
+        AdminResetUserPasswordRequest: {
+            userId: string;
+            password: string;
+        };
         ListBidRecordsResponse: {
             result: components["schemas"]["ReplyResult"];
             bids: components["schemas"]["BidRecord"][];
@@ -375,7 +451,8 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                roleCode?: "anchor" | "operator";
+                roleCode?: components["schemas"]["TeamRoleCode"];
+                status?: components["schemas"]["UserStatus"];
                 keyword?: string;
             };
             header?: never;
@@ -391,6 +468,108 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ListUsersResponse"];
+                };
+            };
+        };
+    };
+    adminCreateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCreateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope with created team user. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserResponse"];
+                };
+            };
+        };
+    };
+    adminUpdateUserRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUpdateUserRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope with updated team user. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserResponse"];
+                };
+            };
+        };
+    };
+    adminUpdateUserStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUpdateUserStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope with updated team user. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserResponse"];
+                };
+            };
+        };
+    };
+    adminResetUserPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminResetUserPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope with updated team user. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserResponse"];
                 };
             };
         };

@@ -1168,10 +1168,21 @@
   line-height: 18px;
 }
 
-.merchantLotRow a {
+.merchantLotRow a,
+.merchantLotLinkButton {
+  border: 0;
+  padding: 0;
+  background: transparent;
   color: var(--merchant-blue);
+  font: inherit;
   font-weight: 850;
   text-decoration: none;
+  cursor: pointer;
+}
+
+.merchantLotLinkButton:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 @keyframes merchantFunnelIn {

@@ -30,6 +30,7 @@ import { formatDateTimeText, formatMoneyText } from '../../shared/lib/format';
 import { REALTIME_CONSOLE_EVENTS, REALTIME_EVENT } from '../../shared/realtime/events';
 import { useRoomSocket } from '../../shared/realtime/useRoomSocket';
 import { StudioBadge, StudioButton, StudioCard, StudioEmptyState, StudioPageHeader, StudioTableSkeleton, type StudioTone } from '../../pages/host-console/components/studio-ui';
+import { AuctionDetailDrawer } from './AuctionManagementPage';
 import './admin-dashboard.css';
 
 type DashboardRange = 'today' | 'live' | '7d' | '30d';
@@ -139,6 +140,7 @@ export function AdminDashboardPage({ roomId, roomName = roomId }: { roomId: stri
   const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedLot, setSelectedLot] = useState<Lot | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(0);
   const [refreshSeq, setRefreshSeq] = useState(0);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -269,10 +271,11 @@ export function AdminDashboardPage({ roomId, roomName = roomId }: { roomId: stri
           <OrderRiskPanel analytics={analytics} nowMs={nowMs} />
         </StudioCard>
         <StudioCard title="拍品表现明细" subtitle="Lot table" className="merchantPanel merchantLotTablePanel">
-          <LotPerformanceTable lots={analytics.lotPerformance} refreshSeq={refreshSeq} />
+          <LotPerformanceTable lots={analytics.lotPerformance} refreshSeq={refreshSeq} onOpenLot={setSelectedLot} />
         </StudioCard>
       </section>
     </>}
+    {selectedLot ? <AuctionDetailDrawer lot={selectedLot} snapshot={snapshot} onClose={() => setSelectedLot(null)} /> : null}
   </section>;
 }
 
@@ -574,7 +577,7 @@ function OrderRiskPanel({ analytics, nowMs }: { analytics: DashboardAnalytics; n
   </div>;
 }
 
-function LotPerformanceTable({ lots, refreshSeq }: { lots: LotPerformance[]; refreshSeq: number }) {
+function LotPerformanceTable({ lots, refreshSeq, onOpenLot }: { lots: LotPerformance[]; refreshSeq: number; onOpenLot: (lot: Lot) => void }) {
   if (!lots.length) return <StudioEmptyState compact icon={<ShoppingBag size={28} />} title="暂无拍品明细" description="当前范围没有拍品表现数据。" />;
   return <div className="merchantLotTable" key={refreshSeq}>
     <div className="merchantLotTableHead">
@@ -598,7 +601,7 @@ function LotPerformanceTable({ lots, refreshSeq }: { lots: LotPerformance[]; ref
       <div data-label="溢价率">{formatPercent(item.premiumRate)}</div>
       <div data-label="出价次数">{item.bidCount === undefined ? '—' : item.bidCount.toLocaleString('zh-CN')}</div>
       <div data-label="支付">{item.paymentStatus ? <StudioBadge tone={paymentStatusTone(item.paymentStatus)}>{paymentStatusLabel(item.paymentStatus)}</StudioBadge> : <StudioBadge tone="neutral">无订单</StudioBadge>}</div>
-      <div data-label="操作"><a href={`/admin/auctions/create?lotId=${encodeURIComponent(item.lot.id)}`}>查看</a></div>
+      <div data-label="操作"><button type="button" className="merchantLotLinkButton" onClick={() => onOpenLot(item.lot)}>查看</button></div>
     </div>)}
   </div>;
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 
 export type StudioTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'purple';
 export type StudioButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'soft';
@@ -51,6 +52,53 @@ export function StudioPageHeader({ eyebrow, title, description, actions, classNa
 
 export function StudioMetricCard({ icon, label, value, trend, tone = 'info' }: { icon?: ReactNode; label: ReactNode; value: ReactNode; trend?: ReactNode; tone?: StudioTone }) {
   return <article className={`studioMetricCard studioMetric-${tone}`}><span>{icon}</span><div><p>{label}</p><strong>{value}</strong>{trend ? <small>{trend}</small> : null}</div></article>;
+}
+
+type StudioOverlayProps = {
+  eyebrow?: ReactNode;
+  title: ReactNode;
+  description?: ReactNode;
+  children: ReactNode;
+  footer?: ReactNode;
+  onClose: () => void;
+  className?: string;
+};
+
+function studioOverlayLabel(title: ReactNode) {
+  return typeof title === 'string' || typeof title === 'number' ? String(title) : 'Studio dialog';
+}
+
+function studioPortal(node: ReactNode) {
+  if (typeof document === 'undefined') return node;
+  return createPortal(node, document.querySelector('.laAdminShell') || document.body);
+}
+
+export function StudioDrawer({ eyebrow, title, description, children, footer, onClose, className = '' }: StudioOverlayProps) {
+  return studioPortal(<div className={`studioOverlay studioDrawerOverlay ${className}`.trim()}>
+    <button className="studioOverlayBackdrop" type="button" aria-label="关闭" onClick={onClose} />
+    <aside className="studioDrawerPanel" role="dialog" aria-modal="true" aria-label={studioOverlayLabel(title)}>
+      <header className="studioOverlayHeader">
+        <div>{eyebrow ? <p>{eyebrow}</p> : null}<h2>{title}</h2>{description ? <span>{description}</span> : null}</div>
+        <button className="studioOverlayClose" type="button" aria-label="关闭" onClick={onClose}><X size={17} /></button>
+      </header>
+      <div className="studioOverlayBody">{children}</div>
+      {footer ? <footer className="studioOverlayFooter">{footer}</footer> : null}
+    </aside>
+  </div>);
+}
+
+export function StudioDialog({ eyebrow, title, description, children, footer, onClose, className = '' }: StudioOverlayProps) {
+  return studioPortal(<div className={`studioOverlay studioDialogOverlay ${className}`.trim()}>
+    <button className="studioOverlayBackdrop" type="button" aria-label="关闭" onClick={onClose} />
+    <section className="studioDialogPanel" role="dialog" aria-modal="true" aria-label={studioOverlayLabel(title)}>
+      <header className="studioOverlayHeader">
+        <div>{eyebrow ? <p>{eyebrow}</p> : null}<h2>{title}</h2>{description ? <span>{description}</span> : null}</div>
+        <button className="studioOverlayClose" type="button" aria-label="关闭" onClick={onClose}><X size={17} /></button>
+      </header>
+      <div className="studioOverlayBody">{children}</div>
+      {footer ? <footer className="studioOverlayFooter">{footer}</footer> : null}
+    </section>
+  </div>);
 }
 
 type StudioTableProps<T> = {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Gavel, Package, Radio, RefreshCw, Search, ShieldAlert, ShieldCheck, Trophy, Wifi } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Gavel, Package, Radio, RefreshCw, Search, ShieldAlert, ShieldCheck, Trophy, Wifi, X } from 'lucide-react';
 import { cancelLot, getRoomSnapshot, listAdminLots, settleLot, startLot, type AdminLotsQuery } from '../auction/api/auctionApi';
 import { CURRENT_LOT_STATUS_FILTERS, isLiveLot, isPreStartCancellableLot, isQueueReadyLot, isRemovedFromCurrentQueueLot, isSettlementLot, lotStatusLabel, lotStatusTone, settlementOutcomeDisplay, uiStatusOfLot } from '../../entities/auction/model/auctionStatus';
 import type { Lot, RoomSnapshot } from '../../shared/api/types';
@@ -246,10 +246,81 @@ function lotResultMoney(lot: Lot) {
   return lot.rule.startPrice;
 }
 
-function AuctionDetailDrawer({ lot, snapshot, onClose }: { lot: Lot; snapshot: RoomSnapshot | null; onClose: () => void }) {
+export function AuctionDetailDrawer({ lot, snapshot, onClose }: { lot: Lot; snapshot: RoomSnapshot | null; onClose: () => void }) {
   const bids = snapshot?.currentLot?.id === lot.id ? snapshot.recentBids : [];
   const outcome = isSettlementLot(lot) ? settlementOutcomeDisplay(lot) : null;
-  return <aside className="auctionDrawer"><div className="drawerMask" onClick={onClose} /><section><header><div><p>竞拍详情</p><h3>{lot.title}</h3><span>{lot.id}</span></div><button type="button" onClick={onClose}>关闭</button></header><div className="drawerOverview"><StudioBadge tone={outcome?.tone ?? lotStatusTone(lot.status)}>{outcome?.label ?? lotStatusLabel(lot.status)}</StudioBadge><b>{formatMoneyText(drawerPrimaryPrice(lot))}</b><p>{lot.description || '暂无描述'}</p><span>{drawerPersonText(lot)}</span><span>规则版本：v{lot.version || 1}</span></div><div className="ruleSnapshotGrid">{[['起拍价', formatMoneyText(lot.rule.startPrice)], ['加价幅度', formatMoneyText(lot.rule.minIncrement)], ['竞拍时长', formatDurationText(lot.rule.durationSeconds)], ['封顶价', formatMoneyText(lot.rule.capPrice)], ['延时窗口', `${lot.rule.antiSnipeWindowSeconds}s`], ['最大延时', `${lot.rule.maxExtendCount}`]].map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}</div><div className="drawerBidList">{bids.length ? bids.map((bid) => <div key={bid.id}><span>{bid.nickname || bid.userId}</span><b>{formatMoneyText(bid.amount)}</b><small>{formatDateTimeText(bid.createdAtUnixMs)} · {bid.userId === lot.leadingUserId ? '领先' : '非领先'}</small></div>) : <StudioEmptyState compact icon={<CheckCircle2 size={22} />} title="暂无实时出价" description="当前房间快照没有 recentBids。" />}</div></section></aside>;
+  const media = [lot.imageUrl, ...(lot.galleryImageUrls ?? [])].filter(Boolean);
+  const isCurrentLot = snapshot?.currentLot?.id === lot.id;
+  const bidEmptyDescription = isCurrentLot ? '当前房间快照暂未同步 recentBids。' : '该拍品不是当前开拍项，实时出价只在直播中拍品展示。';
+  const rules: [string, string][] = [
+    ['起拍价', formatMoneyText(lot.rule.startPrice)],
+    ['加价幅度', formatMoneyText(lot.rule.minIncrement)],
+    ['竞拍时长', formatDurationText(lot.rule.durationSeconds)],
+    ['封顶价', formatMoneyText(lot.rule.capPrice)],
+    ['延时窗口', `${lot.rule.antiSnipeWindowSeconds}s`],
+    ['最大延时', `${lot.rule.maxExtendCount}`],
+  ];
+
+  return (
+    <aside className="auctionDrawer auctionDetailDrawer" role="dialog" aria-modal="true" aria-label="拍品详情">
+      <div className="drawerMask" onClick={onClose} />
+      <section className="auctionDetailPanel">
+        <header className="auctionDetailHeader">
+          <div>
+            <p>竞拍详情</p>
+            <h3>{lot.title}</h3>
+            <span>{lot.id}</span>
+          </div>
+          <button type="button" className="auctionDetailClose" onClick={onClose} aria-label="关闭详情">
+            <X size={17} />
+            <span>关闭</span>
+          </button>
+        </header>
+
+        <div className="auctionDetailHero">
+          <div className="auctionDetailMedia">
+            {media[0] ? <img src={media[0]} alt={lot.title} /> : <Package size={34} />}
+          </div>
+          <div className="auctionDetailSummary">
+            <StudioBadge tone={outcome?.tone ?? lotStatusTone(lot.status)}>{outcome?.label ?? lotStatusLabel(lot.status)}</StudioBadge>
+            <strong>{formatMoneyText(drawerPrimaryPrice(lot))}</strong>
+            <p>{lot.description || '暂无描述'}</p>
+            <div>
+              <span>{drawerPersonText(lot)}</span>
+              <span>规则版本：v{lot.version || 1}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="auctionDetailStats" aria-label="拍品数据">
+          <div><span>分类</span><b>{lot.category || '未分类'}</b></div>
+          <div><span>库存</span><b>{lot.stock || 1} 件</b></div>
+          <div><span>出价</span><b>{lot.stats?.bidCount ?? 0} 次</b></div>
+          <div><span>参与</span><b>{lot.stats?.participantCount ?? 0} 人</b></div>
+        </div>
+
+        <section className="auctionDetailSection">
+          <h4>竞拍规则</h4>
+          <div className="ruleSnapshotGrid">
+            {rules.map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}
+          </div>
+        </section>
+
+        <section className="auctionDetailSection">
+          <h4>实时出价</h4>
+          <div className="drawerBidList">
+            {bids.length ? bids.map((bid) => (
+              <div key={bid.id}>
+                <span>{bid.nickname || bid.userId}</span>
+                <b>{formatMoneyText(bid.amount)}</b>
+                <small>{formatDateTimeText(bid.createdAtUnixMs)} · {bid.userId === lot.leadingUserId ? '领先' : '非领先'}</small>
+              </div>
+            )) : <StudioEmptyState compact icon={<CheckCircle2 size={22} />} title="暂无实时出价" description={bidEmptyDescription} />}
+          </div>
+        </section>
+      </section>
+    </aside>
+  );
 }
 
 function CancelAuctionDialog({ lot, onClose, onConfirm }: { lot: Lot; onClose: () => void; onConfirm: (lot: Lot, reason: string) => Promise<void> }) {

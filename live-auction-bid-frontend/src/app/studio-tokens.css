@@ -1383,6 +1383,307 @@ button:disabled {
   margin-top: 20px;
 }
 
+.studioOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--studio-z-modal);
+  display: grid;
+  pointer-events: auto;
+}
+
+.studioOverlayBackdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--postlive-overlay-bg);
+  cursor: pointer;
+}
+
+.studioDrawerOverlay {
+  align-items: stretch;
+  justify-items: end;
+}
+
+.studioDrawerPanel,
+.studioDialogPanel {
+  position: relative;
+  z-index: var(--studio-z-raised);
+  min-width: 0;
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  box-shadow: var(--studio-shadow-lg);
+}
+
+.studioDrawerPanel {
+  display: flex;
+  flex-direction: column;
+  width: min(540px, 100vw);
+  height: 100dvh;
+  border-width: 0 0 0 1px;
+}
+
+.studioDialogOverlay {
+  place-items: center;
+  padding: 22px;
+}
+
+.studioDialogPanel {
+  display: flex;
+  flex-direction: column;
+  width: min(500px, calc(100vw - 32px));
+  max-height: calc(100dvh - 44px);
+  overflow: hidden;
+  border-radius: var(--studio-radius-xl);
+}
+
+.studioOverlayHeader,
+.studioOverlayFooter {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 20px;
+}
+
+.studioOverlayHeader {
+  border-bottom: 1px solid var(--studio-border);
+  background: var(--studio-surface-soft);
+}
+
+.studioOverlayHeader p,
+.studioOverlayHeader h2,
+.studioOverlayHeader span {
+  margin: 0;
+}
+
+.studioOverlayHeader p {
+  margin-bottom: 5px;
+  color: var(--studio-text-3);
+  font-size: var(--studio-fs-caption);
+  line-height: var(--studio-lh-caption);
+  font-weight: var(--studio-fw-strong);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.studioOverlayHeader h2 {
+  color: var(--studio-text);
+  font-size: var(--studio-fs-section);
+  line-height: var(--studio-lh-section);
+  font-weight: var(--studio-fw-section);
+}
+
+.studioOverlayHeader span {
+  display: block;
+  margin-top: 4px;
+  color: var(--studio-text-3);
+  font-size: var(--studio-fs-meta);
+  line-height: var(--studio-lh-meta);
+}
+
+.studioOverlayClose {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+  color: var(--studio-text-2);
+  box-shadow: var(--studio-shadow-sm);
+}
+
+.studioOverlayClose:hover {
+  border-color: var(--studio-color-info-border);
+  background: var(--studio-primary-soft);
+  color: var(--studio-primary-hover);
+}
+
+.studioOverlayBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 20px;
+  overflow: auto;
+}
+
+.studioOverlayFooter {
+  justify-content: flex-end;
+  border-top: 1px solid var(--studio-border);
+  background: var(--studio-surface);
+}
+
+.laAdminShell .teamAccountHeroActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.laAdminShell .teamAccountFilterCard {
+  overflow: visible;
+}
+
+.laAdminShell .teamAccountFilters {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(160px, 220px) minmax(150px, 190px) auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.laAdminShell .teamAccountSearchField {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+  color: var(--studio-text-3);
+}
+
+.laAdminShell .teamAccountSearchField input {
+  min-width: 0;
+  width: 100%;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--studio-text);
+  outline: none;
+}
+
+.laAdminShell .teamAccountSearchField:focus-within {
+  border-color: var(--studio-primary);
+  box-shadow: var(--studio-field-focus-ring);
+}
+
+.laAdminShell .teamAccountTable .studioTable {
+  min-width: 980px;
+}
+
+.laAdminShell .teamAccountUserCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 240px;
+}
+
+.laAdminShell .teamAccountAvatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-primary-soft);
+  color: var(--studio-primary-hover);
+  font-weight: var(--studio-fw-strong);
+}
+
+.laAdminShell .teamAccountUserCell div,
+.laAdminShell .teamAccountRoleCell {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.laAdminShell .teamAccountUserCell b,
+.laAdminShell .teamAccountUserCell span,
+.laAdminShell .teamAccountUserCell code,
+.laAdminShell .teamAccountRoleCell span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.laAdminShell .teamAccountUserCell span,
+.laAdminShell .teamAccountRoleCell span {
+  color: var(--studio-text-3);
+}
+
+.laAdminShell .teamAccountUserCell code {
+  color: var(--studio-text-3);
+  font-size: var(--studio-fs-caption);
+  line-height: var(--studio-lh-caption);
+}
+
+.laAdminShell .teamAccountActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 260px;
+}
+
+.laAdminShell .teamAccountForm {
+  display: grid;
+  gap: 16px;
+}
+
+.laAdminShell .teamAccountRoleChoices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.laAdminShell .teamAccountRoleChoices button {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface);
+  color: var(--studio-text-2);
+  text-align: left;
+  box-shadow: var(--studio-shadow-sm);
+}
+
+.laAdminShell .teamAccountRoleChoices button.active {
+  border-color: var(--studio-color-info-border);
+  background: var(--studio-primary-soft);
+  color: var(--studio-primary-hover);
+}
+
+.laAdminShell .teamAccountRoleChoices span {
+  color: var(--studio-text-3);
+  font-size: var(--studio-fs-caption);
+  line-height: var(--studio-lh-caption);
+}
+
+.laAdminShell .teamAccountDialogSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface-soft);
+}
+
+.laAdminShell .teamAccountDialogSummary > span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--studio-text);
+  font-weight: var(--studio-fw-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .laAdminShell .studioPage:has(.realtimeDiagPage),
 .laAdminShell .studioPage:has(.settingsPage),
 .laAdminShell .studioPage:has(.alertsPage) {
@@ -1425,14 +1726,76 @@ button:disabled {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .laAdminShell .teamAccountFilters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .laAdminShell .teamAccountSearchField {
+    grid-column: 1 / -1;
+  }
+
+  .laAdminShell .teamAccountFilters .studioButton {
+    justify-self: start;
+  }
+
   .laAdminShell .settingsPage {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 760px) {
+  .studioDialogOverlay {
+    padding: 12px;
+  }
+
+  .studioDialogPanel {
+    width: min(100%, calc(100vw - 24px));
+  }
+
+  .studioOverlayHeader,
+  .studioOverlayBody,
+  .studioOverlayFooter {
+    padding: 16px;
+  }
+
+  .studioOverlayFooter {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .studioOverlayFooter .studioButton {
+    width: 100%;
+  }
+
   .laAdminShell .teamAccountPage .laStatsGrid {
     grid-template-columns: 1fr;
+  }
+
+  .laAdminShell .teamAccountHeroActions,
+  .laAdminShell .teamAccountHeroActions .studioButton {
+    width: 100%;
+  }
+
+  .laAdminShell .teamAccountHeroActions {
+    justify-content: stretch;
+  }
+
+  .laAdminShell .teamAccountFilters,
+  .laAdminShell .teamAccountRoleChoices {
+    grid-template-columns: 1fr;
+  }
+
+  .laAdminShell .teamAccountFilters .studioButton {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .laAdminShell .teamAccountActions {
+    min-width: 0;
+  }
+
+  .laAdminShell .teamAccountActions .studioButton {
+    flex: 1 1 96px;
   }
 
   .laAdminShell .settingsPage {
@@ -6846,4 +7209,318 @@ html body .laAdminShell .studioContent:has(.historyDetailOverlay) {
 
 html body .laAdminShell .historyDetailOverlay {
   z-index: calc(var(--studio-z-modal) + 1) !important;
+}
+
+/* Unified clay button press language across admin, login, and home entry. */
+:root {
+  --clay-button-press-transform: translateY(3px) scale(.972);
+  --clay-button-hover-transform: translateY(-1px);
+  --clay-button-press-shadow: var(--clay-shadow-pressed);
+}
+
+html body main.laAdminShell.studioShell #studio-content button,
+html body main.laAdminShell.studioShell #studio-content a.studioButton,
+html body main.laAdminShell.studioShell #studio-content .studioButton,
+html body .loginPage.adminOnlyLogin .loginSubmit,
+html body .loginPage.adminOnlyLogin .authPrimaryLink,
+html body .softHomePage .softLoginButton {
+  transition:
+    transform var(--studio-duration-fast) var(--studio-ease-emphasized),
+    box-shadow var(--studio-duration-fast) var(--studio-ease-standard),
+    border-color var(--studio-duration-fast) var(--studio-ease-standard),
+    filter var(--studio-duration-fast) var(--studio-ease-standard) !important;
+  touch-action: manipulation;
+}
+
+html body .loginPage.adminOnlyLogin .loginSubmit,
+html body .loginPage.adminOnlyLogin .authPrimaryLink,
+html body .softHomePage .softLoginButton {
+  border: 1px solid var(--clay-border-strong) !important;
+  background: #FFFFFF !important;
+  background-image: none !important;
+  color: #334155 !important;
+  text-shadow: none !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+html body .loginPage.adminOnlyLogin .loginSubmit:not(:disabled):hover,
+html body .loginPage.adminOnlyLogin .authPrimaryLink:hover,
+html body .softHomePage .softLoginButton:hover {
+  transform: var(--clay-button-hover-transform) !important;
+  border-color: var(--clay-border-strong) !important;
+  background: #FFFFFF !important;
+  background-image: none !important;
+  color: #334155 !important;
+  box-shadow: var(--clay-shadow-raised) !important;
+  filter: none !important;
+}
+
+html body main.laAdminShell.studioShell #studio-content button:active:not(:disabled),
+html body main.laAdminShell.studioShell #studio-content a.studioButton:active,
+html body main.laAdminShell.studioShell #studio-content .studioButton:active:not(:disabled),
+html body main.laAdminShell.studioShell #studio-content button.active:not(:disabled),
+html body main.laAdminShell.studioShell #studio-content button[aria-selected="true"]:not(:disabled),
+html body main.laAdminShell.studioShell #studio-content button[aria-pressed="true"]:not(:disabled),
+html body .loginPage.adminOnlyLogin .loginSubmit:not(:disabled):active,
+html body .loginPage.adminOnlyLogin .authPrimaryLink:active,
+html body .softHomePage .softLoginButton:active {
+  transform: var(--clay-button-press-transform) !important;
+  border-color: var(--clay-border-strong) !important;
+  background: #FFFFFF !important;
+  background-image: none !important;
+  color: #334155 !important;
+  box-shadow: var(--clay-button-press-shadow) !important;
+  filter: none !important;
+}
+
+html body .loginPage.adminOnlyLogin .loginSubmit:disabled {
+  transform: none !important;
+  opacity: .58 !important;
+  filter: saturate(.72) brightness(.98) !important;
+  cursor: not-allowed !important;
+  background: #F6F8FA !important;
+  color: #94A3B8 !important;
+  border-color: rgba(205, 219, 224, .62) !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+/* Auction detail drawer is used from dashboard tables; keep it opaque and independent from chart/table layers. */
+html body .laAdminShell .studioContent:has(.auctionDetailDrawer) {
+  z-index: calc(var(--studio-z-modal) + 4) !important;
+}
+
+html body .laAdminShell .auctionDetailDrawer {
+  z-index: calc(var(--studio-z-modal) + 4) !important;
+  align-items: stretch !important;
+  justify-content: flex-end !important;
+}
+
+html body .laAdminShell .auctionDetailDrawer .drawerMask {
+  background: rgba(30, 41, 59, .26) !important;
+  backdrop-filter: blur(7px) saturate(1.05) !important;
+}
+
+html body .laAdminShell .auctionDetailPanel {
+  position: relative !important;
+  width: min(640px, 96vw) !important;
+  height: 100dvh !important;
+  overflow: auto !important;
+  box-sizing: border-box !important;
+  padding: 0 22px 24px !important;
+  background: #FFFFFF !important;
+  background-image: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%) !important;
+  color: #24324A !important;
+  box-shadow: -24px 0 54px rgba(73, 91, 113, .22) !important;
+  border-left: 1px solid rgba(204, 216, 231, .72) !important;
+  isolation: isolate !important;
+  backdrop-filter: none !important;
+}
+
+html body .laAdminShell .auctionDetailHeader {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 2 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  margin: 0 -22px 18px !important;
+  padding: 20px 22px 16px !important;
+  background: rgba(255, 255, 255, .96) !important;
+  border-bottom: 1px solid rgba(220, 228, 240, .88) !important;
+  box-shadow: 0 10px 24px rgba(83, 104, 130, .08) !important;
+  backdrop-filter: blur(14px) !important;
+}
+
+html body .laAdminShell .auctionDetailHeader p {
+  margin: 0 0 4px !important;
+  color: #66809B !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  letter-spacing: .08em !important;
+  text-transform: uppercase !important;
+}
+
+html body .laAdminShell .auctionDetailHeader h3 {
+  margin: 0 !important;
+  max-width: 420px !important;
+  color: #1F2B3D !important;
+  font-size: 22px !important;
+  line-height: 1.2 !important;
+  font-weight: 950 !important;
+  word-break: break-word !important;
+}
+
+html body .laAdminShell .auctionDetailHeader span {
+  display: block !important;
+  margin-top: 5px !important;
+  color: #7C8EA5 !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+
+html body .laAdminShell .auctionDetailClose {
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  min-width: 88px !important;
+  height: 42px !important;
+  padding: 0 14px !important;
+  border: 1px solid rgba(205, 219, 224, .8) !important;
+  border-radius: 999px !important;
+  background: #FFFFFF !important;
+  color: #334155 !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  box-shadow: var(--clay-shadow-soft) !important;
+}
+
+html body .laAdminShell .auctionDetailClose:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: var(--clay-shadow-raised) !important;
+}
+
+html body .laAdminShell .auctionDetailHero,
+html body .laAdminShell .auctionDetailStats,
+html body .laAdminShell .auctionDetailSection {
+  border: 1px solid rgba(218, 228, 241, .9) !important;
+  border-radius: 24px !important;
+  background: #FFFFFF !important;
+  box-shadow: 0 14px 34px rgba(80, 102, 130, .08) !important;
+}
+
+html body .laAdminShell .auctionDetailHero {
+  display: grid !important;
+  grid-template-columns: 174px minmax(0, 1fr) !important;
+  gap: 16px !important;
+  padding: 16px !important;
+}
+
+html body .laAdminShell .auctionDetailMedia {
+  display: grid !important;
+  place-items: center !important;
+  width: 100% !important;
+  aspect-ratio: 1 / 1 !important;
+  overflow: hidden !important;
+  border-radius: 20px !important;
+  background: linear-gradient(145deg, #EEF7FF, #FFF7FB) !important;
+  color: #7EA7CC !important;
+  border: 1px solid rgba(208, 222, 236, .9) !important;
+}
+
+html body .laAdminShell .auctionDetailMedia img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+html body .laAdminShell .auctionDetailSummary {
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
+html body .laAdminShell .auctionDetailSummary > strong {
+  display: block !important;
+  margin: 12px 0 8px !important;
+  color: #EF3B5D !important;
+  font-size: clamp(30px, 5vw, 42px) !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+  word-break: break-word !important;
+}
+
+html body .laAdminShell .auctionDetailSummary p {
+  margin: 0 0 10px !important;
+  color: #52657C !important;
+  font-weight: 750 !important;
+  line-height: 1.58 !important;
+}
+
+html body .laAdminShell .auctionDetailSummary div {
+  display: grid !important;
+  gap: 6px !important;
+}
+
+html body .laAdminShell .auctionDetailSummary div span {
+  color: #60748B !important;
+  font-size: 13px !important;
+  font-weight: 850 !important;
+}
+
+html body .laAdminShell .auctionDetailStats {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin-top: 14px !important;
+  padding: 14px !important;
+}
+
+html body .laAdminShell .auctionDetailStats div,
+html body .laAdminShell .auctionDetailSection .ruleSnapshotGrid div,
+html body .laAdminShell .auctionDetailSection .drawerBidList div {
+  border-radius: 17px !important;
+  background: #F6FAFF !important;
+  border: 1px solid rgba(221, 230, 242, .86) !important;
+}
+
+html body .laAdminShell .auctionDetailStats span,
+html body .laAdminShell .auctionDetailSection .ruleSnapshotGrid span {
+  color: #7A8CA3 !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+}
+
+html body .laAdminShell .auctionDetailStats b,
+html body .laAdminShell .auctionDetailSection .ruleSnapshotGrid b {
+  margin-top: 5px !important;
+  color: #24324A !important;
+  font-size: 15px !important;
+  font-weight: 950 !important;
+}
+
+html body .laAdminShell .auctionDetailSection {
+  margin-top: 14px !important;
+  padding: 16px !important;
+}
+
+html body .laAdminShell .auctionDetailSection h4 {
+  margin: 0 0 12px !important;
+  color: #26354B !important;
+  font-size: 15px !important;
+  font-weight: 950 !important;
+}
+
+html body .laAdminShell .auctionDetailSection .ruleSnapshotGrid,
+html body .laAdminShell .auctionDetailSection .drawerBidList {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html body .laAdminShell .auctionDetailSection .drawerBidList b {
+  color: #EF3B5D !important;
+}
+
+@media (max-width: 720px) {
+  html body .laAdminShell .auctionDetailPanel {
+    width: 100vw !important;
+    padding-inline: 16px !important;
+  }
+
+  html body .laAdminShell .auctionDetailHeader {
+    margin-inline: -16px !important;
+    padding-inline: 16px !important;
+  }
+
+  html body .laAdminShell .auctionDetailHero,
+  html body .laAdminShell .auctionDetailStats {
+    grid-template-columns: 1fr !important;
+  }
 }
