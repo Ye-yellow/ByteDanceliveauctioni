@@ -101,6 +101,9 @@ func (s *Store) ListUsers(ctx context.Context, query user.ListUsersQuery) (user.
 	if query.MainAccountID != "" {
 		db = db.Where("auction_users.main_account_id = ?", query.MainAccountID)
 	}
+	if query.Status != v1.UserStatus_USER_STATUS_UNSPECIFIED {
+		db = db.Where("auction_users.status = ?", int32(query.Status))
+	}
 	if keyword := strings.TrimSpace(query.Keyword); keyword != "" {
 		like := "%" + strings.ToLower(keyword) + "%"
 		db = db.Where("LOWER(auction_users.id) LIKE ? OR LOWER(auction_users.username) LIKE ? OR LOWER(auction_users.nickname) LIKE ?", like, like, like)
@@ -203,6 +206,24 @@ func (s *Store) UpdatePasswordByUsername(ctx context.Context, username string, p
 		return nil, apperr.ErrUserNotFound
 	}
 	next, _, err := s.FindUserByUsername(ctx, username)
+	return next, err
+}
+
+func (s *Store) UpdatePasswordByUserID(ctx context.Context, userID string, mainAccountID string, passwordHash string, updatedAtUnixMs int64) (*v1.User, error) {
+	if userID == "" || mainAccountID == "" || passwordHash == "" {
+		return nil, errors.New("user id, main account id, and password hash are required")
+	}
+	result := s.db.WithContext(ctx).
+		Model(&AuctionUserModel{}).
+		Where("id = ? AND main_account_id = ? AND EXISTS (SELECT 1 FROM auction_user_roles WHERE auction_user_roles.user_id = auction_users.id AND auction_user_roles.role_code IN ?)", userID, mainAccountID, []string{user.RoleAnchor, user.RoleOperator}).
+		Updates(map[string]any{"password_hash": passwordHash, "updated_at_unix_ms": updatedAtUnixMs})
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, apperr.ErrPermissionDenied
+	}
+	next, _, err := s.FindUserByID(ctx, userID)
 	return next, err
 }
 

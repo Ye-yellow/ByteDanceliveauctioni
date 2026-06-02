@@ -297,6 +297,7 @@ func userQueryFromHTTP(ctx httptransport.Context) userbiz.ListUsersQuery {
 		Page:     intQuery(query.Get("page")),
 		PageSize: intQuery(query.Get("pageSize")),
 		RoleCode: strings.TrimSpace(query.Get("roleCode")),
+		Status:   userStatusFromString(query.Get("status")),
 		Keyword:  strings.TrimSpace(query.Get("keyword")),
 	}
 }
@@ -316,4 +317,16 @@ func lotStatusFromString(value string) v1.LotStatus {
 		return v1.LotStatus_LOT_STATUS_UNSPECIFIED
 	}
 	return v1.LotStatus(next)
+}
+
+func userStatusFromString(value string) v1.UserStatus {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return v1.UserStatus_USER_STATUS_UNSPECIFIED
+	}
+	next, ok := v1.UserStatus_value[value]
+	if !ok {
+		return v1.UserStatus_USER_STATUS_UNSPECIFIED
+	}
+	return v1.UserStatus(next)
 }

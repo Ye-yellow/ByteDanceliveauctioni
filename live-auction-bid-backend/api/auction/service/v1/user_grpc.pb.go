@@ -19,16 +19,17 @@ import (
 const _ = grpc.SupportPackageIsVersion8
 
 const (
-	UserService_Register_FullMethodName              = "/auction.service.v1.UserService/Register"
-	UserService_Login_FullMethodName                 = "/auction.service.v1.UserService/Login"
-	UserService_ResetPassword_FullMethodName         = "/auction.service.v1.UserService/ResetPassword"
-	UserService_RegisterMerchant_FullMethodName      = "/auction.service.v1.UserService/RegisterMerchant"
-	UserService_RefreshToken_FullMethodName          = "/auction.service.v1.UserService/RefreshToken"
-	UserService_Logout_FullMethodName                = "/auction.service.v1.UserService/Logout"
-	UserService_GetMe_FullMethodName                 = "/auction.service.v1.UserService/GetMe"
-	UserService_AdminCreateUser_FullMethodName       = "/auction.service.v1.UserService/AdminCreateUser"
-	UserService_AdminUpdateUserRole_FullMethodName   = "/auction.service.v1.UserService/AdminUpdateUserRole"
-	UserService_AdminUpdateUserStatus_FullMethodName = "/auction.service.v1.UserService/AdminUpdateUserStatus"
+	UserService_Register_FullMethodName               = "/auction.service.v1.UserService/Register"
+	UserService_Login_FullMethodName                  = "/auction.service.v1.UserService/Login"
+	UserService_ResetPassword_FullMethodName          = "/auction.service.v1.UserService/ResetPassword"
+	UserService_RegisterMerchant_FullMethodName       = "/auction.service.v1.UserService/RegisterMerchant"
+	UserService_RefreshToken_FullMethodName           = "/auction.service.v1.UserService/RefreshToken"
+	UserService_Logout_FullMethodName                 = "/auction.service.v1.UserService/Logout"
+	UserService_GetMe_FullMethodName                  = "/auction.service.v1.UserService/GetMe"
+	UserService_AdminCreateUser_FullMethodName        = "/auction.service.v1.UserService/AdminCreateUser"
+	UserService_AdminUpdateUserRole_FullMethodName    = "/auction.service.v1.UserService/AdminUpdateUserRole"
+	UserService_AdminUpdateUserStatus_FullMethodName  = "/auction.service.v1.UserService/AdminUpdateUserStatus"
+	UserService_AdminResetUserPassword_FullMethodName = "/auction.service.v1.UserService/AdminResetUserPassword"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -57,6 +58,8 @@ type UserServiceClient interface {
 	AdminUpdateUserRole(ctx context.Context, in *AdminUpdateUserRoleRequest, opts ...grpc.CallOption) (*AdminUpdateUserRoleReply, error)
 	// 主账号启用或禁用团队子账号。
 	AdminUpdateUserStatus(ctx context.Context, in *AdminUpdateUserStatusRequest, opts ...grpc.CallOption) (*AdminUpdateUserStatusReply, error)
+	// 主账号重置团队子账号密码；不允许重置买家、主账号或其他商家空间账号。
+	AdminResetUserPassword(ctx context.Context, in *AdminResetUserPasswordRequest, opts ...grpc.CallOption) (*AdminResetUserPasswordReply, error)
 }
 
 type userServiceClient struct {
@@ -167,6 +170,16 @@ func (c *userServiceClient) AdminUpdateUserStatus(ctx context.Context, in *Admin
 	return out, nil
 }
 
+func (c *userServiceClient) AdminResetUserPassword(ctx context.Context, in *AdminResetUserPasswordRequest, opts ...grpc.CallOption) (*AdminResetUserPasswordReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdminResetUserPasswordReply)
+	err := c.cc.Invoke(ctx, UserService_AdminResetUserPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility
@@ -193,6 +206,8 @@ type UserServiceServer interface {
 	AdminUpdateUserRole(context.Context, *AdminUpdateUserRoleRequest) (*AdminUpdateUserRoleReply, error)
 	// 主账号启用或禁用团队子账号。
 	AdminUpdateUserStatus(context.Context, *AdminUpdateUserStatusRequest) (*AdminUpdateUserStatusReply, error)
+	// 主账号重置团队子账号密码；不允许重置买家、主账号或其他商家空间账号。
+	AdminResetUserPassword(context.Context, *AdminResetUserPasswordRequest) (*AdminResetUserPasswordReply, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -229,6 +244,9 @@ func (UnimplementedUserServiceServer) AdminUpdateUserRole(context.Context, *Admi
 }
 func (UnimplementedUserServiceServer) AdminUpdateUserStatus(context.Context, *AdminUpdateUserStatusRequest) (*AdminUpdateUserStatusReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AdminUpdateUserStatus not implemented")
+}
+func (UnimplementedUserServiceServer) AdminResetUserPassword(context.Context, *AdminResetUserPasswordRequest) (*AdminResetUserPasswordReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminResetUserPassword not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 
@@ -423,6 +441,24 @@ func _UserService_AdminUpdateUserStatus_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_AdminResetUserPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminResetUserPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).AdminResetUserPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_AdminResetUserPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).AdminResetUserPassword(ctx, req.(*AdminResetUserPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -469,6 +505,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AdminUpdateUserStatus",
 			Handler:    _UserService_AdminUpdateUserStatus_Handler,
+		},
+		{
+			MethodName: "AdminResetUserPassword",
+			Handler:    _UserService_AdminResetUserPassword_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

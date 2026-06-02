@@ -87,6 +87,14 @@ service UserService {
       body: "*"
     };
   }
+
+  // 主账号重置团队子账号密码；不允许重置买家、主账号或其他商家空间账号。
+  rpc AdminResetUserPassword(AdminResetUserPasswordRequest) returns (AdminResetUserPasswordReply) {
+    option (google.api.http) = {
+      post: "/api/admin/users/{user_id}/reset-password"
+      body: "*"
+    };
+  }
 }
 
 enum UserStatus {
@@ -213,6 +221,16 @@ message AdminUpdateUserStatusRequest {
 }
 
 message AdminUpdateUserStatusReply {
+  User user = 1;
+  ReplyResult result = 99;
+}
+
+message AdminResetUserPasswordRequest {
+  string user_id = 1;
+  string password = 2;
+}
+
+message AdminResetUserPasswordReply {
   User user = 1;
   ReplyResult result = 99;
 }

@@ -242,6 +242,41 @@ func (uc *Usecase) AdminUpdateUserStatus(ctx context.Context, userID string, sta
 	return cloneUser(updated), nil
 }
 
+func (uc *Usecase) AdminResetUserPassword(ctx context.Context, userID string, password string) (*v1.User, error) {
+	claims, err := auth.RequirePermission(ctx, PermissionTeamUserResetPassword)
+	if err != nil {
+		return nil, err
+	}
+	userID = strings.TrimSpace(userID)
+	if userID == "" {
+		return nil, fmt.Errorf("%w: user id is required", apperr.ErrInvalidArgument)
+	}
+	if len(password) < 8 || len(password) > 128 {
+		return nil, fmt.Errorf("%w: password must be 8-128 characters", apperr.ErrInvalidArgument)
+	}
+	mainAccountID := mainAccountIDFromClaims(claims)
+	target, _, err := uc.repo.FindUserByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if err := ensureManagedSubaccountInScope(target, mainAccountID); err != nil {
+		return nil, err
+	}
+	hash, err := auth.HashPassword(password)
+	if err != nil {
+		return nil, err
+	}
+	nowMs := uc.now().UnixMilli()
+	updated, err := uc.repo.UpdatePasswordByUserID(ctx, userID, mainAccountID, hash, nowMs)
+	if err != nil {
+		return nil, err
+	}
+	if err := uc.repo.RevokeSessionsByUserID(ctx, userID, nowMs); err != nil {
+		return nil, err
+	}
+	return cloneUser(updated), nil
+}
+
 func (uc *Usecase) ListUsers(ctx context.Context, query ListUsersQuery) (ListUsersResult, error) {
 	claims, err := auth.RequirePermission(ctx, PermissionTeamUserList)
 	if err != nil {
@@ -251,6 +286,11 @@ func (uc *Usecase) ListUsers(ctx context.Context, query ListUsersQuery) (ListUse
 	query.RoleCode = NormalizeRoleCode(query.RoleCode)
 	if query.RoleCode != "" && !IsManagedTeamRole(query.RoleCode) {
 		return ListUsersResult{}, fmt.Errorf("%w: team users query only supports subaccount roles", apperr.ErrInvalidArgument)
+	}
+	if query.Status != v1.UserStatus_USER_STATUS_UNSPECIFIED &&
+		query.Status != v1.UserStatus_USER_STATUS_ACTIVE &&
+		query.Status != v1.UserStatus_USER_STATUS_DISABLED {
+		return ListUsersResult{}, fmt.Errorf("%w: team users query only supports active or disabled status", apperr.ErrInvalidArgument)
 	}
 	query.MainAccountID = mainAccountIDFromClaims(claims)
 	result, err := uc.repo.ListUsers(ctx, query)

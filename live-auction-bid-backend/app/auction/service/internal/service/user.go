@@ -95,6 +95,14 @@ func (s *UserService) AdminUpdateUserStatus(ctx context.Context, req *v1.AdminUp
 	return &v1.AdminUpdateUserStatusReply{Result: okResult(ctx), User: user}, nil
 }
 
+func (s *UserService) AdminResetUserPassword(ctx context.Context, req *v1.AdminResetUserPasswordRequest) (*v1.AdminResetUserPasswordReply, error) {
+	user, err := s.users.AdminResetUserPassword(ctx, req.GetUserId(), req.GetPassword())
+	if err != nil {
+		return &v1.AdminResetUserPasswordReply{Result: ErrorResult(ctx, err)}, nil
+	}
+	return &v1.AdminResetUserPasswordReply{Result: okResult(ctx), User: user}, nil
+}
+
 func (s *UserService) ListUsers(ctx context.Context, query user.ListUsersQuery) (user.ListUsersResult, error) {
 	return s.users.ListUsers(ctx, query)
 }

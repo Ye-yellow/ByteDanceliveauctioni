@@ -15,21 +15,22 @@ const (
 )
 
 const (
-	PermissionTeamUserCreate       = "team.user.create"
-	PermissionTeamUserList         = "team.user.list"
-	PermissionTeamUserUpdateRole   = "team.user.update_role"
-	PermissionTeamUserUpdateStatus = "team.user.update_status"
-	PermissionLotCreate            = "lot.create"
-	PermissionLotUpdate            = "lot.update"
-	PermissionLotQueue             = "lot.queue"
-	PermissionLotViewAdmin         = "lot.view_admin"
-	PermissionAuctionControl       = "auction.control"
-	PermissionOrderManage          = "order.manage"
-	PermissionRealtimeView         = "realtime.view"
-	PermissionUploadImage          = "upload.image"
-	PermissionBidPlace             = "bid.place"
-	PermissionOrderPay             = "order.pay"
-	PermissionOrderViewOwn         = "order.view_own"
+	PermissionTeamUserCreate        = "team.user.create"
+	PermissionTeamUserList          = "team.user.list"
+	PermissionTeamUserUpdateRole    = "team.user.update_role"
+	PermissionTeamUserUpdateStatus  = "team.user.update_status"
+	PermissionTeamUserResetPassword = "team.user.reset_password"
+	PermissionLotCreate             = "lot.create"
+	PermissionLotUpdate             = "lot.update"
+	PermissionLotQueue              = "lot.queue"
+	PermissionLotViewAdmin          = "lot.view_admin"
+	PermissionAuctionControl        = "auction.control"
+	PermissionOrderManage           = "order.manage"
+	PermissionRealtimeView          = "realtime.view"
+	PermissionUploadImage           = "upload.image"
+	PermissionBidPlace              = "bid.place"
+	PermissionOrderPay              = "order.pay"
+	PermissionOrderViewOwn          = "order.view_own"
 )
 
 var rolePermissions = map[string][]string{
@@ -38,6 +39,7 @@ var rolePermissions = map[string][]string{
 		PermissionTeamUserList,
 		PermissionTeamUserUpdateRole,
 		PermissionTeamUserUpdateStatus,
+		PermissionTeamUserResetPassword,
 		PermissionLotCreate,
 		PermissionLotUpdate,
 		PermissionLotQueue,

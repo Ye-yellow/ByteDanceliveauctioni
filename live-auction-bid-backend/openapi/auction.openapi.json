@@ -96,7 +96,12 @@
           {
             "name": "roleCode",
             "in": "query",
-            "schema": { "type": "string", "enum": ["anchor", "operator"] }
+            "schema": { "$ref": "#/components/schemas/TeamRoleCode" }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": { "$ref": "#/components/schemas/UserStatus" }
           },
           {
             "name": "keyword",
@@ -110,6 +115,124 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/ListUsersResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "adminCreateUser",
+        "summary": "Create a scoped team user for current main account",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AdminCreateUserRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope with created team user.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminUserResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/{user_id}/role": {
+      "post": {
+        "operationId": "adminUpdateUserRole",
+        "summary": "Update a scoped team user's role",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AdminUpdateUserRoleRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope with updated team user.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminUserResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/{user_id}/status": {
+      "post": {
+        "operationId": "adminUpdateUserStatus",
+        "summary": "Enable or disable a scoped team user",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AdminUpdateUserStatusRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope with updated team user.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminUserResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/{user_id}/reset-password": {
+      "post": {
+        "operationId": "adminResetUserPassword",
+        "summary": "Reset a scoped team user's password and revoke sessions",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AdminResetUserPasswordRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope with updated team user.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminUserResponse" }
               }
             }
           }
@@ -297,6 +420,10 @@
           "USER_STATUS_DISABLED"
         ]
       },
+      "TeamRoleCode": {
+        "type": "string",
+        "enum": ["anchor", "operator"]
+      },
       "AuctionState": {
         "type": "string",
         "enum": ["DRAFT", "QUEUED", "LIVE", "EXTENDED", "SETTLED", "CANCELLED", "FAILED"]
@@ -458,6 +585,53 @@
           "total": { "type": "integer", "format": "int64" },
           "page": { "type": "integer", "format": "int32" },
           "pageSize": { "type": "integer", "format": "int32" }
+        }
+      },
+      "AdminUserResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["result", "user"],
+        "properties": {
+          "result": { "$ref": "#/components/schemas/ReplyResult" },
+          "user": { "$ref": "#/components/schemas/User" }
+        }
+      },
+      "AdminCreateUserRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["username", "password", "nickname", "roleCode"],
+        "properties": {
+          "username": { "type": "string", "minLength": 1 },
+          "password": { "type": "string", "minLength": 8, "maxLength": 128 },
+          "nickname": { "type": "string", "minLength": 1 },
+          "roleCode": { "$ref": "#/components/schemas/TeamRoleCode" }
+        }
+      },
+      "AdminUpdateUserRoleRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["userId", "roleCode"],
+        "properties": {
+          "userId": { "type": "string" },
+          "roleCode": { "$ref": "#/components/schemas/TeamRoleCode" }
+        }
+      },
+      "AdminUpdateUserStatusRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["userId", "status"],
+        "properties": {
+          "userId": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/UserStatus" }
+        }
+      },
+      "AdminResetUserPasswordRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["userId", "password"],
+        "properties": {
+          "userId": { "type": "string" },
+          "password": { "type": "string", "minLength": 8, "maxLength": 128 }
         }
       },
       "ListBidRecordsResponse": {

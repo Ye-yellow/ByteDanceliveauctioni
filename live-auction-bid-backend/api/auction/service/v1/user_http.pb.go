@@ -20,6 +20,7 @@ var _ = binding.EncodeURL
 const _ = http.SupportPackageIsVersion1
 
 const OperationUserServiceAdminCreateUser = "/auction.service.v1.UserService/AdminCreateUser"
+const OperationUserServiceAdminResetUserPassword = "/auction.service.v1.UserService/AdminResetUserPassword"
 const OperationUserServiceAdminUpdateUserRole = "/auction.service.v1.UserService/AdminUpdateUserRole"
 const OperationUserServiceAdminUpdateUserStatus = "/auction.service.v1.UserService/AdminUpdateUserStatus"
 const OperationUserServiceGetMe = "/auction.service.v1.UserService/GetMe"
@@ -33,6 +34,8 @@ const OperationUserServiceResetPassword = "/auction.service.v1.UserService/Reset
 type UserServiceHTTPServer interface {
 	// AdminCreateUser 主账号创建团队子账号；不创建买家或新的主账号。
 	AdminCreateUser(context.Context, *AdminCreateUserRequest) (*AdminCreateUserReply, error)
+	// AdminResetUserPassword 主账号重置团队子账号密码；不允许重置买家、主账号或其他商家空间账号。
+	AdminResetUserPassword(context.Context, *AdminResetUserPasswordRequest) (*AdminResetUserPasswordReply, error)
 	// AdminUpdateUserRole 主账号修改团队子账号角色；不允许改为买家或新的主账号。
 	AdminUpdateUserRole(context.Context, *AdminUpdateUserRoleRequest) (*AdminUpdateUserRoleReply, error)
 	// AdminUpdateUserStatus 主账号启用或禁用团队子账号。
@@ -65,6 +68,7 @@ func RegisterUserServiceHTTPServer(s *http.Server, srv UserServiceHTTPServer) {
 	r.POST("/api/admin/users", _UserService_AdminCreateUser0_HTTP_Handler(srv))
 	r.POST("/api/admin/users/{user_id}/role", _UserService_AdminUpdateUserRole0_HTTP_Handler(srv))
 	r.POST("/api/admin/users/{user_id}/status", _UserService_AdminUpdateUserStatus0_HTTP_Handler(srv))
+	r.POST("/api/admin/users/{user_id}/reset-password", _UserService_AdminResetUserPassword0_HTTP_Handler(srv))
 }
 
 func _UserService_Register0_HTTP_Handler(srv UserServiceHTTPServer) func(ctx http.Context) error {
@@ -290,9 +294,36 @@ func _UserService_AdminUpdateUserStatus0_HTTP_Handler(srv UserServiceHTTPServer)
 	}
 }
 
+func _UserService_AdminResetUserPassword0_HTTP_Handler(srv UserServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in AdminResetUserPasswordRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationUserServiceAdminResetUserPassword)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.AdminResetUserPassword(ctx, req.(*AdminResetUserPasswordRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AdminResetUserPasswordReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 type UserServiceHTTPClient interface {
 	// AdminCreateUser 主账号创建团队子账号；不创建买家或新的主账号。
 	AdminCreateUser(ctx context.Context, req *AdminCreateUserRequest, opts ...http.CallOption) (rsp *AdminCreateUserReply, err error)
+	// AdminResetUserPassword 主账号重置团队子账号密码；不允许重置买家、主账号或其他商家空间账号。
+	AdminResetUserPassword(ctx context.Context, req *AdminResetUserPasswordRequest, opts ...http.CallOption) (rsp *AdminResetUserPasswordReply, err error)
 	// AdminUpdateUserRole 主账号修改团队子账号角色；不允许改为买家或新的主账号。
 	AdminUpdateUserRole(ctx context.Context, req *AdminUpdateUserRoleRequest, opts ...http.CallOption) (rsp *AdminUpdateUserRoleReply, err error)
 	// AdminUpdateUserStatus 主账号启用或禁用团队子账号。
@@ -327,6 +358,20 @@ func (c *UserServiceHTTPClientImpl) AdminCreateUser(ctx context.Context, in *Adm
 	pattern := "/api/admin/users"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationUserServiceAdminCreateUser))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// AdminResetUserPassword 主账号重置团队子账号密码；不允许重置买家、主账号或其他商家空间账号。
+func (c *UserServiceHTTPClientImpl) AdminResetUserPassword(ctx context.Context, in *AdminResetUserPasswordRequest, opts ...http.CallOption) (*AdminResetUserPasswordReply, error) {
+	var out AdminResetUserPasswordReply
+	pattern := "/api/admin/users/{user_id}/reset-password"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationUserServiceAdminResetUserPassword))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {

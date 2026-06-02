@@ -164,12 +164,39 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 	if !hasRoleForTest(operator, userbiz.RoleOperator) {
 		t.Fatalf("expected operator role, got %+v", operator)
 	}
+	operatorBeforeReset, operatorTokensBeforeReset, err := uc.Login(ctx, "anchor1", "anchorpass123")
+	if err != nil {
+		t.Fatalf("operator login before admin reset failed: %v", err)
+	}
+	resetOperator, err := uc.AdminResetUserPassword(mainCtx, operator.GetId(), "operatornewpass123")
+	if err != nil {
+		t.Fatalf("main account reset team user password failed: %v", err)
+	}
+	if resetOperator.GetId() != operator.GetId() {
+		t.Fatalf("admin reset returned wrong user: %+v", resetOperator)
+	}
+	if _, _, err := uc.Login(ctx, "anchor1", "anchorpass123"); !apperr.IsInvalidCredentials(err) {
+		t.Fatalf("old team user password should fail after admin reset, got %v", err)
+	}
+	if _, err := uc.RefreshToken(ctx, operatorTokensBeforeReset.GetRefreshToken()); !apperr.IsSessionExpired(err) {
+		t.Fatalf("admin reset should revoke team user refresh token, got %v", err)
+	}
+	operator, _, err = uc.Login(ctx, "anchor1", "operatornewpass123")
+	if err != nil {
+		t.Fatalf("team user login with admin reset password failed: %v", err)
+	}
+	if operator.GetId() != operatorBeforeReset.GetId() {
+		t.Fatalf("team user changed after admin reset: before=%+v after=%+v", operatorBeforeReset, operator)
+	}
 	if _, err := uc.AdminUpdateUserRole(mainCtx, registered.GetId(), userbiz.RoleBuyer); !apperr.IsInvalidArgument(err) {
 		t.Fatalf("expected invalid argument for main account updating role to buyer, got %v", err)
 	}
 	operatorCtx := auth.WithClaims(ctx, claimsForUser(operator))
 	if _, err := uc.AdminUpdateUserRole(operatorCtx, registered.GetId(), userbiz.RoleAnchor); !apperr.IsPermissionDenied(err) {
 		t.Fatalf("expected permission denied for operator role update, got %v", err)
+	}
+	if _, err := uc.AdminResetUserPassword(operatorCtx, operator.GetId(), "operatorotherpass123"); !apperr.IsPermissionDenied(err) {
+		t.Fatalf("expected permission denied for operator password reset, got %v", err)
 	}
 	buyerCtx := auth.WithClaims(ctx, claimsForUser(registered))
 	if _, err := uc.AdminCreateUser(buyerCtx, &v1.AdminCreateUserRequest{Username: "xuser", Password: "password123", Nickname: "x"}); !apperr.IsPermissionDenied(err) {
@@ -184,6 +211,9 @@ func TestUserUsecaseRegisterLoginRefreshLogoutAndAdminFlow(t *testing.T) {
 	}
 	if _, err := uc.ListUsers(mainCtx, userbiz.ListUsersQuery{RoleCode: userbiz.RoleBuyer, Page: 1, PageSize: 10}); !apperr.IsInvalidArgument(err) {
 		t.Fatalf("expected invalid argument for main account listing buyer users, got %v", err)
+	}
+	if _, err := uc.ListUsers(mainCtx, userbiz.ListUsersQuery{Status: v1.UserStatus_USER_STATUS_UNSPECIFIED + 99, Page: 1, PageSize: 10}); !apperr.IsInvalidArgument(err) {
+		t.Fatalf("expected invalid argument for unsupported user status filter, got %v", err)
 	}
 	backofficeList, err := uc.ListUsers(mainCtx, userbiz.ListUsersQuery{Page: 1, PageSize: 10})
 	if err != nil {
@@ -240,6 +270,9 @@ func TestUserUsecaseMainAccountScopeAndStatus(t *testing.T) {
 	if _, err := uc.AdminUpdateUserStatus(ctxA, operatorB.GetId(), v1.UserStatus_USER_STATUS_DISABLED); !apperr.IsPermissionDenied(err) {
 		t.Fatalf("main a must not update main b subaccount status, got %v", err)
 	}
+	if _, err := uc.AdminResetUserPassword(ctxA, operatorB.GetId(), "operatornewpass123"); !apperr.IsPermissionDenied(err) {
+		t.Fatalf("main a must not reset main b subaccount password, got %v", err)
+	}
 
 	operator, operatorTokens, err := uc.Login(ctx, "operator_b", "operatorpass123")
 	if err != nil {
@@ -258,6 +291,20 @@ func TestUserUsecaseMainAccountScopeAndStatus(t *testing.T) {
 	if _, err := uc.RefreshToken(ctx, operatorTokens.GetRefreshToken()); !apperr.IsSessionExpired(err) {
 		t.Fatalf("disabled operator refresh token should be revoked, got %v", err)
 	}
+	disabledList, err := uc.ListUsers(ctxB, userbiz.ListUsersQuery{Status: v1.UserStatus_USER_STATUS_DISABLED, Page: 1, PageSize: 20})
+	if err != nil {
+		t.Fatalf("main b list disabled users failed: %v", err)
+	}
+	if disabledList.Total != 1 || disabledList.Users[0].GetId() != operator.GetId() {
+		t.Fatalf("disabled status filter should return only disabled operator, got %+v", disabledList)
+	}
+	activeList, err := uc.ListUsers(ctxB, userbiz.ListUsersQuery{Status: v1.UserStatus_USER_STATUS_ACTIVE, Page: 1, PageSize: 20})
+	if err != nil {
+		t.Fatalf("main b list active users failed: %v", err)
+	}
+	if activeList.Total != 0 || len(activeList.Users) != 0 {
+		t.Fatalf("active status filter should exclude disabled operator, got %+v", activeList)
+	}
 	if _, err := uc.GetMe(auth.WithClaims(ctx, claimsForUser(disabled))); !apperr.IsAccountDisabled(err) {
 		t.Fatalf("disabled operator get me should fail, got %v", err)
 	}
@@ -273,6 +320,9 @@ func TestUserUsecaseMainAccountScopeAndStatus(t *testing.T) {
 	}
 	if _, err := uc.AdminUpdateUserStatus(ctxB, mainB.GetId(), v1.UserStatus_USER_STATUS_DISABLED); !apperr.IsInvalidArgument(err) {
 		t.Fatalf("main account cannot be disabled through team status API, got %v", err)
+	}
+	if _, err := uc.AdminResetUserPassword(ctxB, mainB.GetId(), "mainnewpass123"); !apperr.IsInvalidArgument(err) {
+		t.Fatalf("main account cannot be reset through team password API, got %v", err)
 	}
 }
 
@@ -380,6 +430,9 @@ func (r *testUserRepo) ListUsers(ctx context.Context, query userbiz.ListUsersQue
 		if query.MainAccountID != "" && user.GetMainAccountId() != query.MainAccountID {
 			continue
 		}
+		if query.Status != v1.UserStatus_USER_STATUS_UNSPECIFIED && user.GetStatus() != query.Status {
+			continue
+		}
 		if keyword != "" && !strings.Contains(strings.ToLower(user.Id+" "+user.Username+" "+user.Nickname), keyword) {
 			continue
 		}
@@ -439,6 +492,21 @@ func (r *testUserRepo) UpdatePasswordByUsername(ctx context.Context, username st
 	r.usersByID[userID] = user
 	r.passwordByID[userID] = passwordHash
 	return proto.Clone(user).(*v1.User), nil
+}
+
+func (r *testUserRepo) UpdatePasswordByUserID(ctx context.Context, userID string, mainAccountID string, passwordHash string, updatedAtUnixMs int64) (*v1.User, error) {
+	user, found := r.usersByID[userID]
+	if !found {
+		return nil, apperr.ErrUserNotFound
+	}
+	if user.GetMainAccountId() != mainAccountID {
+		return nil, apperr.ErrPermissionDenied
+	}
+	next := proto.Clone(user).(*v1.User)
+	next.UpdatedAtUnixMs = updatedAtUnixMs
+	r.usersByID[userID] = next
+	r.passwordByID[userID] = passwordHash
+	return proto.Clone(next).(*v1.User), nil
 }
 
 func (r *testUserRepo) CreateSession(ctx context.Context, session userbiz.Session) error {
