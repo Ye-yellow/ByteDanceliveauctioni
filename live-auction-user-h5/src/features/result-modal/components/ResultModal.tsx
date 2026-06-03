@@ -107,6 +107,7 @@ export function ResultModal({
   const resultProfileText = noSuccessfulBid ? '无人出价' : failedClaim ? '付款超时' : maskedWinnerNickname;
   const resultStory = noSuccessfulBid ? '本轮无人出价，拍品未成交' : failedClaim ? '已落锤但未在时限内完成付款' : roundsText(lot);
   const finalPriceLabel = noSuccessfulBid ? '起拍价' : failedClaim ? '落锤价' : '最终价';
+  const loseRibbonText = noSuccessfulBid ? '本轮流拍' : failedClaim ? '成交失效' : '恭喜成交';
 
   useEffect(() => {
     if (!hasWinningClaim) return undefined;
@@ -131,6 +132,10 @@ export function ResultModal({
 
         {won ? (
           <>
+            <div className="resultCeremony resultCeremonyWin" aria-label="竞拍成功">
+              <span>豪气冲天</span>
+              <strong>恭喜竞拍成功</strong>
+            </div>
             <div className="resultWinMedia">
               {lot.imageUrl ? <img src={lot.imageUrl} alt={lot.title} /> : <span>{lot.title.slice(0, 1) || '拍'}</span>}
               <span className="resultWinBadge">竞拍成功</span>
@@ -157,6 +162,10 @@ export function ResultModal({
           </>
         ) : (
           <>
+            <div className={`resultCeremony resultCeremonyLose ${noSuccessfulBid || failedClaim ? 'isMuted' : ''}`} aria-label="竞拍结果">
+              <span>落槌定音</span>
+              <strong>{loseRibbonText}</strong>
+            </div>
             <div className="resultLoseProduct">
               <div className="resultLoseProductMedia">
                 {lot.imageUrl ? <img src={lot.imageUrl} alt={lot.title} /> : <span>{lot.title.slice(0, 1) || '拍'}</span>}
