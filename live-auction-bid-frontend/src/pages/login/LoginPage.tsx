@@ -253,7 +253,7 @@ export function LoginPage({ embedded = false }: { embedded?: boolean; title?: st
                 {mode === 'register' ? <UserPlus size={17} /> : mode === 'reset' ? <LockKeyhole size={17} /> : <LogIn size={17} />} {busy ? '处理中...' : mode === 'register' ? '创建主账号并进入' : mode === 'reset' ? '重置密码' : '进入 LiveAuction 工作台'}
               </button>
 
-              <p className="loginHint">{mode === 'reset' ? '重置成功后，使用新密码重新登录。' : '主账号密码来自服务器部署配置；也可以直接注册新的主播 / 商家主账号。买家账号只在 H5 端使用。'}</p>
+              {mode === 'reset' ? <p className="loginHint">重置成功后，使用新密码重新登录。</p> : null}
             </>
           )}
         </article>
