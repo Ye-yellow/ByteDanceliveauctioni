@@ -73,7 +73,7 @@ export function LiveControlPage({ roomId }: { roomId: string }) {
 
   return <section className={`liveControlPage ${lot ? 'isLive' : 'isPrepared'}`}>
     <StudioCard padding="lg" className="controlTopBar">
-      <StudioPageHeader eyebrow="Realtime control" title="直播间中控台" description={`当前直播间 ${roomId}，所有控场数据来自 room snapshot 和后台 HTTP 接口。`} actions={<><a className="studioButton studioButton-secondary studioButton-md controlUtilityButton" href="/admin/auctions">返回队列</a><StudioButton type="button" variant="secondary" className="controlUtilityButton" icon={<RefreshCw size={15} />} loading={working === '同步'} onClick={() => void action('同步', syncRoom)}>立即同步</StudioButton></>} />
+      <StudioPageHeader eyebrow="Realtime control" title="直播间中控台" actions={<><a className="studioButton studioButton-secondary studioButton-md controlUtilityButton" href="/admin/auctions">返回队列</a><StudioButton type="button" variant="secondary" className="controlUtilityButton" icon={<RefreshCw size={15} />} loading={working === '同步'} onClick={() => void action('同步', syncRoom)}>立即同步</StudioButton></>} />
     </StudioCard>
     {error ? <div className="auctionMgmtNotice danger"><AlertTriangle size={16} />{error}</div> : null}
     <section className="auctionMgmtStats liveControlStatusGrid">
