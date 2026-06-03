@@ -286,12 +286,188 @@ function LiveRoomEffectsLayer({ controller, giftBurst }: { controller: LiveRoomC
   );
 }
 
+function liveProductPrice(lot: NonNullable<LiveRoomController['currentLot']>) {
+  return moneyNumber(lot.currentPrice) > 0 ? lot.currentPrice : lot.rule.startPrice;
+}
+
+function compactFloatPrice(value: Parameters<typeof formatMoney>[0]): string {
+  return formatMoney(value).replace('元', '').replace(/\.00$/, '');
+}
+
+function LiveProductFloatCard({
+  controller,
+  onOpenAuction,
+  onClose,
+}: {
+  controller: LiveRoomController;
+  onOpenAuction: () => void;
+  onClose: () => void;
+}) {
+  const { currentLot, room } = controller;
+  if (!currentLot) return null;
+
+  const price = liveProductPrice(currentLot);
+  const leaderName = currentLot.leadingNickname || currentLot.leadingUserId || '';
+  const leaderText = leaderName ? `${firstNameChar(leaderName)}**领先` : '等你领先';
+  const leaderAvatarKey = leaderName || currentLot.id;
+
+  return (
+    <aside className="liveProductFloatCard" aria-label="当前讲解商品">
+      <button type="button" className="liveProductFloatClose" aria-label="关闭商品浮层" onClick={onClose}>
+        <svg viewBox="0 0 18 18" aria-hidden="true">
+          <path d="M14.75 4.46a.86.86 0 0 0-1.21-1.21L9 7.79 4.46 3.25a.86.86 0 0 0-1.21 1.21L7.79 9l-4.54 4.54a.86.86 0 0 0 1.21 1.21L9 10.21l4.54 4.54a.86.86 0 0 0 1.21-1.21L10.21 9l4.54-4.54Z" />
+        </svg>
+      </button>
+      <button type="button" className="liveProductFloatBody" onClick={onOpenAuction}>
+        <span className="liveProductFloatMedia">
+          {currentLot.imageUrl ? <img src={currentLot.imageUrl} alt="" loading="lazy" /> : <b>拍</b>}
+          <em>竞拍中</em>
+        </span>
+        <span className="liveProductFloatInfo">
+          <span className="liveProductFloatPrice">
+            <i>¥</i>
+            <b>{compactFloatPrice(price)}</b>
+          </span>
+          <span className="liveProductFloatLeader">
+            <span><AvatarMedia src={liveAvatarFor(`${room.roomId}:${leaderAvatarKey}:float-leader`)} name={leaderText} /></span>
+            <b>{leaderText}</b>
+          </span>
+          <span className="liveProductFloatBidCta">去出价</span>
+        </span>
+      </button>
+    </aside>
+  );
+}
+
 function ComposerIcon({ name }: { name: 'product' | 'gift' | 'more' | 'heart' }) {
   if (name === 'product') {
     return (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M6.4 8.4h11.2l1.1 10.4a2 2 0 0 1-2 2.2H7.3a2 2 0 0 1-2-2.2L6.4 8.4Z" />
-        <path d="M9 8.4V6.7a3 3 0 0 1 6 0v1.7" />
+      <svg className="composerCartIcon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g filter="url(#composerCartFilter0)">
+          <mask id="composerCartMask" maskUnits="userSpaceOnUse" x="3" y="6" width="21" height="13" style={{ maskType: 'alpha' }}>
+            <path d="M5.056 6.223h.94c.73 0 2.009.325 2.654.844.212.17.461.322.734.322h12.414c.99 0 1.729.913 1.521 1.882l-1.535 7.163a2.333 2.333 0 0 1-2.281 1.844h-9.435a2.333 2.333 0 0 1-2.307-1.983L6.693 9.256c-.04-.354-.34-.7-.696-.7h-.941a1.167 1.167 0 1 1 0-2.333z" fill="url(#composerCartPaint0)" />
+          </mask>
+          <g mask="url(#composerCartMask)">
+            <g filter="url(#composerCartFilter1)">
+              <path d="M5.056 6.223h.94c.73 0 2.009.325 2.654.844.212.17.461.322.734.322h12.414c.99 0 1.729.913 1.521 1.882l-1.535 7.163a2.333 2.333 0 0 1-2.281 1.844h-9.435a2.333 2.333 0 0 1-2.307-1.983L6.693 9.256c-.04-.354-.34-.7-.696-.7h-.941a1.167 1.167 0 1 1 0-2.333z" fill="url(#composerCartPaint1)" />
+            </g>
+            <g filter="url(#composerCartFilter2)">
+              <path d="m5.445 9.723 1.879 7.214a2.333 2.333 0 0 0 2.258 1.746H19.66a2.333 2.333 0 0 0 2.232-1.655l2.22-7.305" stroke="#FD5C01" strokeWidth="1.556" strokeLinejoin="round" />
+            </g>
+            <g opacity=".9" filter="url(#composerCartFilter3)">
+              <path fillRule="evenodd" clipRule="evenodd" d="M10.306 11.279c0-.322.261-.584.584-.584h8.166a.583.583 0 0 1 0 1.167H10.89a.583.583 0 0 1-.583-.583z" fill="url(#composerCartPaint2)" />
+            </g>
+            <g opacity=".9" filter="url(#composerCartFilter4)">
+              <path fillRule="evenodd" clipRule="evenodd" d="M10.695 14.388c0-.322.261-.583.583-.583h7.389a.583.583 0 1 1 0 1.166h-7.389a.583.583 0 0 1-.583-.583z" fill="url(#composerCartPaint3)" />
+            </g>
+          </g>
+          <g filter="url(#composerCartFilter5)">
+            <path fillRule="evenodd" clipRule="evenodd" d="M9.528 22.558a1.361 1.361 0 1 0 0-2.722 1.361 1.361 0 0 0 0 2.722z" fill="url(#composerCartPaint4)" />
+          </g>
+          <g filter="url(#composerCartFilter6)">
+            <path fillRule="evenodd" clipRule="evenodd" d="M19.25 22.558a1.361 1.361 0 1 0 0-2.722 1.361 1.361 0 0 0 0 2.722z" fill="url(#composerCartPaint5)" />
+          </g>
+        </g>
+        <defs>
+          <filter id="composerCartFilter0" x="2.334" y="5.445" width="22.576" height="19.447" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+            <feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+            <feOffset dy=".778" />
+            <feGaussianBlur stdDeviation=".778" />
+            <feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.1 0" />
+            <feBlend in2="BackgroundImageFix" result="effect1_dropShadow" />
+            <feBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
+          </filter>
+          <filter id="composerCartFilter1" x="3.889" y="6.223" width="19.465" height="12.444" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+            <feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+            <feOffset dy=".389" />
+            <feGaussianBlur stdDeviation=".778" />
+            <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1" />
+            <feColorMatrix values="0 0 0 0 1 0 0 0 0 0.755343 0 0 0 0 0.229783 0 0 0 1 0" />
+            <feBlend in2="shape" result="effect1_innerShadow" />
+          </filter>
+          <filter id="composerCartFilter2" x="1.581" y="6.385" width="26.386" height="16.187" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+            <feGaussianBlur stdDeviation="1.556" result="effect1_foregroundBlur" />
+          </filter>
+          <filter id="composerCartFilter3" x="9.528" y="10.306" width="10.889" height="2.724" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+            <feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+            <feOffset dy=".389" />
+            <feGaussianBlur stdDeviation=".389" />
+            <feColorMatrix values="0 0 0 0 0.758333 0 0 0 0 0.2275 0 0 0 0 0 0 0 0 0.296247 0" />
+            <feBlend in2="BackgroundImageFix" result="effect1_dropShadow" />
+            <feBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
+            <feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha2" />
+            <feOffset dy="-.389" />
+            <feGaussianBlur stdDeviation=".194" />
+            <feComposite in2="hardAlpha2" operator="arithmetic" k2="-1" k3="1" />
+            <feColorMatrix values="0 0 0 0 1 0 0 0 0 0.658586 0 0 0 0 0.42763 0 0 0 1 0" />
+            <feBlend in2="shape" result="effect2_innerShadow" />
+          </filter>
+          <filter id="composerCartFilter4" x="9.917" y="13.416" width="10.111" height="2.724" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+            <feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+            <feOffset dy=".389" />
+            <feGaussianBlur stdDeviation=".389" />
+            <feColorMatrix values="0 0 0 0 0.758333 0 0 0 0 0.2275 0 0 0 0 0 0 0 0 0.296247 0" />
+            <feBlend in2="BackgroundImageFix" result="effect1_dropShadow" />
+            <feBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
+            <feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha2" />
+            <feOffset dy="-.389" />
+            <feGaussianBlur stdDeviation=".194" />
+            <feComposite in2="hardAlpha2" operator="arithmetic" k2="-1" k3="1" />
+            <feColorMatrix values="0 0 0 0 1 0 0 0 0 0.658586 0 0 0 0 0.42763 0 0 0 1 0" />
+            <feBlend in2="shape" result="effect2_innerShadow" />
+          </filter>
+          <filter id="composerCartFilter5" x="8.167" y="19.836" width="2.722" height="2.878" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+            <feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+            <feOffset dy=".156" />
+            <feGaussianBlur stdDeviation=".389" />
+            <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1" />
+            <feColorMatrix values="0 0 0 0 1 0 0 0 0 0.755343 0 0 0 0 0.229783 0 0 0 1 0" />
+            <feBlend in2="shape" result="effect1_innerShadow" />
+          </filter>
+          <filter id="composerCartFilter6" x="17.889" y="19.836" width="2.722" height="2.878" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+            <feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+            <feOffset dy=".156" />
+            <feGaussianBlur stdDeviation=".389" />
+            <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1" />
+            <feColorMatrix values="0 0 0 0 1 0 0 0 0 0.755343 0 0 0 0 0.229783 0 0 0 1 0" />
+            <feBlend in2="shape" result="effect1_innerShadow" />
+          </filter>
+          <linearGradient id="composerCartPaint0" x1="-3.841" y1="10.294" x2="6.267" y2="26.657" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#FFB100" />
+            <stop offset="1" stopColor="#FC8901" />
+          </linearGradient>
+          <linearGradient id="composerCartPaint1" x1="-3.841" y1="10.294" x2="6.267" y2="26.657" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#FFB100" />
+            <stop offset="1" stopColor="#FC8901" />
+          </linearGradient>
+          <linearGradient id="composerCartPaint2" x1="15.795" y1="12.277" x2="15.97" y2="10.61" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#FFF9E0" />
+            <stop offset="1" stopColor="#F4E0B9" />
+          </linearGradient>
+          <linearGradient id="composerCartPaint3" x1="15.726" y1="15.387" x2="15.917" y2="13.723" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#FFF9E0" />
+            <stop offset="1" stopColor="#F4E0B9" />
+          </linearGradient>
+          <linearGradient id="composerCartPaint4" x1="7.004" y1="20.944" x2="9.22" y2="23.666" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#FFB100" />
+            <stop offset="1" stopColor="#FC8901" />
+          </linearGradient>
+          <linearGradient id="composerCartPaint5" x1="16.727" y1="20.944" x2="18.943" y2="23.666" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#FFB100" />
+            <stop offset="1" stopColor="#FC8901" />
+          </linearGradient>
+        </defs>
       </svg>
     );
   }
@@ -299,11 +475,7 @@ function ComposerIcon({ name }: { name: 'product' | 'gift' | 'more' | 'heart' })
     return <img className="composerImageIcon composerGiftIcon" src="/douyin-assets/gifts/gift-icon.svg" alt="" aria-hidden="true" loading="lazy" />;
   }
   if (name === 'more') {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M5 12h.01M12 12h.01M19 12h.01" />
-      </svg>
-    );
+    return <img className="composerImageIcon composerMoreIcon" src="/douyin-assets/icons/share-white-full.png" alt="" aria-hidden="true" loading="lazy" />;
   }
   return <img className="composerImageIcon composerHeartIcon" src="/douyin-assets/gifts/xiao-xin-xin.png" alt="" aria-hidden="true" loading="lazy" />;
 }
@@ -329,14 +501,14 @@ function LiveComposer({
       <button type="button" className="composerIconButton" aria-label="商品橱窗" onClick={onOpenAuction}>
         <ComposerIcon name="product" />
       </button>
+      <button type="button" className="composerIconButton" aria-label="点赞直播" onClick={() => sendFacadeNotice('已为直播间增加热度')}>
+        <ComposerIcon name="heart" />
+      </button>
       <button type="button" className="composerIconButton" aria-label="礼物" onClick={onOpenGift}>
         <ComposerIcon name="gift" />
       </button>
       <button type="button" className="composerIconButton" aria-label="更多操作" onClick={onOpenMore}>
         <ComposerIcon name="more" />
-      </button>
-      <button type="button" className="composerIconButton" aria-label="点赞直播" onClick={() => sendFacadeNotice('已为直播间增加热度')}>
-        <ComposerIcon name="heart" />
       </button>
     </footer>
   );
@@ -580,6 +752,7 @@ export function LiveRoomView({ controller }: { controller: LiveRoomController })
   const [clearScreen, setClearScreen] = useState(false);
   const [giftBurst, setGiftBurst] = useState<GiftBurst | null>(null);
   const [leaderboardCollapsed, setLeaderboardCollapsed] = useState(false);
+  const [closedProductCardLotId, setClosedProductCardLotId] = useState<string | null>(null);
   const {
     room,
     error,
@@ -625,6 +798,13 @@ export function LiveRoomView({ controller }: { controller: LiveRoomController })
         collapsed={leaderboardCollapsed}
         onToggleCollapsed={() => setLeaderboardCollapsed((value) => !value)}
       />
+      {currentLot && closedProductCardLotId !== currentLot.id ? (
+        <LiveProductFloatCard
+          controller={controller}
+          onOpenAuction={openCurrentAuction}
+          onClose={() => setClosedProductCardLotId(currentLot.id)}
+        />
+      ) : null}
       {wsState !== '已连接' ? <div className="liveConnectionWarn">实时连接中断，正在恢复</div> : null}
       {error ? <div className="liveConnectionWarn error">{error}</div> : null}
       <AuctionDrawer controller={controller} />
