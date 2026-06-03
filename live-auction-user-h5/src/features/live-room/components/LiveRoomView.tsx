@@ -296,7 +296,7 @@ function ComposerIcon({ name }: { name: 'product' | 'gift' | 'more' | 'heart' })
     );
   }
   if (name === 'gift') {
-    return <img className="composerImageIcon composerGiftIcon" src="/douyin-assets/gifts/gift-icon.png" alt="" aria-hidden="true" loading="lazy" />;
+    return <img className="composerImageIcon composerGiftIcon" src="/douyin-assets/gifts/gift-icon.svg" alt="" aria-hidden="true" loading="lazy" />;
   }
   if (name === 'more') {
     return (
