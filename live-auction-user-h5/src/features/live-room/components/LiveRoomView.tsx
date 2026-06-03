@@ -296,14 +296,7 @@ function ComposerIcon({ name }: { name: 'product' | 'gift' | 'more' | 'heart' })
     );
   }
   if (name === 'gift') {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 10h16v10H4V10Z" />
-        <path d="M12 10v10M4 14h16" />
-        <path d="M12 10H8.5a2.5 2.5 0 1 1 2.2-3.7L12 10Z" />
-        <path d="M12 10h3.5a2.5 2.5 0 1 0-2.2-3.7L12 10Z" />
-      </svg>
-    );
+    return <img className="composerImageIcon composerGiftIcon" src="/douyin-assets/gifts/gift-icon.png" alt="" aria-hidden="true" loading="lazy" />;
   }
   if (name === 'more') {
     return (
@@ -312,11 +305,7 @@ function ComposerIcon({ name }: { name: 'product' | 'gift' | 'more' | 'heart' })
       </svg>
     );
   }
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 20.6S4.2 16.1 3 9.8C2.4 6.7 4.3 4.4 7.1 4.4c1.8 0 3.3 1 4.1 2.4.8-1.4 2.3-2.4 4.2-2.4 2.8 0 4.7 2.3 4.1 5.4-1.2 6.3-7.5 10.8-7.5 10.8Z" />
-    </svg>
-  );
+  return <img className="composerImageIcon composerHeartIcon" src="/douyin-assets/gifts/xiao-xin-xin.png" alt="" aria-hidden="true" loading="lazy" />;
 }
 
 function LiveComposer({

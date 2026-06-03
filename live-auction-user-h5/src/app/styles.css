@@ -9804,6 +9804,24 @@
   height: 23px;
 }
 
+.liveComposer .composerImageIcon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.liveComposer .composerGiftIcon {
+  width: 26px;
+  height: 26px;
+}
+
+.liveComposer .composerHeartIcon {
+  width: 25px;
+  height: 25px;
+}
+
 @media (max-height: 720px) {
   .liveEffectsLayer {
     bottom: calc(58px + var(--live-safe-bottom));
