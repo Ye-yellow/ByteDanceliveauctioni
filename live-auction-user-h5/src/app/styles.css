@@ -2977,6 +2977,7 @@
 .douyinShell.isClearScreen .liveRoomChrome,
 .douyinShell.isClearScreen .liveActionRail,
 .douyinShell.isClearScreen .liveEffectsLayer,
+.douyinShell.isClearScreen .liveBidLeaderboard,
 .douyinShell.isClearScreen .liveConnectionWarn,
 .douyinShell.isClearScreen .roomTitleBlock,
 .douyinShell.isClearScreen .liveComposer,
@@ -4977,7 +4978,7 @@
 .queueLot.dyEcomLot.isFailed .dyEcomTag,
 .queueLot.dyEcomLot.isCancelled .dyEcomTag {
   background: #d8d9de;
-  color: #fff;
+  color: #3f4450;
 }
 
 .queueLot.dyEcomLot.isPendingPayment .dyEcomTag {
@@ -5209,6 +5210,42 @@
   border-radius: 24px 24px 0 0;
   background: #fff;
   box-shadow: 0 -18px 44px rgba(17, 19, 25, 0.22);
+}
+
+.auctionDrawerBidSheet {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  min-height: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.auctionDrawerBidSheet::before {
+  display: none;
+}
+
+.auctionDrawerBidSheet .drawerContent {
+  padding: 0;
+  overflow: visible;
+}
+
+.auctionDrawerBidSheet .currentAuctionPanel {
+  display: block;
+}
+
+.auctionDrawerBidSheet .liveProductSheetStandalone {
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  width: 100%;
+  max-width: 100%;
+  max-height: min(78dvh, 640px);
+  box-sizing: border-box;
+  overflow-y: auto;
 }
 
 .bidSheetClose {
@@ -5661,15 +5698,31 @@
   text-align: center;
 }
 
+.resultModalWin {
+  border: 1px solid rgba(254, 44, 85, 0.12);
+  box-shadow:
+    var(--live-shadow-modal),
+    0 0 0 1px rgba(255, 255, 255, 0.72) inset;
+}
+
+.resultModalLose {
+  border: 1px solid rgba(17, 19, 25, 0.08);
+  box-shadow:
+    var(--live-shadow-modal),
+    0 0 0 1px rgba(255, 255, 255, 0.68) inset;
+}
+
 .modalClose {
   position: absolute;
   right: 14px;
   top: 12px;
+  z-index: 3;
   border: 0;
   background: var(--live-modal-close-bg);
   border-radius: 50%;
   width: 32px;
   height: 32px;
+  cursor: pointer;
 }
 
 .resultWinMedia {
@@ -5683,6 +5736,7 @@
   color: var(--live-color-contrast);
   font-size: 34px;
   font-weight: 950;
+  position: relative;
 }
 
 .resultWinMedia img {
@@ -5691,6 +5745,29 @@
   height: 100%;
   object-fit: cover;
   object-position: center;
+}
+
+.resultWinMedia::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(17, 19, 25, 0.2), transparent 42%);
+  pointer-events: none;
+}
+
+.resultWinBadge {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 1;
+  border-radius: 999px;
+  background: rgba(254, 44, 85, 0.92);
+  color: #fff;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 950;
+  line-height: 1;
+  box-shadow: 0 8px 18px rgba(254, 44, 85, 0.22);
 }
 
 .resultTitle {
@@ -5726,6 +5803,19 @@
   white-space: nowrap;
 }
 
+.resultWinSummary {
+  margin: -2px 0 2px;
+  color: var(--live-color-text-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.resultWinSummary b {
+  color: var(--live-color-primary);
+  font-size: 15px;
+  font-weight: 950;
+}
+
 .resultPayCountdown {
   margin: -2px 0 0;
   color: var(--live-color-text-muted);
@@ -5742,6 +5832,7 @@
   background: var(--live-modal-lose-product-bg);
   padding: 8px 32px 8px 8px;
   text-align: left;
+  box-shadow: 0 0 0 1px rgba(17, 19, 25, 0.04) inset;
 }
 
 .resultLoseProductMedia {
@@ -5839,6 +5930,10 @@
   border-radius: 22px;
   padding: 14px;
   background: var(--live-modal-highlight-bg);
+}
+
+.resultModalLose .resultFinalPrice {
+  box-shadow: 0 0 0 1px rgba(17, 19, 25, 0.04) inset;
 }
 
 .resultFinalPrice strong {
@@ -6024,14 +6119,30 @@
   border-radius: 999px;
   background: var(--live-color-primary);
   color: var(--live-color-contrast);
+  cursor: pointer;
   font-size: 16px;
   font-weight: 950;
   box-shadow: var(--live-modal-primary-shadow);
+  touch-action: manipulation;
 }
 
 .resultModalLose .resultPrimaryButton {
   background: var(--live-modal-secondary-bg);
   box-shadow: var(--live-modal-secondary-shadow);
+}
+
+.resultPrimaryButton:not(:disabled):hover {
+  filter: brightness(1.04);
+}
+
+.resultPrimaryButton:not(:disabled):active {
+  transform: scale(0.99);
+}
+
+.resultPrimaryButton:focus-visible,
+.modalClose:focus-visible {
+  outline: 3px solid rgba(254, 44, 85, 0.28);
+  outline-offset: 3px;
 }
 
 .resultPrimaryButton:disabled {
@@ -9182,6 +9293,258 @@
   line-height: 1;
 }
 
+.liveBidLeaderboard {
+  position: absolute;
+  top: calc(112px + var(--live-safe-top));
+  right: 10px;
+  z-index: var(--live-z-sticky);
+  width: 166px;
+  max-width: calc(100% - 20px);
+  display: grid;
+  gap: 7px;
+  border: 0;
+  border-radius: 16px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.1), transparent 36%),
+    linear-gradient(180deg, rgba(23, 24, 31, 0.78), rgba(12, 13, 18, 0.52));
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: #fff;
+  padding: 9px;
+  font: inherit;
+  text-align: left;
+  backdrop-filter: blur(16px) saturate(1.16);
+  transition: opacity 180ms ease, transform 180ms ease;
+  appearance: none;
+}
+
+.liveBidLeaderboard.empty {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.08), transparent 38%),
+    linear-gradient(180deg, rgba(27, 28, 35, 0.58), rgba(12, 13, 18, 0.42));
+}
+
+.liveBidLeaderboard.isCollapsed {
+  width: auto;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.leaderboardCollapsedPill {
+  min-height: 27px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  background: rgba(23, 24, 31, 0.54);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  color: #fff;
+  padding: 2px 7px 2px 10px;
+  font-size: 10.5px;
+  font-weight: 850;
+  backdrop-filter: blur(12px);
+}
+
+.leaderboardCollapsedPill span {
+  white-space: nowrap;
+}
+
+.leaderboardCollapsedPill strong {
+  max-width: 66px;
+  overflow: hidden;
+  color: #fff06b;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10.5px;
+  font-weight: 950;
+}
+
+.leaderboardCollapsedPill i {
+  width: 16px;
+  font-style: normal;
+  font-size: 16px;
+  line-height: 1;
+  text-align: center;
+}
+
+.leaderboardTop {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(68px, auto) 20px;
+  grid-template-areas:
+    "title price icon";
+  gap: 7px;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+  appearance: none;
+}
+
+.leaderboardTitle {
+  grid-area: title;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.leaderboardTitle b,
+.leaderboardTitle small,
+.leaderboardTop > strong,
+.leaderboardRow b,
+.leaderboardRow strong {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.leaderboardTitle b {
+  font-size: 12px;
+  font-weight: 950;
+  line-height: 1.05;
+}
+
+.leaderboardTitle small {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 9.5px;
+  font-weight: 760;
+  line-height: 1.1;
+}
+
+.leaderboardTop > strong {
+  grid-area: price;
+  max-width: 72px;
+  color: #fff06b;
+  font-size: 13px;
+  font-weight: 950;
+  line-height: 1.1;
+}
+
+.leaderboardChevron {
+  grid-area: icon;
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.leaderboardChevron::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 8px;
+  width: 6px;
+  height: 6px;
+  border-top: 2px solid rgba(255, 255, 255, 0.82);
+  border-left: 2px solid rgba(255, 255, 255, 0.82);
+  transform: rotate(45deg);
+}
+
+.leaderboardRows {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+  appearance: none;
+}
+
+.leaderboardRow {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 16px 22px minmax(0, 1fr);
+  grid-template-areas:
+    "rank avatar name"
+    "rank avatar price";
+  gap: 1px 5px;
+  align-items: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 4px 5px;
+}
+
+.leaderboardRow.me {
+  background: rgba(255, 49, 92, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(255, 111, 129, 0.26);
+}
+
+.leaderboardRow em {
+  grid-area: rank;
+  color: #fff06b;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 950;
+  text-align: center;
+}
+
+.leaderboardAvatar {
+  grid-area: avatar;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent),
+    linear-gradient(135deg, #25f4ee, #fe2c55 62%, #ffe66d);
+  color: #111319;
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.leaderboardAvatar img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.leaderboardRow b {
+  grid-area: name;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 10.5px;
+  font-weight: 880;
+  line-height: 1.1;
+}
+
+.leaderboardRow strong {
+  grid-area: price;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 9.5px;
+  font-weight: 850;
+  line-height: 1.1;
+}
+
+.leaderboardEmpty {
+  display: block;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.66);
+  padding: 8px 6px;
+  font-size: 11px;
+  font-weight: 850;
+  text-align: center;
+}
+
+.douyinShell.drawerVisible .liveBidLeaderboard {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(8px);
+}
+
 .liveEffectsLayer {
   left: 15px;
   right: 58px;
@@ -11338,4 +11701,3 @@
     scroll-behavior: auto;
   }
 }
-

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { orderStatusLabel } from '../../../entities/order/model/privacy';
-import { LOT_STATUS, type OrderSummary } from '../../../shared/api/types';
+import { LOT_STATUS, type Lot, type OrderSummary } from '../../../shared/api/types';
 import { formatMoney } from '../../../shared/lib/money';
 import { formatEventTime, getServerNowMs } from '../../../shared/lib/time';
 import type { AuctionPanelTab, LiveRoomController } from '../hooks/useLiveRoomController';
@@ -16,6 +16,7 @@ function tabLabel(tab: AuctionPanelTab): string {
 }
 
 const DRAWER_TABS: AuctionPanelTab[] = ['current', 'mine'];
+type SheetMode = 'detail' | 'bid';
 
 function DrawerTabIcon({ tab }: { tab: AuctionPanelTab }) {
   if (tab === 'mine') {
@@ -91,7 +92,15 @@ function MiniOrder({ order }: { order: OrderSummary }) {
   );
 }
 
-function CurrentAuctionPanel({ controller }: { controller: LiveRoomController }) {
+function CurrentAuctionPanel({
+  controller,
+  onBidSheetOpenChange,
+  onCloseBidSheet,
+}: {
+  controller: LiveRoomController;
+  onBidSheetOpenChange: (open: boolean) => void;
+  onCloseBidSheet: () => void;
+}) {
   const {
     room,
     auctionPanel,
@@ -104,6 +113,7 @@ function CurrentAuctionPanel({ controller }: { controller: LiveRoomController })
     actions,
   } = controller;
   const [sheetLotId, setSheetLotId] = useState('');
+  const [sheetMode, setSheetMode] = useState<SheetMode>('detail');
   const displayNowMs = getServerNowMs(room.serverTimeUnixMs, room.serverTimeReceivedAtUnixMs);
   const lots = useMemo(() => {
     if (auctionPanel.lots.length) {
@@ -121,40 +131,85 @@ function CurrentAuctionPanel({ controller }: { controller: LiveRoomController })
     nowMs: displayNowMs,
   }) : undefined;
   const sheetCanBid = Boolean(sheetLot && sheetIsCurrent && sheetDisplayState === 'live');
+  const lotDisplayState = (lot: Lot) => deriveLotDisplayState(lot, {
+    order: orderForLot(room.orders, lot),
+    paymentKnownPaid: Boolean(room.paidLotIds[lot.id]),
+    nowMs: displayNowMs,
+  });
+  const canBidLot = (lot: Lot) => lotDisplayState(lot) === 'live' && currentLot?.id === lot.id;
+  const openLotSheet = (lot: Lot) => {
+    const nextMode: SheetMode = canBidLot(lot) ? 'bid' : 'detail';
+    setSheetLotId(lot.id);
+    setSheetMode(nextMode);
+    onBidSheetOpenChange(nextMode === 'bid');
+  };
+  const handleQueuePrimaryAction = (lot: Lot) => {
+    const displayState = lotDisplayState(lot);
+
+    openLotSheet(lot);
+    if (displayState === 'live' && currentLot?.id !== lot.id) actions.showNotice('请等待主播切到该拍品后再出价');
+  };
+  const sheetInBidMode = sheetMode === 'bid' && sheetCanBid;
+  const closeSheet = () => {
+    if (sheetInBidMode) {
+      onCloseBidSheet();
+      return;
+    }
+    setSheetLotId('');
+    setSheetMode('detail');
+    onBidSheetOpenChange(false);
+  };
 
   useEffect(() => {
     if (currentLot?.status !== LOT_STATUS.CANCELLED) return undefined;
-    const timer = window.setTimeout(() => setSheetLotId(''), 0);
+    const timer = window.setTimeout(() => {
+      setSheetLotId('');
+      setSheetMode('detail');
+      onBidSheetOpenChange(false);
+    }, 0);
     return () => window.clearTimeout(timer);
-  }, [currentLot?.id, currentLot?.status]);
+  }, [currentLot?.id, currentLot?.status, onBidSheetOpenChange]);
+
+  useEffect(() => {
+    if (sheetMode === 'bid' && !sheetCanBid) onBidSheetOpenChange(false);
+  }, [sheetCanBid, sheetMode, onBidSheetOpenChange]);
 
   return (
     <section className="currentAuctionPanel">
       {accountRoleMessage ? <section className="emptyState error">{accountRoleMessage}</section> : null}
       {loading ? <section className="drawerEmpty">正在进入直播间...</section> : null}
       {error ? <section className="emptyState error">{error}</section> : null}
-      <LotQueueList
-        lots={lots}
-        currentLotId={currentLot?.id}
-        selectedLotId={sheetLot?.id || currentLot?.id}
-        loading={auctionPanel.loading}
-        error={auctionPanel.error}
-        onRefresh={() => void actions.refreshRoomLots().catch(() => undefined)}
-        onSelectLot={(lot) => setSheetLotId(lot.id)}
-        onPrimaryAction={(lot) => setSheetLotId(lot.id)}
-        orders={room.orders}
-        paidLotIds={room.paidLotIds}
-        nowMs={displayNowMs}
-      />
+      {!sheetInBidMode ? (
+        <LotQueueList
+          lots={lots}
+          currentLotId={currentLot?.id}
+          selectedLotId={sheetLot?.id || currentLot?.id}
+          loading={auctionPanel.loading}
+          error={auctionPanel.error}
+          onRefresh={() => void actions.refreshRoomLots().catch(() => undefined)}
+          onSelectLot={openLotSheet}
+          onPrimaryAction={handleQueuePrimaryAction}
+          orders={room.orders}
+          paidLotIds={room.paidLotIds}
+          nowMs={displayNowMs}
+        />
+      ) : null}
 
       {bidAuthPanelOpen ? (
-        <section className="liveBidSheet liveProductSheet liveAuthSheet" aria-label="登录后出价">
+        <section className={`liveBidSheet liveProductSheet liveAuthSheet${sheetInBidMode ? ' liveProductSheetStandalone' : ''}`} aria-label="登录后出价">
           <button type="button" className="bidSheetClose" onClick={actions.closeBuyerAuthPanel} aria-label="关闭登录窗口">×</button>
           <BuyerAuthPanel auth={buyerAuth} />
         </section>
       ) : sheetLot ? (
-        <section className="liveBidSheet liveProductSheet" aria-label="商品详情">
-          <button type="button" className="bidSheetClose" onClick={() => setSheetLotId('')} aria-label="收起商品详情">×</button>
+        <section className={`liveBidSheet liveProductSheet${sheetInBidMode ? ' liveProductSheetStandalone' : ''}`} aria-label={sheetInBidMode ? '出价面板' : '商品详情'}>
+          <button
+            type="button"
+            className="bidSheetClose"
+            onClick={closeSheet}
+            aria-label={sheetInBidMode ? '关闭出价面板' : '收起商品详情'}
+          >
+            ×
+          </button>
           <CurrentLotCard
             lot={sheetLot}
             serverTimeUnixMs={room.serverTimeUnixMs}
@@ -188,43 +243,65 @@ function CurrentAuctionPanel({ controller }: { controller: LiveRoomController })
 
 export function AuctionDrawer({ controller }: { controller: LiveRoomController }) {
   const { auctionPanel, currentLot, actions } = controller;
+  const [bidSheetOpen, setBidSheetOpen] = useState(false);
+
+  useEffect(() => {
+    if (!auctionPanel.open) setBidSheetOpen(false);
+  }, [auctionPanel.open]);
+
   if (!auctionPanel.open) return null;
   const activeTab = auctionPanel.tab === 'mine' ? 'mine' : 'current';
 
+  const closeAuctionPanel = () => {
+    setBidSheetOpen(false);
+    actions.closeAuctionPanel();
+  };
+
   const selectTab = (tab: AuctionPanelTab) => {
+    setBidSheetOpen(false);
     actions.setAuctionPanelTab(tab);
     if (tab === 'mine') void actions.refreshOrders().catch(() => undefined);
   };
 
   return (
-    <div className="auctionDrawerMask" onClick={actions.closeAuctionPanel}>
-      <section className="auctionDrawer" role="dialog" aria-modal="true" aria-label="直播商品" onClick={(event) => event.stopPropagation()}>
-        <header className="auctionDrawerHeader">
-          <div>
-            <span>进主播橱窗 ›</span>
-            <h2>{currentLot?.title || '本场商品'}</h2>
-            <div className="auctionDrawerTrust">
-              <em>带货口碑 5.0高</em>
-              <em>安心购</em>
-              <em>真实宝</em>
-            </div>
-          </div>
-          <button type="button" className="drawerClose" onClick={actions.closeAuctionPanel} aria-label="关闭商品面板">
-            ×
-          </button>
-        </header>
+    <div className="auctionDrawerMask" onClick={closeAuctionPanel}>
+      <section className={`auctionDrawer${bidSheetOpen ? ' auctionDrawerBidSheet' : ''}`} role="dialog" aria-modal="true" aria-label="直播商品" onClick={(event) => event.stopPropagation()}>
+        {!bidSheetOpen ? (
+          <>
+            <header className="auctionDrawerHeader">
+              <div>
+                <span>进主播橱窗 ›</span>
+                <h2>{currentLot?.title || '本场商品'}</h2>
+                <div className="auctionDrawerTrust">
+                  <em>带货口碑 5.0高</em>
+                  <em>安心购</em>
+                  <em>真实宝</em>
+                </div>
+              </div>
+              <button type="button" className="drawerClose" onClick={closeAuctionPanel} aria-label="关闭商品面板">
+                ×
+              </button>
+            </header>
 
-        <nav className="drawerTabs">
-          {DRAWER_TABS.map((tab) => (
-            <button type="button" className={activeTab === tab ? 'active' : ''} onClick={() => selectTab(tab)} key={tab}>
-              <DrawerTabIcon tab={tab} />
-              <b>{tabLabel(tab)}</b>
-            </button>
-          ))}
-        </nav>
+            <nav className="drawerTabs">
+              {DRAWER_TABS.map((tab) => (
+                <button type="button" className={activeTab === tab ? 'active' : ''} onClick={() => selectTab(tab)} key={tab}>
+                  <DrawerTabIcon tab={tab} />
+                  <b>{tabLabel(tab)}</b>
+                </button>
+              ))}
+            </nav>
+          </>
+        ) : null}
 
         <div className="drawerContent">
-          {activeTab === 'current' ? <CurrentAuctionPanel controller={controller} /> : null}
+          {activeTab === 'current' ? (
+            <CurrentAuctionPanel
+              controller={controller}
+              onBidSheetOpenChange={setBidSheetOpen}
+              onCloseBidSheet={closeAuctionPanel}
+            />
+          ) : null}
           {activeTab === 'mine' ? <MyPanel controller={controller} /> : null}
         </div>
       </section>

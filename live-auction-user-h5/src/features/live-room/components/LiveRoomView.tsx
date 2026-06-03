@@ -4,6 +4,7 @@ import { DepositPayModal } from '../../payment-flow/components/DepositPayModal';
 import { MockPayModal } from '../../payment-flow/components/MockPayModal';
 import { ResultModal } from '../../result-modal/components/ResultModal';
 import { businessErrorMessage } from '../../../shared/api/errors';
+import { formatMoney, moneyNumber } from '../../../shared/lib/money';
 import { navigateTo } from '../../../shared/navigation';
 import type { LiveRoomController } from '../hooks/useLiveRoomController';
 import { AuctionDrawer } from './AuctionDrawer';
@@ -116,6 +117,102 @@ function LiveRoomChrome({ controller }: { controller: LiveRoomController }) {
           </button>
         </div>
       </div>
+    </section>
+  );
+}
+
+type LeaderboardEntry = LiveRoomController['ranking'][number];
+
+function uniqueLeaderboardEntries(entries: LeaderboardEntry[]): LeaderboardEntry[] {
+  const byBidder = new Map<string, LeaderboardEntry>();
+  entries.forEach((entry, index) => {
+    const key = entry.isMe ? 'me' : entry.userId || entry.nickname || `rank-${index}`;
+    const existing = byBidder.get(key);
+    if (!existing || moneyNumber(entry.amount) > moneyNumber(existing.amount)) byBidder.set(key, entry);
+  });
+
+  return Array.from(byBidder.values())
+    .sort((a, b) => moneyNumber(b.amount) - moneyNumber(a.amount))
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
+}
+
+function LiveBidLeaderboard({
+  controller,
+  onOpenAuction,
+  collapsed,
+  onToggleCollapsed,
+}: {
+  controller: LiveRoomController;
+  onOpenAuction: () => void;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+}) {
+  const { currentLot, ranking, room } = controller;
+  if (!currentLot) return null;
+
+  const acceptedRecentBids = room.recentBids.filter((bid) => bid.accepted !== false && (!bid.lotId || bid.lotId === currentLot.id));
+  const bidCount = Math.max(currentLot.stats.bidCount, acceptedRecentBids.length);
+  const uniqueRanking = uniqueLeaderboardEntries(ranking);
+  const participantCount = Math.max(currentLot.stats.participantCount, uniqueRanking.length);
+  const fallbackLeader: LeaderboardEntry | null = !uniqueRanking.length && (currentLot.leadingNickname || currentLot.leadingUserId)
+    ? {
+        rank: 1,
+        userId: currentLot.leadingUserId || 'leader',
+        nickname: currentLot.leadingNickname || '领先拍友',
+        amount: currentLot.currentPrice,
+        isMe: currentLot.leadingUserId === controller.meId,
+      }
+    : null;
+  const entries = (uniqueRanking.length ? uniqueRanking : fallbackLeader ? [fallbackLeader] : []).slice(0, 3);
+  const hasBid = bidCount > 0 || entries.length > 0;
+  const leadAmountText = hasBid ? formatMoney(entries[0]?.amount || currentLot.currentPrice) : '未出价';
+
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        className={`liveBidLeaderboard isCollapsed${hasBid ? '' : ' empty'}`}
+        onClick={onToggleCollapsed}
+        aria-label="展开竞拍排行榜"
+      >
+        <span className="leaderboardCollapsedPill">
+          <span>{hasBid ? '竞拍榜' : '等首拍'}</span>
+          <strong title={leadAmountText}>{leadAmountText}</strong>
+          <i aria-hidden="true">›</i>
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <section
+      className={`liveBidLeaderboard${hasBid ? '' : ' empty'}`}
+      aria-label="竞拍排行榜"
+    >
+      <button type="button" className="leaderboardTop" onClick={onToggleCollapsed} aria-label="收起竞拍排行榜">
+        <span className="leaderboardTitle">
+          <b>{hasBid ? '竞拍榜' : '等首拍'}</b>
+          <small>{participantCount}人围观 · {bidCount}口</small>
+        </span>
+        <strong title={leadAmountText}>{leadAmountText}</strong>
+        <i className="leaderboardChevron" aria-hidden="true" />
+      </button>
+      <button type="button" className="leaderboardRows" onClick={onOpenAuction} aria-label="打开商品橱窗查看出价">
+        {entries.length ? entries.map((entry, index) => {
+          const name = entry.nickname || (entry.userId ? `拍友${entry.userId.slice(-4)}` : `拍友${index + 1}`);
+          const amountText = formatMoney(entry.amount);
+          return (
+            <span className={`leaderboardRow${entry.isMe ? ' me' : ''}`} key={`${entry.userId || name}-${index}`}>
+              <em>{entry.rank || index + 1}</em>
+              <span className="leaderboardAvatar">
+                <AvatarMedia src={entry.avatarUrl || liveAvatarFor(`${room.roomId}:${name}:rank`, index)} name={name} />
+              </span>
+              <b>{entry.isMe ? '我' : name}</b>
+              <strong title={amountText}>{amountText}</strong>
+            </span>
+          );
+        }) : <span className="leaderboardEmpty">等第一口出价</span>}
+      </button>
     </section>
   );
 }
@@ -493,6 +590,7 @@ export function LiveRoomView({ controller }: { controller: LiveRoomController })
   const [activeSheet, setActiveSheet] = useState<'comments' | 'share' | 'gift' | 'more' | null>(null);
   const [clearScreen, setClearScreen] = useState(false);
   const [giftBurst, setGiftBurst] = useState<GiftBurst | null>(null);
+  const [leaderboardCollapsed, setLeaderboardCollapsed] = useState(false);
   const {
     room,
     error,
@@ -532,6 +630,12 @@ export function LiveRoomView({ controller }: { controller: LiveRoomController })
       ) : null}
       <LiveRoomChrome controller={controller} />
       <LiveRoomEffectsLayer controller={controller} giftBurst={giftBurst} />
+      <LiveBidLeaderboard
+        controller={controller}
+        onOpenAuction={openCurrentAuction}
+        collapsed={leaderboardCollapsed}
+        onToggleCollapsed={() => setLeaderboardCollapsed((value) => !value)}
+      />
       {wsState !== '已连接' ? <div className="liveConnectionWarn">实时连接中断，正在恢复</div> : null}
       {error ? <div className="liveConnectionWarn error">{error}</div> : null}
       <AuctionDrawer controller={controller} />

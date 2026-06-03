@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isBiddableLotStatus, isPrivateRefreshEventType, isSettlementEventType, lotIdFromPublicEvent } from '../../../entities/auction/model/status';
 import { ownOrderForLot } from '../../../entities/order/model/privacy';
 import { listPublicRooms, listRoomLots, placeBid } from '../../auction/api/auctionApi';
@@ -126,6 +126,7 @@ export function useLiveRoomController(roomId: string) {
   const [roomLotsLoading, setRoomLotsLoading] = useState(false);
   const [roomLotsError, setRoomLotsError] = useState('');
   const [publicRoomName, setPublicRoomName] = useState('');
+  const dismissedResultLotIdsRef = useRef<Set<string>>(new Set());
 
   const meId = user?.id ?? '';
   const currentLot = room.currentLot;
@@ -188,7 +189,8 @@ export function useLiveRoomController(roomId: string) {
     if (!lotId) return null;
     try {
       const result = await refreshLotResult(lotId);
-      if (options.showModal ?? true) {
+      const shouldShowModal = (options.showModal ?? true) && !dismissedResultLotIdsRef.current.has(result.lot.id);
+      if (shouldShowModal) {
         setResultLot(result.lot);
         setResultOrder(result.order || null);
       }
@@ -405,9 +407,11 @@ export function useLiveRoomController(roomId: string) {
   }, [currentLot?.id, markPaymentSettled, payOrder?.lotId, pushNotice, refreshOrders, resultLot, syncPrivateResult]);
 
   const closeResult = useCallback(() => {
+    if (resultLot?.id) dismissedResultLotIdsRef.current.add(resultLot.id);
     setResultLot(null);
     setResultOrder(null);
-  }, []);
+    setPayOrder(null);
+  }, [resultLot?.id]);
 
   const nextLot = useCallback(() => {
     setResultLot(null);

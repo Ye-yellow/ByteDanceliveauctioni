@@ -25,6 +25,12 @@ function avatarText(label: string): string {
   return Array.from(label.replace(/\*/g, ''))[0] || '中';
 }
 
+function lotHasBid(lot: Lot): boolean {
+  const start = moneyNumber(lot.rule.startPrice);
+  const current = moneyNumber(lot.currentPrice);
+  return Boolean(lot.leadingUserId || lot.winnerUserId || lot.stats?.bidCount || (current > 0 && current > start));
+}
+
 function roundsText(lot: Lot): string {
   const rounds = Number(lot.stats?.bidCount || 0);
   if (!Number.isFinite(rounds) || rounds <= 0) return '经过多轮激烈竞拍成功拍下';
@@ -95,11 +101,12 @@ export function ResultModal({
   const failedClaim = hasWinningClaim && (Boolean(order && isOrderFailed(order, nowMs)) || (!order && payLeftMs <= 0));
   const won = hasWinningClaim && !failedClaim;
   const canPay = won && canStartPayment(order);
+  const noSuccessfulBid = !won && !failedClaim && !lotHasBid(lot);
   const maskedWinnerNickname = maskPublicBuyerName(lot.winnerNickname || order?.buyerNickname, '中标者');
-  const resultProfileLabel = failedClaim ? '竞拍未成交' : '竞拍成功者';
-  const resultProfileText = failedClaim ? '付款超时' : maskedWinnerNickname;
-  const resultStory = failedClaim ? '已落锤但未在时限内完成付款' : roundsText(lot);
-  const finalPriceLabel = failedClaim ? '落锤价' : '最终价';
+  const resultProfileLabel = failedClaim || noSuccessfulBid ? '竞拍未成交' : '竞拍成功者';
+  const resultProfileText = noSuccessfulBid ? '无人出价' : failedClaim ? '付款超时' : maskedWinnerNickname;
+  const resultStory = noSuccessfulBid ? '本轮无人出价，拍品未成交' : failedClaim ? '已落锤但未在时限内完成付款' : roundsText(lot);
+  const finalPriceLabel = noSuccessfulBid ? '起拍价' : failedClaim ? '落锤价' : '最终价';
 
   useEffect(() => {
     if (!hasWinningClaim) return undefined;
@@ -118,7 +125,7 @@ export function ResultModal({
   return (
     <div className="modalMask resultModalMask">
       <section className={`resultModal ${won ? 'resultModalWin' : 'resultModalLose'}`} aria-modal="true" role="dialog">
-        <button className="modalClose" onClick={onClose} aria-label="关闭结果弹窗">
+        <button className="modalClose" type="button" onClick={onClose} aria-label="关闭结果弹窗">
           ×
         </button>
 
@@ -126,8 +133,12 @@ export function ResultModal({
           <>
             <div className="resultWinMedia">
               {lot.imageUrl ? <img src={lot.imageUrl} alt={lot.title} /> : <span>{lot.title.slice(0, 1) || '拍'}</span>}
+              <span className="resultWinBadge">竞拍成功</span>
             </div>
             <h2 className="resultTitle">{lot.title}</h2>
+            <p className="resultWinSummary">
+              成交价 <b className="scrollAmount" title={formatMoney(finalAmount)}>{formatMoney(finalAmount)}</b>
+            </p>
             <section className="resultDeposit" aria-label="保证金">
               <span>保证金</span>
               <b>拍品付款后退回</b>
@@ -156,7 +167,7 @@ export function ResultModal({
               </div>
             </div>
             <div className="resultWinnerProfile">
-              <div className="resultWinnerAvatar">{avatarText(maskedWinnerNickname)}</div>
+              <div className="resultWinnerAvatar">{avatarText(resultProfileText)}</div>
               <div>
                 <span>{resultProfileLabel}</span>
                 <b>{resultProfileText}</b>
