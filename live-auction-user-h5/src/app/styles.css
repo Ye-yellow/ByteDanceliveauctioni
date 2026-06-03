@@ -5713,107 +5713,139 @@
 }
 
 .resultCeremony {
+  --ceremony-main: #d9302b;
+  --ceremony-outline: #fff4d3;
+  --ceremony-depth: rgba(111, 39, 18, 0.22);
+  --ceremony-underlay: rgba(236, 177, 74, 0.68);
+  --ceremony-ribbon-bg: #fff0ba;
+  --ceremony-ribbon-border: rgba(221, 156, 54, 0.3);
+  --ceremony-ribbon-color: #9a5512;
   position: relative;
   display: grid;
   justify-items: center;
-  gap: 5px;
-  margin: -4px 0 0;
-  padding: 2px 42px 4px;
+  gap: 1px;
+  margin: -6px 0 1px;
+  padding: 4px 28px 7px;
+  isolation: isolate;
 }
 
 .resultCeremony::before,
 .resultCeremony::after {
   content: "";
   position: absolute;
-  top: 13px;
-  width: 32px;
-  height: 1px;
+  left: 50%;
   border-radius: 999px;
-  background: rgba(154, 104, 36, 0.34);
+  pointer-events: none;
 }
 
 .resultCeremony::before {
-  left: 8px;
+  z-index: -1;
+  bottom: 9px;
+  width: 142px;
+  height: 16px;
+  background: var(--ceremony-underlay);
+  transform: translateX(-50%) skewX(-12deg);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.86) inset,
+    0 7px 14px rgba(130, 64, 8, 0.1);
 }
 
 .resultCeremony::after {
-  right: 8px;
+  top: 14px;
+  width: 184px;
+  height: 1px;
+  background:
+    linear-gradient(90deg, transparent, rgba(203, 137, 38, 0.72), transparent);
 }
 
 .resultCeremony span {
+  position: relative;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 22px;
-  padding: 0 10px;
+  min-height: 21px;
+  padding: 0 12px;
   border-radius: 999px;
-  border: 1px solid rgba(154, 104, 36, 0.16);
-  background: rgba(255, 249, 236, 0.86);
-  color: #8f5a17;
+  border: 1px solid var(--ceremony-ribbon-border);
+  background: var(--ceremony-ribbon-bg);
+  color: var(--ceremony-ribbon-color);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 950;
   line-height: 1;
   letter-spacing: 0;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.76) inset;
+  transform: skewX(-8deg);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.82) inset,
+    0 5px 10px rgba(154, 75, 14, 0.1);
 }
 
 .resultCeremony strong {
+  position: relative;
+  z-index: 1;
   display: block;
-  color: var(--live-color-text);
-  font-size: 24px;
-  font-weight: 950;
-  line-height: 1.08;
+  color: var(--ceremony-main);
+  font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  font-size: 32px;
+  font-weight: 1000;
+  line-height: 0.98;
   letter-spacing: 0;
   white-space: nowrap;
+  transform: skewX(-6deg);
+  text-shadow:
+    0 2px 0 #ffe2a8,
+    2px 4px 0 var(--ceremony-depth);
 }
 
-.resultCeremonyWin {
-  color: #c8322d;
+.resultCeremony strong::before,
+.resultCeremony strong::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
-.resultCeremonyWin span {
-  border-color: rgba(224, 155, 54, 0.22);
-  background: #fff7df;
-  color: #a86618;
-}
-
-.resultCeremonyWin strong {
-  color: #c9362b;
-  text-shadow: 0 1px 0 rgba(255, 247, 223, 0.92);
-}
-
-.resultCeremonyLose {
-  color: #2b2d33;
-}
-
-.resultCeremonyLose::before,
-.resultCeremonyLose::after {
-  background: rgba(17, 19, 25, 0.18);
-}
-
-.resultCeremonyLose span {
-  border-color: rgba(17, 19, 25, 0.08);
-  background: rgba(247, 247, 248, 0.92);
-  color: rgba(17, 19, 25, 0.64);
-}
-
-.resultCeremonyLose strong {
-  color: #2b2d33;
+.resultCeremony strong::before {
+  z-index: -1;
+  color: var(--ceremony-outline);
+  -webkit-text-stroke: 5px var(--ceremony-outline);
   text-shadow: none;
 }
 
-.resultCeremonyLose.isMuted {
-  color: rgba(17, 19, 25, 0.38);
+.resultCeremony strong::after {
+  z-index: -2;
+  color: var(--ceremony-depth);
+  transform: translate(3px, 5px);
 }
 
-.resultCeremonyLose.isMuted span {
-  border-color: rgba(17, 19, 25, 0.06);
-  background: var(--live-modal-neutral-bg);
-  color: var(--live-color-text-muted);
+.resultCeremonyLose {
+  --ceremony-main: #202329;
+  --ceremony-outline: #ffffff;
+  --ceremony-depth: rgba(83, 56, 24, 0.22);
+  --ceremony-underlay: rgba(225, 181, 92, 0.48);
+  --ceremony-ribbon-bg: #fff1e8;
+  --ceremony-ribbon-border: rgba(254, 44, 85, 0.18);
+  --ceremony-ribbon-color: #d63731;
+}
+
+.resultCeremonyLose.isMuted {
+  --ceremony-main: var(--live-color-text);
+  --ceremony-outline: #ffffff;
+  --ceremony-depth: rgba(17, 19, 25, 0.08);
+  --ceremony-underlay: rgba(17, 19, 25, 0.06);
+  --ceremony-ribbon-bg: var(--live-modal-neutral-bg);
+  --ceremony-ribbon-border: rgba(17, 19, 25, 0.06);
+  --ceremony-ribbon-color: var(--live-color-text-muted);
 }
 
 .resultCeremonyLose.isMuted strong {
-  color: var(--live-color-text);
+  font-size: 28px;
+  text-shadow: none;
+}
+
+.resultCeremonyLose.isMuted strong::before,
+.resultCeremonyLose.isMuted strong::after {
+  content: none;
 }
 
 .modalClose {

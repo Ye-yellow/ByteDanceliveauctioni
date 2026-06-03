@@ -135,7 +135,7 @@ export function ResultModal({
           <>
             <div className="resultCeremony resultCeremonyWin" aria-label="竞拍成功">
               <span>恭喜竞拍成功</span>
-              <strong>豪气冲天</strong>
+              <strong data-text="豪气冲天">豪气冲天</strong>
             </div>
             <div className="resultWinMedia">
               {lot.imageUrl ? <img src={lot.imageUrl} alt={lot.title} /> : <span>{lot.title.slice(0, 1) || '拍'}</span>}
@@ -165,7 +165,7 @@ export function ResultModal({
           <>
             <div className={`resultCeremony resultCeremonyLose ${noSuccessfulBid || failedClaim ? 'isMuted' : ''}`} aria-label="竞拍结果">
               <span>{loseRibbonSubText}</span>
-              <strong>{loseRibbonText}</strong>
+              <strong data-text={loseRibbonText}>{loseRibbonText}</strong>
             </div>
             <div className="resultLoseProduct">
               <div className="resultLoseProductMedia">
