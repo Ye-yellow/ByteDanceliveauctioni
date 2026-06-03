@@ -5765,6 +5765,12 @@
   line-height: 1;
 }
 
+.resultStatusPill .resultMiniIcon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.35;
+}
+
 .resultStatusMissed {
   border-color: #f6d7de;
   background: #fff0f2;
@@ -5951,13 +5957,13 @@
 
 .resultMissedProductCard {
   display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: 145px minmax(0, 1fr);
+  gap: 11px;
   align-items: center;
   border: 1px solid #eeeff3;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.86);
-  padding: 12px;
+  padding: 10px;
   text-align: left;
   box-shadow: 0 10px 26px rgba(32, 36, 52, 0.06);
 }
@@ -5965,7 +5971,7 @@
 .resultMissedProductMedia {
   display: grid;
   place-items: center;
-  width: 132px;
+  width: 145px;
   height: 150px;
   overflow: hidden;
   border-radius: 16px;
@@ -5980,33 +5986,33 @@
 }
 
 .resultMissedProductInfo h3 {
-  margin-top: 8px;
-  font-size: 22px;
+  margin-top: 7px;
+  font-size: 20px;
 }
 
 .resultMissedProductInfo > i {
   display: block;
   height: 1px;
-  margin: 17px 0 14px;
+  margin: 14px 0 12px;
   background: #eeeff3;
 }
 
 .resultMissedWinner {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 8px;
   align-items: center;
 }
 
 .resultUserIcon {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: #fff0f2;
   color: #f73565;
-  padding: 9px;
+  padding: 8px;
   stroke-width: 2.2;
 }
 
@@ -6033,9 +6039,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 18px;
+  width: 36px;
+  height: 20px;
   color: rgba(247, 53, 101, 0.5);
+}
+
+.resultMissedEmotion > span .resultMiniIcon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.25;
 }
 
 .resultMissedEmotion > span::before,
