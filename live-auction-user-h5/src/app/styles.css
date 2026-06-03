@@ -9796,7 +9796,7 @@
 }
 
 .liveComposer .composerIconButton[aria-label="礼物"] {
-  background: linear-gradient(135deg, rgba(255, 215, 72, 0.33), rgba(254, 44, 85, 0.22)), rgba(40, 40, 48, 0.56);
+  background: rgba(24, 24, 30, 0.58);
 }
 
 .liveComposer .composerIconButton svg {
@@ -9813,8 +9813,8 @@
 }
 
 .liveComposer .composerGiftIcon {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
 }
 
 .liveComposer .composerHeartIcon {
