@@ -7103,11 +7103,12 @@ html body .loginPage.adminOnlyLogin .authShell::after {
   }
 
   html body .loginPage.adminOnlyLogin .authBrandPanel h1 {
-    max-width: 360px !important;
+    max-width: none !important;
     margin: 0 !important;
-    font-size: clamp(52px, 4.2vw, 64px) !important;
-    line-height: .98 !important;
-    letter-spacing: -.055em !important;
+    font-size: clamp(38px, 3.1vw, 46px) !important;
+    line-height: 1.04 !important;
+    letter-spacing: -.045em !important;
+    white-space: nowrap !important;
   }
 
   html body .loginPage.adminOnlyLogin .authBrandLead {
