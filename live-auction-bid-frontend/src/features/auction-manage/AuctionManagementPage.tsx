@@ -137,7 +137,6 @@ export function AuctionManagementPage({ roomId, roomName = roomId }: Props) {
       <StudioPageHeader
         eyebrow="Admin lots"
         title="本场拍品队列"
-        description="用于主播和运营团队管理本场开拍节奏、未开拍拍品取消和成交处理；队列按 5 件一页聚焦展示。"
         actions={<><a className="studioButton studioButton-primary studioButton-md" href="/admin/auctions/create">添加拍品</a><a className="studioButton studioButton-secondary studioButton-md" href="/admin/auctions/history">历史记录</a><StudioButton type="button" variant="secondary" icon={<RefreshCw size={15} />} loading={loading} onClick={() => void syncLots()}>{loading ? '同步中' : '同步队列'}</StudioButton></>}
       />
     </StudioCard>

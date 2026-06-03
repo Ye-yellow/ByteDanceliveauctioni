@@ -272,7 +272,7 @@ export function AuctionCreatePage({ roomId, roomName = roomId }: AuctionCreatePa
   return <section className="auctionCreatePage">
     <StudioToastViewport toasts={toasts} className="auctionCreateToastViewport" />
     <StudioCard padding="lg" className="auctionCreateTitleBar auctionCreateHeader">
-      <StudioPageHeader eyebrow="Create lot" title="添加拍品" description="上传 TOS 素材、配置竞拍规则和讲解卡，提交后进入当前直播间本场队列。" actions={<a className="studioButton studioButton-secondary studioButton-md" href="/admin/auctions">返回队列</a>} />
+      <StudioPageHeader eyebrow="Create lot" title="添加拍品" actions={<a className="studioButton studioButton-secondary studioButton-md" href="/admin/auctions">返回队列</a>} />
     </StudioCard>
     {error ? <div className="auctionMgmtNotice danger"><AlertTriangle size={16} />{error}</div> : null}
     <nav className="publishStepper auctionCreateStepper" aria-label="添加拍品步骤">
@@ -305,7 +305,7 @@ export function AuctionCreatePage({ roomId, roomName = roomId }: AuctionCreatePa
                 <div className={`auctionUpload mainImageUpload ${form.imageUrl ? 'hasImage' : ''} ${uploading.main ? 'isUploading' : ''}`}>
                   {form.imageUrl ? <img src={form.imageUrl} alt={form.title || '拍品主图'} /> : <ImagePlus size={34} />}
                   <b>{form.imageUrl ? '主图已上传' : '点击上传主图'}</b>
-                  <span>{uploading.main ? '上传中' : 'TOS imageUrl'}</span>
+                  {uploading.main ? <span>上传中</span> : null}
                   <input type="file" accept="image/*" disabled={uploading.main || submitting} onChange={(event) => handleFile(event, 'main')} />
                 </div>
                 {form.imageUrl ? <div className="mainImageControl"><span>{shortURL(form.imageUrl)}</span><button type="button" disabled={submitting} onClick={removeMainImage}>移除</button></div> : null}
