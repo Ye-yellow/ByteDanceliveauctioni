@@ -12,9 +12,10 @@ import (
 )
 
 type AuctionCloseWorker struct {
-	usecase  *AuctionUsecase
-	interval time.Duration
-	limit    int
+	usecase               *AuctionUsecase
+	interval              time.Duration
+	limit                 int
+	stalePreStartInterval time.Duration
 
 	leaseProvider LeaseProvider
 	leaseKey      string
@@ -24,12 +25,13 @@ type AuctionCloseWorker struct {
 	leaseOwner    string
 	mode          WorkerMode
 
-	mu            sync.Mutex
-	started       bool
-	lastAttemptAt time.Time
-	lastSuccessAt time.Time
-	lastError     string
-	lastSummary   CloseExpiredSummary
+	mu                      sync.Mutex
+	started                 bool
+	lastAttemptAt           time.Time
+	lastSuccessAt           time.Time
+	lastStalePreStartScanAt time.Time
+	lastError               string
+	lastSummary             CloseExpiredSummary
 }
 
 func NewAuctionCloseWorker(usecase *AuctionUsecase, interval time.Duration, limit int) *AuctionCloseWorker {
@@ -39,7 +41,7 @@ func NewAuctionCloseWorker(usecase *AuctionUsecase, interval time.Duration, limi
 	if limit <= 0 {
 		limit = 100
 	}
-	return &AuctionCloseWorker{usecase: usecase, interval: interval, limit: limit, mode: WorkerModeLeader}
+	return &AuctionCloseWorker{usecase: usecase, interval: interval, limit: limit, stalePreStartInterval: 5 * time.Hour, mode: WorkerModeLeader}
 }
 
 func (w *AuctionCloseWorker) BindLease(provider LeaseProvider, key, instanceID string, ttl, renewInterval time.Duration) *AuctionCloseWorker {
@@ -108,7 +110,9 @@ func (w *AuctionCloseWorker) WorkerStatus(ctx context.Context) WorkerStatus {
 		LastSuccessAt: formatWorkerTime(w.lastSuccessAt),
 		LastError:     w.lastError,
 		Extra: map[string]any{
-			"last_summary": w.lastSummary,
+			"last_summary":                  w.lastSummary,
+			"last_stale_pre_start_scan_at":  formatWorkerTime(w.lastStalePreStartScanAt),
+			"stale_pre_start_scan_interval": w.stalePreStartInterval.String(),
 		},
 	}
 	w.mu.Unlock()
@@ -177,7 +181,12 @@ func (w *AuctionCloseWorker) ensureLease(ctx context.Context, lease *Lease) bool
 
 func (w *AuctionCloseWorker) runOnce(ctx context.Context) (CloseExpiredSummary, error) {
 	now := time.Now()
-	summary, err := w.usecase.CloseExpiredLots(ctx, now.UnixMilli(), w.limit)
+	summary, err := w.usecase.CloseExpiredOpenLots(ctx, now.UnixMilli(), w.limit)
+	if err == nil && w.shouldScanStalePreStart(now) {
+		staleSummary, staleErr := w.usecase.CloseStalePreStartLots(ctx, now.UnixMilli(), w.limit)
+		summary.Add(staleSummary)
+		err = staleErr
+	}
 	w.mu.Lock()
 	w.lastAttemptAt = now
 	w.lastSummary = summary
@@ -195,9 +204,22 @@ func (w *AuctionCloseWorker) runOnce(ctx context.Context) (CloseExpiredSummary, 
 	w.lastError = ""
 	w.mu.Unlock()
 	if summary.Closed > 0 || summary.Conflicts > 0 {
-		slog.Info("auction close worker closed expired lots", "scanned", summary.Scanned, "closed", summary.Closed, "settled", summary.Settled, "failed", summary.Failed, "conflicts", summary.Conflicts)
+		slog.Info("auction close worker closed expired lots", "scanned", summary.Scanned, "closed", summary.Closed, "settled", summary.Settled, "failed", summary.Failed, "cancelled", summary.Cancelled, "conflicts", summary.Conflicts)
 	}
 	return summary, nil
+}
+
+func (w *AuctionCloseWorker) shouldScanStalePreStart(now time.Time) bool {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.stalePreStartInterval <= 0 {
+		return false
+	}
+	if w.lastStalePreStartScanAt.IsZero() || now.Sub(w.lastStalePreStartScanAt) >= w.stalePreStartInterval {
+		w.lastStalePreStartScanAt = now
+		return true
+	}
+	return false
 }
 
 func (w *AuctionCloseWorker) setLeaseMode(mode WorkerMode, owner string) {

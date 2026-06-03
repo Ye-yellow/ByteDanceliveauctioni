@@ -15,6 +15,7 @@ import (
 )
 
 const missingLotCreatedAtFallback = 24 * time.Hour
+const stalePreStartLotWindow = 24 * time.Hour
 
 func (s *Store) Create(ctx context.Context, lot *v1.Lot, ownerUserID string, events []v1.AuctionEvent) error {
 	if lot == nil {
@@ -314,6 +315,47 @@ func (s *Store) ListExpiredOpen(ctx context.Context, nowMs int64, limit int) ([]
 		return tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
 			Where("status IN ? AND ends_at_unix_ms > 0 AND ends_at_unix_ms <= ?", []int32{int32(v1.LotStatus_LOT_STATUS_LIVE), int32(v1.LotStatus_LOT_STATUS_EXTENDED)}, nowMs).
 			Order("ends_at_unix_ms ASC").
+			Order("id ASC").
+			Limit(limit).
+			Find(&models).Error
+	}); err != nil {
+		return nil, err
+	}
+	lots := make([]*v1.Lot, 0, len(models))
+	for i := range models {
+		lot, err := modelToLot(&models[i])
+		if err != nil {
+			return nil, err
+		}
+		lots = append(lots, lot)
+	}
+	if err := s.attachStats(ctx, lots); err != nil {
+		return nil, err
+	}
+	return lots, nil
+}
+
+func (s *Store) ListStalePreStart(ctx context.Context, nowMs, localDayStartMs int64, limit int) ([]*v1.Lot, error) {
+	if nowMs <= 0 {
+		return nil, errors.New("now ms is required")
+	}
+	if localDayStartMs <= 0 {
+		return nil, errors.New("local day start ms is required")
+	}
+	if limit <= 0 {
+		limit = 100
+	}
+	cutoff24h := time.UnixMilli(nowMs).Add(-stalePreStartLotWindow)
+	localDayStart := time.UnixMilli(localDayStartMs)
+	var models []AuctionLotModel
+	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
+			Where("status IN ? AND started_at_unix_ms = 0 AND (created_at <= ? OR created_at < ?)",
+				[]int32{int32(v1.LotStatus_LOT_STATUS_READY), int32(v1.LotStatus_LOT_STATUS_QUEUED)},
+				cutoff24h,
+				localDayStart,
+			).
+			Order("created_at ASC").
 			Order("id ASC").
 			Limit(limit).
 			Find(&models).Error

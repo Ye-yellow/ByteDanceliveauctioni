@@ -32,6 +32,7 @@ type RoomRepository interface {
 
 type ExpiredLotRepository interface {
 	ListExpiredOpen(ctx context.Context, nowMs int64, limit int) ([]*v1.Lot, error)
+	ListStalePreStart(ctx context.Context, nowMs, localDayStartMs int64, limit int) ([]*v1.Lot, error)
 }
 
 // BidRepository 管理出价流水和幂等记录。

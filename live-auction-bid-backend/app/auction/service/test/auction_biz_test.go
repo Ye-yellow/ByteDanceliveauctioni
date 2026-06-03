@@ -1510,6 +1510,28 @@ func (s *testStore) ListExpiredOpen(ctx context.Context, nowMs int64, limit int)
 	return lots, nil
 }
 
+func (s *testStore) ListStalePreStart(ctx context.Context, nowMs, localDayStartMs int64, limit int) ([]*v1.Lot, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	lots := make([]*v1.Lot, 0, len(s.lots))
+	for _, lot := range s.lots {
+		if !auction.IsStalePreStartLot(lot, nowMs) {
+			continue
+		}
+		lots = append(lots, proto.Clone(lot).(*v1.Lot))
+	}
+	sort.Slice(lots, func(i, j int) bool {
+		if lots[i].CreatedAtUnixMs == lots[j].CreatedAtUnixMs {
+			return lots[i].Id < lots[j].Id
+		}
+		return lots[i].CreatedAtUnixMs < lots[j].CreatedAtUnixMs
+	})
+	if limit > 0 && len(lots) > limit {
+		lots = lots[:limit]
+	}
+	return lots, nil
+}
+
 func (s *testStore) CommitAcceptedBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, expectedLotVersion int64, idempotencyKey string, order *auction.Order, events []v1.AuctionEvent) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -2878,6 +2900,104 @@ func TestCloseExpiredLotsWithoutBidMarksFailedWithoutOrder(t *testing.T) {
 	assertEventTypesContain(t, store.eventTypes(), v1.AuctionEventType_AUCTION_EVENT_TYPE_AUCTION_CLOSED)
 }
 
+func TestCloseExpiredLotsCancelsStalePreStartQueuedLots(t *testing.T) {
+	store := newTestStore()
+	pub := &testPublisher{}
+	uc := auction.NewAuctionUsecase(store, store, store, pub)
+	ctx := context.Background()
+	loc := time.FixedZone("Asia/Shanghai", 8*60*60)
+	nowMs := time.Date(2026, 6, 3, 0, 10, 0, 0, loc).UnixMilli()
+
+	createQueued := func(title string, createdAt time.Time) *v1.Lot {
+		t.Helper()
+		lot, err := uc.CreateLot(ctx, &v1.CreateLotRequest{
+			RoomId:   "room_stale_pre_start",
+			Title:    title,
+			ImageUrl: "https://example.com/lot.jpg",
+			Rule: &v1.BidRule{
+				StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
+				MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+				DurationSeconds:        300,
+				AntiSnipeWindowSeconds: 15,
+				AntiSnipeExtendSeconds: 15,
+				MaxExtendCount:         3,
+			},
+		}, testMainAccountID, "test-owner")
+		if err != nil {
+			t.Fatalf("create lot failed: %v", err)
+		}
+		queued, _, err := uc.QueueLot(ctx, lot.Id, testMainAccountID, "test-owner")
+		if err != nil {
+			t.Fatalf("queue lot failed: %v", err)
+		}
+		forceLotCreatedAt(t, store, queued.Id, createdAt.UnixMilli())
+		return queued
+	}
+
+	crossDay := createQueued("跨天待开拍", time.Date(2026, 6, 2, 23, 50, 0, 0, loc))
+	old := createQueued("超过24小时待开拍", time.Date(2026, 6, 1, 23, 0, 0, 0, loc))
+	fresh := createQueued("当天待开拍", time.Date(2026, 6, 3, 0, 5, 0, 0, loc))
+	draft, err := uc.CreateLot(ctx, &v1.CreateLotRequest{
+		RoomId:   "room_stale_pre_start",
+		Title:    "跨天草稿",
+		ImageUrl: "https://example.com/draft.jpg",
+		Rule: &v1.BidRule{
+			StartPrice:             &v1.Money{Amount: 10000, Currency: "CNY"},
+			MinIncrement:           &v1.Money{Amount: 1000, Currency: "CNY"},
+			DurationSeconds:        300,
+			AntiSnipeWindowSeconds: 15,
+			AntiSnipeExtendSeconds: 15,
+			MaxExtendCount:         3,
+		},
+	}, testMainAccountID, "test-owner")
+	if err != nil {
+		t.Fatalf("create draft failed: %v", err)
+	}
+	forceLotCreatedAt(t, store, draft.Id, time.Date(2026, 6, 2, 23, 50, 0, 0, loc).UnixMilli())
+
+	summary, err := uc.CloseExpiredLots(ctx, nowMs, 10)
+	if err != nil {
+		t.Fatalf("close expired lots failed: %v", err)
+	}
+	if summary.Scanned != 2 || summary.Closed != 2 || summary.Cancelled != 2 || summary.Settled != 0 || summary.Failed != 0 {
+		t.Fatalf("stale pre-start lots should be cancelled only, summary=%+v", summary)
+	}
+
+	for _, lotID := range []string{crossDay.Id, old.Id} {
+		lot, err := store.FindByID(ctx, lotID)
+		if err != nil {
+			t.Fatalf("find cancelled lot failed: %v", err)
+		}
+		if lot.Status != v1.LotStatus_LOT_STATUS_CANCELLED || lot.QueueStatus != v1.LotQueueStatus_LOT_QUEUE_STATUS_NONE || lot.QueuePosition != 0 || lot.CancelReason == "" {
+			t.Fatalf("stale pre-start lot should be cancelled and leave queue: %+v", lot)
+		}
+	}
+	freshLot, err := store.FindByID(ctx, fresh.Id)
+	if err != nil {
+		t.Fatalf("find fresh lot failed: %v", err)
+	}
+	if freshLot.Status != v1.LotStatus_LOT_STATUS_QUEUED {
+		t.Fatalf("same-day queued lot should stay queued: %+v", freshLot)
+	}
+	draftLot, err := store.FindByID(ctx, draft.Id)
+	if err != nil {
+		t.Fatalf("find draft lot failed: %v", err)
+	}
+	if draftLot.Status != v1.LotStatus_LOT_STATUS_DRAFT {
+		t.Fatalf("draft lot should not be auto-cancelled: %+v", draftLot)
+	}
+
+	replayed, err := uc.CloseExpiredLots(ctx, nowMs+1000, 10)
+	if err != nil {
+		t.Fatalf("replay close expired lots failed: %v", err)
+	}
+	if replayed.Closed != 0 || replayed.Cancelled != 0 {
+		t.Fatalf("repeat scan should not cancel again, summary=%+v", replayed)
+	}
+	pub.assertContains(t, v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CANCELLED, v1.AuctionEventType_AUCTION_EVENT_TYPE_AUCTION_CLOSED)
+	assertEventTypesContain(t, store.eventTypes(), v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CANCELLED, v1.AuctionEventType_AUCTION_EVENT_TYPE_AUCTION_CLOSED)
+}
+
 func forceLotEndsAt(t *testing.T, store *testStore, ctx context.Context, lotID string, endsAtUnixMs int64) {
 	t.Helper()
 	lot, err := store.FindByID(ctx, lotID)
@@ -2889,6 +3009,19 @@ func forceLotEndsAt(t *testing.T, store *testStore, ctx context.Context, lotID s
 	if err := store.Save(ctx, lot, expectedVersion, nil); err != nil {
 		t.Fatalf("force lot expiry failed: %v", err)
 	}
+}
+
+func forceLotCreatedAt(t *testing.T, store *testStore, lotID string, createdAtUnixMs int64) {
+	t.Helper()
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	lot, ok := store.lots[lotID]
+	if !ok {
+		t.Fatalf("lot not found: %s", lotID)
+	}
+	next := proto.Clone(lot).(*v1.Lot)
+	next.CreatedAtUnixMs = createdAtUnixMs
+	store.lots[lotID] = next
 }
 
 type testPublisher struct {

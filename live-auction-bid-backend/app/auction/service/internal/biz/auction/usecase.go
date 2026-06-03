@@ -44,13 +44,27 @@ type CloseExpiredSummary struct {
 	Closed    int
 	Settled   int
 	Failed    int
+	Cancelled int
 	Conflicts int
 }
 
+func (s *CloseExpiredSummary) Add(next CloseExpiredSummary) {
+	if s == nil {
+		return
+	}
+	s.Scanned += next.Scanned
+	s.Closed += next.Closed
+	s.Settled += next.Settled
+	s.Failed += next.Failed
+	s.Cancelled += next.Cancelled
+	s.Conflicts += next.Conflicts
+}
+
 const (
-	orderCreatedPublicReason   = "order_created"
-	paymentSuccessPublicReason = "payment_success"
-	fallbackBidMaxRetries      = 128
+	orderCreatedPublicReason    = "order_created"
+	paymentSuccessPublicReason  = "payment_success"
+	preStartExpiredCancelReason = "pre-start lot expired without being started"
+	fallbackBidMaxRetries       = 128
 )
 
 type bidDBGuardMode string
@@ -195,11 +209,27 @@ func (uc *AuctionUsecase) SetBidDBGuardMode(mode string) *AuctionUsecase {
 }
 
 func (uc *AuctionUsecase) CloseExpiredLots(ctx context.Context, nowMs int64, limit int) (CloseExpiredSummary, error) {
+	summary, err := uc.CloseExpiredOpenLots(ctx, nowMs, limit)
+	if err != nil {
+		return summary, err
+	}
+	staleSummary, err := uc.CloseStalePreStartLots(ctx, nowMs, limit)
+	summary.Add(staleSummary)
+	if err != nil {
+		return summary, err
+	}
+	return summary, nil
+}
+
+func (uc *AuctionUsecase) CloseExpiredOpenLots(ctx context.Context, nowMs int64, limit int) (CloseExpiredSummary, error) {
 	if nowMs <= 0 {
 		return CloseExpiredSummary{}, fmt.Errorf("%w: now ms is required", apperr.ErrInvalidArgument)
 	}
 	if uc.expiredLots == nil {
 		return CloseExpiredSummary{}, errors.New("expired lot repository is required")
+	}
+	if limit <= 0 {
+		limit = 100
 	}
 	lots, err := uc.expiredLots.ListExpiredOpen(ctx, nowMs, limit)
 	if err != nil {
@@ -229,6 +259,47 @@ func (uc *AuctionUsecase) CloseExpiredLots(ctx context.Context, nowMs int64, lim
 		summary.Closed++
 	}
 	return summary, nil
+}
+
+func (uc *AuctionUsecase) CloseStalePreStartLots(ctx context.Context, nowMs int64, limit int) (CloseExpiredSummary, error) {
+	if nowMs <= 0 {
+		return CloseExpiredSummary{}, fmt.Errorf("%w: now ms is required", apperr.ErrInvalidArgument)
+	}
+	if uc.expiredLots == nil {
+		return CloseExpiredSummary{}, errors.New("expired lot repository is required")
+	}
+	if limit <= 0 {
+		limit = 100
+	}
+	stalePreStartLots, err := uc.expiredLots.ListStalePreStart(ctx, nowMs, localAuctionDayStartMs(nowMs), limit)
+	if err != nil {
+		return CloseExpiredSummary{}, err
+	}
+	summary := CloseExpiredSummary{Scanned: len(stalePreStartLots)}
+	for _, lot := range stalePreStartLots {
+		if lot == nil || lot.Id == "" {
+			continue
+		}
+		cancelled, err := uc.cancelStalePreStartLot(ctx, lot.Id, nowMs)
+		if err != nil {
+			if apperr.IsLotVersionConflict(err) {
+				summary.Conflicts++
+				continue
+			}
+			return summary, err
+		}
+		if !cancelled {
+			continue
+		}
+		summary.Closed++
+		summary.Cancelled++
+	}
+	return summary, nil
+}
+
+func localAuctionDayStartMs(nowMs int64) int64 {
+	now := time.UnixMilli(nowMs).In(auctionBusinessLocation)
+	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, auctionBusinessLocation).UnixMilli()
 }
 
 func (uc *AuctionUsecase) CreateLot(ctx context.Context, req *v1.CreateLotRequest, mainAccountID, ownerUserID string) (*v1.Lot, error) {
@@ -977,6 +1048,42 @@ func (uc *AuctionUsecase) closeExpiredLot(ctx context.Context, lotID string, now
 		return false, false, err
 	}
 	return true, true, nil
+}
+
+func (uc *AuctionUsecase) cancelStalePreStartLot(ctx context.Context, lotID string, nowMs int64) (bool, error) {
+	lot, err := uc.lots.FindByID(ctx, lotID)
+	if err != nil {
+		return false, err
+	}
+	if !IsStalePreStartLot(lot, nowMs) {
+		return false, nil
+	}
+	expectedVersion := lot.Version
+	if err := CancelLot(lot, preStartExpiredCancelReason, nowMs); err != nil {
+		return false, err
+	}
+	bids, err := uc.bids.ListByLot(ctx, lot.Id)
+	if err != nil {
+		return false, err
+	}
+	ranking := BuildRealtimeRanking(bids)
+	event := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_CANCELLED, lot)
+	event.Ranking = ranking
+	event.Reason = lot.CancelReason
+	closedEvent := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_AUCTION_CLOSED, lot)
+	closedEvent.Ranking = ranking
+	closedEvent.Reason = lot.CancelReason
+	events := []v1.AuctionEvent{event, closedEvent}
+	if err := uc.lots.Save(ctx, lot, expectedVersion, events); err != nil {
+		return false, err
+	}
+	if err := uc.cancelRuntimeLot(ctx, lot, lot.CancelReason, "system", lot.CancelledAtUnixMs); err != nil {
+		return false, err
+	}
+	if err := uc.broadcast(ctx, events...); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (uc *AuctionUsecase) GetLotResult(ctx context.Context, lotID string, viewer LotResultViewer) (*LotResult, error) {
