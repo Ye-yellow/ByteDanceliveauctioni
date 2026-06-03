@@ -7053,6 +7053,167 @@ html body .loginPage.adminOnlyLogin .authShell::after {
     inset 2px 2px 5px rgba(134, 153, 174, .06) !important;
 }
 
+@media (min-width: 901px) {
+  html body .loginPage.adminOnlyLogin .authBrandPanel {
+    display: grid !important;
+    grid-template-rows: auto minmax(220px, 1fr) auto !important;
+    align-content: stretch !important;
+    gap: 22px !important;
+    padding: 54px 54px 44px !important;
+    overflow: hidden !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authBrandPanel::after {
+    content: "" !important;
+    position: absolute !important;
+    left: 34px !important;
+    right: 28px !important;
+    top: 37% !important;
+    height: 190px !important;
+    border-radius: 38px !important;
+    background:
+      radial-gradient(circle at 18% 72%, rgba(157, 204, 244, .18), transparent 38%),
+      radial-gradient(circle at 78% 22%, rgba(255, 216, 232, .20), transparent 40%) !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authBrandPanel > div {
+    position: relative !important;
+    z-index: 1 !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authBrandPanel .authKicker {
+    width: max-content !important;
+    margin: 0 0 13px !important;
+    padding: 7px 10px !important;
+    border-radius: 999px !important;
+    background: rgba(255, 255, 255, .54) !important;
+    box-shadow: var(--page-white-clay-soft) !important;
+    color: #5F7FA5 !important;
+    font-size: 11px !important;
+    line-height: 1 !important;
+    letter-spacing: .13em !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authBrandPanel .authKicker svg {
+    width: 13px !important;
+    height: 13px !important;
+    stroke-width: 2.2 !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authBrandPanel h1 {
+    max-width: 360px !important;
+    margin: 0 !important;
+    font-size: clamp(52px, 4.2vw, 64px) !important;
+    line-height: .98 !important;
+    letter-spacing: -.055em !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authBrandLead {
+    max-width: 390px !important;
+    margin: 16px 0 0 !important;
+    font-size: 16px !important;
+    line-height: 1.72 !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authBrandScene {
+    min-height: 242px !important;
+    margin: 0 !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authBrandScene::before {
+    content: "" !important;
+    position: absolute !important;
+    left: 86px !important;
+    right: 82px !important;
+    top: 126px !important;
+    height: 2px !important;
+    border-radius: 999px !important;
+    background: linear-gradient(90deg, transparent, rgba(95, 127, 165, .24), transparent) !important;
+    transform: rotate(-8deg) !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authVisualGavel {
+    left: 30px !important;
+    top: 82px !important;
+    color: rgba(157, 204, 244, .78) !important;
+    opacity: .82 !important;
+    transform: rotate(-18deg) !important;
+    filter: drop-shadow(8px 10px 14px rgba(121, 139, 158, .18)) !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authVisualGavel svg {
+    width: 96px !important;
+    height: 96px !important;
+    stroke-width: 1.85 !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authVisualProduct {
+    right: 30px !important;
+    top: 42px !important;
+    width: 148px !important;
+    padding: 18px 16px !important;
+    gap: 7px !important;
+    border-radius: 28px !important;
+    transform: rotate(7deg) !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authVisualProduct svg {
+    width: 35px !important;
+    height: 35px !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authVisualProduct strong {
+    font-size: 13px !important;
+    line-height: 1.12 !important;
+    white-space: nowrap !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authVisualProduct span {
+    font-size: 12px !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authVisualBid {
+    padding: 8px 13px !important;
+    border-radius: 999px !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authVisualBid.bidOne {
+    left: 154px !important;
+    top: 82px !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authVisualBid.bidTwo {
+    left: 122px !important;
+    top: 160px !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authCapabilityGrid {
+    gap: 12px !important;
+    align-items: end !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authCapabilityGrid span {
+    min-height: 66px !important;
+    align-content: center !important;
+    padding: 12px 8px !important;
+    border-radius: 24px !important;
+    color: #2F3F58 !important;
+    font-size: 13px !important;
+    line-height: 1.15 !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authCapabilityGrid span svg {
+    width: 17px !important;
+    height: 17px !important;
+    margin-bottom: 2px !important;
+    color: #5F7FA5 !important;
+  }
+}
+
 html body .loginPage.adminOnlyLogin .authModeIndicator {
   grid-template-columns: 1fr !important;
 }
