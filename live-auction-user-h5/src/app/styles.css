@@ -5716,121 +5716,104 @@
   position: relative;
   display: grid;
   justify-items: center;
-  gap: 6px;
-  margin: -2px 0 2px;
-  padding: 4px 38px 0;
-  isolation: isolate;
+  gap: 5px;
+  margin: -4px 0 0;
+  padding: 2px 42px 4px;
 }
 
 .resultCeremony::before,
 .resultCeremony::after {
   content: "";
   position: absolute;
-  top: 18px;
-  width: 28px;
-  height: 2px;
+  top: 13px;
+  width: 32px;
+  height: 1px;
   border-radius: 999px;
-  background: currentColor;
-  opacity: .34;
+  background: rgba(154, 104, 36, 0.34);
 }
 
 .resultCeremony::before {
-  left: 4px;
+  left: 8px;
 }
 
 .resultCeremony::after {
-  right: 4px;
+  right: 8px;
 }
 
 .resultCeremony span {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 24px;
-  padding: 0 12px;
+  min-height: 22px;
+  padding: 0 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, .84);
-  font-size: 12px;
-  font-weight: 950;
+  border: 1px solid rgba(154, 104, 36, 0.16);
+  background: rgba(255, 249, 236, 0.86);
+  color: #8f5a17;
+  font-size: 11px;
+  font-weight: 900;
   line-height: 1;
   letter-spacing: 0;
-  box-shadow:
-    0 8px 18px rgba(17, 19, 25, .08),
-    0 0 0 1px rgba(255, 255, 255, .72) inset;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.76) inset;
 }
 
 .resultCeremony strong {
   display: block;
-  font-size: 27px;
-  font-weight: 1000;
-  line-height: 1.02;
+  color: var(--live-color-text);
+  font-size: 24px;
+  font-weight: 950;
+  line-height: 1.08;
   letter-spacing: 0;
   white-space: nowrap;
 }
 
 .resultCeremonyWin {
-  color: #ff6a00;
+  color: #c8322d;
 }
 
 .resultCeremonyWin span {
-  color: #9b3b00;
-  background:
-    linear-gradient(180deg, rgba(255, 251, 235, .98), rgba(255, 218, 137, .92));
-  box-shadow:
-    0 8px 18px rgba(255, 150, 38, .18),
-    0 0 0 1px rgba(255, 255, 255, .86) inset;
+  border-color: rgba(224, 155, 54, 0.22);
+  background: #fff7df;
+  color: #a86618;
 }
 
 .resultCeremonyWin strong {
-  color: transparent;
-  background: linear-gradient(180deg, #fff6c7 0%, #ffb12f 32%, #fe2c55 78%, #b50f32 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-stroke: 1px rgba(120, 38, 0, .18);
-  text-shadow:
-    0 2px 0 rgba(255, 255, 255, .92),
-    0 9px 18px rgba(254, 44, 85, .28),
-    0 0 18px rgba(255, 190, 67, .34);
+  color: #c9362b;
+  text-shadow: 0 1px 0 rgba(255, 247, 223, 0.92);
 }
 
 .resultCeremonyLose {
-  color: #ffd982;
+  color: #2b2d33;
+}
+
+.resultCeremonyLose::before,
+.resultCeremonyLose::after {
+  background: rgba(17, 19, 25, 0.18);
 }
 
 .resultCeremonyLose span {
-  color: #fff4cf;
-  background: linear-gradient(180deg, rgba(45, 47, 58, .94), rgba(17, 19, 25, .90));
-  box-shadow:
-    0 8px 18px rgba(17, 19, 25, .18),
-    0 0 0 1px rgba(255, 255, 255, .18) inset;
+  border-color: rgba(17, 19, 25, 0.08);
+  background: rgba(247, 247, 248, 0.92);
+  color: rgba(17, 19, 25, 0.64);
 }
 
 .resultCeremonyLose strong {
-  color: transparent;
-  background: linear-gradient(180deg, #fff7d8 0%, #f6c960 34%, #fe5a4e 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-stroke: 1px rgba(68, 25, 12, .16);
-  text-shadow:
-    0 2px 0 rgba(255, 255, 255, .64),
-    0 8px 16px rgba(17, 19, 25, .16);
+  color: #2b2d33;
+  text-shadow: none;
 }
 
 .resultCeremonyLose.isMuted {
-  color: rgba(17, 19, 25, .38);
+  color: rgba(17, 19, 25, 0.38);
 }
 
 .resultCeremonyLose.isMuted span {
-  color: var(--live-color-text);
+  border-color: rgba(17, 19, 25, 0.06);
   background: var(--live-modal-neutral-bg);
-  box-shadow: 0 0 0 1px rgba(17, 19, 25, .05) inset;
+  color: var(--live-color-text-muted);
 }
 
 .resultCeremonyLose.isMuted strong {
   color: var(--live-color-text);
-  background: none;
-  -webkit-text-stroke: 0;
-  text-shadow: none;
 }
 
 .modalClose {
