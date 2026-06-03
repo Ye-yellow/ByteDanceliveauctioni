@@ -196,13 +196,8 @@ export function LoginPage({ embedded = false }: { embedded?: boolean; title?: st
             <>
               <p className="loginEyebrow"><ShieldCheck size={14} /> ByteDance LiveAuction</p>
               <h2>{mode === 'register' ? '注册主账号' : mode === 'reset' ? '重置密码' : '进入工作台'}</h2>
-              <p className="loginSubcopy">
-                {mode === 'register'
-                  ? '每个主播或商家注册一个主账号；主账号登录后再创建自己的团队子账号。'
-                  : mode === 'reset'
-                    ? '输入账号和新密码，重置后回到登录入口。'
-                    : '使用主账号或团队子账号登录；账号所属主播 / 商家空间和岗位权限由系统自动识别。'}
-              </p>
+              {mode === 'register' ? <p className="loginSubcopy">每个主播或商家注册一个主账号；主账号登录后再创建自己的团队子账号。</p> : null}
+              {mode === 'reset' ? <p className="loginSubcopy">输入账号和新密码，重置后回到登录入口。</p> : null}
 
               {mode !== 'reset' ? (
                 <nav className="loginTabs authModeIndicator" aria-label="当前账号入口">
