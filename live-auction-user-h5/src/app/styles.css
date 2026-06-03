@@ -5648,6 +5648,8 @@
 
 .resultModalMask {
   place-items: center;
+  background: rgba(11, 16, 24, 0.7);
+  backdrop-filter: blur(8px);
 }
 
 .resultModal,
@@ -5690,395 +5692,389 @@
 .resultModal {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  width: min(340px, 100%);
-  max-height: calc(100vh - 32px);
-  max-height: calc(100dvh - 32px);
+  gap: 12px;
+  width: min(358px, 100%);
+  max-height: calc(100vh - 28px);
+  max-height: calc(100dvh - 28px);
   overflow-y: auto;
+  border: 1px solid rgba(240, 228, 225, 0.86);
+  border-radius: 30px;
+  background: linear-gradient(180deg, #fff 0%, #fff9f7 45%, #fff 100%);
+  padding: 22px 20px 18px;
+  color: #202331;
   text-align: center;
-}
-
-.resultModalWin {
-  border: 1px solid rgba(254, 44, 85, 0.12);
-  box-shadow:
-    var(--live-shadow-modal),
-    0 0 0 1px rgba(255, 255, 255, 0.72) inset;
+  box-shadow: 0 20px 60px rgba(16, 20, 32, 0.22);
 }
 
 .resultModalLose {
-  border: 1px solid rgba(17, 19, 25, 0.08);
-  box-shadow:
-    var(--live-shadow-modal),
-    0 0 0 1px rgba(255, 255, 255, 0.68) inset;
-}
-
-.resultCeremony {
-  --ceremony-main: #d9302b;
-  --ceremony-outline: #fff4d3;
-  --ceremony-depth: rgba(111, 39, 18, 0.22);
-  --ceremony-underlay: rgba(236, 177, 74, 0.68);
-  --ceremony-ribbon-bg: #fff0ba;
-  --ceremony-ribbon-border: rgba(221, 156, 54, 0.3);
-  --ceremony-ribbon-color: #9a5512;
-  position: relative;
-  display: grid;
-  justify-items: center;
-  gap: 1px;
-  margin: -6px 0 1px;
-  padding: 4px 28px 7px;
-  isolation: isolate;
-}
-
-.resultCeremony::before,
-.resultCeremony::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  border-radius: 999px;
-  pointer-events: none;
-}
-
-.resultCeremony::before {
-  z-index: -1;
-  bottom: 9px;
-  width: 142px;
-  height: 16px;
-  background: var(--ceremony-underlay);
-  transform: translateX(-50%) skewX(-12deg);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.86) inset,
-    0 7px 14px rgba(130, 64, 8, 0.1);
-}
-
-.resultCeremony::after {
-  top: 14px;
-  width: 184px;
-  height: 1px;
-  background:
-    linear-gradient(90deg, transparent, rgba(203, 137, 38, 0.72), transparent);
-}
-
-.resultCeremony span {
-  position: relative;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 21px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid var(--ceremony-ribbon-border);
-  background: var(--ceremony-ribbon-bg);
-  color: var(--ceremony-ribbon-color);
-  font-size: 11px;
-  font-weight: 950;
-  line-height: 1;
-  letter-spacing: 0;
-  transform: skewX(-8deg);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.82) inset,
-    0 5px 10px rgba(154, 75, 14, 0.1);
-}
-
-.resultCeremony strong {
-  position: relative;
-  z-index: 1;
-  display: block;
-  color: var(--ceremony-main);
-  font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
-  font-size: 32px;
-  font-weight: 1000;
-  line-height: 0.98;
-  letter-spacing: 0;
-  white-space: nowrap;
-  transform: skewX(-6deg);
-  text-shadow:
-    0 2px 0 #ffe2a8,
-    2px 4px 0 var(--ceremony-depth);
-}
-
-.resultCeremony strong::before,
-.resultCeremony strong::after {
-  content: attr(data-text);
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.resultCeremony strong::before {
-  z-index: -1;
-  color: var(--ceremony-outline);
-  -webkit-text-stroke: 5px var(--ceremony-outline);
-  text-shadow: none;
-}
-
-.resultCeremony strong::after {
-  z-index: -2;
-  color: var(--ceremony-depth);
-  transform: translate(3px, 5px);
-}
-
-.resultCeremonyLose {
-  --ceremony-main: #202329;
-  --ceremony-outline: #ffffff;
-  --ceremony-depth: rgba(83, 56, 24, 0.22);
-  --ceremony-underlay: rgba(225, 181, 92, 0.48);
-  --ceremony-ribbon-bg: #fff1e8;
-  --ceremony-ribbon-border: rgba(254, 44, 85, 0.18);
-  --ceremony-ribbon-color: #d63731;
-}
-
-.resultCeremonyLose.isMuted {
-  --ceremony-main: var(--live-color-text);
-  --ceremony-outline: #ffffff;
-  --ceremony-depth: rgba(17, 19, 25, 0.08);
-  --ceremony-underlay: rgba(17, 19, 25, 0.06);
-  --ceremony-ribbon-bg: var(--live-modal-neutral-bg);
-  --ceremony-ribbon-border: rgba(17, 19, 25, 0.06);
-  --ceremony-ribbon-color: var(--live-color-text-muted);
-}
-
-.resultCeremonyLose.isMuted strong {
-  font-size: 28px;
-  text-shadow: none;
-}
-
-.resultCeremonyLose.isMuted strong::before,
-.resultCeremonyLose.isMuted strong::after {
-  content: none;
+  gap: 13px;
 }
 
 .modalClose {
   position: absolute;
-  right: 14px;
-  top: 12px;
+  right: 15px;
+  top: 14px;
   z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
   border: 0;
-  background: var(--live-modal-close-bg);
   border-radius: 50%;
-  width: 32px;
-  height: 32px;
+  background: #f0f1f5;
+  color: #202331;
   cursor: pointer;
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.resultMiniIcon,
+.resultButtonIcon,
+.resultDecorIcon,
+.resultUserIcon {
+  display: inline-block;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.resultMiniIcon {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.2;
+}
+
+.resultStatusPill {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  margin-top: 2px;
+  border: 1px solid #f6d9c8;
+  border-radius: 999px;
+  background: #fff0ea;
+  padding: 0 14px;
+  color: #e92d58;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.resultStatusMissed {
+  border-color: #f6d7de;
+  background: #fff0f2;
+}
+
+.resultHeroCopy {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 0 18px;
+}
+
+.resultHeroTitle {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0;
+  margin: 0;
+  color: #202331;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.08;
+}
+
+.resultHeroTitle em {
+  color: #f73565;
+  font-style: normal;
+}
+
+.resultHeroCopy p {
+  margin: 0;
+  color: #7c8392;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.resultDecorIcon {
+  position: absolute;
+  right: -22px;
+  top: 4px;
+  width: 18px;
+  height: 18px;
+  color: rgba(247, 53, 101, 0.2);
+  stroke-width: 2.2;
+}
+
+.resultMissedHero .resultDecorIcon {
+  right: -34px;
+  top: 0;
+  width: 52px;
+  height: 52px;
+  color: rgba(247, 53, 101, 0.13);
+  stroke-width: 1.9;
 }
 
 .resultWinMedia {
+  position: relative;
   display: grid;
   place-items: center;
   width: 100%;
-  aspect-ratio: 1 / 0.9;
+  height: 198px;
   overflow: hidden;
+  border: 1px solid #f0e4e1;
   border-radius: 22px;
-  background: var(--live-modal-media-bg);
-  color: var(--live-color-contrast);
+  background: #f4f5f8;
+  color: #fff;
   font-size: 34px;
   font-weight: 950;
-  position: relative;
 }
 
-.resultWinMedia img {
+.resultWinMedia img,
+.resultMissedProductMedia img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
-}
-
-.resultWinMedia::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(0deg, rgba(17, 19, 25, 0.2), transparent 42%);
-  pointer-events: none;
 }
 
 .resultWinBadge {
   position: absolute;
-  left: 10px;
-  top: 10px;
+  left: 12px;
+  top: 12px;
   z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   border-radius: 999px;
-  background: rgba(254, 44, 85, 0.92);
+  background: rgba(247, 53, 101, 0.94);
   color: #fff;
   padding: 6px 10px;
   font-size: 12px;
-  font-weight: 950;
+  font-weight: 900;
   line-height: 1;
-  box-shadow: 0 8px 18px rgba(254, 44, 85, 0.22);
 }
 
-.resultTitle {
-  margin: 0;
-  color: var(--live-color-text);
-  font-size: 18px;
-  font-weight: 950;
-  line-height: 1.28;
-}
-
-.resultDeposit {
+.resultProductName {
   display: grid;
-  grid-template-columns: auto max-content;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  border-radius: 18px;
-  background: var(--live-modal-section-bg);
-  padding: 12px 14px;
+  gap: 4px;
 }
 
-.resultDeposit span {
-  color: var(--live-color-text-muted);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.resultDeposit b {
-  color: var(--live-color-text);
-  font-size: 15px;
-  font-weight: 950;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.resultWinSummary {
-  margin: -2px 0 2px;
-  color: var(--live-color-text-muted);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.resultWinSummary b {
-  color: var(--live-color-primary);
-  font-size: 15px;
-  font-weight: 950;
-}
-
-.resultPayCountdown {
-  margin: -2px 0 0;
-  color: var(--live-color-text-muted);
+.resultProductName span,
+.resultPricePanel span,
+.resultMissedProductInfo span,
+.resultMissedWinner span {
+  display: block;
+  color: #7c8392;
   font-size: 12px;
   font-weight: 800;
 }
 
-.resultLoseProduct {
-  display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
-  gap: 12px;
-  align-items: center;
-  border-radius: 22px;
-  background: var(--live-modal-lose-product-bg);
-  padding: 8px 32px 8px 8px;
-  text-align: left;
-  box-shadow: 0 0 0 1px rgba(17, 19, 25, 0.04) inset;
-}
-
-.resultLoseProductMedia {
-  display: grid;
-  place-items: center;
-  width: 112px;
-  height: 112px;
-  overflow: hidden;
-  border-radius: 18px;
-  background: var(--live-modal-media-bg);
-  color: var(--live-color-contrast);
-  font-size: 28px;
-  font-weight: 950;
-  box-shadow: var(--live-modal-media-shadow);
-}
-
-.resultLoseProductMedia img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-
-.resultLoseProduct span {
-  display: block;
-  color: var(--live-color-text-muted);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.resultLoseProduct b {
+.resultProductName h3,
+.resultMissedProductInfo h3 {
   display: -webkit-box;
-  margin-top: 3px;
+  margin: 0;
   overflow: hidden;
-  color: var(--live-color-text);
-  font-size: 16px;
-  font-weight: 950;
-  line-height: 1.3;
+  color: #202331;
+  font-size: 19px;
+  font-weight: 850;
+  line-height: 1.22;
   text-overflow: ellipsis;
-  white-space: normal;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 
-.resultWinnerProfile {
+.resultPricePanel {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-  text-align: left;
+  gap: 5px;
+  border: 1px solid #f3d7d2;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 71, 119, 0.08), transparent 42%),
+    linear-gradient(180deg, #fffafb, #fff6f5);
+  padding: 12px 14px 13px;
 }
 
-.resultWinnerAvatar {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--live-modal-avatar-bg);
-  color: var(--live-color-contrast);
-  font-size: 17px;
-  font-weight: 950;
-  box-shadow: var(--live-modal-avatar-shadow);
-}
-
-.resultWinnerProfile span,
-.resultFinalPrice span {
+.resultPricePanel strong {
   display: block;
-  color: var(--live-color-text-muted);
-  font-size: 12px;
+  color: #f73565;
+  font-family: "DIN Alternate", "Arial", sans-serif;
+  font-size: 34px;
   font-weight: 800;
+  line-height: 1;
 }
 
-.resultWinnerProfile b {
-  display: block;
-  margin-top: 3px;
+.resultPriceMissed strong {
+  font-size: 32px;
+}
+
+.resultDeposit {
+  display: grid;
+  grid-template-columns: auto minmax(0, max-content);
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border-radius: 999px;
+  background: #fff0ea;
+  padding: 10px 13px;
+}
+
+.resultDeposit span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #7c8392;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.resultDeposit b {
+  min-width: 0;
   overflow: hidden;
-  color: var(--live-color-text);
-  font-size: 16px;
-  font-weight: 950;
+  color: #202331;
+  font-size: 12px;
+  font-weight: 850;
+  text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.resultLoserStory {
-  margin: 0;
-  color: var(--live-color-text);
-  font-size: 14px;
-  font-weight: 900;
-  line-height: 1.45;
-}
-
-.resultFinalPrice {
+.resultMissedProductCard {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  border: 1px solid #eeeff3;
   border-radius: 22px;
-  padding: 14px;
-  background: var(--live-modal-highlight-bg);
+  background: rgba(255, 255, 255, 0.86);
+  padding: 12px;
+  text-align: left;
+  box-shadow: 0 10px 26px rgba(32, 36, 52, 0.06);
 }
 
-.resultModalLose .resultFinalPrice {
-  box-shadow: 0 0 0 1px rgba(17, 19, 25, 0.04) inset;
-}
-
-.resultFinalPrice strong {
-  display: block;
-  margin-top: 4px;
-  color: var(--live-color-text);
-  font-size: 28px;
+.resultMissedProductMedia {
+  display: grid;
+  place-items: center;
+  width: 132px;
+  height: 150px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #f4f5f8;
+  color: #fff;
+  font-size: 30px;
   font-weight: 950;
-  line-height: 1.15;
+}
+
+.resultMissedProductInfo {
+  min-width: 0;
+}
+
+.resultMissedProductInfo h3 {
+  margin-top: 8px;
+  font-size: 22px;
+}
+
+.resultMissedProductInfo > i {
+  display: block;
+  height: 1px;
+  margin: 17px 0 14px;
+  background: #eeeff3;
+}
+
+.resultMissedWinner {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.resultUserIcon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff0f2;
+  color: #f73565;
+  padding: 9px;
+  stroke-width: 2.2;
+}
+
+.resultMissedWinner b {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  color: #202331;
+  font-size: 16px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resultMissedEmotion {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  margin: 0;
+}
+
+.resultMissedEmotion > span {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 18px;
+  color: rgba(247, 53, 101, 0.5);
+}
+
+.resultMissedEmotion > span::before,
+.resultMissedEmotion > span::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 72px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(238, 239, 243, 0.95));
+}
+
+.resultMissedEmotion > span::before {
+  right: 28px;
+}
+
+.resultMissedEmotion > span::after {
+  left: 28px;
+  transform: rotate(180deg);
+}
+
+.resultMissedEmotion p {
+  margin: 0;
+  color: #202331;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  line-height: 1.18;
+}
+
+.resultMissedEmotion p em {
+  color: #f73565;
+  font-style: normal;
+}
+
+.resultMissedEmotion small {
+  color: #7c8392;
+  font-size: 13px;
+  font-weight: 750;
 }
 
 .resultProduct {
@@ -6249,22 +6245,53 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   width: 100%;
-  min-height: 52px;
+  min-height: 56px;
   border: 0;
   border-radius: 999px;
-  background: var(--live-color-primary);
-  color: var(--live-color-contrast);
+  background: linear-gradient(90deg, #ff4777 0%, #ef2458 100%);
+  color: #fff;
   cursor: pointer;
-  font-size: 16px;
-  font-weight: 950;
-  box-shadow: var(--live-modal-primary-shadow);
+  font-size: 15px;
+  font-weight: 850;
+  box-shadow: 0 12px 28px rgba(247, 53, 101, 0.28);
   touch-action: manipulation;
 }
 
 .resultModalLose .resultPrimaryButton {
-  background: var(--live-modal-secondary-bg);
-  box-shadow: var(--live-modal-secondary-shadow);
+  background: linear-gradient(90deg, #ff4777 0%, #ef2458 100%);
+  box-shadow: 0 12px 28px rgba(247, 53, 101, 0.24);
+}
+
+.resultButtonIcon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  padding: 5px;
+  stroke-width: 2.2;
+}
+
+.resultPayCountdown {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin: -1px 0 0;
+  color: #7c8392;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+.resultPayCountdown b {
+  color: #f73565;
+  font-weight: 850;
+}
+
+.resultMissedFooter {
+  margin-top: -2px;
 }
 
 .resultPrimaryButton:not(:disabled):hover {
