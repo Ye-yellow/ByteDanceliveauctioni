@@ -7284,6 +7284,138 @@ html body .loginPage.adminOnlyLogin .loginSubmit:disabled {
   box-shadow: var(--clay-shadow-soft) !important;
 }
 
+html body .loginPage.adminOnlyLogin .authFormPanel-login {
+  padding-top: 58px !important;
+  padding-bottom: 54px !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-login .loginEyebrow {
+  margin: 0 0 10px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  letter-spacing: .14em !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-login h2 {
+  margin: 0 0 24px !important;
+  font-size: 40px !important;
+  line-height: 1.04 !important;
+  letter-spacing: -.04em !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-login .authModeIndicator {
+  min-height: 44px !important;
+  margin: 0 0 22px !important;
+  padding: 4px !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-login .authModeIndicator button {
+  min-height: 36px !important;
+  padding: 0 12px !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-login .loginField {
+  gap: 8px !important;
+  margin: 0 0 16px !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-login .loginField span {
+  line-height: 1.15 !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-login .loginField div {
+  height: 54px !important;
+  padding-inline: 16px !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-login .authFormOptions {
+  min-height: 32px !important;
+  align-items: center !important;
+  margin: 4px 0 0 !important;
+  line-height: 1 !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-login .authInlineActions {
+  gap: 12px !important;
+}
+
+html body .loginPage.adminOnlyLogin .authFormPanel-login .loginSubmit {
+  min-height: 56px !important;
+  margin-top: 20px !important;
+  font-size: 15px !important;
+  line-height: 1 !important;
+}
+
+@media (max-width: 900px) {
+  html body .loginPage.adminOnlyLogin {
+    overflow-x: hidden !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authShell {
+    width: min(100%, 520px) !important;
+    max-width: calc(100vw - 32px) !important;
+    min-height: auto !important;
+    aspect-ratio: auto !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    box-sizing: border-box !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authFormPanel {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authFormPanel-login {
+    padding: 34px 28px !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authFormPanel-login h2 {
+    margin-bottom: 20px !important;
+    font-size: 34px !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authFormPanel-login .authModeIndicator {
+    margin-bottom: 18px !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authFormPanel-login .authModeIndicator,
+  html body .loginPage.adminOnlyLogin .authFormPanel-login .loginField,
+  html body .loginPage.adminOnlyLogin .authFormPanel-login .loginField div,
+  html body .loginPage.adminOnlyLogin .authFormPanel-login .authFormOptions,
+  html body .loginPage.adminOnlyLogin .authFormPanel-login .loginSubmit {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authFormPanel-login input {
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 520px) {
+  html body .loginPage.adminOnlyLogin .authFormPanel-login {
+    padding: 30px 22px !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authFormPanel-login .loginEyebrow {
+    font-size: 10px !important;
+    letter-spacing: .11em !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authFormPanel-login h2 {
+    font-size: 30px !important;
+  }
+
+  html body .loginPage.adminOnlyLogin .authFormPanel-login .authFormOptions {
+    gap: 10px !important;
+    align-items: flex-start !important;
+  }
+}
+
 /* Auction detail drawer is used from dashboard tables; keep it opaque and independent from chart/table layers. */
 html body .laAdminShell .studioContent:has(.auctionDetailDrawer) {
   z-index: calc(var(--studio-z-modal) + 4) !important;
