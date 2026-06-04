@@ -1,4 +1,7 @@
 import { useMemo, useState } from 'react';
+import { consultBuyer } from '../features/auction/api/auctionApi';
+import { formatMoney } from '../shared/lib/money';
+import type { AIBuyerConsultReply } from '../shared/api/types';
 
 type SearchGuess = {
   name: string;
@@ -125,6 +128,10 @@ function SearchPage() {
   const [guessRound, setGuessRound] = useState(0);
   const [activeRank, setActiveRank] = useState<SearchRankKey>('hot');
   const [activeBrand, setActiveBrand] = useState(Object.keys(BRAND_RANKS)[0]);
+  const [query, setQuery] = useState('预算两万的翡翠手镯');
+  const [aiReply, setAIReply] = useState<AIBuyerConsultReply | null>(null);
+  const [aiLoading, setAILoading] = useState(false);
+  const [aiError, setAIError] = useState('');
 
   const visibleHistory = expanded ? history : history.slice(0, 2);
   const guesses = useMemo(() => {
@@ -137,6 +144,21 @@ function SearchPage() {
     if (activeRank === 'brand') return BRAND_RANKS[activeBrand] || [];
     return HOT_RANKS;
   }, [activeBrand, activeRank]);
+  const runAIConsult = async () => {
+    const text = query.trim() || '预算两万的翡翠手镯';
+    setAILoading(true);
+    setAIError('');
+    try {
+      const reply = await consultBuyer({ query: text });
+      setAIReply(reply);
+      setQuery(text);
+      setHistory((current) => [text, ...current.filter((item) => item !== text)].slice(0, 10));
+    } catch (error) {
+      setAIError(error instanceof Error ? error.message : 'AI 竞拍顾问暂时不可用');
+    } finally {
+      setAILoading(false);
+    }
+  };
 
   return (
     <main className="mobileShell dySearchPage" aria-label="抖音搜索">
@@ -146,12 +168,61 @@ function SearchPage() {
         </button>
         <label>
           <span aria-hidden="true">⌕</span>
-          <input autoFocus placeholder="搜索用户名字/抖音号" />
+          <input
+            autoFocus
+            value={query}
+            placeholder="描述你想找的拍品"
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') void runAIConsult();
+            }}
+          />
         </label>
-        <button type="button">搜索</button>
+        <button type="button" disabled={aiLoading} onClick={() => void runAIConsult()}>{aiLoading ? '问 AI' : '搜索'}</button>
       </header>
 
       <div className="dySearchPageContent">
+        <section className="dySearchAI" aria-label="AI 竞拍顾问">
+          <header>
+            <div>
+              <span>AI 竞拍顾问</span>
+              <h2>说出预算、品类或用途，帮你找正在竞拍的场次</h2>
+            </div>
+            <button type="button" disabled={aiLoading} onClick={() => void runAIConsult()}>
+              {aiLoading ? '分析中' : '立即咨询'}
+            </button>
+          </header>
+          {aiError ? <p className="dySearchAIError">{aiError}</p> : null}
+          {aiReply ? (
+            <div className="dySearchAIReply">
+              <p>{aiReply.answer}</p>
+              {aiReply.fallbackUsed ? <small>当前使用规则兜底建议</small> : null}
+              {aiReply.results.length ? (
+                <div className="dySearchAIResults">
+                  {aiReply.results.map((item) => (
+                    <a href={item.href || `/m/room/${item.roomId}`} key={`${item.roomId}-${item.lotId}`} className="dySearchAIResultCard">
+                      <span>{item.status}</span>
+                      <b>{item.title}</b>
+                      <strong>{formatMoney(item.currentPrice)}</strong>
+                      <small>{item.reason}</small>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="dySearchAIEmpty">暂时没有匹配到公开竞拍中的拍品，可以换个品类或预算试试。</div>
+              )}
+            </div>
+          ) : (
+            <div className="dySearchAIPrompts">
+              {['预算两万的翡翠手镯', '适合送礼的收藏品', '正在直播的低门槛拍品'].map((item) => (
+                <button type="button" key={item} onClick={() => { setQuery(item); void consultBuyer({ query: item }).then(setAIReply).catch((error) => setAIError(error instanceof Error ? error.message : 'AI 竞拍顾问暂时不可用')); }}>
+                  {item}
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+
         <section className="dySearchPageHistory" aria-label="搜索历史">
           {visibleHistory.map((item) => (
             <div className="dySearchPageHistoryRow" key={item}>

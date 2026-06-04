@@ -2131,6 +2131,167 @@
   text-align: left;
 }
 
+.liveAIFab {
+  position: absolute;
+  right: 22px;
+  bottom: calc(var(--live-composer-bottom) + 58px);
+  z-index: var(--live-z-sticky);
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 50%;
+  background: linear-gradient(135deg, #25f4ee, #fe2c55);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 950;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.32);
+}
+
+.buyerAISheetMask {
+  position: absolute;
+  inset: 0;
+  z-index: var(--live-z-modal);
+  display: grid;
+  align-items: end;
+  background: rgba(0, 0, 0, 0.38);
+}
+
+.buyerAISheet {
+  max-height: min(72dvh, 560px);
+  display: grid;
+  gap: 12px;
+  overflow-y: auto;
+  border-radius: 18px 18px 0 0;
+  background: #111216;
+  color: #fff;
+  padding: 16px 16px calc(18px + var(--live-safe-bottom));
+  box-shadow: 0 -20px 48px rgba(0, 0, 0, 0.38);
+}
+
+.buyerAISheet header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.buyerAISheet header span {
+  display: block;
+  margin-bottom: 5px;
+  color: #25f4ee;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.buyerAISheet h3 {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.buyerAISheet header button,
+.buyerAIRefresh {
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-weight: 900;
+}
+
+.buyerAISheet header button {
+  width: 32px;
+  height: 32px;
+  font-size: 19px;
+}
+
+.buyerAIRefresh {
+  min-height: 36px;
+  justify-self: start;
+  padding: 0 14px;
+}
+
+.buyerAIContent {
+  display: grid;
+  gap: 12px;
+}
+
+.buyerAIContent p,
+.buyerAIEmpty,
+.buyerAIError {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 14px;
+  line-height: 1.62;
+}
+
+.buyerAIContent > small {
+  width: fit-content;
+  border-radius: 999px;
+  background: rgba(255, 204, 70, 0.16);
+  color: #ffd764;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.buyerAIAdviceGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.buyerAIAdviceGrid span {
+  display: grid;
+  gap: 5px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 10px;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.buyerAIAdviceGrid b {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #fff;
+  font-size: 13px;
+}
+
+.buyerAIStrategy {
+  border-left: 3px solid #25f4ee;
+  padding-left: 10px;
+}
+
+.buyerAIContent ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding-left: 18px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.buyerAISources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.buyerAISources span {
+  border-radius: 999px;
+  background: rgba(37, 244, 238, 0.12);
+  color: #c9fffc;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.buyerAIError {
+  color: #ffb3c0;
+}
+
 .douyinShell::before,
 .douyinShell::after {
   content: "";
@@ -10421,6 +10582,142 @@
   text-decoration: none;
   font-size: 13px;
   font-weight: 750;
+}
+
+.dySearchAI {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(37, 244, 238, 0.18);
+  border-radius: 8px;
+  background: #171922;
+  padding: 13px;
+}
+
+.dySearchAI header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.dySearchAI header span {
+  display: block;
+  margin-bottom: 5px;
+  color: #25f4ee;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.dySearchAI h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.dySearchAI header button,
+.dySearchAIPrompts button {
+  border: 0;
+  border-radius: 999px;
+  background: #2a2d38;
+  color: #fff;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.dySearchAI header button {
+  min-height: 34px;
+  white-space: nowrap;
+}
+
+.dySearchAIReply,
+.dySearchAIPrompts {
+  display: grid;
+  gap: 10px;
+}
+
+.dySearchAIReply > p,
+.dySearchAIEmpty,
+.dySearchAIError {
+  margin: 0;
+  color: #dde0e7;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.dySearchAIReply > small {
+  width: fit-content;
+  border-radius: 999px;
+  background: rgba(255, 207, 75, 0.14);
+  color: #ffdc71;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.dySearchAIError {
+  color: #ffb3c0;
+}
+
+.dySearchAIResults {
+  display: grid;
+  gap: 8px;
+}
+
+.dySearchAIResultCard {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 10px;
+  border-radius: 8px;
+  background: #222532;
+  color: #fff;
+  padding: 11px;
+  text-decoration: none;
+}
+
+.dySearchAIResultCard span {
+  width: fit-content;
+  grid-column: 1 / -1;
+  border-radius: 999px;
+  background: rgba(254, 44, 85, 0.16);
+  color: #ffb9c5;
+  padding: 3px 7px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.dySearchAIResultCard b {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+}
+
+.dySearchAIResultCard strong {
+  color: #fff;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.dySearchAIResultCard small {
+  grid-column: 1 / -1;
+  color: #aaadb8;
+  line-height: 1.45;
+}
+
+.dySearchAIPrompts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dySearchAIPrompts button {
+  min-width: 0;
+  min-height: 34px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dyMusicPage {

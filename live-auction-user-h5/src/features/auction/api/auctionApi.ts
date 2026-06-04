@@ -1,6 +1,8 @@
 import { normalizeBidRecord, normalizeLot, normalizeLotResult, normalizeMoney, normalizeOrder, normalizePayment, normalizePlaceBidResponse, normalizeRoom, normalizeRoomSnapshot } from '../../../shared/api/adapters';
 import { apiRequest } from '../../../shared/api/httpClient';
 import type {
+  AIBuyerConsultReply,
+  AIBuyerConsultRequest,
   BidRecord,
   BidRecordList,
   Lot,
@@ -152,4 +154,14 @@ export async function mockPay(orderId: string, payload: { idempotencyKey: string
     order: normalizeOrder(reply.order),
     payment: normalizePayment(reply.payment),
   };
+}
+
+export async function consultBuyer(payload: AIBuyerConsultRequest): Promise<AIBuyerConsultReply> {
+  return apiRequest<AIBuyerConsultReply>({
+    path: '/api/ai/buyer/consult',
+    method: 'POST',
+    auth: 'optional',
+    operation: 'consultBuyerAI',
+    body: payload,
+  });
 }

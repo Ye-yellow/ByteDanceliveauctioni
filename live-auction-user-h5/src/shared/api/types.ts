@@ -380,3 +380,46 @@ export type AuctionSocketEvent = {
   order?: OrderSummary;
   payment?: PaymentSummary;
 };
+
+export type AIBuyerResult = {
+  type: string;
+  title: string;
+  roomId: string;
+  lotId: string;
+  status: string;
+  currentPrice?: Money;
+  href: string;
+  reason: string;
+};
+
+export type AIBidAdvice = {
+  nextBidAmount?: Money;
+  maxSuggestedAmount?: Money;
+  strategy: string;
+  risks: string[];
+  confidence: number;
+};
+
+export type AISource = {
+  type: string;
+  title: string;
+  roomId?: string;
+  lotId?: string;
+};
+
+export type AIBuyerConsultRequest = {
+  query: string;
+  roomId?: string;
+  lotId?: string;
+  budget?: number;
+  riskPreference?: string;
+};
+
+export type AIBuyerConsultReply = {
+  answer: string;
+  intent: string;
+  results: AIBuyerResult[];
+  bidAdvice: AIBidAdvice;
+  sources: AISource[];
+  fallbackUsed: boolean;
+};
