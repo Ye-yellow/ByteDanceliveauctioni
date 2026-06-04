@@ -160,7 +160,7 @@ func newBuyerSearchFromEnv(ctx context.Context, source searchindex.DocumentSourc
 		log.Printf("buyer search index disabled: embedding client is not configured")
 		return nil, nil, nil
 	}
-	index, err := searchindex.NewPGVectorIndex(ctx, searchindex.PGVectorConfig{
+	indexCfg := searchindex.PGVectorConfig{
 		DSN:                 dsn,
 		EmbeddingModel:      embedder.Model(),
 		EmbeddingDimensions: embedder.Dimensions(),
@@ -168,7 +168,8 @@ func newBuyerSearchFromEnv(ctx context.Context, source searchindex.DocumentSourc
 		MaxIdleConns:        getenvInt("AUCTION_SEARCH_PG_MAX_IDLE_CONNS", 2),
 		ConnMaxLifetime:     getenvDuration("AUCTION_SEARCH_PG_CONN_MAX_LIFETIME", 30*time.Minute),
 		ConnMaxIdleTime:     getenvDuration("AUCTION_SEARCH_PG_CONN_MAX_IDLE_TIME", 2*time.Minute),
-	})
+	}
+	index, err := newPGVectorIndexWithStartupWait(ctx, indexCfg)
 	if err != nil {
 		log.Printf("buyer search index disabled: %v", err)
 		return nil, nil, nil
@@ -180,6 +181,29 @@ func newBuyerSearchFromEnv(ctx context.Context, source searchindex.DocumentSourc
 	})
 	log.Printf("buyer search index enabled: model=%s dimensions=%d", embedder.Model(), embedder.Dimensions())
 	return index, embedder, worker
+}
+
+func newPGVectorIndexWithStartupWait(ctx context.Context, cfg searchindex.PGVectorConfig) (*searchindex.PGVectorIndex, error) {
+	wait := getenvDuration("AUCTION_SEARCH_STARTUP_WAIT", 30*time.Second)
+	retryEvery := 2 * time.Second
+	deadline := time.Now().Add(wait)
+	var lastErr error
+	for attempt := 1; ; attempt++ {
+		index, err := searchindex.NewPGVectorIndex(ctx, cfg)
+		if err == nil {
+			return index, nil
+		}
+		lastErr = err
+		if wait <= 0 || time.Now().After(deadline) {
+			return nil, lastErr
+		}
+		log.Printf("buyer search index waiting for pgvector: attempt=%d error=%v", attempt, err)
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(retryEvery):
+		}
+	}
 }
 
 func defaultInstanceID() string {
