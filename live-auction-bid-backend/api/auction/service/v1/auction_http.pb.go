@@ -20,6 +20,7 @@ var _ = binding.EncodeURL
 const _ = http.SupportPackageIsVersion1
 
 const OperationAuctionServiceCancelLot = "/auction.service.v1.AuctionService/CancelLot"
+const OperationAuctionServiceConsultBuyer = "/auction.service.v1.AuctionService/ConsultBuyer"
 const OperationAuctionServiceCreateLot = "/auction.service.v1.AuctionService/CreateLot"
 const OperationAuctionServiceCreateLotDraft = "/auction.service.v1.AuctionService/CreateLotDraft"
 const OperationAuctionServiceGetLot = "/auction.service.v1.AuctionService/GetLot"
@@ -42,6 +43,12 @@ type AuctionServiceHTTPServer interface {
 	// 状态流转：LIVE -> CANCELLED。
 	// 服务端动作：记录取消原因，并广播 LOT_CANCELLED。
 	CancelLot(context.Context, *CancelLotRequest) (*CancelLotReply, error)
+	// ConsultBuyer 买家找拍品助手。
+	//
+	// 调用方：观众端。
+	// 用途：根据用户输入的品类、预算或用途，返回公开可见的候选竞拍拍品。
+	// 注意：这里只做找拍品和来源解释，不返回出价建议。
+	ConsultBuyer(context.Context, *BuyerConsultRequest) (*BuyerConsultReply, error)
 	// CreateLot 创建拍品草稿。
 	//
 	// 调用方：主播端/运营端。
@@ -135,6 +142,7 @@ func RegisterAuctionServiceHTTPServer(s *http.Server, srv AuctionServiceHTTPServ
 	r.GET("/api/rooms/{room_id}/snapshot", _AuctionService_GetRoomSnapshot0_HTTP_Handler(srv))
 	r.GET("/api/rooms/{room_id}/presence", _AuctionService_GetRoomPresence0_HTTP_Handler(srv))
 	r.GET("/api/rooms/{room_id}/events", _AuctionService_ListRoomEvents0_HTTP_Handler(srv))
+	r.POST("/api/ai/buyer/consult", _AuctionService_ConsultBuyer0_HTTP_Handler(srv))
 }
 
 func _AuctionService_CreateLot0_HTTP_Handler(srv AuctionServiceHTTPServer) func(ctx http.Context) error {
@@ -488,6 +496,28 @@ func _AuctionService_ListRoomEvents0_HTTP_Handler(srv AuctionServiceHTTPServer) 
 	}
 }
 
+func _AuctionService_ConsultBuyer0_HTTP_Handler(srv AuctionServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in BuyerConsultRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuctionServiceConsultBuyer)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ConsultBuyer(ctx, req.(*BuyerConsultRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*BuyerConsultReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 type AuctionServiceHTTPClient interface {
 	// CancelLot 主播异常取消拍品。
 	//
@@ -495,6 +525,12 @@ type AuctionServiceHTTPClient interface {
 	// 状态流转：LIVE -> CANCELLED。
 	// 服务端动作：记录取消原因，并广播 LOT_CANCELLED。
 	CancelLot(ctx context.Context, req *CancelLotRequest, opts ...http.CallOption) (rsp *CancelLotReply, err error)
+	// ConsultBuyer 买家找拍品助手。
+	//
+	// 调用方：观众端。
+	// 用途：根据用户输入的品类、预算或用途，返回公开可见的候选竞拍拍品。
+	// 注意：这里只做找拍品和来源解释，不返回出价建议。
+	ConsultBuyer(ctx context.Context, req *BuyerConsultRequest, opts ...http.CallOption) (rsp *BuyerConsultReply, err error)
 	// CreateLot 创建拍品草稿。
 	//
 	// 调用方：主播端/运营端。
@@ -589,6 +625,24 @@ func (c *AuctionServiceHTTPClientImpl) CancelLot(ctx context.Context, in *Cancel
 	pattern := "/api/lots/{lot_id}/cancel"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationAuctionServiceCancelLot))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ConsultBuyer 买家找拍品助手。
+//
+// 调用方：观众端。
+// 用途：根据用户输入的品类、预算或用途，返回公开可见的候选竞拍拍品。
+// 注意：这里只做找拍品和来源解释，不返回出价建议。
+func (c *AuctionServiceHTTPClientImpl) ConsultBuyer(ctx context.Context, in *BuyerConsultRequest, opts ...http.CallOption) (*BuyerConsultReply, error) {
+	var out BuyerConsultReply
+	pattern := "/api/ai/buyer/consult"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationAuctionServiceConsultBuyer))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {

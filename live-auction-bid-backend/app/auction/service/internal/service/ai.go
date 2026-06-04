@@ -2,14 +2,14 @@ package service
 
 import (
 	"context"
+	"log/slog"
 	"sort"
 	"strings"
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/aiassistant"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
-	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
-	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
+	"live-auction-bid/backend/app/auction/service/internal/searchindex"
 )
 
 func (s *AuctionService) SetAIAssistant(assistant *aiassistant.Assistant) *AuctionService {
@@ -20,59 +20,35 @@ func (s *AuctionService) SetAIAssistant(assistant *aiassistant.Assistant) *Aucti
 	return s
 }
 
-func (s *AuctionService) ConsultBuyer(ctx context.Context, req aiassistant.BuyerConsultRequest) (aiassistant.BuyerConsultReply, error) {
-	assistant := s.aiAssistant()
-	aiCtx := aiassistant.BuyerConsultContext{Candidates: s.buyerCandidates(ctx, req)}
-	if strings.TrimSpace(req.RoomID) != "" {
-		if snapshot, err := s.auction.Snapshot(ctx, strings.TrimSpace(req.RoomID)); err == nil {
-			aiCtx.Snapshot = auction.SnapshotForViewer(snapshot, lotResultViewerFromContext(ctx))
-		}
+func (s *AuctionService) SetBuyerSearch(index *searchindex.PGVectorIndex, embedder *searchindex.EmbeddingClient) *AuctionService {
+	if s == nil {
+		return nil
 	}
-	reply, err := assistant.ConsultBuyer(ctx, req, aiCtx)
-	if err != nil {
-		return aiassistant.BuyerConsultReply{Result: ErrorResult(ctx, err)}, nil
-	}
-	reply.Result = okResult(ctx)
-	return reply, nil
+	s.buyerSearch = index
+	s.buyerEmbedder = embedder
+	return s
 }
 
-func (s *AuctionService) AssistMerchant(ctx context.Context, req aiassistant.MerchantAssistRequest) (aiassistant.MerchantAssistReply, error) {
-	page := strings.ToLower(strings.TrimSpace(req.Page))
-	var permission string
-	switch page {
-	case "create", "auction-create":
-		permission = userbiz.PermissionLotCreate
-	case "control", "live-control", "realtime-control":
-		permission = userbiz.PermissionAuctionControl
-	default:
-		permission = userbiz.PermissionLotViewAdmin
+func (s *AuctionService) ConsultBuyer(ctx context.Context, req *v1.BuyerConsultRequest) (*v1.BuyerConsultReply, error) {
+	aiReq := aiassistant.BuyerConsultRequest{
+		Query:          req.GetQuery(),
+		RoomID:         req.GetRoomId(),
+		LotID:          req.GetLotId(),
+		Budget:         req.GetBudget(),
+		RiskPreference: req.GetRiskPreference(),
 	}
-	_, mainAccountID, err := requirePermissionMainAccount(ctx, permission)
-	if err != nil {
-		return aiassistant.MerchantAssistReply{Result: ErrorResult(ctx, err)}, nil
-	}
-	aiCtx := aiassistant.MerchantAssistContext{RoomID: strings.TrimSpace(req.RoomID)}
-	if aiCtx.RoomID != "" {
-		if err := s.auction.ValidateRoomInMainAccount(ctx, aiCtx.RoomID, mainAccountID); err != nil {
-			return aiassistant.MerchantAssistReply{Result: ErrorResult(ctx, err)}, nil
-		}
-		if snapshot, err := s.auction.Snapshot(ctx, aiCtx.RoomID); err == nil {
+	assistant := s.aiAssistant()
+	aiCtx := aiassistant.BuyerConsultContext{Candidates: s.buyerCandidates(ctx, aiReq)}
+	if strings.TrimSpace(aiReq.RoomID) != "" {
+		if snapshot, err := s.auction.Snapshot(ctx, strings.TrimSpace(aiReq.RoomID)); err == nil {
 			aiCtx.Snapshot = auction.SnapshotForViewer(snapshot, lotResultViewerFromContext(ctx))
-			aiCtx.CurrentLot = aiCtx.Snapshot.GetCurrentLot()
-			aiCtx.RankingSize = len(aiCtx.Snapshot.GetRanking())
 		}
 	}
-	if req.LotID != "" && aiCtx.CurrentLot == nil {
-		if lot, err := s.auction.GetLot(ctx, req.LotID); err == nil && lot.GetMainAccountId() == mainAccountID {
-			aiCtx.CurrentLot = auction.LotForViewer(lot, lotResultViewerFromContext(ctx))
-		}
-	}
-	reply, err := s.aiAssistant().AssistMerchant(ctx, req, aiCtx)
+	reply, err := assistant.ConsultBuyer(ctx, aiReq, aiCtx)
 	if err != nil {
-		return aiassistant.MerchantAssistReply{Result: ErrorResult(ctx, err)}, nil
+		return &v1.BuyerConsultReply{Result: ErrorResult(ctx, err)}, nil
 	}
-	reply.Result = okResult(ctx)
-	return reply, nil
+	return buyerConsultReplyToProto(ctx, reply), nil
 }
 
 func (s *AuctionService) aiAssistant() *aiassistant.Assistant {
@@ -83,6 +59,12 @@ func (s *AuctionService) aiAssistant() *aiassistant.Assistant {
 }
 
 func (s *AuctionService) buyerCandidates(ctx context.Context, req aiassistant.BuyerConsultRequest) []aiassistant.LotCandidate {
+	vector := s.vectorBuyerCandidates(ctx, req)
+	keyword := s.keywordBuyerCandidates(ctx, req)
+	return mergeBuyerCandidates(vector, keyword, 8)
+}
+
+func (s *AuctionService) keywordBuyerCandidates(ctx context.Context, req aiassistant.BuyerConsultRequest) []aiassistant.LotCandidate {
 	rooms, err := s.auction.ListRooms(ctx, auction.RoomQuery{PublicOnly: true, PublicVisibleOnly: true})
 	if err != nil {
 		return nil
@@ -120,11 +102,11 @@ func (s *AuctionService) buyerCandidates(ctx context.Context, req aiassistant.Bu
 					RoomID:       lot.GetRoomId(),
 					LotID:        lot.GetId(),
 					Status:       lot.GetStatus().String(),
-					CurrentPrice: lot.GetCurrentPrice(),
+					CurrentPrice: startSearchPriceMoney(lot),
 					Href:         "/m/room/" + lot.GetRoomId(),
 					Reason:       reason,
+					ImageURL:     lot.GetImageUrl(),
 					Score:        score,
-					Lot:          auction.LotForViewer(lot, auction.LotResultViewer{}),
 				})
 			}
 		}
@@ -139,6 +121,124 @@ func (s *AuctionService) buyerCandidates(ctx context.Context, req aiassistant.Bu
 		return candidates[:8]
 	}
 	return candidates
+}
+
+func (s *AuctionService) vectorBuyerCandidates(ctx context.Context, req aiassistant.BuyerConsultRequest) []aiassistant.LotCandidate {
+	if s == nil || s.buyerSearch == nil || s.buyerEmbedder == nil || !s.buyerEmbedder.Configured() {
+		return nil
+	}
+	query := strings.TrimSpace(req.Query)
+	if query == "" {
+		return nil
+	}
+	embeddings, err := s.buyerEmbedder.Embed(ctx, []string{query})
+	if err != nil || len(embeddings) == 0 {
+		if err != nil {
+			slog.Warn("buyer vector search embedding failed", "error", err)
+		}
+		return nil
+	}
+	docs, err := s.buyerSearch.Search(ctx, searchindex.SearchQuery{
+		Vector: embeddings[0],
+		RoomID: strings.TrimSpace(req.RoomID),
+		LotID:  strings.TrimSpace(req.LotID),
+		Limit:  20,
+	})
+	if err != nil {
+		slog.Warn("buyer vector search failed", "error", err)
+		return nil
+	}
+	roomNames := s.publicVisibleRoomNames(ctx)
+	out := make([]aiassistant.LotCandidate, 0, len(docs))
+	seen := map[string]bool{}
+	for rank, doc := range docs {
+		if doc.LotID == "" || seen[doc.LotID] {
+			continue
+		}
+		if req.RoomID != "" && doc.RoomID != req.RoomID {
+			continue
+		}
+		if req.LotID != "" && doc.LotID != req.LotID {
+			continue
+		}
+		if _, ok := roomNames[doc.RoomID]; !ok {
+			continue
+		}
+		lot, err := s.auction.GetLot(ctx, doc.LotID)
+		if err != nil || lot == nil || !auction.IsPublicVisibleLotStatus(lot.GetStatus()) {
+			continue
+		}
+		seen[doc.LotID] = true
+		score := 80 - rank
+		if price := currentSearchPrice(lot); req.Budget > 0 && price > 0 && price <= req.Budget {
+			score += 4
+		}
+		out = append(out, aiassistant.LotCandidate{
+			Type:         "lot",
+			Title:        lot.GetTitle(),
+			RoomID:       lot.GetRoomId(),
+			LotID:        lot.GetId(),
+			Status:       lot.GetStatus().String(),
+			CurrentPrice: startSearchPriceMoney(lot),
+			Href:         "/m/room/" + lot.GetRoomId(),
+			Reason:       "语义匹配你的描述",
+			ImageURL:     lot.GetImageUrl(),
+			Score:        score,
+		})
+	}
+	return out
+}
+
+func (s *AuctionService) publicVisibleRoomNames(ctx context.Context) map[string]string {
+	rooms, err := s.auction.ListRooms(ctx, auction.RoomQuery{PublicOnly: true, PublicVisibleOnly: true})
+	if err != nil {
+		return map[string]string{}
+	}
+	out := make(map[string]string, len(rooms))
+	for _, room := range rooms {
+		out[room.ID] = room.Name
+	}
+	return out
+}
+
+func mergeBuyerCandidates(primary, secondary []aiassistant.LotCandidate, limit int) []aiassistant.LotCandidate {
+	if limit <= 0 {
+		limit = 8
+	}
+	byLotID := make(map[string]int)
+	out := make([]aiassistant.LotCandidate, 0, len(primary)+len(secondary))
+	add := func(candidate aiassistant.LotCandidate) {
+		if strings.TrimSpace(candidate.LotID) == "" {
+			return
+		}
+		if pos, ok := byLotID[candidate.LotID]; ok {
+			if candidate.Score > out[pos].Score {
+				out[pos].Score = candidate.Score
+			}
+			if out[pos].Reason == "" {
+				out[pos].Reason = candidate.Reason
+			}
+			return
+		}
+		byLotID[candidate.LotID] = len(out)
+		out = append(out, candidate)
+	}
+	for _, candidate := range primary {
+		add(candidate)
+	}
+	for _, candidate := range secondary {
+		add(candidate)
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].Score != out[j].Score {
+			return out[i].Score > out[j].Score
+		}
+		return out[i].LotID < out[j].LotID
+	})
+	if len(out) > limit {
+		return out[:limit]
+	}
+	return out
 }
 
 func scoreLot(req aiassistant.BuyerConsultRequest, lot *v1.Lot, roomName string) (int, string) {
@@ -177,6 +277,57 @@ func scoreLot(req aiassistant.BuyerConsultRequest, lot *v1.Lot, roomName string)
 	return score, "命中：" + strings.Join(matches, "、")
 }
 
+func currentSearchPrice(lot *v1.Lot) int64 {
+	if lot == nil {
+		return 0
+	}
+	if price := lot.GetCurrentPrice(); price != nil && price.GetAmount() > 0 {
+		return price.GetAmount()
+	}
+	return lot.GetRule().GetStartPrice().GetAmount()
+}
+
+func startSearchPriceMoney(lot *v1.Lot) *v1.Money {
+	if lot == nil {
+		return nil
+	}
+	if price := lot.GetRule().GetStartPrice(); price != nil {
+		return &v1.Money{Amount: price.GetAmount(), Currency: price.GetCurrency()}
+	}
+	return nil
+}
+
+func buyerConsultReplyToProto(ctx context.Context, reply aiassistant.BuyerConsultReply) *v1.BuyerConsultReply {
+	out := &v1.BuyerConsultReply{
+		Answer:       reply.Answer,
+		Intent:       reply.Intent,
+		FallbackUsed: reply.FallbackUsed,
+		Result:       okResult(ctx),
+	}
+	for _, result := range reply.Results {
+		out.Results = append(out.Results, &v1.BuyerConsultResult{
+			Type:         result.Type,
+			Title:        result.Title,
+			RoomId:       result.RoomID,
+			LotId:        result.LotID,
+			Status:       result.Status,
+			CurrentPrice: result.CurrentPrice,
+			Href:         result.Href,
+			Reason:       result.Reason,
+			ImageUrl:     result.ImageURL,
+		})
+	}
+	for _, source := range reply.Sources {
+		out.Sources = append(out.Sources, &v1.BuyerConsultSource{
+			Type:   source.Type,
+			Title:  source.Title,
+			RoomId: source.RoomID,
+			LotId:  source.LotID,
+		})
+	}
+	return out
+}
+
 func queryTokens(query string) []string {
 	query = strings.NewReplacer("，", " ", "。", " ", ",", " ", ".", " ", "的", " ", "想", " ", "看", " ", "找", " ").Replace(query)
 	fields := strings.Fields(query)
@@ -194,9 +345,4 @@ func queryTokens(query string) []string {
 		}
 	}
 	return out
-}
-
-func _authClaimsForAI(ctx context.Context) *auth.Claims {
-	claims, _ := auth.ClaimsFromContext(ctx)
-	return claims
 }

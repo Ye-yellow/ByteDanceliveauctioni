@@ -16,6 +16,7 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/data"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
 	"live-auction-bid/backend/app/auction/service/internal/realtime"
+	"live-auction-bid/backend/app/auction/service/internal/searchindex"
 	"live-auction-bid/backend/app/auction/service/internal/server"
 	appsvc "live-auction-bid/backend/app/auction/service/internal/service"
 	"live-auction-bid/backend/app/auction/service/internal/storage"
@@ -45,6 +46,13 @@ func main() {
 	defer store.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	buyerSearch, buyerEmbedder, buyerSearchWorker := newBuyerSearchFromEnv(ctx, store)
+	if buyerSearch != nil {
+		defer buyerSearch.Close()
+	}
+	if buyerSearchWorker != nil {
+		buyerSearchWorker.Start(ctx)
+	}
 	instanceID := getenv("AUCTION_INSTANCE_ID", defaultInstanceID())
 	leaseProvider := data.NewRedisLeaseProvider(store)
 	leaseTTL := getenvDuration("AUCTION_WORKER_LEASE_TTL", 15*time.Second)
@@ -99,6 +107,7 @@ func main() {
 	hub.BindSnapshotProvider(auctionUsecase)
 	auctionService := appsvc.NewAuctionService(auctionUsecase, hub).
 		SetAIAssistant(aiassistant.NewFromEnv(os.Getenv)).
+		SetBuyerSearch(buyerSearch, buyerEmbedder).
 		SetVerboseBidLog(getenvBool("AUCTION_VERBOSE_BID_LOG", false))
 	userService := appsvc.NewUserService(userUsecase)
 	consulRegistration, err := server.RegisterConsulService(context.Background(), server.ConsulConfig{
@@ -133,6 +142,44 @@ func main() {
 	if err := httpServer.Start(ctx); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func newBuyerSearchFromEnv(ctx context.Context, source searchindex.DocumentSource) (*searchindex.PGVectorIndex, *searchindex.EmbeddingClient, *searchindex.SyncWorker) {
+	provider := strings.ToLower(strings.TrimSpace(os.Getenv("AUCTION_SEARCH_PROVIDER")))
+	dsn := strings.TrimSpace(os.Getenv("AUCTION_SEARCH_PG_DSN"))
+	if provider == "" && dsn == "" {
+		log.Printf("buyer search index disabled: pgvector dsn is not configured")
+		return nil, nil, nil
+	}
+	if provider != "" && provider != "pgvector" {
+		log.Printf("buyer search index disabled: unsupported provider %s", provider)
+		return nil, nil, nil
+	}
+	embedder := searchindex.NewEmbeddingClientFromEnv(os.Getenv)
+	if !embedder.Configured() {
+		log.Printf("buyer search index disabled: embedding client is not configured")
+		return nil, nil, nil
+	}
+	index, err := searchindex.NewPGVectorIndex(ctx, searchindex.PGVectorConfig{
+		DSN:                 dsn,
+		EmbeddingModel:      embedder.Model(),
+		EmbeddingDimensions: embedder.Dimensions(),
+		MaxOpenConns:        getenvInt("AUCTION_SEARCH_PG_MAX_OPEN_CONNS", 5),
+		MaxIdleConns:        getenvInt("AUCTION_SEARCH_PG_MAX_IDLE_CONNS", 2),
+		ConnMaxLifetime:     getenvDuration("AUCTION_SEARCH_PG_CONN_MAX_LIFETIME", 30*time.Minute),
+		ConnMaxIdleTime:     getenvDuration("AUCTION_SEARCH_PG_CONN_MAX_IDLE_TIME", 2*time.Minute),
+	})
+	if err != nil {
+		log.Printf("buyer search index disabled: %v", err)
+		return nil, nil, nil
+	}
+	worker := searchindex.NewSyncWorker(source, index, embedder, searchindex.SyncWorkerConfig{
+		Interval:        getenvDuration("AUCTION_SEARCH_SYNC_INTERVAL", 5*time.Minute),
+		BatchLimit:      getenvInt("AUCTION_SEARCH_SYNC_BATCH_LIMIT", 500),
+		HiddenRetention: getenvDuration("AUCTION_SEARCH_HIDDEN_RETENTION", searchindex.DefaultHiddenRetention),
+	})
+	log.Printf("buyer search index enabled: model=%s dimensions=%d", embedder.Model(), embedder.Dimensions())
+	return index, embedder, worker
 }
 
 func defaultInstanceID() string {

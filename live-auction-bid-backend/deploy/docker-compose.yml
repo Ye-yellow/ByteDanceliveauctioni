@@ -27,6 +27,18 @@ services:
       AUCTION_MYSQL_DSN: "auction:auction_dev@tcp(mysql:3306)/live_auction?parseTime=true&charset=utf8mb4&loc=Local"
       AUCTION_REDIS_ADDR: "redis:6379"
       AUCTION_REDIS_PASSWORD: "auction_redis"
+      AUCTION_SEARCH_PROVIDER: "${AUCTION_SEARCH_PROVIDER:-}"
+      AUCTION_SEARCH_PG_DSN: "${AUCTION_SEARCH_PG_DSN:-}"
+      AUCTION_SEARCH_SYNC_INTERVAL: "${AUCTION_SEARCH_SYNC_INTERVAL:-5m}"
+      AUCTION_SEARCH_SYNC_BATCH_LIMIT: "${AUCTION_SEARCH_SYNC_BATCH_LIMIT:-500}"
+      AUCTION_SEARCH_HIDDEN_RETENTION: "${AUCTION_SEARCH_HIDDEN_RETENTION:-168h}"
+      AUCTION_EMBEDDING_PROVIDER: "${AUCTION_EMBEDDING_PROVIDER:-dashscope}"
+      AUCTION_EMBEDDING_BASE_URL: "${AUCTION_EMBEDDING_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}"
+      AUCTION_EMBEDDING_MODEL: "${AUCTION_EMBEDDING_MODEL:-text-embedding-v4}"
+      AUCTION_EMBEDDING_DIMENSIONS: "${AUCTION_EMBEDDING_DIMENSIONS:-1024}"
+      AUCTION_EMBEDDING_BATCH_SIZE: "${AUCTION_EMBEDDING_BATCH_SIZE:-10}"
+      AUCTION_EMBEDDING_TIMEOUT: "${AUCTION_EMBEDDING_TIMEOUT:-8s}"
+      AUCTION_EMBEDDING_API_KEY: "${AUCTION_EMBEDDING_API_KEY:-}"
       AUCTION_CONSUL_ADDR: "consul:8500"
       AUCTION_SERVICE_NAME: "auction-backend"
       AUCTION_SERVICE_ADDR: "auction-backend"
@@ -104,6 +116,33 @@ services:
     networks:
       - live-auction
 
+  pgvector:
+    image: pgvector/pgvector:pg16
+    container_name: live-auction-pgvector
+    profiles: ["search"]
+    environment:
+      POSTGRES_DB: live_auction_search
+      POSTGRES_USER: auction_search
+      POSTGRES_PASSWORD: "${AUCTION_SEARCH_PG_PASSWORD:-auction_search_dev}"
+      TZ: Asia/Shanghai
+    command:
+      - postgres
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - max_connections=20
+    ports:
+      - "15432:5432"
+    volumes:
+      - live-auction-pgvector:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auction_search -d live_auction_search"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - live-auction
+
   consul:
     image: hashicorp/consul:1.18
     container_name: live-auction-consul
@@ -160,6 +199,7 @@ services:
 volumes:
   live-auction-mysql:
   live-auction-redis:
+  live-auction-pgvector:
   live-auction-prometheus:
   live-auction-grafana:
 

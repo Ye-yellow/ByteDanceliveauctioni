@@ -34,6 +34,7 @@ const (
 	AuctionService_GetRoomSnapshot_FullMethodName = "/auction.service.v1.AuctionService/GetRoomSnapshot"
 	AuctionService_GetRoomPresence_FullMethodName = "/auction.service.v1.AuctionService/GetRoomPresence"
 	AuctionService_ListRoomEvents_FullMethodName  = "/auction.service.v1.AuctionService/ListRoomEvents"
+	AuctionService_ConsultBuyer_FullMethodName    = "/auction.service.v1.AuctionService/ConsultBuyer"
 )
 
 // AuctionServiceClient is the client API for AuctionService service.
@@ -143,6 +144,12 @@ type AuctionServiceClient interface {
 	// 调用方：主播端/运营端。
 	// 用途：工作台恢复最近出价、开拍、成交、取消、支付等操作日志。
 	ListRoomEvents(ctx context.Context, in *ListRoomEventsRequest, opts ...grpc.CallOption) (*ListRoomEventsReply, error)
+	// 买家找拍品助手。
+	//
+	// 调用方：观众端。
+	// 用途：根据用户输入的品类、预算或用途，返回公开可见的候选竞拍拍品。
+	// 注意：这里只做找拍品和来源解释，不返回出价建议。
+	ConsultBuyer(ctx context.Context, in *BuyerConsultRequest, opts ...grpc.CallOption) (*BuyerConsultReply, error)
 }
 
 type auctionServiceClient struct {
@@ -303,6 +310,16 @@ func (c *auctionServiceClient) ListRoomEvents(ctx context.Context, in *ListRoomE
 	return out, nil
 }
 
+func (c *auctionServiceClient) ConsultBuyer(ctx context.Context, in *BuyerConsultRequest, opts ...grpc.CallOption) (*BuyerConsultReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BuyerConsultReply)
+	err := c.cc.Invoke(ctx, AuctionService_ConsultBuyer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuctionServiceServer is the server API for AuctionService service.
 // All implementations must embed UnimplementedAuctionServiceServer
 // for forward compatibility
@@ -410,6 +427,12 @@ type AuctionServiceServer interface {
 	// 调用方：主播端/运营端。
 	// 用途：工作台恢复最近出价、开拍、成交、取消、支付等操作日志。
 	ListRoomEvents(context.Context, *ListRoomEventsRequest) (*ListRoomEventsReply, error)
+	// 买家找拍品助手。
+	//
+	// 调用方：观众端。
+	// 用途：根据用户输入的品类、预算或用途，返回公开可见的候选竞拍拍品。
+	// 注意：这里只做找拍品和来源解释，不返回出价建议。
+	ConsultBuyer(context.Context, *BuyerConsultRequest) (*BuyerConsultReply, error)
 	mustEmbedUnimplementedAuctionServiceServer()
 }
 
@@ -461,6 +484,9 @@ func (UnimplementedAuctionServiceServer) GetRoomPresence(context.Context, *GetRo
 }
 func (UnimplementedAuctionServiceServer) ListRoomEvents(context.Context, *ListRoomEventsRequest) (*ListRoomEventsReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListRoomEvents not implemented")
+}
+func (UnimplementedAuctionServiceServer) ConsultBuyer(context.Context, *BuyerConsultRequest) (*BuyerConsultReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ConsultBuyer not implemented")
 }
 func (UnimplementedAuctionServiceServer) mustEmbedUnimplementedAuctionServiceServer() {}
 
@@ -745,6 +771,24 @@ func _AuctionService_ListRoomEvents_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuctionService_ConsultBuyer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BuyerConsultRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuctionServiceServer).ConsultBuyer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuctionService_ConsultBuyer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuctionServiceServer).ConsultBuyer(ctx, req.(*BuyerConsultRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuctionService_ServiceDesc is the grpc.ServiceDesc for AuctionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -811,6 +855,10 @@ var AuctionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListRoomEvents",
 			Handler:    _AuctionService_ListRoomEvents_Handler,
+		},
+		{
+			MethodName: "ConsultBuyer",
+			Handler:    _AuctionService_ConsultBuyer_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

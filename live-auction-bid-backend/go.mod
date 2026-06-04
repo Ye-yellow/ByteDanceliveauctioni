@@ -5,6 +5,7 @@ go 1.22
 require (
 	github.com/go-kratos/kratos/v2 v2.8.4
 	github.com/gorilla/websocket v1.5.3
+	github.com/lib/pq v1.10.9
 	github.com/prometheus/client_golang v1.20.5
 	github.com/redis/go-redis/v9 v9.5.1
 	github.com/volcengine/ve-tos-golang-sdk/v2 v2.9.5

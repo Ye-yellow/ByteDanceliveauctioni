@@ -193,6 +193,18 @@ service AuctionService {
       get: "/api/rooms/{room_id}/events"
     };
   }
+
+  // 买家找拍品助手。
+  //
+  // 调用方：观众端。
+  // 用途：根据用户输入的品类、预算或用途，返回公开可见的候选竞拍拍品。
+  // 注意：这里只做找拍品和来源解释，不返回出价建议。
+  rpc ConsultBuyer(BuyerConsultRequest) returns (BuyerConsultReply) {
+    option (google.api.http) = {
+      post: "/api/ai/buyer/consult"
+      body: "*"
+    };
+  }
 }
 
 // ============================================================================
@@ -958,6 +970,24 @@ message ListRoomEventsRequest {
   string page_token = 3;
 }
 
+// BuyerConsultRequest 表示买家找拍品请求。
+message BuyerConsultRequest {
+  // 用户输入的拍品品类、预算、用途或关键词。
+  string query = 1;
+
+  // 可选直播间 ID。传入时仅在该直播间范围内查找。
+  string room_id = 2;
+
+  // 可选拍品 ID。传入时仅围绕该拍品返回信息。
+  string lot_id = 3;
+
+  // 用户预算，单位分。用于过滤和排序，不用于生成出价建议。
+  int64 budget = 4;
+
+  // 风险偏好。预留字段，当前仅透传给模型。
+  string risk_preference = 5;
+}
+
 // ============================================================================
 // 响应体定义
 // ============================================================================
@@ -1125,6 +1155,72 @@ message ListRoomEventsReply {
 
   // 下一页游标。为空表示没有下一页。
   string next_page_token = 2;
+
+  // 统一返回头。
+  ReplyResult result = 99;
+}
+
+// BuyerConsultResult 表示买家找拍品命中的候选项。
+message BuyerConsultResult {
+  // 候选类型。当前固定为 lot，后续可扩展为 room/category。
+  string type = 1;
+
+  // 候选标题。
+  string title = 2;
+
+  // 直播间 ID。
+  string room_id = 3;
+
+  // 拍品 ID。
+  string lot_id = 4;
+
+  // 拍品状态字符串。
+  string status = 5;
+
+  // 当前价或起拍价。
+  Money current_price = 6;
+
+  // H5 跳转地址。
+  string href = 7;
+
+  // 命中原因。
+  string reason = 8;
+
+  // 拍品主图 URL。
+  string image_url = 9;
+}
+
+// BuyerConsultSource 表示买家找拍品回答引用的来源。
+message BuyerConsultSource {
+  // 来源类型。
+  string type = 1;
+
+  // 来源标题。
+  string title = 2;
+
+  // 直播间 ID。
+  string room_id = 3;
+
+  // 拍品 ID。
+  string lot_id = 4;
+}
+
+// BuyerConsultReply 表示买家找拍品响应。
+message BuyerConsultReply {
+  // 面向用户的简短回答。
+  string answer = 1;
+
+  // 意图。当前固定为 find_auction。
+  string intent = 2;
+
+  // 匹配到的拍品。
+  repeated BuyerConsultResult results = 3;
+
+  // 回答依据。
+  repeated BuyerConsultSource sources = 4;
+
+  // 是否使用系统兜底逻辑。
+  bool fallback_used = 5;
 
   // 统一返回头。
   ReplyResult result = 99;

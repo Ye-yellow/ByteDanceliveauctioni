@@ -13,6 +13,7 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/observability"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
+	"live-auction-bid/backend/app/auction/service/internal/searchindex"
 )
 
 // AuctionService 是 Kratos service 层适配器。
@@ -24,6 +25,8 @@ type AuctionService struct {
 	auction       *auction.AuctionUsecase
 	presence      RoomPresenceProvider
 	ai            *aiassistant.Assistant
+	buyerSearch   *searchindex.PGVectorIndex
+	buyerEmbedder *searchindex.EmbeddingClient
 	verboseBidLog bool
 }
 
