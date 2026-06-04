@@ -8,7 +8,7 @@ type SearchGuess = {
   mark?: 'new' | 'hot';
 };
 
-type SearchRankKey = 'hot' | 'live' | 'music' | 'brand';
+type SearchRankKey = 'hot' | 'live' | 'deal' | 'category';
 
 type SearchRankRow = {
   title: string;
@@ -48,70 +48,70 @@ const SEARCH_GUESSES: SearchGuess[] = [
 ];
 
 const HOT_RANKS: SearchRankRow[] = [
-  { title: '专题：嘻嘻嘻哈哈瞄瞄嘻嘻嘻', meta: '专题' },
-  { title: '国内手机厂商最大的软肋就是系统体验', meta: '999w', mark: 'hot' },
-  { title: '大家的官网订单现在什么状态', meta: '999w' },
-  { title: '库克不愧是供应链管理大师', meta: '999w' },
-  { title: '找到了系统被怀疑窃听的可能原因', meta: '999w', mark: 'new' },
-  { title: 'rebase 还是 merge？', meta: '999w' },
-  { title: '十一出游西安，本地人能给些建议吗', meta: '999w', mark: 'hot' },
-  { title: '为什么要抢购新手机呢？', meta: '999w' },
-  { title: '百度输入法 VS 搜狗输入法', meta: '999w' },
-  { title: '现在有推荐的同步盘么？', meta: '999w' },
+  { title: '老银鎏金手作镯', meta: '3.8w人看过', mark: 'hot' },
+  { title: '冰种翡翠平安扣', meta: '2.6w人看过' },
+  { title: '紫砂壶名家手作款', meta: '1.9w人看过', mark: 'new' },
+  { title: '和田玉小籽料吊坠', meta: '1.6w人看过' },
+  { title: '复古珐琅胸针套装', meta: '1.2w人看过' },
+  { title: '朱砂醒狮手串', meta: '9800人看过', mark: 'hot' },
+  { title: '宋式汝窑茶盏', meta: '8600人看过' },
+  { title: '蜜蜡圆珠单圈', meta: '7300人看过' },
+  { title: '孤品老相机收藏', meta: '6900人看过' },
+  { title: '小叶紫檀无事牌', meta: '6200人看过' },
 ];
 
 const LIVE_RANKS: SearchRankRow[] = [
-  { title: '毛三岁（收女徒弟）', meta: '999w 人气', mark: 'pk', href: '/home' },
-  { title: '广州表哥', meta: '999w 人气', href: '/home' },
-  { title: '一只扬儿', meta: '999w 人气', href: '/home' },
-  { title: '沈酒', meta: '999w 人气', href: '/home' },
-  { title: '客家婷子', meta: '999w 人气', mark: 'redpack', href: '/home' },
-  { title: '三斤（9237）', meta: '999w 人气', href: '/home' },
-  { title: '虎哥说车', meta: '999w 人气', href: '/home' },
-  { title: '爆笑三江锅', meta: '999w 人气', href: '/home' },
-  { title: '罗永浩', meta: '999w 人气', mark: 'redpack', href: '/home' },
+  { title: '银饰手镯专场正在竞拍', meta: '竞拍中 · 12口', mark: 'hot', href: '/home' },
+  { title: '翡翠小件今晚加拍', meta: '竞拍中 · 9口', href: '/home' },
+  { title: '茶器孤品直播间', meta: '加时中 · 8口', mark: 'pk', href: '/home' },
+  { title: '文玩手串低价开拍', meta: '竞拍中 · 6口', href: '/home' },
+  { title: '复古饰品清仓场', meta: '待开拍 · 5件', mark: 'new', href: '/home' },
+  { title: '玉石吊坠精选', meta: '竞拍中 · 5口', href: '/home' },
+  { title: '老物件收藏小场', meta: '待开拍 · 4件', href: '/home' },
+  { title: '茶盏茶宠组合场', meta: '竞拍中 · 3口', href: '/home' },
+  { title: '礼物预算友好场', meta: '待开拍 · 3件', href: '/home' },
 ];
 
-const MUSIC_RANKS: SearchRankRow[] = [
-  { title: '龙卷风', meta: '3744.1w', href: '/home/music-rank-list' },
-  { title: '爱在西元前', meta: '3744.1w', href: '/home/music-rank-list' },
-  { title: '蜗牛', meta: '3744.1w', href: '/home/music-rank-list' },
-  { title: '半岛铁盒', meta: '3744.1w', href: '/home/music-rank-list' },
-  { title: '轨迹', meta: '3744.1w', href: '/home/music-rank-list' },
-  { title: '七里香', meta: '3744.1w', href: '/home/music-rank-list' },
-  { title: '发如雪', meta: '3744.1w', href: '/home/music-rank-list' },
-  { title: '霍元甲', meta: '3744.1w', href: '/home/music-rank-list' },
+const DEAL_RANKS: SearchRankRow[] = [
+  { title: '老银镯 15 分钟落槌', meta: '¥1280 成交' },
+  { title: '蜜蜡单圈被秒拍', meta: '¥860 成交', mark: 'hot' },
+  { title: '紫砂壶尾段反超', meta: '¥2380 成交' },
+  { title: '和田玉吊坠加时成交', meta: '¥1680 成交', mark: 'new' },
+  { title: '珐琅胸针组合拍出', meta: '¥520 成交' },
+  { title: '汝窑茶盏两人争拍', meta: '¥760 成交' },
+  { title: '朱砂手串成功落槌', meta: '¥390 成交' },
+  { title: '老相机收藏场收官', meta: '¥1890 成交' },
 ];
 
-const BRAND_RANKS: Record<string, SearchRankRow[]> = {
-  汽车: [
-    { title: '五菱汽车', meta: '1395w' },
-    { title: '宝马', meta: '1395w' },
-    { title: '吉利汽车', meta: '1395w' },
-    { title: '一汽大众-奥迪', meta: '1395w' },
-    { title: '一汽-大众', meta: '1395w' },
+const CATEGORY_RANKS: Record<string, SearchRankRow[]> = {
+  饰品: [
+    { title: '银饰手镯', meta: '热搜 1.3w' },
+    { title: '复古胸针', meta: '热搜 9200' },
+    { title: '珍珠耳饰', meta: '热搜 8800' },
+    { title: '蜜蜡手串', meta: '热搜 7600' },
+    { title: '朱砂手绳', meta: '热搜 6900' },
   ],
-  手机: [
-    { title: '华为', meta: '1395w' },
-    { title: '小米', meta: '1395w' },
-    { title: 'vivo', meta: '1395w' },
-    { title: 'oppo', meta: '1395w' },
-    { title: '三星', meta: '1395w' },
+  文玩: [
+    { title: '和田玉吊坠', meta: '热搜 1.1w' },
+    { title: '紫砂壶', meta: '热搜 9800' },
+    { title: '汝窑茶盏', meta: '热搜 8600' },
+    { title: '小叶紫檀', meta: '热搜 7900' },
+    { title: '老物件收藏', meta: '热搜 7200' },
   ],
-  美妆: [
-    { title: '巴黎欧莱雅', meta: '1395w' },
-    { title: '兰蔻', meta: '1395w' },
-    { title: '雅诗兰黛', meta: '1395w' },
-    { title: '花西子', meta: '1395w' },
-    { title: '完美日记', meta: '1395w' },
+  数码: [
+    { title: '复古相机', meta: '热搜 9300' },
+    { title: '机械键盘', meta: '热搜 8700' },
+    { title: '黑胶唱机', meta: '热搜 7600' },
+    { title: '掌机收藏', meta: '热搜 6800' },
+    { title: '老镜头', meta: '热搜 6100' },
   ],
 };
 
 const RANK_TABS: Array<{ key: SearchRankKey; label: string }> = [
-  { key: 'hot', label: '抖音热榜' },
-  { key: 'live', label: '直播榜' },
-  { key: 'music', label: '音乐榜' },
-  { key: 'brand', label: '品牌榜' },
+  { key: 'hot', label: '拍品热榜' },
+  { key: 'live', label: '直播拍品' },
+  { key: 'deal', label: '成交榜' },
+  { key: 'category', label: '品类榜' },
 ];
 
 function goBack() {
@@ -146,7 +146,7 @@ function SearchPage() {
   const [expanded, setExpanded] = useState(false);
   const [guessRound, setGuessRound] = useState(0);
   const [activeRank, setActiveRank] = useState<SearchRankKey>('hot');
-  const [activeBrand, setActiveBrand] = useState(Object.keys(BRAND_RANKS)[0]);
+  const [activeCategory, setActiveCategory] = useState(Object.keys(CATEGORY_RANKS)[0]);
   const [query, setQuery] = useState('');
   const [aiQuery, setAIQuery] = useState('');
   const [aiReply, setAIReply] = useState<AIBuyerConsultReply | null>(null);
@@ -160,10 +160,10 @@ function SearchPage() {
   }, [guessRound]);
   const rankRows = useMemo(() => {
     if (activeRank === 'live') return LIVE_RANKS;
-    if (activeRank === 'music') return MUSIC_RANKS;
-    if (activeRank === 'brand') return BRAND_RANKS[activeBrand] || [];
+    if (activeRank === 'deal') return DEAL_RANKS;
+    if (activeRank === 'category') return CATEGORY_RANKS[activeCategory] || [];
     return HOT_RANKS;
-  }, [activeBrand, activeRank]);
+  }, [activeCategory, activeRank]);
   const runPlainSearch = () => {
     const text = query.trim();
     if (!text) return;
@@ -336,16 +336,16 @@ function SearchPage() {
             ))}
           </nav>
 
-          {activeRank === 'brand' ? (
-            <div className="dySearchPageBrandTabs" aria-label="品牌分类">
-              {Object.keys(BRAND_RANKS).map((brand) => (
+          {activeRank === 'category' ? (
+            <div className="dySearchPageBrandTabs" aria-label="品类分类">
+              {Object.keys(CATEGORY_RANKS).map((category) => (
                 <button
                   type="button"
-                  className={activeBrand === brand ? 'active' : ''}
-                  onClick={() => setActiveBrand(brand)}
-                  key={brand}
+                  className={activeCategory === category ? 'active' : ''}
+                  onClick={() => setActiveCategory(category)}
+                  key={category}
                 >
-                  {brand}
+                  {category}
                 </button>
               ))}
             </div>
@@ -363,7 +363,7 @@ function SearchPage() {
               </a>
             ))}
           </div>
-          <a href={activeRank === 'music' ? '/home/music-rank-list' : '/home/search'} className="dySearchPageMore">
+          <a href="/home/search" className="dySearchPageMore">
             查看完整{RANK_TABS.find((tab) => tab.key === activeRank)?.label} &gt;
           </a>
         </section>

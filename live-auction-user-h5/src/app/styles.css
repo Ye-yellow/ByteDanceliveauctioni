@@ -10296,14 +10296,12 @@
 
 .dySearchPageRank {
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: 8px;
   background: #15161b;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 .dySearchPageRank nav {
-  position: sticky;
-  top: 60px;
-  z-index: var(--live-z-raised);
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   background: #15161b;
@@ -10312,13 +10310,14 @@
 
 .dySearchPageRank nav button {
   position: relative;
-  min-height: 44px;
+  min-height: 42px;
   border: 0;
   background: transparent;
   color: #93969e;
   padding: 0;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 750;
+  line-height: 1;
 }
 
 .dySearchPageRank nav button.active {
@@ -10370,26 +10369,30 @@
 
 .dySearchPageRankList {
   display: grid;
-  padding-top: 4px;
+  padding: 6px 0;
 }
 
 .dySearchPageRankRow {
-  min-height: 54px;
+  min-height: 50px;
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) auto;
-  gap: 10px;
+  grid-template-columns: 28px minmax(0, 1fr) 76px;
+  gap: 8px;
   align-items: center;
   color: #fff;
-  padding: 0 12px;
+  padding: 0 12px 0 10px;
   text-decoration: none;
 }
 
 .dySearchPageRankRow > span {
-  width: 24px;
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
   color: #8e9199;
   text-align: center;
   font-size: 15px;
   font-weight: 950;
+  line-height: 1;
 }
 
 .dySearchPageRankRow > span.top {
@@ -10410,6 +10413,7 @@
   text-overflow: ellipsis;
   font-size: 14px;
   font-weight: 750;
+  line-height: 1.35;
 }
 
 .dySearchPageRankRow small {
@@ -10417,6 +10421,10 @@
   white-space: nowrap;
   font-size: 12px;
   font-weight: 700;
+  line-height: 1.2;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dySearchPageMore {
