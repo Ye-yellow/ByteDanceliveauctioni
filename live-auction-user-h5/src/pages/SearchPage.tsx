@@ -122,13 +122,33 @@ function goBack() {
   window.location.assign('/home');
 }
 
+function formatLotStatus(status: string) {
+  switch (status) {
+    case 'LOT_STATUS_QUEUED':
+      return '待开拍';
+    case 'LOT_STATUS_LIVE':
+      return '竞拍中';
+    case 'LOT_STATUS_EXTENDED':
+      return '加时中';
+    case 'LOT_STATUS_SOLD':
+      return '已成交';
+    case 'LOT_STATUS_PASSED':
+      return '已流拍';
+    case 'LOT_STATUS_CANCELLED':
+      return '已取消';
+    default:
+      return '拍品';
+  }
+}
+
 function SearchPage() {
   const [history, setHistory] = useState(SEARCH_HISTORY);
   const [expanded, setExpanded] = useState(false);
   const [guessRound, setGuessRound] = useState(0);
   const [activeRank, setActiveRank] = useState<SearchRankKey>('hot');
   const [activeBrand, setActiveBrand] = useState(Object.keys(BRAND_RANKS)[0]);
-  const [query, setQuery] = useState('预算两万的翡翠手镯');
+  const [query, setQuery] = useState('');
+  const [aiQuery, setAIQuery] = useState('');
   const [aiReply, setAIReply] = useState<AIBuyerConsultReply | null>(null);
   const [aiLoading, setAILoading] = useState(false);
   const [aiError, setAIError] = useState('');
@@ -144,17 +164,26 @@ function SearchPage() {
     if (activeRank === 'brand') return BRAND_RANKS[activeBrand] || [];
     return HOT_RANKS;
   }, [activeBrand, activeRank]);
-  const runAIConsult = async () => {
-    const text = query.trim() || '预算两万的翡翠手镯';
+  const runPlainSearch = () => {
+    const text = query.trim();
+    if (!text) return;
+    setHistory((current) => [text, ...current.filter((item) => item !== text)].slice(0, 10));
+  };
+  const runAIConsult = async (nextQuery = aiQuery) => {
+    const text = nextQuery.trim();
+    if (!text) {
+      setAIError('请输入想找的拍品、预算或用途');
+      return;
+    }
     setAILoading(true);
     setAIError('');
+    setAIQuery(text);
     try {
       const reply = await consultBuyer({ query: text });
       setAIReply(reply);
-      setQuery(text);
       setHistory((current) => [text, ...current.filter((item) => item !== text)].slice(0, 10));
     } catch (error) {
-      setAIError(error instanceof Error ? error.message : 'AI 竞拍顾问暂时不可用');
+      setAIError(error instanceof Error ? error.message : '找拍品服务暂时不可用');
     } finally {
       setAILoading(false);
     }
@@ -174,37 +203,55 @@ function SearchPage() {
             placeholder="描述你想找的拍品"
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === 'Enter') void runAIConsult();
+              if (event.key === 'Enter') runPlainSearch();
             }}
           />
         </label>
-        <button type="button" disabled={aiLoading} onClick={() => void runAIConsult()}>{aiLoading ? '问 AI' : '搜索'}</button>
+        <button type="button" onClick={runPlainSearch}>搜索</button>
       </header>
 
       <div className="dySearchPageContent">
-        <section className="dySearchAI" aria-label="AI 竞拍顾问">
-          <header>
-            <div>
-              <span>AI 竞拍顾问</span>
-              <h2>说出预算、品类或用途，帮你找正在竞拍的场次</h2>
-            </div>
-            <button type="button" disabled={aiLoading} onClick={() => void runAIConsult()}>
-              {aiLoading ? '分析中' : '立即咨询'}
+        <section className="dySearchAI" aria-label="找好拍">
+          <form
+            className="dySearchAIBox"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void runAIConsult();
+            }}
+          >
+            <span>找好拍</span>
+            <label>
+              <i aria-hidden="true">⌕</i>
+              <input
+                value={aiQuery}
+                placeholder="输入预算、品类或用途"
+                onChange={(event) => setAIQuery(event.target.value)}
+              />
+            </label>
+            <button type="submit" disabled={aiLoading}>
+              {aiLoading ? '查找中' : '找一下'}
             </button>
-          </header>
+          </form>
           {aiError ? <p className="dySearchAIError">{aiError}</p> : null}
           {aiReply ? (
             <div className="dySearchAIReply">
               <p>{aiReply.answer}</p>
-              {aiReply.fallbackUsed ? <small>当前使用规则兜底建议</small> : null}
+              {aiReply.fallbackUsed ? <small>为你推荐</small> : null}
               {aiReply.results.length ? (
                 <div className="dySearchAIResults">
                   {aiReply.results.map((item) => (
                     <a href={item.href || `/m/room/${item.roomId}`} key={`${item.roomId}-${item.lotId}`} className="dySearchAIResultCard">
-                      <span>{item.status}</span>
-                      <b>{item.title}</b>
-                      <strong>{formatMoney(item.currentPrice)}</strong>
-                      <small>{item.reason}</small>
+                      {item.imageUrl ? (
+                        <img className="dySearchAIResultImage" src={item.imageUrl} alt={item.title} loading="lazy" />
+                      ) : (
+                        <span className="dySearchAIResultImage dySearchAIResultImageEmpty" aria-hidden="true">拍</span>
+                      )}
+                      <div className="dySearchAIResultInfo">
+                        <span>{formatLotStatus(item.status)}</span>
+                        <b>{item.title}</b>
+                        <strong><em>起拍价</em>{formatMoney(item.currentPrice)}</strong>
+                        <small>{item.reason}</small>
+                      </div>
                     </a>
                   ))}
                 </div>
@@ -214,8 +261,8 @@ function SearchPage() {
             </div>
           ) : (
             <div className="dySearchAIPrompts">
-              {['预算两万的翡翠手镯', '适合送礼的收藏品', '正在直播的低门槛拍品'].map((item) => (
-                <button type="button" key={item} onClick={() => { setQuery(item); void consultBuyer({ query: item }).then(setAIReply).catch((error) => setAIError(error instanceof Error ? error.message : 'AI 竞拍顾问暂时不可用')); }}>
+              {['翡翠手镯', '适合送礼的收藏品', '正在竞拍的拍品'].map((item) => (
+                <button type="button" key={item} onClick={() => void runAIConsult(item)}>
                   {item}
                 </button>
               ))}

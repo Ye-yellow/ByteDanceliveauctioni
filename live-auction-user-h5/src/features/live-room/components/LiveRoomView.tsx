@@ -3,11 +3,9 @@ import { LivePlayer } from '../../live/components/LivePlayer';
 import { DepositPayModal } from '../../payment-flow/components/DepositPayModal';
 import { MockPayModal } from '../../payment-flow/components/MockPayModal';
 import { ResultModal } from '../../result-modal/components/ResultModal';
-import { consultBuyer } from '../../auction/api/auctionApi';
 import { businessErrorMessage } from '../../../shared/api/errors';
 import { formatMoney, moneyNumber } from '../../../shared/lib/money';
 import { navigateTo } from '../../../shared/navigation';
-import type { AIBuyerConsultReply } from '../../../shared/api/types';
 import type { LiveRoomController } from '../hooks/useLiveRoomController';
 import { AuctionDrawer } from './AuctionDrawer';
 import { AuctionNoticeLayer } from './AuctionNoticeLayer';
@@ -749,88 +747,12 @@ function DouyinMoreSheet({
   );
 }
 
-function BuyerAISheet({
-  reply,
-  loading,
-  error,
-  currentTitle,
-  onClose,
-  onRefresh,
-}: {
-  reply: AIBuyerConsultReply | null;
-  loading: boolean;
-  error: string;
-  currentTitle?: string;
-  onClose: () => void;
-  onRefresh: () => void;
-}) {
-  const advice = reply?.bidAdvice;
-  return (
-    <div className="buyerAISheetMask" onClick={onClose}>
-      <section className="buyerAISheet" role="dialog" aria-modal="true" aria-label="AI 竞拍咨询助手" onClick={(event) => event.stopPropagation()}>
-        <header>
-          <div>
-            <span>AI 竞拍咨询助手</span>
-            <h3>{currentTitle || '直播间竞拍建议'}</h3>
-          </div>
-          <button type="button" onClick={onClose} aria-label="关闭 AI 助手">×</button>
-        </header>
-
-        <button type="button" className="buyerAIRefresh" disabled={loading} onClick={onRefresh}>
-          {loading ? '分析中...' : '刷新建议'}
-        </button>
-
-        {error ? <p className="buyerAIError">{error}</p> : null}
-        {reply ? (
-          <div className="buyerAIContent">
-            <p>{reply.answer}</p>
-            {reply.fallbackUsed ? <small>规则兜底建议</small> : null}
-            {advice ? (
-              <div className="buyerAIAdviceGrid">
-                <span>
-                  下一口价
-                  <b>{advice.nextBidAmount ? formatMoney(advice.nextBidAmount) : '看主播节奏'}</b>
-                </span>
-                <span>
-                  建议上限
-                  <b>{advice.maxSuggestedAmount ? formatMoney(advice.maxSuggestedAmount) : '按预算控制'}</b>
-                </span>
-                <span>
-                  置信度
-                  <b>{Math.round((advice.confidence || 0) * 100)}%</b>
-                </span>
-              </div>
-            ) : null}
-            {advice?.strategy ? <p className="buyerAIStrategy">{advice.strategy}</p> : null}
-            {advice?.risks?.length ? (
-              <ul>
-                {advice.risks.slice(0, 3).map((risk) => <li key={risk}>{risk}</li>)}
-              </ul>
-            ) : null}
-            {reply.sources.length ? (
-              <div className="buyerAISources">
-                {reply.sources.slice(0, 3).map((source) => <span key={`${source.type}-${source.title}`}>{source.title}</span>)}
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <div className="buyerAIEmpty">打开后会结合当前拍品、排行榜和最近出价给出旁路建议。</div>
-        )}
-      </section>
-    </div>
-  );
-}
-
 export function LiveRoomView({ controller }: { controller: LiveRoomController }) {
   const [activeSheet, setActiveSheet] = useState<'comments' | 'share' | 'gift' | 'more' | null>(null);
   const [clearScreen, setClearScreen] = useState(false);
   const [giftBurst, setGiftBurst] = useState<GiftBurst | null>(null);
   const [leaderboardCollapsed, setLeaderboardCollapsed] = useState(false);
   const [closedProductCardLotId, setClosedProductCardLotId] = useState<string | null>(null);
-  const [aiOpen, setAIOpen] = useState(false);
-  const [aiLoading, setAILoading] = useState(false);
-  const [aiReply, setAIReply] = useState<AIBuyerConsultReply | null>(null);
-  const [aiError, setAIError] = useState('');
   const {
     room,
     error,
@@ -849,26 +771,6 @@ export function LiveRoomView({ controller }: { controller: LiveRoomController })
   } = controller;
   const openCurrentAuction = () => actions.openAuctionPanel('current');
   const closeActiveSheet = () => setActiveSheet(null);
-  const refreshBuyerAI = async () => {
-    setAILoading(true);
-    setAIError('');
-    try {
-      const reply = await consultBuyer({
-        query: currentLot ? `我正在看 ${currentLot.title}，请给我竞拍建议` : '请帮我解释当前直播间的竞拍规则和可参与拍品',
-        roomId: room.roomId,
-        lotId: currentLot?.id,
-      });
-      setAIReply(reply);
-    } catch (error) {
-      setAIError(error instanceof Error ? error.message : 'AI 竞拍咨询助手暂时不可用');
-    } finally {
-      setAILoading(false);
-    }
-  };
-  const openAI = () => {
-    setAIOpen(true);
-    if (!aiReply && !aiLoading) void refreshBuyerAI();
-  };
   const sendGift = (name: string) => {
     setGiftBurst({ id: Date.now(), name });
     actions.showNotice(`已送出 ${name}`);
@@ -907,7 +809,6 @@ export function LiveRoomView({ controller }: { controller: LiveRoomController })
       {error ? <div className="liveConnectionWarn error">{error}</div> : null}
       <AuctionDrawer controller={controller} />
       <AuctionNoticeLayer notices={notices} />
-      {!clearScreen ? <button type="button" className="liveAIFab" onClick={openAI}>AI</button> : null}
       <LiveComposer
         controller={controller}
         onOpenComments={() => setActiveSheet('comments')}
@@ -927,17 +828,6 @@ export function LiveRoomView({ controller }: { controller: LiveRoomController })
           onToggleClear={() => setClearScreen(true)}
         />
       ) : null}
-      {aiOpen ? (
-        <BuyerAISheet
-          reply={aiReply}
-          loading={aiLoading}
-          error={aiError}
-          currentTitle={currentLot?.title}
-          onClose={() => setAIOpen(false)}
-          onRefresh={() => void refreshBuyerAI()}
-        />
-      ) : null}
-
       {depositPrompt ? (
         <DepositPayModal
           lot={depositPrompt.lot}

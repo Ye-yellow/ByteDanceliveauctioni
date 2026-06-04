@@ -390,14 +390,7 @@ export type AIBuyerResult = {
   currentPrice?: Money;
   href: string;
   reason: string;
-};
-
-export type AIBidAdvice = {
-  nextBidAmount?: Money;
-  maxSuggestedAmount?: Money;
-  strategy: string;
-  risks: string[];
-  confidence: number;
+  imageUrl?: string;
 };
 
 export type AISource = {
@@ -416,10 +409,10 @@ export type AIBuyerConsultRequest = {
 };
 
 export type AIBuyerConsultReply = {
+  result?: ReplyResult;
   answer: string;
   intent: string;
   results: AIBuyerResult[];
-  bidAdvice: AIBidAdvice;
   sources: AISource[];
   fallbackUsed: boolean;
 };
