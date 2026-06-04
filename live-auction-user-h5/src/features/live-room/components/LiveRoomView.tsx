@@ -903,7 +903,7 @@ export function LiveRoomView({ controller }: { controller: LiveRoomController })
           onClose={() => setClosedProductCardLotId(currentLot.id)}
         />
       ) : null}
-      {wsState !== '已连接' ? <div className="liveConnectionWarn">实时连接中断，正在恢复</div> : null}
+      {wsState === '已断开' ? <div className="liveConnectionWarn">实时连接中断，正在恢复</div> : null}
       {error ? <div className="liveConnectionWarn error">{error}</div> : null}
       <AuctionDrawer controller={controller} />
       <AuctionNoticeLayer notices={notices} />

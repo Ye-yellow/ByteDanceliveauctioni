@@ -158,6 +158,7 @@ export default defineConfig({
   plugins: [react(), douyinVideoProxyPlugin()],
   server: {
     host: '0.0.0.0',
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: process.env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:18080',

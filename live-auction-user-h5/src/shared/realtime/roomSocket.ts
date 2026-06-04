@@ -134,7 +134,7 @@ export class RoomSocket {
 
     socket.onerror = () => {
       if (this.stopped) return;
-      this.setState('failed');
+      this.setState(this.reconnectAttempts > 0 ? 'reconnecting' : 'connecting');
     };
 
     socket.onclose = () => {
