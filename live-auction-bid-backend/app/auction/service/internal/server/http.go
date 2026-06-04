@@ -26,6 +26,7 @@ func NewHTTPServer(addr string, auction *appsvc.AuctionService, users *appsvc.Us
 
 	registerAuctionHTTP(srv, auction)
 	registerDomainHTTP(srv, auction, users)
+	registerAIHTTP(srv, auction)
 	registerUserHTTP(srv, users)
 	registerRealtimeHTTP(srv, hub)
 	registerUploadHTTP(srv, authManager, assetStore, imageStorage)

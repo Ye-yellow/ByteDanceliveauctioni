@@ -7,6 +7,7 @@ import (
 	"time"
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
+	"live-auction-bid/backend/app/auction/service/internal/aiassistant"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 	"live-auction-bid/backend/app/auction/service/internal/observability"
@@ -22,6 +23,7 @@ type AuctionService struct {
 	v1.UnimplementedAuctionServiceServer
 	auction       *auction.AuctionUsecase
 	presence      RoomPresenceProvider
+	ai            *aiassistant.Assistant
 	verboseBidLog bool
 }
 

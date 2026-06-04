@@ -12,6 +12,7 @@ coverage.out
 coverage/
 node_modules/
 dist/
+.local-run/
 .codex/
 .agents/
 .codegraph/

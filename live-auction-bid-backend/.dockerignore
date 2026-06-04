@@ -53,6 +53,9 @@ coverage/
 *.tmp
 .tmp
 .tmp/
+.local-run
+.local-run/
+**/.local-run
 tmp
 tmp/
 *.log

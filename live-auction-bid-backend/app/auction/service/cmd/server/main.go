@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"live-auction-bid/backend/app/auction/service/internal/aiassistant"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 	"live-auction-bid/backend/app/auction/service/internal/data"
@@ -97,6 +98,7 @@ func main() {
 	auctionCloseWorker.Start(ctx)
 	hub.BindSnapshotProvider(auctionUsecase)
 	auctionService := appsvc.NewAuctionService(auctionUsecase, hub).
+		SetAIAssistant(aiassistant.NewFromEnv(os.Getenv)).
 		SetVerboseBidLog(getenvBool("AUCTION_VERBOSE_BID_LOG", false))
 	userService := appsvc.NewUserService(userUsecase)
 	consulRegistration, err := server.RegisterConsulService(context.Background(), server.ConsulConfig{
