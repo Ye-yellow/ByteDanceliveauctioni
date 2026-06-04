@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, Clock3, ListChecks, Package, Radio, RefreshCw, ShieldAlert, Trophy, Wifi } from 'lucide-react';
-import { cancelLot, getRoomSnapshot, listAdminLots, revealTrustCard, settleLot, startDuel } from '../auction/api/auctionApi';
+import { AlertTriangle, Clock3, ListChecks, Package, Radio, RefreshCw, ShieldAlert, Sparkles, Trophy, Wifi } from 'lucide-react';
+import { assistMerchant, cancelLot, getRoomSnapshot, listAdminLots, revealTrustCard, settleLot, startDuel } from '../auction/api/auctionApi';
 import { isLiveLot, isQueueReadyLot, lotStatusLabel, lotStatusTone } from '../../entities/auction/model/auctionStatus';
-import type { Bid, Lot, RoomSnapshot } from '../../shared/api/types';
+import type { AIRecommendedAction, AIMerchantAssistantReply, Bid, Lot, RoomSnapshot } from '../../shared/api/types';
 import { resultMessage } from '../../shared/api/result';
 import { formatDateTimeText, formatMoneyText } from '../../shared/lib/format';
 import { formatAuctionLeftMs, getLotLeftMs, getServerOffsetMs } from '../../shared/lib/time';
@@ -16,6 +16,8 @@ export function LiveControlPage({ roomId }: { roomId: string }) {
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
   const [lots, setLots] = useState<Lot[]>([]);
   const [lot, setLot] = useState<Lot | null>(null);
+  const [aiReply, setAiReply] = useState<AIMerchantAssistantReply | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState('');
   const [working, setWorking] = useState('');
 
@@ -71,6 +73,30 @@ export function LiveControlPage({ roomId }: { roomId: string }) {
     }
   };
 
+  const refreshAI = async () => {
+    setAiLoading(true);
+    setError('');
+    try {
+      const reply = await assistMerchant({ page: 'control', roomId, lotId: lot?.id });
+      setAiReply(reply);
+    } catch (e) {
+      setError(resultMessage(e));
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const runAIAction = (item: AIRecommendedAction) => {
+    if (!lot || !item.enabled) return;
+    if (item.type === 'reveal_trust_card' && item.targetId) {
+      void action('展示讲解卡', () => revealTrustCard(lot.id, item.targetId || ''));
+      return;
+    }
+    if (item.type === 'start_duel') {
+      void action('进入决胜', () => startDuel(lot.id));
+    }
+  };
+
   return <section className={`liveControlPage ${lot ? 'isLive' : 'isPrepared'}`}>
     <StudioCard padding="lg" className="controlTopBar">
       <StudioPageHeader eyebrow="Realtime control" title="直播间中控台" actions={<><a className="studioButton studioButton-secondary studioButton-md controlUtilityButton" href="/admin/auctions">返回队列</a><StudioButton type="button" variant="secondary" className="controlUtilityButton" icon={<RefreshCw size={15} />} loading={working === '同步'} onClick={() => void action('同步', syncRoom)}>立即同步</StudioButton></>} />
@@ -84,7 +110,7 @@ export function LiveControlPage({ roomId }: { roomId: string }) {
     </section>
     {!lot ? <PreparedStage nextLot={nextLot} onSync={() => void syncRoom()} /> : <div className="controlRoomGrid">
       <aside className="controlLeftRail hostBriefingRail"><RoomLivePreview lot={lot} snapshot={snapshot} wsState={wsState} /><TrustCardPanel lot={lot} working={working} onReveal={(cardId) => void action('展示讲解卡', () => revealTrustCard(lot.id, cardId))} /></aside>
-      <main className="controlCenterRail"><PriceCommandBoard lot={lot} snapshot={snapshot} /><ControlActionDeck lot={lot} working={working} onDuel={() => void action('进入决胜', () => startDuel(lot.id))} onSettle={() => void action('落锤成交', () => settleLot(lot.id))} onCancel={(reason) => void action('异常取消', () => cancelLot(lot.id, reason))} /></main>
+      <main className="controlCenterRail"><PriceCommandBoard lot={lot} snapshot={snapshot} /><ControlActionDeck lot={lot} working={working} onDuel={() => void action('进入决胜', () => startDuel(lot.id))} onSettle={() => void action('落锤成交', () => settleLot(lot.id))} onCancel={(reason) => void action('异常取消', () => cancelLot(lot.id, reason))} /><MerchantAIControlPanel reply={aiReply} loading={aiLoading} working={working} onRefresh={() => void refreshAI()} onAction={runAIAction} /></main>
       <aside className="controlRightRail"><RealtimeBidFeedPanel bids={snapshot?.recentBids || []} /><LiveRankingBoard ranking={snapshot?.ranking || []} leadingUserId={lot.leadingUserId} /></aside>
     </div>}
     <NextLotQueue lot={nextLot} />
@@ -207,6 +233,10 @@ function ControlActionDeck({ lot, working, onDuel, onSettle, onCancel }: { lot: 
   const [cancelReason, setCancelReason] = useState('');
   const trimmedReason = cancelReason.trim();
   return <section className="controlActionDeck"><header><h3>控场操作</h3><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge></header><div className="controlActionsGrid"><button type="button" className="controlActionButton controlActionButton-duel" disabled={disabled} onClick={onDuel}>进入决胜</button><button type="button" className="controlActionButton controlActionButton-muted" disabled>推送提醒待接口</button><button type="button" className="controlActionButton controlActionButton-muted" disabled>延时待接口</button></div><div className="dangerActionStrip"><button type="button" className="settleButton" disabled={disabled} onClick={onSettle}>落锤成交</button><input value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} placeholder="异常取消原因" disabled={disabled} /><button type="button" className="cancelButton" disabled={disabled || !trimmedReason} onClick={() => onCancel(trimmedReason)}>异常取消</button></div></section>;
+}
+
+function MerchantAIControlPanel({ reply, loading, working, onRefresh, onAction }: { reply: AIMerchantAssistantReply | null; loading: boolean; working: string; onRefresh: () => void; onAction: (item: AIRecommendedAction) => void }) {
+  return <section className="aiMerchantPanel aiControlPanel"><header><div><Sparkles size={18} /><h3>AI 控场助手</h3></div><button type="button" disabled={loading || Boolean(working)} onClick={onRefresh}>{loading ? '分析中...' : '刷新建议'}</button></header>{reply ? <><p>{reply.answer}</p>{reply.recommendedActions.length ? <div className="aiActionList">{reply.recommendedActions.map((item) => <button key={`${item.type}-${item.targetId || item.label}`} type="button" disabled={!item.enabled || Boolean(working)} onClick={() => onAction(item)}><b>{item.label}</b><span>{item.reason}</span></button>)}</div> : <span className="aiEmptyText">暂无可执行建议</span>}{reply.warnings.length ? <div className="aiWarnings">{reply.warnings.map((warning) => <span key={warning}>{warning}</span>)}</div> : null}<small>{reply.fallbackUsed ? '规则兜底建议' : 'DeepSeek 建议'}</small></> : <StudioEmptyState compact icon={<Sparkles size={24} />} title="等待 AI 分析" description="点击刷新建议，AI 会基于当前快照、排行榜和信任卡状态给出控场建议。" />}</section>;
 }
 
 function RealtimeBidFeedPanel({ bids }: { bids: Bid[] }) {

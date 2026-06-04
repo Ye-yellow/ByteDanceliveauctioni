@@ -2839,3 +2839,121 @@ html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable td:first
   }
 }
 /* Console order review guard boundary. */
+
+.aiMerchantPanel {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface);
+  box-shadow: var(--studio-shadow-sm);
+}
+
+.aiMerchantPanel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.aiMerchantPanel header > div {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aiMerchantPanel h3,
+.aiMerchantPanel p {
+  margin: 0;
+}
+
+.aiMerchantPanel p {
+  color: var(--studio-text-2);
+  line-height: 1.55;
+}
+
+.aiMerchantPanel header span,
+.aiMerchantPanel small {
+  color: var(--studio-text-3);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.aiMerchantPanel header button,
+.aiActionList button {
+  border: 1px solid var(--studio-border);
+  border-radius: 12px;
+  background: var(--studio-surface-soft);
+  color: var(--studio-text);
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.aiMerchantPanel header button {
+  min-height: 34px;
+  padding: 0 12px;
+}
+
+.aiMerchantPanel button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.aiChecklist,
+.aiActionList,
+.aiWarnings,
+.aiNextSteps {
+  display: grid;
+  gap: 8px;
+}
+
+.aiChecklist {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.aiChecklist div,
+.aiNextSteps span,
+.aiWarnings span {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--studio-surface-soft);
+  color: var(--studio-text-2);
+  font-size: 13px;
+}
+
+.aiChecklist b,
+.aiChecklist span,
+.aiActionList b,
+.aiActionList span {
+  display: block;
+}
+
+.aiChecklist b,
+.aiActionList b {
+  color: var(--studio-text);
+}
+
+.aiChecklist span,
+.aiActionList span {
+  margin-top: 4px;
+  color: var(--studio-text-3);
+  line-height: 1.4;
+}
+
+.aiActionList button {
+  padding: 12px;
+  text-align: left;
+}
+
+.aiWarnings span {
+  border: 1px solid var(--studio-color-warning-border);
+  background: var(--studio-color-warning-soft-bg);
+  color: var(--studio-color-warning-text);
+}
+
+.aiEmptyText {
+  color: var(--studio-text-3);
+  font-size: 13px;
+}

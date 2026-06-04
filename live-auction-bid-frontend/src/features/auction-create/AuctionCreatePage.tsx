@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from 'react';
-import { AlertTriangle, ArrowDown, ArrowUp, CheckCircle2, ChevronLeft, ChevronRight, ImagePlus, Trash2, UploadCloud } from 'lucide-react';
-import { createDraftLot, deleteUploadedImage, patchDraftLot, queueLot, uploadImage } from '../auction/api/auctionApi';
-import type { CreateLotRequest, Money, TrustCardType, UploadedAsset } from '../../shared/api/types';
+import { AlertTriangle, ArrowDown, ArrowUp, CheckCircle2, ChevronLeft, ChevronRight, ImagePlus, Sparkles, Trash2, UploadCloud } from 'lucide-react';
+import { assistMerchant, createDraftLot, deleteUploadedImage, patchDraftLot, queueLot, uploadImage } from '../auction/api/auctionApi';
+import type { AIDraftSuggestions, AIMerchantAssistantReply, AITrustCardSuggestion, CreateLotRequest, Money, TrustCardType, UploadedAsset } from '../../shared/api/types';
 import { resultMessage } from '../../shared/api/result';
 import { formatMoneyText } from '../../shared/lib/format';
 import { StudioButton, StudioCard, StudioField, StudioPageHeader, StudioToastViewport, useStudioToast } from '../../pages/host-console/components/studio-ui';
@@ -116,6 +116,8 @@ export function AuctionCreatePage({ roomId, roomName = roomId }: AuctionCreatePa
   const [activeStep, setActiveStep] = useState<StepKey>('product');
   const [previewImageIndex, setPreviewImageIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiReply, setAiReply] = useState<AIMerchantAssistantReply | null>(null);
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [error, setError] = useState('');
   const { toasts, showToast } = useStudioToast();
@@ -269,12 +271,30 @@ export function AuctionCreatePage({ roomId, roomName = roomId }: AuctionCreatePa
     }
   };
 
+  const completeWithAI = async () => {
+    setAiLoading(true);
+    setError('');
+    try {
+      const reply = await assistMerchant({ page: 'create', roomId, draft: aiDraftFromForm(form) });
+      setAiReply(reply);
+      setForm((current) => applyDraftSuggestions(current, reply.draftSuggestions));
+      showToast({ tone: reply.fallbackUsed ? 'warning' : 'success', title: 'AI 建议已补全空白', description: reply.fallbackUsed ? '当前使用规则兜底建议' : '已根据当前草稿生成建议' });
+    } catch (e) {
+      const message = resultMessage(e);
+      setError(message);
+      showToast({ tone: 'danger', title: 'AI 助手暂不可用', description: message });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   return <section className="auctionCreatePage">
     <StudioToastViewport toasts={toasts} className="auctionCreateToastViewport" />
     <StudioCard padding="lg" className="auctionCreateTitleBar auctionCreateHeader">
-      <StudioPageHeader eyebrow="Create lot" title="添加拍品" actions={<a className="studioButton studioButton-secondary studioButton-md" href="/admin/auctions">返回队列</a>} />
+      <StudioPageHeader eyebrow="Create lot" title="添加拍品" actions={<><StudioButton type="button" variant="primary" icon={<Sparkles size={15} />} loading={aiLoading} disabled={submitting || isUploading} onClick={() => void completeWithAI()}>AI 补全空白</StudioButton><a className="studioButton studioButton-secondary studioButton-md" href="/admin/auctions">返回队列</a></>} />
     </StudioCard>
     {error ? <div className="auctionMgmtNotice danger"><AlertTriangle size={16} />{error}</div> : null}
+    {aiReply ? <MerchantCreateAIPanel reply={aiReply} /> : null}
     <nav className="publishStepper auctionCreateStepper" aria-label="添加拍品步骤">
       {STEP_DEFS.map((step, index) => {
         const stepIssues = issues.filter((issue) => issue.step === step.key);
@@ -540,4 +560,54 @@ function issueText(issues: FormIssue[], keyword: string) {
 function shortURL(value: string) {
   if (value.length <= 54) return value;
   return `${value.slice(0, 28)}...${value.slice(-18)}`;
+}
+
+function MerchantCreateAIPanel({ reply }: { reply: AIMerchantAssistantReply }) {
+  return <section className="aiMerchantPanel aiCreatePanel"><header><div><Sparkles size={18} /><h3>AI 新商家助手</h3></div><span>{reply.fallbackUsed ? '规则兜底' : 'DeepSeek'}</span></header><p>{reply.answer}</p><div className="aiChecklist">{reply.checklist.map((item) => <div key={item.label} className={item.status}><b>{item.label}</b><span>{item.reason}</span></div>)}</div>{reply.nextSteps.length ? <div className="aiNextSteps">{reply.nextSteps.map((step) => <span key={step}>{step}</span>)}</div> : null}</section>;
+}
+
+function aiDraftFromForm(form: FormState): Record<string, unknown> {
+  return {
+    title: form.title,
+    description: form.description,
+    imageUrl: form.imageUrl,
+    category: form.category,
+    tags: parseTags(form.tags),
+    rule: {
+      startPrice: form.startPrice,
+      minIncrement: form.minIncrement,
+      capPrice: form.capPrice,
+      durationSeconds: form.durationSeconds,
+    },
+    trustCards: TRUST_CARD_DEFS.map((card) => ({ type: card.type, title: card.title, content: form.trustCards[card.key].content })),
+  };
+}
+
+function applyDraftSuggestions(form: FormState, suggestions: AIDraftSuggestions = {}): FormState {
+  const next: FormState = { ...form, trustCards: { ...form.trustCards } };
+  if (!next.title.trim() && suggestions.titleSuggestion) next.title = suggestions.titleSuggestion;
+  if (!next.description.trim() && suggestions.descriptionSuggestion) next.description = suggestions.descriptionSuggestion;
+  if (!next.tags.trim() && suggestions.tags?.length) next.tags = suggestions.tags.join(', ');
+  if (!next.afterSaleNotes.trim() && suggestions.afterSaleNote) next.afterSaleNotes = suggestions.afterSaleNote;
+  for (const card of suggestions.trustCards || []) {
+    const key = trustSuggestionKey(card);
+    if (!key) continue;
+    const current = next.trustCards[key];
+    next.trustCards[key] = { ...current, content: current.content.trim() ? current.content : card.content };
+  }
+  return next;
+}
+
+function trustSuggestionKey(card: AITrustCardSuggestion): TrustCardKey | undefined {
+  const type = String(card.type || '').toUpperCase();
+  if (type.includes('CERTIFICATE')) return 'certificate';
+  if (type.includes('FLAW')) return 'flaw';
+  if (type.includes('DETAIL')) return 'detail';
+  if (type.includes('SERVICE')) return 'service';
+  const text = `${card.title} ${card.content}`;
+  if (text.includes('证书')) return 'certificate';
+  if (text.includes('瑕疵')) return 'flaw';
+  if (text.includes('细节')) return 'detail';
+  if (text.includes('售后')) return 'service';
+  return undefined;
 }
