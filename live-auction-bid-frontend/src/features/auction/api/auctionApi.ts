@@ -3,7 +3,7 @@ import { toQueryString } from '../../../shared/api/query';
 import { assertOkResult, normalizeAuctionEvent } from '../../../shared/api/result';
 import { normalizeLot, normalizeRoom, normalizeRoomPresence, normalizeRoomSnapshot, normalizeTrustRevealCard, normalizeUploadedAsset } from '../../../shared/api/normalizers';
 import { clientLog, createRequestId } from '../../../shared/lib/clientLogger';
-import type { AIMerchantAssistantReply, AIMerchantAssistantRequest, AuctionEvent, CancelLotReply, CreateLotReply, CreateLotRequest, GetRoomPresenceReply, GetRoomSnapshotReply, ListLotsReply, ListRoomEventsReply, ListRoomsReply, Lot, LotStatus, PatchLotDraftRequest, PatchLotDraftReply, QueueLotReply, ReplyResult, RevealTrustCardReply, Room, RoomPresence, RoomSnapshot, SettleLotReply, StartDuelReply, StartLotReply, TrustRevealCard, UploadedAsset, UploadImageReply } from '../../../shared/api/types';
+import type { AuctionEvent, CancelLotReply, CreateLotReply, CreateLotRequest, GetRoomPresenceReply, GetRoomSnapshotReply, ListLotsReply, ListRoomEventsReply, ListRoomsReply, Lot, LotStatus, PatchLotDraftRequest, PatchLotDraftReply, QueueLotReply, ReplyResult, RevealTrustCardReply, Room, RoomPresence, RoomSnapshot, SettleLotReply, StartDuelReply, StartLotReply, TrustRevealCard, UploadedAsset, UploadImageReply } from '../../../shared/api/types';
 
 export type AdminLotsQuery = {
   page?: number;
@@ -272,13 +272,4 @@ export async function cancelLot(lotId: string, reason: string) {
     body: { lotId, reason },
     operation: 'cancel-lot',
   })));
-}
-
-export async function assistMerchant(payload: AIMerchantAssistantRequest): Promise<AIMerchantAssistantReply> {
-  return assertOkResult(await apiRequest<AIMerchantAssistantReply>({
-    path: '/api/ai/merchant/assistant',
-    method: 'POST',
-    body: payload,
-    operation: 'ai-merchant-assistant',
-  }));
 }

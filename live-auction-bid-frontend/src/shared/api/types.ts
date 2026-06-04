@@ -140,16 +140,6 @@ export type GetRoomPresenceReply = { presence?: RoomPresence; result?: ReplyResu
 export type ListRoomEventsReply = { events?: AuctionEvent[]; nextPageToken?: string; result?: ReplyResult };
 export type ListRoomsReply = { rooms?: Room[]; result?: ReplyResult };
 
-export type AIRecommendedActionType = 'reveal_trust_card' | 'start_duel' | 'navigate' | 'copy_text' | string;
-export type AIRecommendedAction = { type: AIRecommendedActionType; label: string; reason: string; enabled: boolean; targetId?: string };
-export type AIChecklistItem = { label: string; status: string; reason: string };
-export type AITrustCardSuggestion = { type: TrustCardType | string; title: string; content: string };
-export type AIDraftSuggestions = { titleSuggestion?: string; descriptionSuggestion?: string; tags?: string[]; afterSaleNote?: string; trustCards?: AITrustCardSuggestion[] };
-export type AISituationMetric = { label: string; value: string; tone?: string };
-export type AIMerchantSituation = { summary: string; metrics: AISituationMetric[] };
-export type AIMerchantAssistantRequest = { page: string; roomId?: string; lotId?: string; draft?: Record<string, unknown>; question?: string };
-export type AIMerchantAssistantReply = { result?: ReplyResult; answer: string; situation?: AIMerchantSituation; talkTracks?: string[]; evidence?: string[]; checklist: AIChecklistItem[]; nextSteps: string[]; recommendedActions: AIRecommendedAction[]; draftSuggestions: AIDraftSuggestions; warnings: string[]; fallbackUsed: boolean };
-
 export type UploadedAsset = { id: string; imageUrl: string; bucket: string; objectKey: string; mimeType: string; sizeBytes: number | string; status?: string; expiresAtUnixMs?: number | string };
 export type UploadImageReply = {
   code?: number;
