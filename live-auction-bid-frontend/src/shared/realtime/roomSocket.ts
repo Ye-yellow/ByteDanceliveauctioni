@@ -19,7 +19,7 @@ type RoomSocketOptions = {
   onStatusChange?: (status: RoomSocketStatus, attempt: number) => void;
   onEvent?: (event: AuctionEvent, meta: RoomSocketMeta) => void;
   onSnapshot?: (snapshot: RoomSnapshot, meta: RoomSocketMeta) => void;
-  onError?: (error: unknown) => void;
+  onError?: (error: unknown, phase?: 'ticket' | 'socket' | 'recover' | 'message') => void;
 };
 
 function nowText() {
@@ -40,7 +40,7 @@ function roomURL(roomId: string, ticket: string) {
 }
 
 function realtimeConnectionError() {
-  const error = new Error('实时连接异常，正在尝试重连');
+  const error = new Error('实时连接短暂中断，正在自动重连');
   error.name = 'RealtimeConnectionError';
   return error;
 }
@@ -94,7 +94,7 @@ export class RoomSocket {
       if (this.closed) return;
       this.socket = new WebSocket(roomURL(this.options.roomId, ticket));
     } catch (error) {
-      this.options.onError?.(error);
+      this.options.onError?.(error, 'ticket');
       this.scheduleReconnect();
       return;
     }
@@ -108,8 +108,7 @@ export class RoomSocket {
       void this.handleMessage(message.data);
     };
     this.socket.onerror = () => {
-      this.options.onError?.(realtimeConnectionError());
-      this.emitStatus('disconnected');
+      this.options.onError?.(realtimeConnectionError(), 'socket');
     };
     this.socket.onclose = () => {
       this.socket = null;
@@ -124,7 +123,7 @@ export class RoomSocket {
       const snapshot = await this.options.recoverSnapshot();
       if (snapshot) this.options.onSnapshot?.(snapshot, this.nextMeta('recover'));
     } catch (error) {
-      this.options.onError?.(error);
+      this.options.onError?.(error, 'recover');
     }
   }
 
@@ -153,7 +152,7 @@ export class RoomSocket {
       if (event.snapshot) this.options.onSnapshot?.(event.snapshot, meta);
       this.options.onEvent?.(event, meta);
     } catch (error) {
-      this.options.onError?.(error);
+      this.options.onError?.(error, 'message');
     }
   }
 

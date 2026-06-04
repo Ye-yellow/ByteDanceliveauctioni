@@ -16,7 +16,7 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    allowedHosts: ['.ngrok-free.dev'],
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: process.env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:18080',

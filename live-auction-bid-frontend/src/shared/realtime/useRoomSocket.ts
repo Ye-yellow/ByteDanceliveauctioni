@@ -10,7 +10,7 @@ type UseRoomSocketOptions = {
   onStatusChange?: (status: RoomSocketStatus, attempt: number) => void;
   onEvent?: (event: AuctionEvent, meta: RoomSocketMeta) => void;
   onSnapshot?: (snapshot: RoomSnapshot, meta: RoomSocketMeta) => void;
-  onError?: (error: unknown) => void;
+  onError?: (error: unknown, phase?: 'ticket' | 'socket' | 'recover' | 'message') => void;
 };
 
 type RoomSocketState = {
@@ -80,8 +80,8 @@ export function useRoomSocket(options: UseRoomSocketOptions): RoomSocketState {
         }));
         callbacks.current.onSnapshot?.(snapshot, meta);
       },
-      onError: (error) => {
-        if (active) callbacks.current.onError?.(error);
+      onError: (error, phase) => {
+        if (active) callbacks.current.onError?.(error, phase);
       },
     });
 

@@ -112,7 +112,15 @@ export function AuctionManagementPage({ roomId, roomName = roomId }: Props) {
       if (AUCTION_REFRESH_EVENTS.has(event.type)) void syncLots();
     },
     onSnapshot: (nextSnapshot) => setSnapshot(nextSnapshot),
-    onError: (e) => setError(resultMessage(e)),
+    onStatusChange: (status) => {
+      if (status === 'connected') {
+        setError((current) => current.includes('实时连接') ? '' : current);
+      }
+    },
+    onError: (e, phase) => {
+      if (phase === 'socket') return;
+      setError(resultMessage(e));
+    },
   });
 
   useEffect(() => { void syncLots({ ...query, roomId, view: 'current' }); }, [roomId]);

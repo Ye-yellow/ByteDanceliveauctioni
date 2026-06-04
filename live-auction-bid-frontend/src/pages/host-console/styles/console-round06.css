@@ -1111,6 +1111,8 @@
 .laAdminShell .studioContent:has(.liveControlPage) {
   padding-inline: clamp(24px, 2vw, 42px) !important;
   padding-bottom: 34px !important;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 .laAdminShell .studioPage:has(.liveControlPage) {
@@ -1124,8 +1126,11 @@
   display: grid !important;
   gap: var(--control-gap) !important;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: calc(100dvh - 132px);
   align-content: start;
+  overflow-x: clip;
 }
 
 /* Live-control panel shell guard slice. */
@@ -1214,10 +1219,11 @@
 .laAdminShell .studioPage:has(.liveControlPage) .controlRoomGrid {
   display: grid !important;
   grid-template-areas: "briefing center side" !important;
-  grid-template-columns: minmax(360px, .82fr) minmax(760px, 1.5fr) minmax(380px, .86fr) !important;
+  grid-template-columns: minmax(300px, .78fr) minmax(0, 1.5fr) minmax(320px, .82fr) !important;
   gap: var(--control-gap) !important;
   align-items: stretch !important;
   max-width: none !important;
+  min-width: 0 !important;
 }
 
 .laAdminShell .studioPage:has(.liveControlPage) .controlLeftRail {
@@ -1238,6 +1244,7 @@
   display: grid !important;
   gap: var(--control-gap) !important;
   min-width: 0;
+  max-width: 100%;
   align-content: stretch;
 }
 
@@ -1497,7 +1504,7 @@
   }
 }
 
-@media (max-width: 1680px) {
+@media (max-width: 1900px) {
   .laAdminShell .studioPage:has(.liveControlPage) .controlRoomGrid {
     grid-template-areas:
       "center center"
@@ -1516,6 +1523,12 @@
 
   .laAdminShell .liveControlPage .liveFrame {
     height: clamp(210px, 20vw, 320px) !important;
+  }
+}
+
+@media (min-width: 1681px) and (max-width: 1900px) {
+  .laAdminShell .liveControlStatusGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
 
@@ -2904,7 +2917,9 @@ html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable td:first
 .aiChecklist,
 .aiActionList,
 .aiWarnings,
-.aiNextSteps {
+.aiNextSteps,
+.aiTalkTracks,
+.aiEvidence {
   display: grid;
   gap: 8px;
 }
@@ -2915,12 +2930,15 @@ html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable td:first
 
 .aiChecklist div,
 .aiNextSteps span,
-.aiWarnings span {
+.aiWarnings span,
+.aiTalkTracks span,
+.aiEvidence span {
   padding: 10px 12px;
   border-radius: 12px;
   background: var(--studio-surface-soft);
   color: var(--studio-text-2);
   font-size: 13px;
+  line-height: 1.45;
 }
 
 .aiChecklist b,
@@ -2947,10 +2965,69 @@ html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable td:first
   text-align: left;
 }
 
+.aiSituationCard {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--studio-border);
+  border-radius: 14px;
+  background: var(--studio-surface-soft);
+  min-width: 0;
+}
+
+.aiSituationCard > b,
+.aiTalkTracks > b {
+  color: var(--studio-text);
+  font-size: 13px;
+}
+
+.aiSituationCard > span {
+  color: var(--studio-text-2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.aiSituationCard > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.aiSituationCard em {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: var(--studio-surface);
+  font-style: normal;
+}
+
+.aiSituationCard em small {
+  overflow: hidden;
+  color: var(--studio-text-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aiSituationCard em strong {
+  overflow: hidden;
+  color: var(--studio-text);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .aiWarnings span {
   border: 1px solid var(--studio-color-warning-border);
   background: var(--studio-color-warning-soft-bg);
   color: var(--studio-color-warning-text);
+}
+
+.aiEvidence span {
+  color: var(--studio-text-3);
+  font-size: 12px;
 }
 
 .aiEmptyText {

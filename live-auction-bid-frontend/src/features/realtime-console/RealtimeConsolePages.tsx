@@ -39,6 +39,11 @@ export function LiveControlPage({ roomId }: { roomId: string }) {
     roomId,
     handledEventTypes: REALTIME_CONSOLE_EVENTS,
     recoverSnapshot: syncRoom,
+    onStatusChange: (status) => {
+      if (status === 'connected') {
+        setError((current) => current.includes('实时连接') ? '' : current);
+      }
+    },
     onEvent: (event) => {
       if (event.snapshot) {
         setSnapshot(event.snapshot);
@@ -51,7 +56,10 @@ export function LiveControlPage({ roomId }: { roomId: string }) {
       setSnapshot(nextSnapshot);
       setLot(nextSnapshot.currentLot || null);
     },
-    onError: (e) => setError(resultMessage(e)),
+    onError: (e, phase) => {
+      if (phase === 'socket') return;
+      setError(resultMessage(e));
+    },
   });
 
   useEffect(() => { void syncRoom(); }, [roomId]);
@@ -145,7 +153,15 @@ export function BidAuditPage({ roomId }: { roomId: string }) {
       if (event.type === REALTIME_EVENT.BID_ACCEPTED || event.type === REALTIME_EVENT.BID_OUTBID || event.type === REALTIME_EVENT.RANKING_UPDATED) void sync();
     },
     onSnapshot: setSnapshot,
-    onError: (e) => setError(resultMessage(e)),
+    onStatusChange: (status) => {
+      if (status === 'connected') {
+        setError((current) => current.includes('实时连接') ? '' : current);
+      }
+    },
+    onError: (e, phase) => {
+      if (phase === 'socket') return;
+      setError(resultMessage(e));
+    },
   });
 
   useEffect(() => { void sync(); }, [roomId]);
@@ -192,7 +208,15 @@ export function RealtimeDiagnosticsPage({ roomId }: { roomId: string }) {
       if (HTTP_REFRESH_EVENTS.has(event.type)) void sync();
     },
     onSnapshot: setSnapshot,
-    onError: (e) => setError(resultMessage(e)),
+    onStatusChange: (status) => {
+      if (status === 'connected') {
+        setError((current) => current.includes('实时连接') ? '' : current);
+      }
+    },
+    onError: (e, phase) => {
+      if (phase === 'socket') return;
+      setError(resultMessage(e));
+    },
   });
 
   useEffect(() => { void sync(); }, [roomId]);
@@ -236,7 +260,20 @@ function ControlActionDeck({ lot, working, onDuel, onSettle, onCancel }: { lot: 
 }
 
 function MerchantAIControlPanel({ reply, loading, working, onRefresh, onAction }: { reply: AIMerchantAssistantReply | null; loading: boolean; working: string; onRefresh: () => void; onAction: (item: AIRecommendedAction) => void }) {
-  return <section className="aiMerchantPanel aiControlPanel"><header><div><Sparkles size={18} /><h3>AI 控场助手</h3></div><button type="button" disabled={loading || Boolean(working)} onClick={onRefresh}>{loading ? '分析中...' : '刷新建议'}</button></header>{reply ? <><p>{reply.answer}</p>{reply.recommendedActions.length ? <div className="aiActionList">{reply.recommendedActions.map((item) => <button key={`${item.type}-${item.targetId || item.label}`} type="button" disabled={!item.enabled || Boolean(working)} onClick={() => onAction(item)}><b>{item.label}</b><span>{item.reason}</span></button>)}</div> : <span className="aiEmptyText">暂无可执行建议</span>}{reply.warnings.length ? <div className="aiWarnings">{reply.warnings.map((warning) => <span key={warning}>{warning}</span>)}</div> : null}<small>{reply.fallbackUsed ? '规则兜底建议' : 'DeepSeek 建议'}</small></> : <StudioEmptyState compact icon={<Sparkles size={24} />} title="等待 AI 分析" description="点击刷新建议，AI 会基于当前快照、排行榜和信任卡状态给出控场建议。" />}</section>;
+  const executableActions = reply?.recommendedActions.filter((item) => item.type === 'reveal_trust_card' || item.type === 'start_duel') ?? [];
+  return <section className="aiMerchantPanel aiControlPanel">
+    <header><div><Sparkles size={18} /><h3>AI 控场助手</h3></div><button type="button" disabled={loading || Boolean(working)} onClick={onRefresh}>{loading ? '分析中...' : '刷新建议'}</button></header>
+    {reply ? <>
+      <p>{reply.answer}</p>
+      {reply.situation ? <div className="aiSituationCard"><b>当前局势</b><span>{reply.situation.summary}</span>{reply.situation.metrics?.length ? <div>{reply.situation.metrics.map((item) => <em key={`${item.label}-${item.value}`} className={item.tone || ''}><small>{item.label}</small><strong>{item.value}</strong></em>)}</div> : null}</div> : null}
+      {reply.talkTracks?.length ? <div className="aiTalkTracks"><b>主播话术</b>{reply.talkTracks.map((line) => <span key={line}>{line}</span>)}</div> : null}
+      {executableActions.length ? <div className="aiActionList">{executableActions.map((item) => <button key={`${item.type}-${item.targetId || item.label}`} type="button" disabled={!item.enabled || Boolean(working)} onClick={() => onAction(item)}><b>{item.label}</b><span>{item.reason}</span></button>)}</div> : <span className="aiEmptyText">暂无可执行建议</span>}
+      {reply.nextSteps.length ? <div className="aiNextSteps">{reply.nextSteps.map((step) => <span key={step}>{step}</span>)}</div> : null}
+      {reply.warnings.length ? <div className="aiWarnings">{reply.warnings.map((warning) => <span key={warning}>{warning}</span>)}</div> : null}
+      {reply.evidence?.length ? <div className="aiEvidence">{reply.evidence.map((item) => <span key={item}>{item}</span>)}</div> : null}
+      <small>{reply.fallbackUsed ? '规则兜底建议' : 'DeepSeek 建议'} · AI 只给建议，交易动作需人工确认</small>
+    </> : <StudioEmptyState compact icon={<Sparkles size={24} />} title="等待 AI 分析" description="点击刷新建议，AI 会基于当前快照、排行榜和信任卡状态给出控场建议。" />}
+  </section>;
 }
 
 function RealtimeBidFeedPanel({ bids }: { bids: Bid[] }) {
