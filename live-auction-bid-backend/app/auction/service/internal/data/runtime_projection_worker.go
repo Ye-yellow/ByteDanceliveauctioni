@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	"live-auction-bid/backend/app/auction/service/internal/observability"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
@@ -71,6 +72,12 @@ type runtimeProjectionShardState struct {
 	lastAttemptAt time.Time
 	lastSuccessAt time.Time
 	lastError     string
+}
+
+type runtimeProjectionBatchItem struct {
+	projection auction.RuntimeProjectionEvent
+	events     []v1.AuctionEvent
+	order      *auction.Order
 }
 
 func NewRuntimeProjectionWorker(store *Store, publisher auction.EventPublisher, interval time.Duration, limit int) *RuntimeProjectionWorker {
@@ -366,20 +373,19 @@ func (w *RuntimeProjectionWorker) projectShardOnce(ctx context.Context, shard in
 	if err != nil {
 		return 0, err
 	}
-	var processed int64
 	lastID := ""
-	for _, message := range messages {
-		if err := w.projectMessage(ctx, stream, message, false); err != nil {
-			if lastID != "" {
-				_ = w.store.saveRuntimeProjectionShardOffset(ctx, shard, lastID, time.Now().UnixMilli())
-			}
-			return processed, err
-		}
-		processed++
-		lastID = message.ID
+	processed, lastOccurredAt, err := w.projectMessages(ctx, stream, messages, false)
+	if err != nil {
+		return processed, err
+	}
+	if len(messages) > 0 {
+		lastID = messages[len(messages)-1].ID
 	}
 	if lastID != "" {
 		if err := w.store.saveRuntimeProjectionShardOffset(ctx, shard, lastID, time.Now().UnixMilli()); err != nil {
+			return processed, err
+		}
+		if err := w.store.recordRuntimeProjectionShardProgress(ctx, shard, processed, lastOccurredAt); err != nil {
 			return processed, err
 		}
 	}
@@ -582,7 +588,7 @@ func (w *RuntimeProjectionWorker) projectClaimed(ctx context.Context, stream str
 		}
 		processed += int64(len(messages))
 		for _, message := range messages {
-			if err := w.projectMessage(ctx, stream, message, true); err != nil {
+			if _, err := w.projectMessage(ctx, stream, message, true, nil); err != nil {
 				return processed, err
 			}
 		}
@@ -609,7 +615,7 @@ func (w *RuntimeProjectionWorker) projectNew(ctx context.Context, stream string)
 	}
 	for _, result := range streams {
 		for _, message := range result.Messages {
-			if err := w.projectMessage(ctx, stream, message, true); err != nil {
+			if _, err := w.projectMessage(ctx, stream, message, true, nil); err != nil {
 				return err
 			}
 		}
@@ -617,68 +623,139 @@ func (w *RuntimeProjectionWorker) projectNew(ctx context.Context, stream string)
 	return nil
 }
 
-func (w *RuntimeProjectionWorker) projectMessage(ctx context.Context, stream string, message redis.XMessage, ack bool) error {
-	projection, err := w.decodeRuntimeProjection(ctx, message)
+func (w *RuntimeProjectionWorker) projectMessages(ctx context.Context, stream string, messages []redis.XMessage, ack bool) (int64, int64, error) {
+	if len(messages) == 0 {
+		return 0, 0, nil
+	}
+	baseLots := make(map[string]*v1.Lot)
+	items := make([]runtimeProjectionBatchItem, 0, len(messages))
+	lastOccurredAt := int64(0)
+	for _, message := range messages {
+		projection, err := w.decodeRuntimeProjection(ctx, message, baseLots)
+		if err != nil {
+			w.metrics.projectionFailedTotal.Add(1)
+			slog.Error("runtime projection decode failed", "stream", stream, "id", message.ID, "error", err)
+			return int64(len(items)), lastOccurredAt, err
+		}
+		events, order, err := auction.BuildRuntimeBidProjectionArtifacts(projection)
+		if err != nil {
+			w.metrics.projectionFailedTotal.Add(1)
+			return int64(len(items)), lastOccurredAt, err
+		}
+		if projection.OccurredAtUnixMs > 0 {
+			lastOccurredAt = projection.OccurredAtUnixMs
+		}
+		items = append(items, runtimeProjectionBatchItem{
+			projection: projection,
+			events:     events,
+			order:      order,
+		})
+	}
+	outcomes, err := w.store.projectRuntimeEventsBatch(ctx, items)
+	if err != nil {
+		w.recordProjectionError(stream, items, err)
+		return 0, lastOccurredAt, err
+	}
+	if ack {
+		ids := make([]string, 0, len(messages))
+		for _, message := range messages {
+			ids = append(ids, message.ID)
+		}
+		if err := w.store.redis.XAck(ctx, stream, runtimeProjectionGroup, ids...).Err(); err != nil {
+			w.metrics.projectionFailedTotal.Add(1)
+			return 0, lastOccurredAt, err
+		}
+	}
+	if lastOccurredAt > 0 {
+		w.metrics.projectionLagMs.Store(time.Now().UnixMilli() - lastOccurredAt)
+	}
+	if w.publisher != nil {
+		for i, outcome := range outcomes {
+			if !outcome.Projected {
+				continue
+			}
+			for _, event := range items[i].events {
+				if err := w.publisher.Publish(ctx, event); err != nil {
+					w.metrics.projectionFailedTotal.Add(1)
+					return int64(i), lastOccurredAt, err
+				}
+			}
+		}
+	}
+	return int64(len(items)), lastOccurredAt, nil
+}
+
+func (w *RuntimeProjectionWorker) projectMessage(ctx context.Context, stream string, message redis.XMessage, ack bool, baseLots map[string]*v1.Lot) (int64, error) {
+	projection, err := w.decodeRuntimeProjection(ctx, message, baseLots)
 	if err != nil {
 		w.metrics.projectionFailedTotal.Add(1)
 		slog.Error("runtime projection decode failed", "stream", stream, "id", message.ID, "error", err)
-		return err
+		return 0, err
 	}
 	events, order, err := auction.BuildRuntimeBidProjectionArtifacts(projection)
 	if err != nil {
 		w.metrics.projectionFailedTotal.Add(1)
-		return err
+		return 0, err
 	}
 	outcome, err := w.store.ProjectRuntimeEvent(ctx, projection, order, events)
 	if err != nil {
-		w.metrics.projectionFailedTotal.Add(1)
-		if apperr.IsRuntimeProjectionGap(err) {
-			w.metrics.projectionGapTotal.Add(1)
-			slog.Warn("runtime projection gap",
-				"stream", stream,
-				"stream_id", message.ID,
-				"lot_id", projection.LotID,
-				"previous_lot_version", projection.PreviousLotVersion,
-				"lot_version", projection.LotVersion,
-				"runtime_event_id", projection.RuntimeEventID,
-				"error", err,
-			)
-			return fmt.Errorf("%w: stream=%s stream_id=%s lot_id=%s previous_lot_version=%d lot_version=%d",
-				err, stream, message.ID, projection.LotID, projection.PreviousLotVersion, projection.LotVersion)
-		}
-		slog.Warn("runtime projection failed",
-			"stream", stream,
-			"stream_id", message.ID,
-			"lot_id", projection.LotID,
-			"previous_lot_version", projection.PreviousLotVersion,
-			"lot_version", projection.LotVersion,
-			"runtime_event_id", projection.RuntimeEventID,
-			"error", err,
-		)
-		return err
+		w.recordProjectionError(stream, []runtimeProjectionBatchItem{{projection: projection}}, err)
+		return projection.OccurredAtUnixMs, err
 	}
 	if ack {
 		if err := w.store.redis.XAck(ctx, stream, runtimeProjectionGroup, message.ID).Err(); err != nil {
 			w.metrics.projectionFailedTotal.Add(1)
-			return err
+			return projection.OccurredAtUnixMs, err
 		}
 	}
 	if projection.OccurredAtUnixMs > 0 {
 		w.metrics.projectionLagMs.Store(time.Now().UnixMilli() - projection.OccurredAtUnixMs)
 	}
 	if !outcome.Projected || w.publisher == nil {
-		return nil
+		return projection.OccurredAtUnixMs, nil
 	}
 	for _, event := range events {
 		if err := w.publisher.Publish(ctx, event); err != nil {
 			w.metrics.projectionFailedTotal.Add(1)
-			return err
+			return projection.OccurredAtUnixMs, err
 		}
 	}
-	return nil
+	return projection.OccurredAtUnixMs, nil
 }
 
-func (w *RuntimeProjectionWorker) decodeRuntimeProjection(ctx context.Context, message redis.XMessage) (auction.RuntimeProjectionEvent, error) {
+func (w *RuntimeProjectionWorker) recordProjectionError(stream string, items []runtimeProjectionBatchItem, err error) {
+	w.metrics.projectionFailedTotal.Add(1)
+	if len(items) == 0 {
+		return
+	}
+	projection := items[0].projection
+	if apperr.IsRuntimeProjectionGap(err) {
+		w.metrics.projectionGapTotal.Add(1)
+		slog.Warn("runtime projection gap",
+			"stream", stream,
+			"stream_id", projection.RuntimeStreamID,
+			"lot_id", projection.LotID,
+			"previous_lot_version", projection.PreviousLotVersion,
+			"lot_version", projection.LotVersion,
+			"runtime_event_id", projection.RuntimeEventID,
+			"batch_size", len(items),
+			"error", err,
+		)
+		return
+	}
+	slog.Warn("runtime projection failed",
+		"stream", stream,
+		"stream_id", projection.RuntimeStreamID,
+		"lot_id", projection.LotID,
+		"previous_lot_version", projection.PreviousLotVersion,
+		"lot_version", projection.LotVersion,
+		"runtime_event_id", projection.RuntimeEventID,
+		"batch_size", len(items),
+		"error", err,
+	)
+}
+
+func (w *RuntimeProjectionWorker) decodeRuntimeProjection(ctx context.Context, message redis.XMessage, baseLots map[string]*v1.Lot) (auction.RuntimeProjectionEvent, error) {
 	rawPayload, ok := message.Values["payload"]
 	if !ok {
 		return auction.RuntimeProjectionEvent{}, errors.New("runtime projection payload is missing")
@@ -688,9 +765,16 @@ func (w *RuntimeProjectionWorker) decodeRuntimeProjection(ctx context.Context, m
 	if err := json.Unmarshal([]byte(payloadText), &payload); err != nil {
 		return auction.RuntimeProjectionEvent{}, err
 	}
-	baseLot, err := w.store.FindCoreByID(ctx, payload.LotID)
-	if err != nil {
-		return auction.RuntimeProjectionEvent{}, err
+	baseLot := baseLots[payload.LotID]
+	if baseLot == nil {
+		var err error
+		baseLot, err = w.store.FindCoreByID(ctx, payload.LotID)
+		if err != nil {
+			return auction.RuntimeProjectionEvent{}, err
+		}
+		if baseLots != nil {
+			baseLots[payload.LotID] = baseLot
+		}
 	}
 	lot := runtimeJSONToLot(baseLot, payload.UpdatedLot)
 	bid := runtimeJSONToBid(payload.Bid)

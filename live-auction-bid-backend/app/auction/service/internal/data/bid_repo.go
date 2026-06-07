@@ -103,6 +103,53 @@ func (s *Store) ProjectRuntimeBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, 
 }
 
 func (s *Store) ProjectRuntimeEvent(ctx context.Context, projection auction.RuntimeProjectionEvent, order *auction.Order, events []v1.AuctionEvent) (auction.RuntimeProjectionOutcome, error) {
+	outcomes, err := s.projectRuntimeEventsBatch(ctx, []runtimeProjectionBatchItem{{
+		projection: projection,
+		events:     events,
+		order:      order,
+	}})
+	if err != nil {
+		if len(outcomes) > 0 {
+			return outcomes[0], err
+		}
+		return auction.RuntimeProjectionOutcome{}, err
+	}
+	if len(outcomes) == 0 {
+		return auction.RuntimeProjectionOutcome{}, nil
+	}
+	return outcomes[0], nil
+}
+
+func (s *Store) projectRuntimeEventsBatch(ctx context.Context, items []runtimeProjectionBatchItem) ([]auction.RuntimeProjectionOutcome, error) {
+	outcomes := make([]auction.RuntimeProjectionOutcome, len(items))
+	if len(items) == 0 {
+		return outcomes, nil
+	}
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		for i, item := range items {
+			outcome, err := s.projectRuntimeEventInTx(ctx, tx, item.projection, item.order, item.events)
+			outcomes[i] = outcome
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return outcomes, err
+	}
+	for i, outcome := range outcomes {
+		if !outcome.Projected {
+			continue
+		}
+		if err := s.streamEvents(ctx, items[i].events); err != nil {
+			return outcomes, err
+		}
+	}
+	return outcomes, nil
+}
+
+func (s *Store) projectRuntimeEventInTx(ctx context.Context, tx *gorm.DB, projection auction.RuntimeProjectionEvent, order *auction.Order, events []v1.AuctionEvent) (auction.RuntimeProjectionOutcome, error) {
 	bid := projection.Bid
 	lot := projection.Lot
 	if bid.Id == "" {
@@ -140,110 +187,102 @@ func (s *Store) ProjectRuntimeEvent(ctx context.Context, projection auction.Runt
 		}
 	}
 	outcome := auction.RuntimeProjectionOutcome{}
-	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := lockRoomStateForTerminalLot(ctx, tx, lot); err != nil {
-			return err
-		}
-		var current AuctionLotModel
-		if err := tx.WithContext(ctx).
-			Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("id = ?", lot.Id).
-			First(&current).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return apperr.ErrNotFound
-			}
-			return err
-		}
-
-		offset, err := lockProjectionOffset(ctx, tx, lot.Id, lot.RoomId, current.Version, projection.RuntimeStreamID, bid.CreatedAtUnixMs)
-		if err != nil {
-			return err
-		}
-		if projection.LotVersion <= offset.LastProjectedVersion {
-			if err := projectRuntimeFactsWithoutLotUpdate(ctx, tx, bidModel, bid, lot, nil, events); err != nil {
-				return err
-			}
-			outcome.AlreadyProjected = true
-			return nil
-		}
-		if offset.LastProjectedVersion != projection.PreviousLotVersion || current.Version != projection.PreviousLotVersion {
-			if canFastForwardRuntimeProjection(current, offset, projection) {
-				var projectionOrder *AuctionOrderModel
-				if v1.LotStatus(current.Status) == v1.LotStatus_LOT_STATUS_SETTLED && lot.GetStatus() == v1.LotStatus_LOT_STATUS_SETTLED {
-					projectionOrder = orderModel
-				}
-				if err := projectRuntimeFactsWithoutLotUpdate(ctx, tx, bidModel, bid, lot, projectionOrder, events); err != nil {
-					return err
-				}
-				if err := updateProjectionOffset(ctx, tx, lot.Id, lot.RoomId, projection.LotVersion, projection.RuntimeStreamID, bid.CreatedAtUnixMs); err != nil {
-					return err
-				}
-				outcome.AlreadyProjected = true
-				return nil
-			}
-			outcome.Gap = true
-			return apperr.ErrRuntimeProjectionGap
-		}
-		lotUpdate := tx.Model(&AuctionLotModel{}).
-			Where("id = ? AND version = ?", lot.Id, projection.PreviousLotVersion).
-			Select("*").
-			Omit("created_at").
-			Updates(lotModel)
-		if lotUpdate.Error != nil {
-			return lotUpdate.Error
-		}
-		if lotUpdate.RowsAffected == 0 {
-			exists, err := runtimeProjectionBidExists(ctx, tx, bid.Id, bid.LotId, bid.UserId, idempotencyKey)
-			if err != nil {
-				return err
-			}
-			if exists {
-				outcome.AlreadyProjected = true
-				return nil
-			}
-			outcome.Conflict = true
-			return apperr.ErrRuntimeProjectionConflict
-		}
-		if err := releaseActiveLotIfTerminal(ctx, tx, lot); err != nil {
-			return err
-		}
-
-		bidCreate := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(bidModel)
-		if bidCreate.Error != nil {
-			return bidCreate.Error
-		}
-		if bidCreate.RowsAffected > 0 {
-			outcome.Projected = true
-			if err := projectStatsForInsertedBid(ctx, tx, bid, lot); err != nil {
-				return err
-			}
-		} else {
-			outcome.AlreadyProjected = true
-		}
-		if orderModel != nil {
-			if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(orderModel).Error; err != nil {
-				return err
-			}
-		}
-		if err := createEventModelsIgnoringDuplicates(ctx, tx, events); err != nil {
-			return err
-		}
-		return tx.WithContext(ctx).
-			Model(&AuctionRuntimeProjectionOffsetModel{}).
-			Where("lot_id = ?", lot.Id).
-			Updates(map[string]any{
-				"room_id":                lot.RoomId,
-				"last_projected_version": projection.LotVersion,
-				"last_stream_id":         projection.RuntimeStreamID,
-				"updated_at_unix_ms":     bid.CreatedAtUnixMs,
-			}).Error
-	}); err != nil {
+	if err := lockRoomStateForTerminalLot(ctx, tx, lot); err != nil {
 		return outcome, err
 	}
-	if outcome.AlreadyProjected && !outcome.Projected {
+	var current AuctionLotModel
+	if err := tx.WithContext(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("id = ?", lot.Id).
+		First(&current).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return outcome, apperr.ErrNotFound
+		}
+		return outcome, err
+	}
+
+	offset, err := lockProjectionOffset(ctx, tx, lot.Id, lot.RoomId, current.Version, projection.RuntimeStreamID, bid.CreatedAtUnixMs)
+	if err != nil {
+		return outcome, err
+	}
+	if projection.LotVersion <= offset.LastProjectedVersion {
+		if err := projectRuntimeFactsWithoutLotUpdate(ctx, tx, bidModel, bid, lot, nil, events); err != nil {
+			return outcome, err
+		}
+		outcome.AlreadyProjected = true
 		return outcome, nil
 	}
-	return outcome, s.streamEvents(ctx, events)
+	if offset.LastProjectedVersion != projection.PreviousLotVersion || current.Version != projection.PreviousLotVersion {
+		if canFastForwardRuntimeProjection(current, offset, projection) {
+			var projectionOrder *AuctionOrderModel
+			if v1.LotStatus(current.Status) == v1.LotStatus_LOT_STATUS_SETTLED && lot.GetStatus() == v1.LotStatus_LOT_STATUS_SETTLED {
+				projectionOrder = orderModel
+			}
+			if err := projectRuntimeFactsWithoutLotUpdate(ctx, tx, bidModel, bid, lot, projectionOrder, events); err != nil {
+				return outcome, err
+			}
+			if err := updateProjectionOffset(ctx, tx, lot.Id, lot.RoomId, projection.LotVersion, projection.RuntimeStreamID, bid.CreatedAtUnixMs); err != nil {
+				return outcome, err
+			}
+			outcome.AlreadyProjected = true
+			return outcome, nil
+		}
+		outcome.Gap = true
+		return outcome, apperr.ErrRuntimeProjectionGap
+	}
+	lotUpdate := tx.Model(&AuctionLotModel{}).
+		Where("id = ? AND version = ?", lot.Id, projection.PreviousLotVersion).
+		Select("*").
+		Omit("created_at").
+		Updates(lotModel)
+	if lotUpdate.Error != nil {
+		return outcome, lotUpdate.Error
+	}
+	if lotUpdate.RowsAffected == 0 {
+		exists, err := runtimeProjectionBidExists(ctx, tx, bid.Id, bid.LotId, bid.UserId, idempotencyKey)
+		if err != nil {
+			return outcome, err
+		}
+		if exists {
+			outcome.AlreadyProjected = true
+			return outcome, nil
+		}
+		outcome.Conflict = true
+		return outcome, apperr.ErrRuntimeProjectionConflict
+	}
+	if err := releaseActiveLotIfTerminal(ctx, tx, lot); err != nil {
+		return outcome, err
+	}
+
+	bidCreate := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(bidModel)
+	if bidCreate.Error != nil {
+		return outcome, bidCreate.Error
+	}
+	if bidCreate.RowsAffected > 0 {
+		outcome.Projected = true
+		if err := projectStatsForInsertedBid(ctx, tx, bid, lot); err != nil {
+			return outcome, err
+		}
+	} else {
+		outcome.AlreadyProjected = true
+	}
+	if orderModel != nil {
+		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(orderModel).Error; err != nil {
+			return outcome, err
+		}
+	}
+	if err := createEventModelsIgnoringDuplicates(ctx, tx, events); err != nil {
+		return outcome, err
+	}
+	return outcome, tx.WithContext(ctx).
+		Model(&AuctionRuntimeProjectionOffsetModel{}).
+		Where("lot_id = ?", lot.Id).
+		Updates(map[string]any{
+			"room_id":                lot.RoomId,
+			"last_projected_version": projection.LotVersion,
+			"last_stream_id":         projection.RuntimeStreamID,
+			"updated_at_unix_ms":     bid.CreatedAtUnixMs,
+		}).Error
 }
 
 func canFastForwardRuntimeProjection(current AuctionLotModel, offset AuctionRuntimeProjectionOffsetModel, projection auction.RuntimeProjectionEvent) bool {

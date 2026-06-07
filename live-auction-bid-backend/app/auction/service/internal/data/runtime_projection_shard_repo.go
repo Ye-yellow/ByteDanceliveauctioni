@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"errors"
+	"strconv"
 	"time"
 
 	"gorm.io/gorm"
@@ -31,6 +32,24 @@ func (s *Store) runtimeProjectionShardOffset(ctx context.Context, shard int) (Au
 		return tx.Create(&offset).Error
 	})
 	return offset, err
+}
+
+func (s *Store) recordRuntimeProjectionShardProgress(ctx context.Context, shard int, processed int64, lastOccurredAtUnixMs int64) error {
+	if processed <= 0 || s == nil || s.redis == nil {
+		return nil
+	}
+	lagMs := int64(0)
+	if lastOccurredAtUnixMs > 0 {
+		lagMs = time.Now().UnixMilli() - lastOccurredAtUnixMs
+		if lagMs < 0 {
+			lagMs = 0
+		}
+	}
+	pipe := s.redis.Pipeline()
+	pipe.IncrBy(ctx, runtimeProjectionShardMetricKey("runtime_event_projected_total", shard), processed)
+	pipe.Set(ctx, runtimeProjectionShardMetricKey("runtime_projection_lag_ms", shard), strconv.FormatInt(lagMs, 10), 0)
+	_, err := pipe.Exec(ctx)
+	return err
 }
 
 func (s *Store) saveRuntimeProjectionShardOffset(ctx context.Context, shard int, streamID string, projectedAtUnixMs int64) error {

@@ -33,6 +33,9 @@ local idem_key = KEYS[6]
 local event_stream_key = KEYS[7]
 local event_shards_key = KEYS[8]
 local metric_xadd_key = KEYS[9]
+local metric_shard_xadd_key = KEYS[10]
+local metric_shard_projected_key = KEYS[11]
+local metric_shard_lag_key = KEYS[12]
 
 local bid_id = ARGV[1]
 local user_id = ARGV[2]
@@ -53,6 +56,8 @@ local idempotency_key = ARGV[16]
 local order_id = ARGV[17]
 local ranking_limit = tonumber(ARGV[18])
 local event_shard = ARGV[19]
+local projection_pending_limit = tonumber(ARGV[20] or '0')
+local projection_lag_limit_ms = tonumber(ARGV[21] or '0')
 
 local replay = redis.call('GET', idem_key)
 if replay then
@@ -64,6 +69,22 @@ end
 local lot_id = redis.call('HGET', state_key, 'lot_id')
 if not lot_id then
   return cjson.encode({ ok = false, code = 'PROJECTION_PENDING', message = 'PROJECTION_PENDING' })
+end
+
+if projection_pending_limit > 0 or projection_lag_limit_ms > 0 then
+  local shard_xadd = tonumber(redis.call('GET', metric_shard_xadd_key) or '0')
+  local shard_projected = tonumber(redis.call('GET', metric_shard_projected_key) or '0')
+  local shard_pending = shard_xadd - shard_projected
+  if shard_pending < 0 then
+    shard_pending = 0
+  end
+  local shard_lag_ms = tonumber(redis.call('GET', metric_shard_lag_key) or '0')
+  if projection_pending_limit > 0 and shard_pending > projection_pending_limit then
+    return cjson.encode({ ok = false, code = 'PROJECTION_PENDING', message = 'PROJECTION_PENDING' })
+  end
+  if projection_lag_limit_ms > 0 and shard_lag_ms > projection_lag_limit_ms then
+    return cjson.encode({ ok = false, code = 'PROJECTION_PENDING', message = 'PROJECTION_PENDING' })
+  end
 end
 
 local status = tonumber(redis.call('HGET', state_key, 'status') or '0')
@@ -317,6 +338,7 @@ local stream_id = redis.call('XADD', event_stream_key, '*',
 )
 redis.call('SADD', event_shards_key, event_shard)
 redis.call('INCR', metric_xadd_key)
+redis.call('INCR', metric_shard_xadd_key)
 local response = {
   ok = true,
   replayed = false,
@@ -565,6 +587,9 @@ func (s *Store) PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceB
 		runtimeEventShardStreamKey(shard),
 		runtimeEventShardsKey(),
 		runtimeMetricKey("runtime_event_xadd_total"),
+		runtimeProjectionShardMetricKey("runtime_event_xadd_total", shard),
+		runtimeProjectionShardMetricKey("runtime_event_projected_total", shard),
+		runtimeProjectionShardMetricKey("runtime_projection_lag_ms", shard),
 	}
 	raw, err := runtimePlaceBidScript.Run(ctx, s.redis, keys,
 		bidID,
@@ -586,6 +611,8 @@ func (s *Store) PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceB
 		orderID,
 		strconv.FormatInt(auction.RealtimeRankingLimit(), 10),
 		strconv.Itoa(shard),
+		strconv.FormatInt(s.runtimeProjectionBackpressurePendingLimit, 10),
+		strconv.FormatInt(s.runtimeProjectionBackpressureLagMs, 10),
 	).Text()
 	if err != nil {
 		return auction.RuntimeBidResult{}, err
@@ -1144,6 +1171,10 @@ func runtimeProjectionShard(lotID string, shardCount int) int {
 
 func runtimeMetricKey(name string) string {
 	return "auction:metrics:" + name
+}
+
+func runtimeProjectionShardMetricKey(name string, shard int) string {
+	return runtimeMetricKey(name + ":shard:" + strconv.Itoa(shard))
 }
 
 func boolInt(value bool) int {

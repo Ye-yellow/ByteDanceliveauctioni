@@ -13,16 +13,18 @@ import (
 )
 
 type Config struct {
-	MySQLDSN                string
-	RedisAddr               string
-	RedisPassword           string
-	RuntimeProjectionShards int
-	DBMaxOpenConns          int
-	DBMaxIdleConns          int
-	DBConnMaxLifetime       time.Duration
-	DBConnMaxIdleTime       time.Duration
-	RedisPoolSize           int
-	RedisMinIdleConns       int
+	MySQLDSN                                  string
+	RedisAddr                                 string
+	RedisPassword                             string
+	RuntimeProjectionShards                   int
+	RuntimeProjectionBackpressurePendingLimit int64
+	RuntimeProjectionBackpressureLag          time.Duration
+	DBMaxOpenConns                            int
+	DBMaxIdleConns                            int
+	DBConnMaxLifetime                         time.Duration
+	DBConnMaxIdleTime                         time.Duration
+	RedisPoolSize                             int
+	RedisMinIdleConns                         int
 }
 
 // Store is the single production data path for the auction service.
@@ -32,9 +34,11 @@ type Config struct {
 // - MySQL keeps accepted bids and durable idempotency keys; Redis caches idempotency lookups.
 // - There is intentionally no in-memory or database/sql fallback.
 type Store struct {
-	db                      *gorm.DB
-	redis                   *redis.Client
-	runtimeProjectionShards int
+	db                                        *gorm.DB
+	redis                                     *redis.Client
+	runtimeProjectionShards                   int
+	runtimeProjectionBackpressurePendingLimit int64
+	runtimeProjectionBackpressureLagMs        int64
 }
 
 func NewStore(ctx context.Context, cfg Config) (*Store, error) {
@@ -105,7 +109,13 @@ func NewStore(ctx context.Context, cfg Config) (*Store, error) {
 			StaleConns: stats.StaleConns,
 		}
 	})
-	store := &Store{db: db, redis: rdb, runtimeProjectionShards: cfg.RuntimeProjectionShards}
+	store := &Store{
+		db:                      db,
+		redis:                   rdb,
+		runtimeProjectionShards: cfg.RuntimeProjectionShards,
+		runtimeProjectionBackpressurePendingLimit: cfg.RuntimeProjectionBackpressurePendingLimit,
+		runtimeProjectionBackpressureLagMs:        cfg.RuntimeProjectionBackpressureLag.Milliseconds(),
+	}
 	if err := store.migrate(ctx); err != nil {
 		_ = store.Close()
 		return nil, err
