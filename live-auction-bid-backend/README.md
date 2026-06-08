@@ -33,13 +33,12 @@ P0 硬点：0 元起拍、固定加价、封顶价自动成交、10-30 秒自动
 ```bash
 cd deploy
 cp .env.example .env
-# 编辑 deploy/.env，填写 TOS endpoint、region、bucket、AK 和 SK。
 docker compose up --build
 ```
 
 服务默认监听：`http://127.0.0.1:18080`。
 
-后端默认使用 TOS 作为图片存储。Docker Compose 启动前必须复制 `deploy/.env.example` 为 `deploy/.env` 并填写 TOS 配置；如果 `AUCTION_STORAGE_PROVIDER=tos` 且 endpoint、region、bucket、access key、secret key 任一缺失，Compose 或后端会 fail fast，不会等到 upload 接口才返回 `storage not configured`。
+后端默认使用本地文件存储作为图片存储，上传文件写入 Docker volume，并通过 `http://localhost:18080/assets/...` 直接预览。全量本地启动只需要 Docker 和 Docker Compose，不需要火山引擎 TOS、DashScope 或其它云账号。
 
 Docker Compose 默认创建本地主账号：
 
@@ -54,6 +53,17 @@ password: main_dev_password
 curl http://127.0.0.1:18080/healthz
 curl http://127.0.0.1:18080/readyz
 ```
+
+本地默认组件：
+
+| 组件 | 地址 | 说明 |
+| --- | --- | --- |
+| Backend | `http://127.0.0.1:18080` | HTTP API / WebSocket / 静态素材 |
+| MySQL | `127.0.0.1:13306` | `auction / auction_dev` |
+| Redis | `127.0.0.1:16379` | password `auction_redis` |
+| Consul | `http://127.0.0.1:18500` | 服务注册与健康检查 |
+| Prometheus | `http://127.0.0.1:19090` | 指标采集 |
+| Grafana | `http://127.0.0.1:13000` | `admin / admin` |
 
 ### 旧数据库 volume 与 migration
 
@@ -75,19 +85,20 @@ deploy/mysql/migrations/20260531_full_rbac_replace.sql
 
 旧库的索引和 `auction_users.role` 删除不会只靠重新启动自动补齐；必须执行 migration 或清库重建。
 
-### 火山引擎 TOS 图片上传配置
+### 图片上传配置
 
-前端添加拍品页统一调用 `POST /api/uploads/images`，后端通过 `StorageProvider` 接火山引擎 TOS。AK/SK 只放运行环境变量，不进入前端或仓库。
+前端添加拍品页统一调用 `POST /api/uploads/images`，后端通过 `StorageProvider` 屏蔽本地存储和 TOS 的差异。AK/SK 只放运行环境变量，不进入前端或仓库。
 
-本地 Docker Compose 必须复制模板后填写 TOS 配置：
+本地默认配置：
 
-```bash
-cd deploy
-cp .env.example .env
-# 编辑 deploy/.env，填入 AUCTION_TOS_ENDPOINT / AUCTION_TOS_REGION / AUCTION_TOS_BUCKET / AUCTION_TOS_ACCESS_KEY / AUCTION_TOS_SECRET_KEY
+```env
+AUCTION_STORAGE_PROVIDER=local
+AUCTION_LOCAL_STORAGE_DIR=/data/live-auction-assets
+AUCTION_LOCAL_STORAGE_BUCKET=local
+AUCTION_LOCAL_STORAGE_PUBLIC_BASE_URL=http://localhost:18080/assets
 ```
 
-配置示例只展示字段名，真实值只放本地 `deploy/.env`：
+生产或云端演示需要切换到火山引擎 TOS 时，再把 `AUCTION_STORAGE_PROVIDER` 改成 `tos` 并填写以下字段：
 
 ```env
 AUCTION_STORAGE_PROVIDER=tos

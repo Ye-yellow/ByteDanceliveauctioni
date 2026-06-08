@@ -139,6 +139,7 @@ func main() {
 		Consul:            consulRegistration,
 	}
 	httpServer := server.NewHTTPServer(addr, auctionService, userService, hub, readiness, authManager, authManager.Middleware(), imageStorage, store)
+	server.RegisterLocalAssetsHTTP(httpServer, getenv("AUCTION_LOCAL_STORAGE_DIR", "/tmp/live-auction-assets"))
 
 	log.Printf("auction backend listening on %s via kratos http", addr)
 	if err := httpServer.Start(ctx); err != nil {
@@ -262,22 +263,30 @@ func bootstrapMainAccount(ctx context.Context, users *userbiz.Usecase) error {
 }
 
 func newImageStorageFromEnv() (storage.StorageProvider, error) {
-	provider := strings.TrimSpace(os.Getenv("AUCTION_STORAGE_PROVIDER"))
+	provider := strings.ToLower(strings.TrimSpace(os.Getenv("AUCTION_STORAGE_PROVIDER")))
 	if provider == "" {
-		provider = "tos"
+		provider = "local"
 	}
-	if provider != "tos" {
+	switch provider {
+	case "local":
+		return storage.NewLocalStorage(storage.LocalConfig{
+			RootDir:       strings.TrimSpace(getenv("AUCTION_LOCAL_STORAGE_DIR", "/tmp/live-auction-assets")),
+			Bucket:        strings.TrimSpace(getenv("AUCTION_LOCAL_STORAGE_BUCKET", "local")),
+			PublicBaseURL: strings.TrimSpace(os.Getenv("AUCTION_LOCAL_STORAGE_PUBLIC_BASE_URL")),
+		})
+	case "tos":
+		return storage.NewTOSStorage(storage.TOSConfig{
+			Endpoint:      strings.TrimSpace(os.Getenv("AUCTION_TOS_ENDPOINT")),
+			Region:        strings.TrimSpace(os.Getenv("AUCTION_TOS_REGION")),
+			Bucket:        strings.TrimSpace(os.Getenv("AUCTION_TOS_BUCKET")),
+			AccessKey:     strings.TrimSpace(os.Getenv("AUCTION_TOS_ACCESS_KEY")),
+			SecretKey:     strings.TrimSpace(os.Getenv("AUCTION_TOS_SECRET_KEY")),
+			PublicBaseURL: strings.TrimSpace(os.Getenv("AUCTION_TOS_PUBLIC_BASE_URL")),
+			UseSSL:        getenvBool("AUCTION_TOS_USE_SSL", true),
+		})
+	default:
 		return nil, errors.New("unsupported auction storage provider: " + provider)
 	}
-	return storage.NewTOSStorage(storage.TOSConfig{
-		Endpoint:      strings.TrimSpace(os.Getenv("AUCTION_TOS_ENDPOINT")),
-		Region:        strings.TrimSpace(os.Getenv("AUCTION_TOS_REGION")),
-		Bucket:        strings.TrimSpace(os.Getenv("AUCTION_TOS_BUCKET")),
-		AccessKey:     strings.TrimSpace(os.Getenv("AUCTION_TOS_ACCESS_KEY")),
-		SecretKey:     strings.TrimSpace(os.Getenv("AUCTION_TOS_SECRET_KEY")),
-		PublicBaseURL: strings.TrimSpace(os.Getenv("AUCTION_TOS_PUBLIC_BASE_URL")),
-		UseSSL:        getenvBool("AUCTION_TOS_USE_SSL", true),
-	})
 }
 
 func getenvBool(key string, fallback bool) bool {

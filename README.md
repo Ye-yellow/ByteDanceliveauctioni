@@ -59,13 +59,26 @@ flowchart LR
 
 ## Local Startup
 
-Start backend dependencies and service:
+Start backend dependencies and service. The default Docker Compose profile uses local file storage, mock AI responses, MySQL, Redis, Consul, Prometheus, and Grafana, so no cloud keys are required for a working demo.
 
 ```bash
 cd live-auction-bid-backend
 cp deploy/.env.example deploy/.env
-# Fill required local secrets in deploy/.env.
 make docker-up
+```
+
+Verify the backend:
+
+```bash
+curl http://127.0.0.1:18080/healthz
+curl http://127.0.0.1:18080/readyz
+```
+
+Default merchant account:
+
+```text
+username: main
+password: main_dev_password
 ```
 
 Start the PC merchant console:
@@ -73,16 +86,27 @@ Start the PC merchant console:
 ```bash
 cd live-auction-bid-frontend
 npm ci
-npm run dev
+npm run dev -- --host 0.0.0.0 --port 5173
 ```
 
 Start the H5 buyer client:
 
 ```bash
 cd live-auction-user-h5
+cp .env.example .env.local
 npm ci
-npm run dev
+npm run dev -- --host 0.0.0.0 --port 5174
 ```
+
+Local URLs:
+
+| App | URL |
+| --- | --- |
+| PC merchant console | `http://127.0.0.1:5173` |
+| H5 buyer client | `http://127.0.0.1:5174` |
+| Backend API | `http://127.0.0.1:18080` |
+| Grafana | `http://127.0.0.1:13000` |
+| Prometheus | `http://127.0.0.1:19090` |
 
 ## Configuration
 
@@ -97,9 +121,14 @@ AUCTION_REDIS_PASSWORD
 AUCTION_JWT_SECRET
 AUCTION_BOOTSTRAP_MAIN_ACCOUNT_USERNAME
 AUCTION_BOOTSTRAP_MAIN_ACCOUNT_PASSWORD
+AUCTION_STORAGE_PROVIDER
+AUCTION_LOCAL_STORAGE_DIR
+AUCTION_LOCAL_STORAGE_PUBLIC_BASE_URL
 AUCTION_EMBEDDING_API_KEY
 AUCTION_AI_API_KEY
 ```
+
+`AUCTION_STORAGE_PROVIDER=local` is the default public-delivery mode. Switch to `tos` only when deploying with real object-storage credentials.
 
 Do not commit real `.env` files, server credentials, cloud keys, or production secrets.
 
