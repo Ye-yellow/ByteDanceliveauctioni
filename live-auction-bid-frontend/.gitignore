@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.local
+.DS_Store
+*.log
+*.tsbuildinfo
+*.Zone.Identifier
+*:Zone.Identifier
+*.tar.gz
+*.zip
+coverage/
+.codex/
+.agents/
+.codegraph/
+tmp/
