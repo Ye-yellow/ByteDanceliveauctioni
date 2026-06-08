@@ -1,0 +1,36 @@
+{
+  "name": "live-auction-user-h5",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run check:external-assets && tsc -b && vite build",
+    "lint": "eslint .",
+    "check:ui-debt": "../scripts/check-ui-debt.sh",
+    "check:external-assets": "node scripts/check-external-assets.mjs",
+    "mirror:external-assets": "node scripts/mirror-external-assets.mjs",
+    "sync:external-assets": "npm run mirror:external-assets && (cd ../live-auction-bid-backend && go run ./cmd/upload_tos_dir --env deploy/.env --dir ../live-auction-user-h5/tmp/external-assets-mirror/files --prefix douyin-h5/external) && npm run check:external-assets",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.12.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^10.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.59.2",
+    "vite": "^8.0.12",
+    "vitest": "^4.1.7"
+  }
+}
