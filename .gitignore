@@ -1,0 +1,46 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+dist/
+build/
+coverage/
+*.test
+*.out
+
+# Logs and reports
+*.log
+logs/
+reports/
+tmp/
+.tmp/
+
+# Tooling caches
+.cache/
+.vite/
+.turbo/
+.eslintcache
+
+# IDE and OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Agent/internal work notes
+.AGENT/
+.agents/
+.codex/
+.workflow/
+docs/KNOWLEDGE_BASE.md
