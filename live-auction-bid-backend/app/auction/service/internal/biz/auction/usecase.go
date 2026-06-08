@@ -1020,11 +1020,32 @@ func (uc *AuctionUsecase) closeExpiredLot(ctx context.Context, lotID string, now
 		}
 		return true, false, nil
 	}
+	if uc.orders == nil {
+		return false, false, errors.New("order repository is required")
+	}
+	_, existingOrderFound, err := uc.orders.FindOrderByLot(ctx, lot.Id)
+	if err != nil {
+		return false, false, err
+	}
 	if err := SettleLot(lot, nowMs); err != nil {
 		return false, false, err
 	}
-	if uc.orders == nil {
-		return false, false, errors.New("order repository is required")
+	if existingOrderFound {
+		settledEvent := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_SETTLED, lot)
+		settledEvent.Ranking = ranking
+		closedEvent := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_AUCTION_CLOSED, lot)
+		closedEvent.Ranking = ranking
+		events := []v1.AuctionEvent{closedEvent, settledEvent}
+		if err := uc.lots.Save(ctx, lot, expectedVersion, events); err != nil {
+			return false, false, err
+		}
+		if err := uc.syncRuntimeLot(ctx, lot); err != nil {
+			return false, false, err
+		}
+		if err := uc.broadcast(ctx, events...); err != nil {
+			return false, false, err
+		}
+		return true, true, nil
 	}
 	order, err := NewOrderFromSettledLot(idgen.New("order"), lot, nowMs)
 	if err != nil {
