@@ -1,0 +1,216 @@
+services:
+  auction-backend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: live-auction-bid-backend:local
+    container_name: live-auction-bid-backend
+    environment:
+      AUCTION_HTTP_ADDR: ":18080"
+      AUCTION_ENV: "${AUCTION_ENV:-dev}"
+      AUCTION_WS_ALLOWED_ORIGINS: "${AUCTION_WS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174,http://120.79.7.110,http://120.79.7.110:8080}"
+      AUCTION_WS_ALLOW_MISSING_ORIGIN: "${AUCTION_WS_ALLOW_MISSING_ORIGIN:-true}"
+      AUCTION_WS_TICKET_TTL: "${AUCTION_WS_TICKET_TTL:-60s}"
+      AUCTION_BID_SYNC_PROJECTION: "${AUCTION_BID_SYNC_PROJECTION:-false}"
+      AUCTION_BID_DB_GUARD_MODE: "${AUCTION_BID_DB_GUARD_MODE:-runtime-first}"
+      AUCTION_VERBOSE_BID_LOG: "${AUCTION_VERBOSE_BID_LOG:-false}"
+      AUCTION_RUNTIME_PROJECTION_SHARDS: "${AUCTION_RUNTIME_PROJECTION_SHARDS:-16}"
+      AUCTION_RUNTIME_PROJECTION_BATCH_LIMIT: "${AUCTION_RUNTIME_PROJECTION_BATCH_LIMIT:-300}"
+      AUCTION_RUNTIME_PROJECTION_DRAIN_BATCHES: "${AUCTION_RUNTIME_PROJECTION_DRAIN_BATCHES:-8}"
+      AUCTION_RUNTIME_PROJECTION_BACKPRESSURE_PENDING_LIMIT: "${AUCTION_RUNTIME_PROJECTION_BACKPRESSURE_PENDING_LIMIT:-0}"
+      AUCTION_RUNTIME_PROJECTION_BACKPRESSURE_LAG: "${AUCTION_RUNTIME_PROJECTION_BACKPRESSURE_LAG:-0s}"
+      AUCTION_RUNTIME_PROJECT_LEGACY_STREAMS: "${AUCTION_RUNTIME_PROJECT_LEGACY_STREAMS:-false}"
+      AUCTION_DB_MAX_OPEN_CONNS: "${AUCTION_DB_MAX_OPEN_CONNS:-20}"
+      AUCTION_DB_MAX_IDLE_CONNS: "${AUCTION_DB_MAX_IDLE_CONNS:-10}"
+      AUCTION_DB_CONN_MAX_LIFETIME: "${AUCTION_DB_CONN_MAX_LIFETIME:-30m}"
+      AUCTION_DB_CONN_MAX_IDLE_TIME: "${AUCTION_DB_CONN_MAX_IDLE_TIME:-2m}"
+      AUCTION_REDIS_POOL_SIZE: "${AUCTION_REDIS_POOL_SIZE:-128}"
+      AUCTION_REDIS_MIN_IDLE_CONNS: "${AUCTION_REDIS_MIN_IDLE_CONNS:-16}"
+      AUCTION_MYSQL_DSN: "auction:auction_dev@tcp(mysql:3306)/live_auction?parseTime=true&charset=utf8mb4&loc=Local"
+      AUCTION_REDIS_ADDR: "redis:6379"
+      AUCTION_REDIS_PASSWORD: "auction_redis"
+      AUCTION_SEARCH_PROVIDER: "${AUCTION_SEARCH_PROVIDER:-}"
+      AUCTION_SEARCH_PG_DSN: "${AUCTION_SEARCH_PG_DSN:-}"
+      AUCTION_SEARCH_SYNC_INTERVAL: "${AUCTION_SEARCH_SYNC_INTERVAL:-5m}"
+      AUCTION_SEARCH_SYNC_BATCH_LIMIT: "${AUCTION_SEARCH_SYNC_BATCH_LIMIT:-500}"
+      AUCTION_SEARCH_HIDDEN_RETENTION: "${AUCTION_SEARCH_HIDDEN_RETENTION:-168h}"
+      AUCTION_EMBEDDING_PROVIDER: "${AUCTION_EMBEDDING_PROVIDER:-dashscope}"
+      AUCTION_EMBEDDING_BASE_URL: "${AUCTION_EMBEDDING_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}"
+      AUCTION_EMBEDDING_MODEL: "${AUCTION_EMBEDDING_MODEL:-text-embedding-v4}"
+      AUCTION_EMBEDDING_DIMENSIONS: "${AUCTION_EMBEDDING_DIMENSIONS:-1024}"
+      AUCTION_EMBEDDING_BATCH_SIZE: "${AUCTION_EMBEDDING_BATCH_SIZE:-10}"
+      AUCTION_EMBEDDING_TIMEOUT: "${AUCTION_EMBEDDING_TIMEOUT:-8s}"
+      AUCTION_EMBEDDING_API_KEY: "${AUCTION_EMBEDDING_API_KEY:-}"
+      AUCTION_AI_PROVIDER: "${AUCTION_AI_PROVIDER:-mock}"
+      AUCTION_AI_BASE_URL: "${AUCTION_AI_BASE_URL:-}"
+      AUCTION_AI_MODEL: "${AUCTION_AI_MODEL:-}"
+      AUCTION_AI_TIMEOUT: "${AUCTION_AI_TIMEOUT:-8s}"
+      AUCTION_AI_MOCK_ON_FAILURE: "${AUCTION_AI_MOCK_ON_FAILURE:-true}"
+      AUCTION_AI_API_KEY: "${AUCTION_AI_API_KEY:-}"
+      AUCTION_CONSUL_ADDR: "consul:8500"
+      AUCTION_SERVICE_NAME: "auction-backend"
+      AUCTION_SERVICE_ADDR: "auction-backend"
+      AUCTION_JWT_SECRET: "local-dev-jwt-secret-change-me"
+      AUCTION_JWT_ISSUER: "auction-backend"
+      AUCTION_BOOTSTRAP_MAIN_ACCOUNT_USERNAME: "main"
+      AUCTION_BOOTSTRAP_MAIN_ACCOUNT_PASSWORD: "main_dev_password"
+      AUCTION_BOOTSTRAP_MAIN_ACCOUNT_NICKNAME: "主账号"
+      # 图片对象存储：默认使用 TOS。启动前必须复制 deploy/.env.example 为 deploy/.env 并填写配置；
+      # 缺少 endpoint/region/bucket/AK/SK 时 Compose 或后端会 fail fast，不等到 upload 接口才报错。
+      AUCTION_STORAGE_PROVIDER: "${AUCTION_STORAGE_PROVIDER:-tos}"
+      AUCTION_TOS_ENDPOINT: "${AUCTION_TOS_ENDPOINT:?AUCTION_TOS_ENDPOINT is required}"
+      AUCTION_TOS_REGION: "${AUCTION_TOS_REGION:?AUCTION_TOS_REGION is required}"
+      AUCTION_TOS_BUCKET: "${AUCTION_TOS_BUCKET:?AUCTION_TOS_BUCKET is required}"
+      AUCTION_TOS_ACCESS_KEY: "${AUCTION_TOS_ACCESS_KEY:?AUCTION_TOS_ACCESS_KEY is required}"
+      AUCTION_TOS_SECRET_KEY: "${AUCTION_TOS_SECRET_KEY:?AUCTION_TOS_SECRET_KEY is required}"
+      AUCTION_TOS_PUBLIC_BASE_URL: "${AUCTION_TOS_PUBLIC_BASE_URL:-}"
+      AUCTION_TOS_USE_SSL: "${AUCTION_TOS_USE_SSL:-true}"
+      AUCTION_TEMP_ASSET_CLEANUP_INTERVAL: "${AUCTION_TEMP_ASSET_CLEANUP_INTERVAL:-1h}"
+    ports:
+      - "18080:18080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:18080/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - live-auction
+
+  mysql:
+    image: mysql:8.4
+    container_name: live-auction-mysql
+    environment:
+      MYSQL_DATABASE: live_auction
+      MYSQL_USER: auction
+      MYSQL_PASSWORD: auction_dev
+      MYSQL_ROOT_PASSWORD: auction_root
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --innodb-buffer-pool-size=${MYSQL_INNODB_BUFFER_POOL_SIZE:-768M}
+    ports:
+      - "13306:3306"
+    volumes:
+      - live-auction-mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uauction -pauction_dev --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - live-auction
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: live-auction-redis
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "auction_redis"]
+    ports:
+      - "16379:6379"
+    volumes:
+      - live-auction-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "auction_redis", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - live-auction
+
+  pgvector:
+    image: pgvector/pgvector:pg16
+    container_name: live-auction-pgvector
+    profiles: ["search"]
+    environment:
+      POSTGRES_DB: live_auction_search
+      POSTGRES_USER: auction_search
+      POSTGRES_PASSWORD: "${AUCTION_SEARCH_PG_PASSWORD:-auction_search_dev}"
+      TZ: Asia/Shanghai
+    command:
+      - postgres
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - max_connections=20
+    ports:
+      - "15432:5432"
+    volumes:
+      - live-auction-pgvector:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auction_search -d live_auction_search"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - live-auction
+
+  consul:
+    image: hashicorp/consul:1.18
+    container_name: live-auction-consul
+    command: ["agent", "-dev", "-client=0.0.0.0"]
+    ports:
+      - "18500:8500"
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - live-auction
+
+  prometheus:
+    image: prom/prometheus:v2.53.1
+    container_name: live-auction-prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=7d"
+      - "--web.enable-lifecycle"
+    ports:
+      - "19090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - live-auction-prometheus:/prometheus
+    depends_on:
+      auction-backend:
+        condition: service_healthy
+    networks:
+      - live-auction
+
+  grafana:
+    image: grafana/grafana:11.1.4
+    container_name: live-auction-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-admin}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:-admin}"
+      GF_USERS_DEFAULT_THEME: "light"
+      GF_AUTH_ANONYMOUS_ENABLED: "${GRAFANA_ANONYMOUS_ENABLED:-true}"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+    ports:
+      - "13000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - live-auction-grafana:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - live-auction
+
+volumes:
+  live-auction-mysql:
+  live-auction-redis:
+  live-auction-pgvector:
+  live-auction-prometheus:
+  live-auction-grafana:
+
+networks:
+  live-auction:
+    driver: bridge

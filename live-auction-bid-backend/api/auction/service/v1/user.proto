@@ -1,0 +1,236 @@
+syntax = "proto3";
+
+package auction.service.v1;
+
+option go_package = "live-auction-bid/backend/api/auction/service/v1;v1";
+
+import "api/auction/service/v1/auction.proto";
+import "google/api/annotations.proto";
+
+// UserService 管理直播竞拍账号、登录态和 RBAC 权限。
+service UserService {
+  // 公开注册买家账号。
+  rpc Register(RegisterRequest) returns (RegisterReply) {
+    option (google.api.http) = {
+      post: "/api/users/register"
+      body: "*"
+    };
+  }
+
+  // 用户名密码登录。
+  rpc Login(LoginRequest) returns (LoginReply) {
+    option (google.api.http) = {
+      post: "/api/users/login"
+      body: "*"
+    };
+  }
+
+  // 原型阶段：仅凭账号重置密码，方便测试和压测准备账号。
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordReply) {
+    option (google.api.http) = {
+      post: "/api/users/reset-password"
+      body: "*"
+    };
+  }
+
+  // 公开注册商家/主播主账号。
+  rpc RegisterMerchant(RegisterMerchantRequest) returns (RegisterMerchantReply) {
+    option (google.api.http) = {
+      post: "/api/merchants/register"
+      body: "*"
+    };
+  }
+
+  // 刷新 access token，并轮换 refresh token。
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenReply) {
+    option (google.api.http) = {
+      post: "/api/users/refresh"
+      body: "*"
+    };
+  }
+
+  // 登出当前 refresh session。
+  rpc Logout(LogoutRequest) returns (LogoutReply) {
+    option (google.api.http) = {
+      post: "/api/users/logout"
+      body: "*"
+    };
+  }
+
+  // 查看当前登录用户。
+  rpc GetMe(GetMeRequest) returns (GetMeReply) {
+    option (google.api.http) = {
+      get: "/api/users/me"
+    };
+  }
+
+  // 主账号创建团队子账号；不创建买家或新的主账号。
+  rpc AdminCreateUser(AdminCreateUserRequest) returns (AdminCreateUserReply) {
+    option (google.api.http) = {
+      post: "/api/admin/users"
+      body: "*"
+    };
+  }
+
+  // 主账号修改团队子账号角色；不允许改为买家或新的主账号。
+  rpc AdminUpdateUserRole(AdminUpdateUserRoleRequest) returns (AdminUpdateUserRoleReply) {
+    option (google.api.http) = {
+      post: "/api/admin/users/{user_id}/role"
+      body: "*"
+    };
+  }
+
+  // 主账号启用或禁用团队子账号。
+  rpc AdminUpdateUserStatus(AdminUpdateUserStatusRequest) returns (AdminUpdateUserStatusReply) {
+    option (google.api.http) = {
+      post: "/api/admin/users/{user_id}/status"
+      body: "*"
+    };
+  }
+
+  // 主账号重置团队子账号密码；不允许重置买家、主账号或其他商家空间账号。
+  rpc AdminResetUserPassword(AdminResetUserPasswordRequest) returns (AdminResetUserPasswordReply) {
+    option (google.api.http) = {
+      post: "/api/admin/users/{user_id}/reset-password"
+      body: "*"
+    };
+  }
+}
+
+enum UserStatus {
+  USER_STATUS_UNSPECIFIED = 0;
+  USER_STATUS_ACTIVE = 1;
+  USER_STATUS_DISABLED = 2;
+}
+
+message User {
+  string id = 1;
+  string username = 2;
+  string nickname = 3;
+  int64 created_at_unix_ms = 5;
+  int64 updated_at_unix_ms = 6;
+  string main_account_id = 7;
+  string created_by_user_id = 8;
+  UserStatus status = 9;
+  repeated string role_codes = 10;
+  repeated string permission_codes = 11;
+}
+
+message AuthTokens {
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 access_expires_at_unix_ms = 3;
+  int64 refresh_expires_at_unix_ms = 4;
+}
+
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+  string nickname = 3;
+}
+
+message RegisterReply {
+  User user = 1;
+  AuthTokens tokens = 2;
+  ReplyResult result = 99;
+}
+
+message RegisterMerchantRequest {
+  string username = 1;
+  string password = 2;
+  string nickname = 3;
+  string merchant_name = 4;
+}
+
+message RegisterMerchantReply {
+  User user = 1;
+  AuthTokens tokens = 2;
+  ReplyResult result = 99;
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginReply {
+  User user = 1;
+  AuthTokens tokens = 2;
+  ReplyResult result = 99;
+}
+
+message ResetPasswordRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message ResetPasswordReply {
+  User user = 1;
+  ReplyResult result = 99;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenReply {
+  AuthTokens tokens = 1;
+  ReplyResult result = 99;
+}
+
+message LogoutRequest {
+  string refresh_token = 1;
+}
+
+message LogoutReply {
+  ReplyResult result = 99;
+}
+
+message GetMeRequest {}
+
+message GetMeReply {
+  User user = 1;
+  ReplyResult result = 99;
+}
+
+message AdminCreateUserRequest {
+  string username = 1;
+  string password = 2;
+  string nickname = 3;
+  string role_code = 4;
+}
+
+message AdminCreateUserReply {
+  User user = 1;
+  ReplyResult result = 99;
+}
+
+message AdminUpdateUserRoleRequest {
+  string user_id = 1;
+  string role_code = 2;
+}
+
+message AdminUpdateUserRoleReply {
+  User user = 1;
+  ReplyResult result = 99;
+}
+
+message AdminUpdateUserStatusRequest {
+  string user_id = 1;
+  UserStatus status = 2;
+}
+
+message AdminUpdateUserStatusReply {
+  User user = 1;
+  ReplyResult result = 99;
+}
+
+message AdminResetUserPasswordRequest {
+  string user_id = 1;
+  string password = 2;
+}
+
+message AdminResetUserPasswordReply {
+  User user = 1;
+  ReplyResult result = 99;
+}

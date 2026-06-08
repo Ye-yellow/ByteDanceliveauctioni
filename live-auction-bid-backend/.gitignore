@@ -1,0 +1,20 @@
+.env
+!deploy/.env
+.DS_Store
+*.log
+*.tsbuildinfo
+*.Zone.Identifier
+*:Zone.Identifier
+*.tar.gz
+*.zip
+bin/
+coverage.out
+coverage/
+node_modules/
+dist/
+.codex/
+.agents/
+.codegraph/
+tmp/
+# local uGit clone/scratch
+auction-backend/
