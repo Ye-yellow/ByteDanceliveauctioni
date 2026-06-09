@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -747,11 +748,11 @@ func (s *Store) syncLotRuntime(ctx context.Context, lot *v1.Lot, overwrite bool)
 	}
 	stateKey := runtimeStateKey(lot.Id)
 	if !overwrite {
-		exists, err := s.redis.Exists(ctx, stateKey).Result()
+		ready, err := s.runtimeStateReady(ctx, stateKey, lot.Id)
 		if err != nil {
 			return err
 		}
-		if exists > 0 {
+		if ready {
 			return nil
 		}
 		lockKey := runtimeLockKey(lot.Id)
@@ -762,22 +763,22 @@ func (s *Store) syncLotRuntime(ctx context.Context, lot *v1.Lot, overwrite bool)
 		if !locked {
 			for i := 0; i < 20; i++ {
 				time.Sleep(10 * time.Millisecond)
-				exists, err = s.redis.Exists(ctx, stateKey).Result()
+				ready, err = s.runtimeStateReady(ctx, stateKey, lot.Id)
 				if err != nil {
 					return err
 				}
-				if exists > 0 {
+				if ready {
 					return nil
 				}
 			}
 			return fmt.Errorf("%w: lot runtime hydrate is busy", apperr.ErrInvalidArgument)
 		}
 		defer s.redis.Del(ctx, lockKey)
-		exists, err = s.redis.Exists(ctx, stateKey).Result()
+		ready, err = s.runtimeStateReady(ctx, stateKey, lot.Id)
 		if err != nil {
 			return err
 		}
-		if exists > 0 {
+		if ready {
 			return nil
 		}
 	}
@@ -786,6 +787,20 @@ func (s *Store) syncLotRuntime(ctx context.Context, lot *v1.Lot, overwrite bool)
 		return err
 	}
 	return s.writeLotRuntime(ctx, lot, bids)
+}
+
+func (s *Store) runtimeStateReady(ctx context.Context, stateKey, lotID string) (bool, error) {
+	storedLotID, err := s.redis.HGet(ctx, stateKey, "lot_id").Result()
+	if err == redis.Nil {
+		return false, nil
+	}
+	if err != nil {
+		if strings.Contains(strings.ToUpper(err.Error()), "WRONGTYPE") {
+			return false, nil
+		}
+		return false, err
+	}
+	return storedLotID == lotID && storedLotID != "", nil
 }
 
 func (s *Store) writeLotRuntime(ctx context.Context, lot *v1.Lot, bids []v1.Bid) error {
