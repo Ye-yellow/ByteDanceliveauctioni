@@ -42,9 +42,8 @@ export function deriveLotDisplayState(
   const order = options.order || null;
   const hasOrder = Boolean(order?.id);
 
-  if (isBiddableLotStatus(lot.status)) return 'live';
-
   if (options.paymentKnownPaid || isOrderPaid(order)) return 'finished';
+  if (isBiddableLotStatus(lot.status)) return 'live';
   if (isOrderFailed(order, nowMs)) return 'failed';
   if (lot.status === LOT_STATUS.CANCELLED) return 'cancelled';
   if (lot.status === LOT_STATUS.FAILED || Number(lot.cancelledAtUnixMs || 0) > 0) return 'failed';

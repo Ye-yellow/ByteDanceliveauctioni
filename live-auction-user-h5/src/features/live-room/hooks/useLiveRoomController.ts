@@ -414,7 +414,8 @@ export function useLiveRoomController(roomId: string) {
       const latest = await syncPrivateResult(lotId, { showModal: Boolean(resultLot), silent: true });
       if (latest?.order) setResultOrder(latest.order);
     }
-  }, [currentLot?.id, markPaymentSettled, payOrder?.lotId, pushNotice, refreshOrders, resultLot, syncPrivateResult]);
+    await refreshRoomLots().catch(() => undefined);
+  }, [currentLot?.id, markPaymentSettled, payOrder?.lotId, pushNotice, refreshOrders, refreshRoomLots, resultLot, syncPrivateResult]);
 
   const closeResult = useCallback(() => {
     if (resultLot?.id) dismissedResultLotIdsRef.current.add(resultLot.id);

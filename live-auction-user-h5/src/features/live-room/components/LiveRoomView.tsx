@@ -7,6 +7,7 @@ import { businessErrorMessage } from '../../../shared/api/errors';
 import { formatMoney, moneyNumber } from '../../../shared/lib/money';
 import { navigateTo } from '../../../shared/navigation';
 import type { LiveRoomController } from '../hooks/useLiveRoomController';
+import { deriveLotDisplayState, orderForLot } from '../model/lotDisplayState';
 import { AuctionDrawer } from './AuctionDrawer';
 import { AuctionNoticeLayer } from './AuctionNoticeLayer';
 
@@ -53,8 +54,27 @@ function AvatarMedia({ src, name }: { src: string; name: string }) {
   return <img src={src} alt="" referrerPolicy="no-referrer" loading="lazy" onError={() => setFailed(true)} />;
 }
 
+function currentLotDisplayState(controller: LiveRoomController) {
+  const { currentLot, room } = controller;
+  if (!currentLot) return undefined;
+  return deriveLotDisplayState(currentLot, {
+    order: orderForLot(room.orders, currentLot),
+    paymentKnownPaid: Boolean(room.paidLotIds[currentLot.id]),
+  });
+}
+
+function liveLotStatusLabel(controller: LiveRoomController): string {
+  const state = currentLotDisplayState(controller);
+  if (!state) return '等待上架';
+  if (state === 'live') return '竞拍中';
+  if (state === 'pendingPayment') return '待支付';
+  if (state === 'upcoming' || state === 'syncing') return '等待上架';
+  return '已结束';
+}
+
 function LiveRoomChrome({ controller }: { controller: LiveRoomController }) {
   const { anchorName, currentLot, room } = controller;
+  const statusLabel = liveLotStatusLabel(controller);
   const likes = Math.max(room.snapshot?.onlineCount || 0, 93000);
   const viewers = room.ranking.slice(0, 3);
   const viewerAvatars = viewers.length ? viewers.map((viewer, index) => {
@@ -96,8 +116,8 @@ function LiveRoomChrome({ controller }: { controller: LiveRoomController }) {
           <div className="liveAnchorTags" aria-label="直播标签">
             <span>讲解</span>
             <span>严选第{topRank}名</span>
-            <button type="button" onClick={() => controller.actions.showNotice(currentLot ? `正在竞拍 ${currentLot.title}` : '等待主播上架商品')}>
-              {currentLot ? '竞拍中' : '等待上架'} ›
+            <button type="button" onClick={() => controller.actions.showNotice(currentLot ? `${currentLot.title}：${statusLabel}` : '等待主播上架商品')}>
+              {statusLabel} ›
             </button>
           </div>
         </div>
@@ -149,6 +169,7 @@ function LiveBidLeaderboard({
 }) {
   const { currentLot, ranking, room } = controller;
   if (!currentLot) return null;
+  if (currentLotDisplayState(controller) !== 'live') return null;
 
   const acceptedRecentBids = room.recentBids.filter((bid) => bid.accepted !== false && (!bid.lotId || bid.lotId === currentLot.id));
   const bidCount = Math.max(currentLot.stats.bidCount, acceptedRecentBids.length);
@@ -305,6 +326,7 @@ function LiveProductFloatCard({
 }) {
   const { currentLot, room } = controller;
   if (!currentLot) return null;
+  if (currentLotDisplayState(controller) !== 'live') return null;
 
   const price = liveProductPrice(currentLot);
   const leaderName = currentLot.leadingNickname || currentLot.leadingUserId || '';
