@@ -83,7 +83,7 @@ if projection_pending_limit > 0 or projection_lag_limit_ms > 0 then
   if projection_pending_limit > 0 and shard_pending > projection_pending_limit then
     return cjson.encode({ ok = false, code = 'PROJECTION_PENDING', message = 'PROJECTION_PENDING' })
   end
-  if projection_lag_limit_ms > 0 and shard_lag_ms > projection_lag_limit_ms then
+  if projection_lag_limit_ms > 0 and shard_pending > 0 and shard_lag_ms > projection_lag_limit_ms then
     return cjson.encode({ ok = false, code = 'PROJECTION_PENDING', message = 'PROJECTION_PENDING' })
   end
 end
