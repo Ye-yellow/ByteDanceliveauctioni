@@ -1,4 +1,4 @@
-import { type CSSProperties, useState } from 'react';
+import { type CSSProperties, useEffect, useState } from 'react';
 import { LivePlayer } from '../../live/components/LivePlayer';
 import { DepositPayModal } from '../../payment-flow/components/DepositPayModal';
 import { MockPayModal } from '../../payment-flow/components/MockPayModal';
@@ -776,9 +776,16 @@ export function LiveRoomView({ controller }: { controller: LiveRoomController })
     actions.showNotice(`已送出 ${name}`);
     window.setTimeout(() => setGiftBurst(null), 2300);
   };
+  const hasResultModal = Boolean(resultLot);
+
+  useEffect(() => {
+    if (!resultLot) return;
+    setActiveSheet(null);
+    setClearScreen(false);
+  }, [resultLot]);
 
   return (
-    <main className={`mobileShell douyinShell ${auctionPanel.open ? 'drawerVisible' : ''} ${clearScreen ? 'isClearScreen' : ''}`}>
+    <main className={`mobileShell douyinShell ${auctionPanel.open && !hasResultModal ? 'drawerVisible' : ''} ${clearScreen ? 'isClearScreen' : ''}`}>
       <LivePlayer
         poster={currentLot?.imageUrl}
         anchorName={anchorName}
@@ -807,7 +814,7 @@ export function LiveRoomView({ controller }: { controller: LiveRoomController })
       ) : null}
       {wsState === '已断开' ? <div className="liveConnectionWarn">实时连接中断，正在恢复</div> : null}
       {error ? <div className="liveConnectionWarn error">{error}</div> : null}
-      <AuctionDrawer controller={controller} />
+      {!hasResultModal ? <AuctionDrawer controller={controller} /> : null}
       <AuctionNoticeLayer notices={notices} />
       <LiveComposer
         controller={controller}

@@ -182,6 +182,15 @@ export function useLiveRoomController(roomId: string) {
     window.setTimeout(() => setNotices((current) => current.filter((item) => item !== notice)), 3600);
   }, []);
 
+  const closeTransientPanelsForResult = useCallback(() => {
+    setAuctionPanelOpen(false);
+    setAuctionPanelTab('current');
+    setAuthPanelForcedOpen(false);
+    setDepositPrompt(null);
+    setPayOrder(null);
+    setBidError('');
+  }, []);
+
   const syncPrivateResult = useCallback(async (
     lotId: string,
     options: { showModal?: boolean; refreshOrderList?: boolean; silent?: boolean } = {},
@@ -191,6 +200,7 @@ export function useLiveRoomController(roomId: string) {
       const result = await refreshLotResult(lotId);
       const shouldShowModal = (options.showModal ?? true) && !dismissedResultLotIdsRef.current.has(result.lot.id);
       if (shouldShowModal) {
+        closeTransientPanelsForResult();
         setResultLot(result.lot);
         setResultOrder(result.order || null);
       }
@@ -201,7 +211,7 @@ export function useLiveRoomController(roomId: string) {
       if (!options.silent) pushNotice(e instanceof Error ? e.message : '成交结果同步失败');
       return null;
     }
-  }, [pushNotice, refreshLotResult, refreshOrders]);
+  }, [closeTransientPanelsForResult, pushNotice, refreshLotResult, refreshOrders]);
 
   const recoverRealtimeState = useCallback(async () => {
     await reload().catch(() => undefined);
