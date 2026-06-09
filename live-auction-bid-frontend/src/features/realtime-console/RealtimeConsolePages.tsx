@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, Clock3, ListChecks, Package, Radio, RefreshCw, ShieldAlert, Trophy, Wifi } from 'lucide-react';
 import { cancelLot, getRoomSnapshot, listAdminLots, revealTrustCard, settleLot, startDuel } from '../auction/api/auctionApi';
-import { isLiveLot, isQueueReadyLot, lotStatusLabel, lotStatusTone } from '../../entities/auction/model/auctionStatus';
+import { canSettleLot, isLiveLot, isQueueReadyLot, lotStatusLabel, lotStatusTone } from '../../entities/auction/model/auctionStatus';
 import type { Bid, Lot, RoomSnapshot } from '../../shared/api/types';
 import { resultMessage } from '../../shared/api/result';
 import { formatDateTimeText, formatMoneyText } from '../../shared/lib/format';
@@ -228,9 +228,10 @@ function PriceCommandBoard({ lot, snapshot }: { lot: Lot; snapshot: RoomSnapshot
 
 function ControlActionDeck({ lot, working, onDuel, onSettle, onCancel }: { lot: Lot; working: string; onDuel: () => void; onSettle: () => void; onCancel: (reason: string) => void }) {
   const disabled = Boolean(working);
+  const settleReady = canSettleLot(lot);
   const [cancelReason, setCancelReason] = useState('');
   const trimmedReason = cancelReason.trim();
-  return <section className="controlActionDeck"><header><h3>控场操作</h3><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge></header><div className="controlActionsGrid"><button type="button" className="controlActionButton controlActionButton-duel" disabled={disabled} onClick={onDuel}>进入决胜</button><button type="button" className="controlActionButton controlActionButton-muted" disabled>推送提醒待接口</button><button type="button" className="controlActionButton controlActionButton-muted" disabled>延时待接口</button></div><div className="dangerActionStrip"><button type="button" className="settleButton" disabled={disabled} onClick={onSettle}>落锤成交</button><input value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} placeholder="异常取消原因" disabled={disabled} /><button type="button" className="cancelButton" disabled={disabled || !trimmedReason} onClick={() => onCancel(trimmedReason)}>异常取消</button></div></section>;
+  return <section className="controlActionDeck"><header><h3>控场操作</h3><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge></header><div className="controlActionsGrid"><button type="button" className="controlActionButton controlActionButton-duel" disabled={disabled} onClick={onDuel}>进入决胜</button><button type="button" className="controlActionButton controlActionButton-muted" disabled>推送提醒待接口</button><button type="button" className="controlActionButton controlActionButton-muted" disabled>延时待接口</button></div><div className="dangerActionStrip"><button type="button" className="settleButton" disabled={disabled || !settleReady} title={settleReady ? '落锤成交' : '暂无有效出价，不能落锤成交'} onClick={onSettle}>{settleReady ? '落锤成交' : '等待出价'}</button><input value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} placeholder="异常取消原因" disabled={disabled} /><button type="button" className="cancelButton" disabled={disabled || !trimmedReason} onClick={() => onCancel(trimmedReason)}>异常取消</button></div></section>;
 }
 
 function RealtimeBidFeedPanel({ bids }: { bids: Bid[] }) {

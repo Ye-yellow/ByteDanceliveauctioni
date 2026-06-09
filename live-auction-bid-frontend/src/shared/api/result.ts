@@ -15,6 +15,7 @@ import {
   RESULT_CODE_PROJECTION_PENDING,
   RESULT_CODE_ROOM_ACTIVE_LOT_EXISTS,
   RESULT_CODE_FORBIDDEN,
+  RESULT_CODE_INVALID_ARGUMENT,
   RESULT_CODE_SESSION_EXPIRED,
   RESULT_CODE_TOKEN_EXPIRED,
   RESULT_CODE_TOKEN_INVALID,
@@ -50,6 +51,7 @@ export function resultMessage(e: unknown): string {
 }
 
 const errorMessages: Record<number, string> = {
+  [RESULT_CODE_INVALID_ARGUMENT]: '参数不正确，请检查后重试',
   [RESULT_CODE_LOGIN_REQUIRED]: '请先登录后再操作',
   [RESULT_CODE_TOKEN_EXPIRED]: '登录已过期，正在刷新登录态',
   [RESULT_CODE_TOKEN_INVALID]: '登录凭证无效，请重新登录',
@@ -86,6 +88,10 @@ const businessMessages: Record<string, string> = {
 export function publicResultMessage(result?: Partial<ReplyResult>, fallback = '请求失败') {
   if (!result) return fallback;
   const code = Number(result.code ?? RESULT_CODE_OK);
+  const rawMessage = String(result.message || '').trim();
+  if (code === RESULT_CODE_INVALID_ARGUMENT && /no accepted bid|无有效出价|暂无有效出价|winner is required/i.test(rawMessage)) {
+    return '暂无有效出价，不能落锤成交。请等待买家出价，或使用异常取消处理本件拍品。';
+  }
   return errorMessages[code] || businessMessages[String(result.message || '').trim()] || `${fallback}（code=${code}）`;
 }
 

@@ -74,6 +74,10 @@ export function isLiveLot(lot: Pick<Lot, 'status'>) {
   return lot.status === 'LOT_STATUS_LIVE' || lot.status === 'LOT_STATUS_EXTENDED';
 }
 
+export function canSettleLot(lot: Pick<Lot, 'leadingUserId'> | null | undefined) {
+  return Boolean(lot?.leadingUserId);
+}
+
 export function isQueueReadyLot(lot: Pick<Lot, 'status' | 'queueStatus' | 'playbookStage'>) {
   return ['草稿', '准备中', '待开拍'].includes(uiStatusOfLot(lot));
 }

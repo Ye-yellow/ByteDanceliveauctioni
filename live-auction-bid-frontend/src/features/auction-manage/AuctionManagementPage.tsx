@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Gavel, Package, Radio, RefreshCw, Search, ShieldAlert, ShieldCheck, Trophy, Wifi, X } from 'lucide-react';
 import { cancelLot, getRoomSnapshot, listAdminLots, settleLot, startLot, type AdminLotsQuery } from '../auction/api/auctionApi';
-import { CURRENT_LOT_STATUS_FILTERS, isLiveLot, isPreStartCancellableLot, isQueueReadyLot, isRemovedFromCurrentQueueLot, isSettlementLot, lotStatusLabel, lotStatusTone, settlementOutcomeDisplay, uiStatusOfLot } from '../../entities/auction/model/auctionStatus';
+import { CURRENT_LOT_STATUS_FILTERS, canSettleLot, isLiveLot, isPreStartCancellableLot, isQueueReadyLot, isRemovedFromCurrentQueueLot, isSettlementLot, lotStatusLabel, lotStatusTone, settlementOutcomeDisplay, uiStatusOfLot } from '../../entities/auction/model/auctionStatus';
 import type { Lot, RoomSnapshot } from '../../shared/api/types';
 import { resultMessage } from '../../shared/api/result';
 import { formatDateTimeText, formatDurationText, formatMoneyText } from '../../shared/lib/format';
@@ -70,6 +70,13 @@ export function AuctionManagementPage({ roomId, roomName = roomId }: Props) {
 
   const settleAuction = async (lot: Lot) => {
     setError('');
+    const liveLot = currentLot?.id === lot.id ? currentLot : lot;
+    if (!canSettleLot(liveLot)) {
+      const message = '暂无有效出价，不能落锤成交。请等待买家出价，或使用异常取消处理本件拍品。';
+      setError(message);
+      showToast({ tone: 'warning', title: '暂不能落锤成交', description: message });
+      return;
+    }
     try {
       const updated = await settleLot(lot.id);
       setLots((current) => upsertLot(current, updated));
@@ -209,10 +216,12 @@ function AuctionQueueRow({ lot, position, currentLot, snapshot, onDetail, onCanc
   const status = uiStatusOfLot(lot);
   const isCurrent = Boolean(currentLot?.id === lot.id || isLiveLot(lot));
   const isNext = !isCurrent && isQueueReadyLot(lot);
+  const liveLot = currentLot?.id === lot.id ? currentLot : lot;
+  const settleReady = canSettleLot(liveLot);
   return <article className={`queueRowCard ${isCurrent ? 'isCurrent' : ''} ${isNext ? 'isNext' : ''} ${status === '已取消' ? 'isCancelled' : ''}`} onClick={() => onDetail(lot)}>
     <div className="queueRowLeft"><span className="queueNo">#{String(position).padStart(2, '0')}</span><img src={lot.imageUrl || '/vite.svg'} alt={lot.title} /><div><h3>{lot.title}</h3><div className="queueTags"><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge><span>竞拍 ID {lot.id}</span><span>规则 v{lot.version || 1}</span></div></div></div>
     <div className="queueRowMiddle"><span><b>状态进度：</b>{statusProgressText(lot, snapshot)}</span><span><b>开拍时间：</b>{formatDateTimeText(lot.startedAtUnixMs, '未开拍')}</span><span><b>起拍 / 加价：</b>{formatMoneyText(lot.rule.startPrice)} / {formatMoneyText(lot.rule.minIncrement)}</span><span><b>封顶 / 时长：</b>{formatMoneyText(lot.rule.capPrice)} / {formatDurationText(lot.rule.durationSeconds)}</span></div>
-    <div className="queueRowRight">{orderStateText(lot)}<div className="auctionRowActions" onClick={(e) => e.stopPropagation()}><button type="button" className="queueActionPlain" onClick={() => onDetail(lot)}>详情</button>{isQueueReadyLot(lot) ? <button type="button" className="queueActionPrimary" disabled={Boolean(currentLot)} onClick={() => void onStart(lot)}>开始竞拍</button> : null}{isLiveLot(lot) ? <><a className="queueActionPrimary" href={`/admin/auctions/${lot.id}/control`}>进入中控</a><button type="button" className="queueActionPrimary" onClick={() => void onSettle(lot)}>落锤成交</button><button type="button" className="queueActionDanger danger" onClick={() => onCancel(lot)}>异常取消</button></> : null}{isPreStartCancellableLot(lot) ? <button type="button" className="queueActionDanger danger" onClick={() => onCancel(lot)}>取消拍品</button> : null}{isSettlementLot(lot) ? <a className="queueActionPrimary" href="/admin/orders">成交处理</a> : null}</div></div>
+    <div className="queueRowRight">{orderStateText(lot)}<div className="auctionRowActions" onClick={(e) => e.stopPropagation()}><button type="button" className="queueActionPlain" onClick={() => onDetail(lot)}>详情</button>{isQueueReadyLot(lot) ? <button type="button" className="queueActionPrimary" disabled={Boolean(currentLot)} onClick={() => void onStart(lot)}>开始竞拍</button> : null}{isLiveLot(lot) ? <><a className="queueActionPrimary" href={`/admin/auctions/${lot.id}/control`}>进入中控</a><button type="button" className="queueActionPrimary" disabled={!settleReady} title={settleReady ? '落锤成交' : '暂无有效出价，不能落锤成交'} onClick={() => void onSettle(lot)}>{settleReady ? '落锤成交' : '等待出价'}</button><button type="button" className="queueActionDanger danger" onClick={() => onCancel(lot)}>异常取消</button></> : null}{isPreStartCancellableLot(lot) ? <button type="button" className="queueActionDanger danger" onClick={() => onCancel(lot)}>取消拍品</button> : null}{isSettlementLot(lot) ? <a className="queueActionPrimary" href="/admin/orders">成交处理</a> : null}</div></div>
   </article>;
 }
 

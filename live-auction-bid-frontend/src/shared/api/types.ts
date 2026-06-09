@@ -2,6 +2,7 @@ export type Money = { amount: number | string; currency: string };
 export type ReplyResult = { code: number; message: string; traceId?: string; trace_id?: string };
 
 export const RESULT_CODE_OK = 0;
+export const RESULT_CODE_INVALID_ARGUMENT = 400001;
 export const RESULT_CODE_LOGIN_REQUIRED = 401001;
 export const RESULT_CODE_TOKEN_EXPIRED = 401002;
 export const RESULT_CODE_TOKEN_INVALID = 401003;
