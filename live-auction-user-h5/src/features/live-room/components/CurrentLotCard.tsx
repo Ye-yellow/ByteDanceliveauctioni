@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Lot } from '../../../shared/api/types';
+import { TRUST_CARD_TYPE, type Lot, type TrustRevealCard } from '../../../shared/api/types';
 import { formatMoney, moneyNumber } from '../../../shared/lib/money';
 import { useServerCountdown } from '../hooks/useServerCountdown';
 import { deriveLotDisplayState, lotHasBid, type LotDisplayState } from '../model/lotDisplayState';
@@ -67,20 +67,13 @@ function secondaryPriceMetric(lot: Lot, primaryLabel: string) {
   return { label: '起拍价', value: lot.rule.startPrice };
 }
 
-function certificateNo(lot: Lot) {
-  const suffix = lot.id.replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase() || 'DEMO01';
-  return `LA-CERT-${suffix}`;
-}
-
-function certificateMaterial(title: string) {
-  if (/翡翠|玉|玉器|和田|平安扣/.test(title)) return '天然玉石 / 18K 金镶扣';
-  if (/珍珠/.test(title)) return '天然珍珠 / 18K 金配件';
-  if (/金|项链|吊坠/.test(title)) return '贵金属镶嵌饰品';
-  return '珠宝饰品';
+function lotCertificateCard(lot: Lot): TrustRevealCard | undefined {
+  return lot.trustCards?.find((card) => card.type === TRUST_CARD_TYPE.CERTIFICATE && Boolean(card.imageUrl?.trim()));
 }
 
 export function CurrentLotCard({ lot, serverTimeUnixMs, serverTimeReceivedAtUnixMs, displayState }: CurrentLotCardProps) {
   const [certificateOpen, setCertificateOpen] = useState(false);
+  const certificateCard = lotCertificateCard(lot);
   const countdown = useServerCountdown(lot.endsAtUnixMs, serverTimeUnixMs, serverTimeReceivedAtUnixMs);
   const state = displayState || deriveLotDisplayState(lot);
   const copy = currentLotCopy(lot, state);
@@ -109,9 +102,11 @@ export function CurrentLotCard({ lot, serverTimeUnixMs, serverTimeReceivedAtUnix
         <div className="lotInfo">
           <div className="lotStatusRow">
             <span className="statusPill">{copy.status}</span>
-            <button type="button" className="certificateButton" onClick={() => setCertificateOpen(true)}>
-              查看证书
-            </button>
+            {certificateCard ? (
+              <button type="button" className="certificateButton" onClick={() => setCertificateOpen(true)}>
+                查看证书
+              </button>
+            ) : null}
           </div>
           <h1>{lot.title}</h1>
           <p>{participantText}</p>
@@ -137,37 +132,19 @@ export function CurrentLotCard({ lot, serverTimeUnixMs, serverTimeReceivedAtUnix
           </b>
         </div>
       </div>
-      {certificateOpen ? (
+      {certificateOpen && certificateCard ? (
         <div className="certificateModal" role="dialog" aria-modal="true" aria-label="商品证书" onClick={() => setCertificateOpen(false)}>
           <article className="certificateCard" onClick={(event) => event.stopPropagation()}>
             <button type="button" className="certificateClose" onClick={() => setCertificateOpen(false)} aria-label="关闭证书">×</button>
             <header>
-              <span>LiveAuction 验真凭证</span>
-              <b>商品鉴定证书</b>
-              <small>{certificateNo(lot)}</small>
+              <span>LiveAuction 商品凭证</span>
+              <b>{certificateCard.title || '商品鉴定证书'}</b>
+              <small>{lot.title}</small>
             </header>
             <div className="certificateBody">
-              {lot.imageUrl ? <img src={lot.imageUrl} alt={lot.title} /> : <div className="certificateFallback">证</div>}
-              <dl>
-                <div>
-                  <dt>拍品名称</dt>
-                  <dd>{lot.title}</dd>
-                </div>
-                <div>
-                  <dt>材质类型</dt>
-                  <dd>{certificateMaterial(lot.title)}</dd>
-                </div>
-                <div>
-                  <dt>鉴定结论</dt>
-                  <dd>正品保障，可参与竞拍</dd>
-                </div>
-                <div>
-                  <dt>平台记录</dt>
-                  <dd>拍品 ID {lot.id.slice(0, 8) || '已同步'}</dd>
-                </div>
-              </dl>
+              <img src={certificateCard.imageUrl} alt={`${lot.title}鉴定证书`} />
             </div>
-            <footer>证书信息用于直播竞拍展示，真实交易以商家上传原件和平台审核记录为准。</footer>
+            {certificateCard.content ? <footer>{certificateCard.content}</footer> : null}
           </article>
         </div>
       ) : null}

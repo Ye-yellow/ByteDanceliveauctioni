@@ -4,6 +4,7 @@ import {
   LOT_STATUS,
   PERMISSION_CODE,
   ROLE_CODE,
+  TRUST_CARD_TYPE,
   USER_STATUS,
   type AuctionEventType,
   type AuctionSocketEvent,
@@ -23,6 +24,8 @@ import {
   type RankingItem,
   type Room,
   type RoomSnapshot,
+  type TrustCardType,
+  type TrustRevealCard,
   type User,
   type PermissionCode,
   type RoleCode,
@@ -53,6 +56,7 @@ const permissionCodeValues = new Set<PermissionCode>(Object.values(PERMISSION_CO
 const userStatusValues = new Set<UserStatus>(Object.values(USER_STATUS));
 const lotStatusValues = new Set<LotStatus>(Object.values(LOT_STATUS));
 const lotQueueStatusValues = new Set<LotQueueStatus>(Object.values(LOT_QUEUE_STATUS));
+const trustCardTypeValues = new Set<TrustCardType>(Object.values(TRUST_CARD_TYPE));
 const auctionEventTypeValues = new Set<AuctionEventType>(Object.values(AUCTION_EVENT_TYPE));
 
 function normalizeEnum<T extends string>(value: unknown, values: Set<T>, fallback: T): T {
@@ -153,6 +157,20 @@ function normalizeLotStats(input: unknown): Lot['stats'] {
   };
 }
 
+function normalizeTrustRevealCard(input: unknown): TrustRevealCard {
+  const raw = asRecord(input);
+  return {
+    id: stringValue(raw.id),
+    lotId: stringValue(pick(raw, 'lotId', 'lot_id')),
+    type: normalizeEnum(pick(raw, 'type'), trustCardTypeValues, TRUST_CARD_TYPE.UNSPECIFIED),
+    title: stringValue(raw.title),
+    content: stringValue(raw.content),
+    imageUrl: stringValue(pick(raw, 'imageUrl', 'image_url')),
+    revealed: Boolean(raw.revealed),
+    revealedAtUnixMs: pick(raw, 'revealedAtUnixMs', 'revealed_at_unix_ms'),
+  };
+}
+
 export function normalizeLot(input: unknown): Lot {
   const raw = asRecord(input);
   return {
@@ -181,6 +199,9 @@ export function normalizeLot(input: unknown): Lot {
     cancelReason: stringValue(pick(raw, 'cancelReason', 'cancel_reason')),
     cancelledAtUnixMs: pick(raw, 'cancelledAtUnixMs', 'cancelled_at_unix_ms'),
     depositAmount: pick(raw, 'depositAmount', 'deposit_amount') ? normalizeMoney(pick(raw, 'depositAmount', 'deposit_amount')) : undefined,
+    trustCards: Array.isArray(pick(raw, 'trustCards', 'trust_cards'))
+      ? (pick<unknown[]>(raw, 'trustCards', 'trust_cards') ?? []).map(normalizeTrustRevealCard)
+      : [],
   };
 }
 

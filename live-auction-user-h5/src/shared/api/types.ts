@@ -76,6 +76,17 @@ export const LOT_QUEUE_STATUS = {
 
 export type LotQueueStatus = (typeof LOT_QUEUE_STATUS)[keyof typeof LOT_QUEUE_STATUS];
 
+export const TRUST_CARD_TYPE = {
+  UNSPECIFIED: 'TRUST_CARD_TYPE_UNSPECIFIED',
+  CERTIFICATE: 'TRUST_CARD_TYPE_CERTIFICATE',
+  FLAW: 'TRUST_CARD_TYPE_FLAW',
+  DETAIL: 'TRUST_CARD_TYPE_DETAIL',
+  SERVICE: 'TRUST_CARD_TYPE_SERVICE',
+  PRICE_REF: 'TRUST_CARD_TYPE_PRICE_REF',
+} as const;
+
+export type TrustCardType = (typeof TRUST_CARD_TYPE)[keyof typeof TRUST_CARD_TYPE];
+
 export const AUCTION_EVENT_TYPE = {
   UNSPECIFIED: 'AUCTION_EVENT_TYPE_UNSPECIFIED',
   ROOM_SNAPSHOT: 'AUCTION_EVENT_TYPE_ROOM_SNAPSHOT',
@@ -170,6 +181,17 @@ export type LotStats = {
   bidCount: number;
 };
 
+export type TrustRevealCard = {
+  id: string;
+  lotId?: string;
+  type: TrustCardType | string;
+  title?: string;
+  content?: string;
+  imageUrl?: string;
+  revealed?: boolean;
+  revealedAtUnixMs?: number | string;
+};
+
 export type Lot = {
   id: string;
   roomId: string;
@@ -196,6 +218,7 @@ export type Lot = {
   cancelReason?: string;
   cancelledAtUnixMs?: number | string;
   depositAmount?: Money;
+  trustCards?: TrustRevealCard[];
 };
 
 export type RankingItem = {
