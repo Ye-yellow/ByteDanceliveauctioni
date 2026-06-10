@@ -163,3 +163,4 @@ npm test
 - This public delivery repository keeps the main source history of the three original projects after sensitive-history filtering.
 - The submitted production shape is a single-node deployment. Cluster routing, shard gateway, and multi-node operations remain reserved extension directions and are not claimed as finalized delivery features here.
 - Runtime screenshots, Feishu project documents, and challenge demo links should be attached from the final submission page rather than committed with secrets or private environment files.
+- Project contributors: Ye-yellow, XB-Dong (https://github.com/XB-Dong)
