@@ -1,10 +1,12 @@
 package auction
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
+	"live-auction-bid/backend/app/auction/service/internal/biz/shop"
 	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/clock"
@@ -43,7 +45,71 @@ const (
 	PaymentStatusClosed     PaymentStatus = "CLOSED"
 )
 
+type DepositStatus string
+
+const (
+	DepositStatusInit       DepositStatus = "INIT"
+	DepositStatusProcessing DepositStatus = "PROCESSING"
+	DepositStatusHeld       DepositStatus = "HELD"
+	DepositStatusReleased   DepositStatus = "RELEASED"
+	DepositStatusConsumed   DepositStatus = "CONSUMED"
+	DepositStatusFailed     DepositStatus = "FAILED"
+)
+
 const OrderPaymentWindowMs int64 = 30 * 60 * 1000
+
+type PaymentProvider interface {
+	Name() string
+	Pay(ctx context.Context, req PaymentProviderRequest) (PaymentProviderResult, error)
+}
+
+type PaymentProviderRequest struct {
+	BusinessID     string
+	BusinessType   string
+	UserID         string
+	Amount         int64
+	Currency       string
+	IdempotencyKey string
+}
+
+type PaymentProviderResult struct {
+	ProviderPaymentID string
+	PaidAtUnixMs      int64
+}
+
+type MockPaymentProvider struct{}
+
+func NewMockPaymentProvider() MockPaymentProvider { return MockPaymentProvider{} }
+
+func NewPaymentProviderFromName(name string) (PaymentProvider, error) {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "":
+		return nil, apperr.ErrPaymentProviderNotConfigured
+	case "mock":
+		return NewMockPaymentProvider(), nil
+	default:
+		return nil, fmt.Errorf("%w: unsupported payment provider %s", apperr.ErrPaymentProviderNotConfigured, name)
+	}
+}
+
+func (MockPaymentProvider) Name() string { return "mock" }
+
+func (MockPaymentProvider) Pay(_ context.Context, req PaymentProviderRequest) (PaymentProviderResult, error) {
+	if req.BusinessID == "" {
+		return PaymentProviderResult{}, fmt.Errorf("%w: payment business id is required", apperr.ErrInvalidArgument)
+	}
+	if req.UserID == "" {
+		return PaymentProviderResult{}, fmt.Errorf("%w: payment user id is required", apperr.ErrInvalidArgument)
+	}
+	if req.Amount < 0 || req.Currency == "" {
+		return PaymentProviderResult{}, fmt.Errorf("%w: payment amount and currency are required", apperr.ErrInvalidArgument)
+	}
+	if req.IdempotencyKey == "" {
+		return PaymentProviderResult{}, fmt.Errorf("%w: payment idempotency key is required", apperr.ErrInvalidArgument)
+	}
+	nowMs := clock.NowMs()
+	return PaymentProviderResult{ProviderPaymentID: "mock_" + req.BusinessID, PaidAtUnixMs: nowMs}, nil
+}
 
 type RoomStatus string
 
@@ -99,24 +165,26 @@ func PublicVisibleLotStatuses() []v1.LotStatus {
 }
 
 type Order struct {
-	ID              string        `json:"id"`
-	MainAccountID   string        `json:"mainAccountId"`
-	LotID           string        `json:"lotId"`
-	RoomID          string        `json:"roomId"`
-	LotTitle        string        `json:"lotTitle"`
-	LotImageURL     string        `json:"lotImageUrl"`
-	BuyerUserID     string        `json:"buyerUserId"`
-	BuyerNickname   string        `json:"buyerNickname"`
-	Status          OrderStatus   `json:"status"`
-	PaymentStatus   PaymentStatus `json:"paymentStatus"`
-	PaymentID       string        `json:"paymentId,omitempty"`
-	Amount          int64         `json:"amount"`
-	Currency        string        `json:"currency"`
-	CreatedAtUnixMs int64         `json:"createdAtUnixMs"`
-	UpdatedAtUnixMs int64         `json:"updatedAtUnixMs"`
-	ExpiresAtUnixMs int64         `json:"expiresAtUnixMs"`
-	PaidAtUnixMs    int64         `json:"paidAtUnixMs,omitempty"`
-	Version         int64         `json:"version"`
+	ID                      string                        `json:"id"`
+	MainAccountID           string                        `json:"mainAccountId"`
+	LotID                   string                        `json:"lotId"`
+	RoomID                  string                        `json:"roomId"`
+	LotTitle                string                        `json:"lotTitle"`
+	LotImageURL             string                        `json:"lotImageUrl"`
+	BuyerUserID             string                        `json:"buyerUserId"`
+	BuyerNickname           string                        `json:"buyerNickname"`
+	Status                  OrderStatus                   `json:"status"`
+	PaymentStatus           PaymentStatus                 `json:"paymentStatus"`
+	PaymentID               string                        `json:"paymentId,omitempty"`
+	ShippingAddressID       string                        `json:"shippingAddressId,omitempty"`
+	ShippingAddressSnapshot *shop.DeliveryAddressSnapshot `json:"shippingAddressSnapshot,omitempty"`
+	Amount                  int64                         `json:"amount"`
+	Currency                string                        `json:"currency"`
+	CreatedAtUnixMs         int64                         `json:"createdAtUnixMs"`
+	UpdatedAtUnixMs         int64                         `json:"updatedAtUnixMs"`
+	ExpiresAtUnixMs         int64                         `json:"expiresAtUnixMs"`
+	PaidAtUnixMs            int64                         `json:"paidAtUnixMs,omitempty"`
+	Version                 int64                         `json:"version"`
 }
 
 type Payment struct {
@@ -134,23 +202,47 @@ type Payment struct {
 	SucceededAtMs   int64         `json:"succeededAtUnixMs,omitempty"`
 }
 
+type DepositHold struct {
+	ID               string                       `json:"id"`
+	MainAccountID    string                       `json:"mainAccountId"`
+	RoomID           string                       `json:"roomId"`
+	LotID            string                       `json:"lotId"`
+	BuyerUserID      string                       `json:"buyerUserId"`
+	BuyerNickname    string                       `json:"buyerNickname,omitempty"`
+	Status           DepositStatus                `json:"status"`
+	Amount           int64                        `json:"amount"`
+	Currency         string                       `json:"currency"`
+	PaymentProvider  string                       `json:"paymentProvider"`
+	PaymentID        string                       `json:"paymentId,omitempty"`
+	IdempotencyKey   string                       `json:"idempotencyKey,omitempty"`
+	AddressID        string                       `json:"addressId,omitempty"`
+	AddressSnapshot  shop.DeliveryAddressSnapshot `json:"addressSnapshot"`
+	CreatedAtUnixMs  int64                        `json:"createdAtUnixMs"`
+	UpdatedAtUnixMs  int64                        `json:"updatedAtUnixMs"`
+	HeldAtUnixMs     int64                        `json:"heldAtUnixMs,omitempty"`
+	ReleasedAtUnixMs int64                        `json:"releasedAtUnixMs,omitempty"`
+}
+
 type OrderSummary struct {
-	ID              string        `json:"id"`
-	MainAccountID   string        `json:"mainAccountId"`
-	LotID           string        `json:"lotId"`
-	RoomID          string        `json:"roomId"`
-	LotTitle        string        `json:"lotTitle"`
-	LotImageURL     string        `json:"lotImageUrl"`
-	BuyerUserID     string        `json:"buyerUserId"`
-	Status          OrderStatus   `json:"status"`
-	PaymentStatus   PaymentStatus `json:"paymentStatus"`
-	PaymentID       string        `json:"paymentId,omitempty"`
-	Amount          int64         `json:"amount"`
-	Currency        string        `json:"currency"`
-	CreatedAtUnixMs int64         `json:"createdAtUnixMs"`
-	UpdatedAtUnixMs int64         `json:"updatedAtUnixMs"`
-	ExpiresAtUnixMs int64         `json:"expiresAtUnixMs"`
-	PaidAtUnixMs    int64         `json:"paidAtUnixMs,omitempty"`
+	ID                      string                        `json:"id"`
+	MainAccountID           string                        `json:"mainAccountId"`
+	LotID                   string                        `json:"lotId"`
+	RoomID                  string                        `json:"roomId"`
+	LotTitle                string                        `json:"lotTitle"`
+	LotImageURL             string                        `json:"lotImageUrl"`
+	BuyerUserID             string                        `json:"buyerUserId"`
+	BuyerNickname           string                        `json:"buyerNickname,omitempty"`
+	Status                  OrderStatus                   `json:"status"`
+	PaymentStatus           PaymentStatus                 `json:"paymentStatus"`
+	PaymentID               string                        `json:"paymentId,omitempty"`
+	ShippingAddressID       string                        `json:"shippingAddressId,omitempty"`
+	ShippingAddressSnapshot *shop.DeliveryAddressSnapshot `json:"shippingAddressSnapshot,omitempty"`
+	Amount                  int64                         `json:"amount"`
+	Currency                string                        `json:"currency"`
+	CreatedAtUnixMs         int64                         `json:"createdAtUnixMs"`
+	UpdatedAtUnixMs         int64                         `json:"updatedAtUnixMs"`
+	ExpiresAtUnixMs         int64                         `json:"expiresAtUnixMs"`
+	PaidAtUnixMs            int64                         `json:"paidAtUnixMs,omitempty"`
 }
 
 type PaymentSummary struct {
@@ -161,6 +253,17 @@ type PaymentSummary struct {
 	Currency        string        `json:"currency"`
 	CreatedAtUnixMs int64         `json:"createdAtUnixMs"`
 	SucceededAtMs   int64         `json:"succeededAtUnixMs,omitempty"`
+}
+
+type CreateDepositHoldRequest struct {
+	LotID          string `json:"lotId"`
+	AddressID      string `json:"addressId"`
+	IdempotencyKey string `json:"idempotencyKey"`
+}
+
+type DepositHoldResult struct {
+	DepositHold DepositHold `json:"depositHold"`
+	Paid        bool        `json:"paid"`
 }
 
 type OrderQuery struct {
@@ -386,22 +489,25 @@ func (o Order) effectiveStatus(nowMs int64) (OrderStatus, PaymentStatus) {
 func (o Order) Summary() OrderSummary {
 	status, paymentStatus := o.effectiveStatus(clock.NowMs())
 	return OrderSummary{
-		ID:              o.ID,
-		MainAccountID:   o.MainAccountID,
-		LotID:           o.LotID,
-		RoomID:          o.RoomID,
-		LotTitle:        o.LotTitle,
-		LotImageURL:     o.LotImageURL,
-		BuyerUserID:     o.BuyerUserID,
-		Status:          status,
-		PaymentStatus:   paymentStatus,
-		PaymentID:       o.PaymentID,
-		Amount:          o.Amount,
-		Currency:        o.Currency,
-		CreatedAtUnixMs: o.CreatedAtUnixMs,
-		UpdatedAtUnixMs: o.UpdatedAtUnixMs,
-		ExpiresAtUnixMs: o.ExpiresAtUnixMs,
-		PaidAtUnixMs:    o.PaidAtUnixMs,
+		ID:                      o.ID,
+		MainAccountID:           o.MainAccountID,
+		LotID:                   o.LotID,
+		RoomID:                  o.RoomID,
+		LotTitle:                o.LotTitle,
+		LotImageURL:             o.LotImageURL,
+		BuyerUserID:             o.BuyerUserID,
+		BuyerNickname:           o.BuyerNickname,
+		Status:                  status,
+		PaymentStatus:           paymentStatus,
+		PaymentID:               o.PaymentID,
+		ShippingAddressID:       o.ShippingAddressID,
+		ShippingAddressSnapshot: o.ShippingAddressSnapshot,
+		Amount:                  o.Amount,
+		Currency:                o.Currency,
+		CreatedAtUnixMs:         o.CreatedAtUnixMs,
+		UpdatedAtUnixMs:         o.UpdatedAtUnixMs,
+		ExpiresAtUnixMs:         o.ExpiresAtUnixMs,
+		PaidAtUnixMs:            o.PaidAtUnixMs,
 	}
 }
 

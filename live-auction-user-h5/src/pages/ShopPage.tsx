@@ -1,174 +1,159 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Camera, Menu, Search, ShoppingCart } from 'lucide-react';
+import { listShopProducts, FALLBACK_PRODUCTS, formatShopMoney } from '../features/shop/api/shopApi';
+import type { ShopProduct } from '../features/shop/api/shopApi';
+import { navigateTo } from '../shared/navigation';
 import { DouyinTabBar } from '../shared/ui/DouyinTabBar';
 import './shop-replica.css';
 
-type VisualKind = 'socket' | 'tv' | 'sweater' | 'socks' | 'storage' | 'beauty' | 'snack' | 'phone';
+const NAV_ITEMS = ['热点', '长视频', '关注', '直播', '商城', '推荐'];
+const CATEGORY_TABS = ['推荐', '直播精选', '珠宝玉石', '项链吊坠', '手链手串', '收纳配饰'];
+const SEARCH_HINTS = ['冰阳绿翡翠手镯', '送礼项链', '低价开拍', '直播同款'];
+const SHOP_ICON_BASE = '/shop-icon-drafts/';
 
-type ShopProduct = {
-  id: string;
-  category: string;
-  name: string;
-  price: string;
-  sold: string;
-  discount?: string;
-  isLowPrice?: boolean;
-  visual: VisualKind;
-  coverLabel: string;
+const SHORTCUTS = [
+  { label: '我的订单', href: '/shop/orders', icon: 'order.svg', badge: '' },
+  { label: '订单报销', href: '/shop/orders?status=paid', icon: 'reimbursement.svg', badge: '待领券' },
+  { label: '天天抽券', href: '/shop?entry=coupon', icon: 'daily-lottery.svg', badge: '' },
+  { label: '充值中心', href: '/shop?entry=recharge', icon: 'recharge.svg', badge: '抢4元' },
+  { label: '券红包', href: '/shop?entry=gift', icon: 'coupon-wallet.svg', badge: '10张券' },
+];
+
+const NAV_HREF: Record<string, string> = {
+  热点: '/home',
+  长视频: '/home',
+  关注: '/home',
+  直播: '/home/live',
+  商城: '/shop',
+  推荐: '/home',
 };
 
-const SHOP_SHORTCUTS = [
-  { label: '我的订单', icon: 'order', href: '/m/history?from=shop' },
-  { label: '手机充值', icon: 'charge', href: '/shop?entry=recharge' },
-  { label: '购物消息', icon: 'message', href: '/shop?entry=message' },
-  { label: '小时达', icon: 'nearby', href: '/shop?entry=nearby' },
-  { label: '退款/售后', icon: 'refund', href: '/shop?entry=refund' },
-  { label: '潮流服饰', icon: 'fashion', href: '/shop?entry=fashion' },
-];
-
-const SHOP_CATEGORIES = ['精选', '38节补贴', '手机数码', '潮流服饰', '日用百货'];
-
-const SHOP_PRODUCTS: ShopProduct[] = [
-  {
-    id: 'socket',
-    category: '精选',
-    name: '多功能电源插座 家用宿舍办公插排 直播热卖同款',
-    price: '39.9',
-    sold: '12.3万',
-    discount: '券后价',
-    isLowPrice: true,
-    visual: 'socket',
-    coverLabel: '插座',
-  },
-  {
-    id: 'tv-oled',
-    category: '手机数码',
-    name: '小米电视6 65英寸 OLED 超薄全面屏官方补贴',
-    price: '470',
-    sold: '2.7万',
-    discount: '官方立减',
-    visual: 'tv',
-    coverLabel: 'OLED',
-  },
-  {
-    id: 'stripe-knit',
-    category: '潮流服饰',
-    name: '红白撞色条纹软糯针织上衣女秋季新款',
-    price: '69.9',
-    sold: '8.8万',
-    discount: '满减',
-    visual: 'sweater',
-    coverLabel: '针织',
-  },
-  {
-    id: 'sp-socks',
-    category: '日用百货',
-    name: '男士SP中筒袜十双装 透气耐穿不易滑落',
-    price: '8.8',
-    sold: '10万+',
-    isLowPrice: true,
-    visual: 'socks',
-    coverLabel: '袜子',
-  },
-  {
-    id: 'makeup-set',
-    category: '38节补贴',
-    name: '水光持妆粉底液套装 清透遮瑕自然妆感',
-    price: '88',
-    sold: '6.4万',
-    discount: '38节补贴',
-    visual: 'beauty',
-    coverLabel: '美妆',
-  },
-  {
-    id: 'storage-box',
-    category: '日用百货',
-    name: '桌面透明收纳盒 多层防尘展示柜带抽屉',
-    price: '29.9',
-    sold: '4.2万',
-    discount: '限时抢',
-    visual: 'storage',
-    coverLabel: '收纳',
-  },
-  {
-    id: 'snack-box',
-    category: '38节补贴',
-    name: '休闲零食大礼包 组合装办公室下午茶',
-    price: '19.9',
-    sold: '9.6万',
-    isLowPrice: true,
-    visual: 'snack',
-    coverLabel: '零食',
-  },
-  {
-    id: 'phone-card',
-    category: '手机数码',
-    name: '50元话费充值 即充即到账 全国通用',
-    price: '49.8',
-    sold: '18.5万',
-    discount: '极速到账',
-    visual: 'phone',
-    coverLabel: '话费',
-  },
-];
-
-const SUBSIDY_PRODUCTS = [
-  SHOP_PRODUCTS[1],
-  SHOP_PRODUCTS[4],
-  SHOP_PRODUCTS[3],
-  SHOP_PRODUCTS[6],
-];
-
-function ProductPoster({ product, compact = false }: { product: ShopProduct; compact?: boolean }) {
-  return (
-    <div className={`dyShopPoster dyShopPoster-${product.visual}${compact ? ' dyShopPosterCompact' : ''}`}>
-      <span className="dyShopPosterObject" aria-hidden="true">
-        <i />
-        <i />
-        <b />
-      </span>
-      <strong>{product.coverLabel}</strong>
-    </div>
-  );
+function productMatches(product: ShopProduct, keyword: string, category: string): boolean {
+  const matchCategory = category === '推荐' || product.category === category || product.tags.includes(category);
+  const text = [product.title, product.subtitle, product.category, product.shopName, ...product.tags].join(' ');
+  return matchCategory && (!keyword || text.includes(keyword));
 }
 
 export function ShopPage() {
-  const [activeCategory, setActiveCategory] = useState('精选');
-  const [query, setQuery] = useState('50元话费充值');
+  const [activeCategory, setActiveCategory] = useState('推荐');
+  const [query, setQuery] = useState(SEARCH_HINTS[0]);
   const [submittedQuery, setSubmittedQuery] = useState('');
+  const [products, setProducts] = useState<ShopProduct[]>(FALLBACK_PRODUCTS);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    listShopProducts({ category: activeCategory === '推荐' ? undefined : activeCategory, q: submittedQuery || undefined, page: 1, pageSize: 30 })
+      .then((reply) => {
+        if (cancelled) return;
+        setProducts(reply.products.length ? reply.products : FALLBACK_PRODUCTS);
+        setError('');
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setProducts(FALLBACK_PRODUCTS);
+        setError(err instanceof Error ? err.message : '商品加载失败');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeCategory, submittedQuery]);
 
   const visibleProducts = useMemo(() => {
     const keyword = submittedQuery.trim();
-    return SHOP_PRODUCTS.filter((product) => {
-      const matchCategory = activeCategory === '精选' || product.category === activeCategory;
-      const matchKeyword = !keyword || product.name.includes(keyword) || product.category.includes(keyword);
-      return matchCategory && matchKeyword;
-    });
-  }, [activeCategory, submittedQuery]);
+    return products.filter((item) => productMatches(item, keyword, activeCategory));
+  }, [activeCategory, products, submittedQuery]);
+
+  const hotProducts = useMemo(() => products.slice(0, 4), [products]);
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSubmittedQuery(query.trim() === '50元话费充值' ? '话费' : query.trim());
-    setActiveCategory('精选');
+    setSubmittedQuery(query.trim());
+    setActiveCategory('推荐');
   };
 
   return (
-    <main className="mobileShell dyShopShell">
-      <header className="dyShopSearchBar">
-        <form className="dyShopSearchBox" onSubmit={handleSearch}>
-          <span className="dyShopSearchGlyph" aria-hidden="true">⌕</span>
-          <input
-            aria-label="搜索商品"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          <button className="dyShopCameraButton" type="button" aria-label="拍照搜索">▧</button>
-          <button className="dyShopSearchButton" type="submit">搜索</button>
-        </form>
-        <a className="dyShopCartButton" href="/shop?panel=cart" aria-label="购物车">⌑</a>
-      </header>
+    <main className="mobileShell dyMallShell">
+      <section className="dyMallHero">
+        <header className="dyMallTopNav">
+          <button type="button" aria-label="菜单"><Menu size={24} /></button>
+          <nav aria-label="频道">
+            {NAV_ITEMS.map((item) => (
+              <button
+                className={item === '商城' ? 'isActive' : ''}
+                type="button"
+                key={item}
+                onClick={() => {
+                  if (item !== '商城') navigateTo(NAV_HREF[item] || '/home');
+                }}
+              >
+                {item}
+              </button>
+            ))}
+          </nav>
+          <a href="/home/search" aria-label="搜索"><Search size={25} /></a>
+        </header>
 
-      <nav className="dyShopCategoryTabs" aria-label="商城分类">
-        {SHOP_CATEGORIES.map((category) => (
+        <form className="dyMallSearch" onSubmit={handleSearch}>
+          <span className="dyMallSearchSide" aria-hidden="true">
+            <img src={`${SHOP_ICON_BASE}message-dots.svg`} alt="" />
+          </span>
+          <label>
+            <Search size={20} />
+            <input aria-label="搜索商品" value={query} onChange={(event) => setQuery(event.target.value)} />
+            <button type="button" aria-label="拍照搜索"><Camera size={22} /></button>
+            <button type="submit">搜索</button>
+          </label>
+          <a href="/shop?panel=cart" aria-label="购物车"><ShoppingCart size={24} /></a>
+        </form>
+
+        <section className="dyMallShortcutPanel" aria-label="商城快捷入口">
+          {SHORTCUTS.map(({ label, href, icon, badge }) => (
+            <a href={href} key={label}>
+              <span className="dyMallShortcutIcon">
+                <img src={`${SHOP_ICON_BASE}${icon}`} alt="" aria-hidden="true" />
+                {badge ? <em>{badge}</em> : null}
+              </span>
+              <b>{label}</b>
+            </a>
+          ))}
+        </section>
+
+        <section className="dyMallPromoGrid" aria-label="优惠活动">
+          <article>
+            <strong>限时疯抢</strong>
+            <span>百秒抢购 低至1元</span>
+            <div>
+              {hotProducts.slice(0, 2).map((product) => (
+                <a href={`/shop/detail?id=${product.id}`} key={product.id}>
+                  <img src={product.mainImageUrl} alt={product.title} />
+                  <b>￥{formatShopMoney(product.priceAmount)}</b>
+                </a>
+              ))}
+            </div>
+          </article>
+          <article>
+            <strong>大牌试用</strong>
+            <span>直播好物 小样尝鲜</span>
+            <div>
+              {hotProducts.slice(2, 4).map((product) => (
+                <a href={`/shop/detail?id=${product.id}`} key={product.id}>
+                  <img src={product.mainImageUrl} alt={product.title} />
+                  <b>￥{formatShopMoney(product.priceAmount)}</b>
+                </a>
+              ))}
+            </div>
+          </article>
+        </section>
+      </section>
+
+      <nav className="dyMallCategoryTabs" aria-label="商城分类">
+        {CATEGORY_TABS.map((category) => (
           <button
             className={category === activeCategory ? 'isActive' : ''}
             type="button"
@@ -183,50 +168,32 @@ export function ShopPage() {
         ))}
       </nav>
 
-      <section className="dyShopCard dyShopShortcutCard" aria-label="商城快捷入口">
-        <div className="dyShopShortcutScroller">
-          {SHOP_SHORTCUTS.map((item) => (
-            <a href={item.href} key={item.label}>
-              <span className={`dyShopShortcutIcon dyShopShortcutIcon-${item.icon}`} aria-hidden="true" />
-              <b>{item.label}</b>
-            </a>
-          ))}
-        </div>
-      </section>
+      {error ? <section className="dyMallInlineNotice">已展示本地商品，接口返回：{error}</section> : null}
+      {loading ? <section className="dyMallInlineNotice">正在同步商城商品...</section> : null}
 
-      <section className="dyShopCard dyShopSubsidyCard" aria-label="38节补贴">
-        <div className="dyShopSubsidyTitle">
-          <span>38</span>
-          <b>节补贴</b>
-        </div>
-        {SUBSIDY_PRODUCTS.map((product) => (
-          <a href={`/shop/detail?id=${product.id}`} key={product.id}>
-            <ProductPoster product={product} compact />
-            <span className="dyShopSubsidyPrice">￥{product.price}</span>
-          </a>
-        ))}
-      </section>
-
-      <section className="dyShopWaterfall" aria-label="商品推荐">
+      <section className="dyMallWaterfall" aria-label="商品推荐">
         {visibleProducts.map((product) => (
-          <a href={`/shop/detail?id=${product.id}`} className="dyShopGoodsCard" key={product.id}>
-            <ProductPoster product={product} />
+          <a href={`/shop/detail?id=${product.id}`} className="dyMallGoodsCard" key={product.id}>
+            <figure>
+              {product.live ? <span>直播中</span> : null}
+              <img src={product.mainImageUrl} alt={product.title} loading="lazy" />
+            </figure>
             <section>
-              <h2>{product.name}</h2>
-              {product.discount ? <em>{product.discount}</em> : null}
-              <p>
-                <b>￥{product.price}</b>
-                <span>已售{product.sold}件</span>
+              <h2>{product.title}</h2>
+              <p className="dyMallGoodsTags">
+                {product.tags.slice(0, 2).map((tag) => <em key={tag}>{tag}</em>)}
               </p>
-              {product.isLowPrice ? <small>近30天低价</small> : null}
+              <p className="dyMallGoodsPrice">
+                <b>￥{formatShopMoney(product.priceAmount)}</b>
+                <span>店铺销量 {product.soldLabel}</span>
+              </p>
+              <small>{product.shopName}</small>
             </section>
           </a>
         ))}
       </section>
 
-      {visibleProducts.length === 0 ? (
-        <section className="dyShopEmpty">换个关键词试试</section>
-      ) : null}
+      {visibleProducts.length === 0 ? <section className="dyMallEmpty">暂无相关商品，换个关键词试试</section> : null}
 
       <DouyinTabBar active="shop" />
     </main>

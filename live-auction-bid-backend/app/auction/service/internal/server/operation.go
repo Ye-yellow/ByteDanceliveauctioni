@@ -25,6 +25,10 @@ type WorkerSnapshotProvider interface {
 	WorkerSnapshot(ctx context.Context) map[string]any
 }
 
+type ClusterSnapshotProvider interface {
+	ClusterSnapshot(ctx context.Context) map[string]any
+}
+
 type Readiness struct {
 	Store             HealthChecker
 	Outbox            HealthChecker
@@ -32,6 +36,7 @@ type Readiness struct {
 	RuntimeProjection HealthChecker
 	ProjectionMetrics RuntimeProjectionMetricsProvider
 	WorkerStatuses    []auction.WorkerStatusProvider
+	Cluster           ClusterSnapshotProvider
 	Consul            HealthChecker
 }
 
@@ -82,6 +87,13 @@ func (r Readiness) WorkerSnapshot(ctx context.Context) map[string]any {
 	}
 }
 
+func (r Readiness) ClusterSnapshot(ctx context.Context) map[string]any {
+	if r.Cluster == nil {
+		return map[string]any{"ok": true, "mode": "single"}
+	}
+	return r.Cluster.ClusterSnapshot(ctx)
+}
+
 func registerOperationHTTP(srv *httptransport.Server, health HealthChecker) {
 	srv.Handle("/metrics", promhttp.Handler())
 	srv.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -120,6 +132,16 @@ func registerOperationHTTP(srv *httptransport.Server, health HealthChecker) {
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 		defer cancel()
 		writeJSON(w, http.StatusOK, provider.WorkerSnapshot(ctx))
+	})
+	srv.HandleFunc("/clusterz", func(w http.ResponseWriter, r *http.Request) {
+		provider, ok := health.(ClusterSnapshotProvider)
+		if !ok || provider == nil {
+			writeJSON(w, http.StatusOK, map[string]any{"ok": true, "mode": "single"})
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		writeJSON(w, http.StatusOK, provider.ClusterSnapshot(ctx))
 	})
 	srv.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"service": "auction-backend", "transport": "kratos-http", "status": "ok"})

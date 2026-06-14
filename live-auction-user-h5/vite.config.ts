@@ -159,6 +159,10 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     allowedHosts: true,
+    watch: {
+      usePolling: true,
+      interval: 300,
+    },
     proxy: {
       '/api': {
         target: process.env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:18080',

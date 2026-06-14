@@ -5,17 +5,21 @@ import "errors"
 type BusinessCode string
 
 const (
-	CodeInvalidArgument     BusinessCode = "INVALID_ARGUMENT"
-	CodeBidRejected         BusinessCode = "BID_REJECTED"
-	CodeBidTooLow           BusinessCode = "BID_TOO_LOW"
-	CodeBidNotLive          BusinessCode = "BID_NOT_LIVE"
-	CodeBidEnded            BusinessCode = "BID_ENDED"
-	CodeBidAlreadyLeading   BusinessCode = "BID_ALREADY_LEADING"
-	CodeBidCurrencyMismatch BusinessCode = "BID_CURRENCY_MISMATCH"
-	CodeBidVersionStale     BusinessCode = "BID_VERSION_STALE"
-	CodeLotCancelled        BusinessCode = "LOT_CANCELLED"
-	CodeRoomActiveLotExists BusinessCode = "ROOM_ACTIVE_LOT_EXISTS"
-	CodeProjectionPending   BusinessCode = "PROJECTION_PENDING"
+	CodeInvalidArgument              BusinessCode = "INVALID_ARGUMENT"
+	CodeBidRejected                  BusinessCode = "BID_REJECTED"
+	CodeBidTooLow                    BusinessCode = "BID_TOO_LOW"
+	CodeBidNotLive                   BusinessCode = "BID_NOT_LIVE"
+	CodeBidEnded                     BusinessCode = "BID_ENDED"
+	CodeBidAlreadyLeading            BusinessCode = "BID_ALREADY_LEADING"
+	CodeBidCurrencyMismatch          BusinessCode = "BID_CURRENCY_MISMATCH"
+	CodeBidVersionStale              BusinessCode = "BID_VERSION_STALE"
+	CodeLotCancelled                 BusinessCode = "LOT_CANCELLED"
+	CodeRoomActiveLotExists          BusinessCode = "ROOM_ACTIVE_LOT_EXISTS"
+	CodeProjectionPending            BusinessCode = "PROJECTION_PENDING"
+	CodeAddressRequired              BusinessCode = "ADDRESS_REQUIRED"
+	CodeAddressNotFound              BusinessCode = "ADDRESS_NOT_FOUND"
+	CodeDepositRequired              BusinessCode = "DEPOSIT_REQUIRED"
+	CodePaymentProviderNotConfigured BusinessCode = "PAYMENT_PROVIDER_NOT_CONFIGURED"
 )
 
 // ErrLotVersionConflict is the stable sentinel for optimistic-lock conflicts on a lot aggregate.
@@ -24,28 +28,32 @@ const (
 var ErrLotVersionConflict = errors.New("lot version conflict")
 
 var (
-	ErrInvalidArgument           = errors.New("invalid argument")
-	ErrBidRejected               = errors.New(string(CodeBidRejected))
-	ErrBidTooLow                 = errors.New(string(CodeBidTooLow))
-	ErrBidNotLive                = errors.New(string(CodeBidNotLive))
-	ErrBidEnded                  = errors.New(string(CodeBidEnded))
-	ErrBidAlreadyLeading         = errors.New(string(CodeBidAlreadyLeading))
-	ErrBidCurrencyMismatch       = errors.New(string(CodeBidCurrencyMismatch))
-	ErrLotCancelled              = errors.New(string(CodeLotCancelled))
-	ErrUnauthenticated           = errors.New("unauthenticated")
-	ErrPermissionDenied          = errors.New("permission denied")
-	ErrRoomActiveLotExists       = errors.New("room active lot exists")
-	ErrQueuePositionConflict     = errors.New("queue position conflict")
-	ErrRuntimeProjectionGap      = errors.New("runtime projection gap")
-	ErrRuntimeProjectionConflict = errors.New("runtime projection conflict")
-	ErrUsernameTaken             = errors.New("username already exists")
-	ErrInvalidCredentials        = errors.New("invalid username or password")
-	ErrInvalidToken              = errors.New("invalid token")
-	ErrTokenExpired              = errors.New("token expired")
-	ErrSessionExpired            = errors.New("session expired")
-	ErrAccountDisabled           = errors.New("account disabled")
-	ErrUserNotFound              = errors.New("user not found")
-	ErrNotFound                  = errors.New("not found")
+	ErrInvalidArgument              = errors.New("invalid argument")
+	ErrBidRejected                  = errors.New(string(CodeBidRejected))
+	ErrBidTooLow                    = errors.New(string(CodeBidTooLow))
+	ErrBidNotLive                   = errors.New(string(CodeBidNotLive))
+	ErrBidEnded                     = errors.New(string(CodeBidEnded))
+	ErrBidAlreadyLeading            = errors.New(string(CodeBidAlreadyLeading))
+	ErrBidCurrencyMismatch          = errors.New(string(CodeBidCurrencyMismatch))
+	ErrLotCancelled                 = errors.New(string(CodeLotCancelled))
+	ErrUnauthenticated              = errors.New("unauthenticated")
+	ErrPermissionDenied             = errors.New("permission denied")
+	ErrRoomActiveLotExists          = errors.New("room active lot exists")
+	ErrQueuePositionConflict        = errors.New("queue position conflict")
+	ErrRuntimeProjectionGap         = errors.New("runtime projection gap")
+	ErrRuntimeProjectionConflict    = errors.New("runtime projection conflict")
+	ErrUsernameTaken                = errors.New("username already exists")
+	ErrInvalidCredentials           = errors.New("invalid username or password")
+	ErrInvalidToken                 = errors.New("invalid token")
+	ErrTokenExpired                 = errors.New("token expired")
+	ErrSessionExpired               = errors.New("session expired")
+	ErrAccountDisabled              = errors.New("account disabled")
+	ErrUserNotFound                 = errors.New("user not found")
+	ErrNotFound                     = errors.New("not found")
+	ErrAddressRequired              = errors.New(string(CodeAddressRequired))
+	ErrAddressNotFound              = errors.New(string(CodeAddressNotFound))
+	ErrDepositRequired              = errors.New(string(CodeDepositRequired))
+	ErrPaymentProviderNotConfigured = errors.New(string(CodePaymentProviderNotConfigured))
 )
 
 func IsLotVersionConflict(err error) bool {
@@ -72,6 +80,14 @@ func BusinessCodeForError(err error) BusinessCode {
 		return CodeRoomActiveLotExists
 	case errors.Is(err, ErrRuntimeProjectionGap), errors.Is(err, ErrRuntimeProjectionConflict):
 		return CodeProjectionPending
+	case errors.Is(err, ErrAddressRequired):
+		return CodeAddressRequired
+	case errors.Is(err, ErrAddressNotFound):
+		return CodeAddressNotFound
+	case errors.Is(err, ErrDepositRequired):
+		return CodeDepositRequired
+	case errors.Is(err, ErrPaymentProviderNotConfigured):
+		return CodePaymentProviderNotConfigured
 	case errors.Is(err, ErrBidRejected):
 		return CodeBidRejected
 	}
@@ -98,6 +114,14 @@ func ErrorForBusinessCode(code string) error {
 		return ErrRoomActiveLotExists
 	case CodeProjectionPending:
 		return ErrRuntimeProjectionGap
+	case CodeAddressRequired:
+		return ErrAddressRequired
+	case CodeAddressNotFound:
+		return ErrAddressNotFound
+	case CodeDepositRequired:
+		return ErrDepositRequired
+	case CodePaymentProviderNotConfigured:
+		return ErrPaymentProviderNotConfigured
 	case CodeBidRejected:
 		return ErrBidRejected
 	default:

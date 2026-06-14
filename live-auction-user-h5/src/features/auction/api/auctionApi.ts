@@ -3,6 +3,7 @@ import { apiRequest } from '../../../shared/api/httpClient';
 import type {
   AIBuyerConsultReply,
   AIBuyerConsultRequest,
+  AIBuyerSuggestionsReply,
   BidRecord,
   BidRecordList,
   Lot,
@@ -27,6 +28,16 @@ type ListLotsReply = { lots?: unknown[]; total?: number; nextPageToken?: string;
 type ListOrdersReply = { orders?: unknown[]; total?: number; page?: number; pageSize?: number; page_size?: number };
 type ListBidsReply = { bids?: unknown[]; total?: number; page?: number; pageSize?: number; page_size?: number };
 type MockPayReply = { paid: boolean; message?: string; order?: unknown; payment?: unknown };
+type DepositHoldReply = { paid?: boolean; found?: boolean; depositHold?: unknown; deposit_hold?: unknown };
+
+export type DepositHold = {
+  id: string;
+  lotId: string;
+  buyerUserId: string;
+  status: string;
+  amount: Money;
+  addressId: string;
+};
 
 function withQuery(path: string, query?: object): string {
   const params = new URLSearchParams();
@@ -97,8 +108,9 @@ export async function getLotResult(lotId: string): Promise<LotResult> {
 }
 
 export async function listMyOrders(query: MyOrdersQuery = {}): Promise<OrderList> {
+  const status = query.status ? String(query.status).toLowerCase() : undefined;
   const reply = await apiRequest<ListOrdersReply>({
-    path: withQuery('/api/me/orders', query),
+    path: withQuery('/api/orders/me', { ...query, source: 'auction', status }),
     auth: 'required',
     operation: 'listMyOrders',
   });
@@ -156,6 +168,44 @@ export async function mockPay(orderId: string, payload: { idempotencyKey: string
   };
 }
 
+export async function createDepositHold(lotId: string, payload: { addressId: string; idempotencyKey: string }): Promise<{ paid: boolean; depositHold?: DepositHold }> {
+  const reply = await apiRequest<DepositHoldReply>({
+    path: `/api/lots/${encodeURIComponent(lotId)}/deposit-holds/mock-pay`,
+    method: 'POST',
+    body: {
+      addressId: payload.addressId,
+      idempotencyKey: payload.idempotencyKey,
+    },
+    auth: 'required',
+    idempotencyKey: payload.idempotencyKey,
+    operation: 'createDepositHold',
+  });
+
+  return {
+    paid: Boolean(reply.paid),
+    depositHold: normalizeDepositHold(reply.depositHold ?? reply.deposit_hold),
+  };
+}
+
+function normalizeDepositHold(raw: unknown): DepositHold | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const item = raw as Record<string, unknown>;
+  const id = String(item.id ?? '');
+  if (!id) return undefined;
+  const amount = item.amount && typeof item.amount === 'object' ? item.amount as Record<string, unknown> : {};
+  return {
+    id,
+    lotId: String(item.lotId ?? item.lot_id ?? ''),
+    buyerUserId: String(item.buyerUserId ?? item.buyer_user_id ?? ''),
+    status: String(item.status ?? ''),
+    addressId: String(item.addressId ?? item.address_id ?? ''),
+    amount: {
+      amount: Number(amount.amount ?? 0),
+      currency: String(amount.currency ?? 'CNY'),
+    },
+  };
+}
+
 export async function consultBuyer(payload: AIBuyerConsultRequest): Promise<AIBuyerConsultReply> {
   return apiRequest<AIBuyerConsultReply>({
     path: '/api/ai/buyer/consult',
@@ -163,5 +213,13 @@ export async function consultBuyer(payload: AIBuyerConsultRequest): Promise<AIBu
     auth: 'optional',
     operation: 'consultBuyerAI',
     body: payload,
+  });
+}
+
+export async function listBuyerSuggestions(limit = 6): Promise<AIBuyerSuggestionsReply> {
+  return apiRequest<AIBuyerSuggestionsReply>({
+    path: `/api/ai/buyer/suggestions?limit=${encodeURIComponent(String(limit))}`,
+    auth: 'optional',
+    operation: 'listBuyerSuggestionsAI',
   });
 }

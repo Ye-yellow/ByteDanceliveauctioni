@@ -10,7 +10,9 @@ export const RESULT_CODE = {
   ACCOUNT_DISABLED: 403002,
   USER_NOT_FOUND: 404001,
   LOT_VERSION_CONFLICT: 409001,
+  USERNAME_TAKEN: 409002,
   ROOM_ACTIVE_LOT_EXISTS: 409003,
+  QUEUE_POSITION_CONFLICT: 409004,
   BID_TOO_LOW: 409101,
   BID_NOT_LIVE: 409102,
   BID_ENDED: 409103,
@@ -19,7 +21,11 @@ export const RESULT_CODE = {
   BID_VERSION_STALE: 409106,
   LOT_CANCELLED: 409107,
   PROJECTION_PENDING: 409108,
+  DEPOSIT_REQUIRED: 409109,
+  ADDRESS_REQUIRED: 409110,
+  ADDRESS_NOT_FOUND: 409111,
   IDEMPOTENCY_CONFLICT: 409010,
+  PAYMENT_PROVIDER_NOT_CONFIGURED: 500101,
   INTERNAL_ERROR: 500000,
 } as const;
 
@@ -198,6 +204,7 @@ export type Lot = {
   title: string;
   description?: string;
   imageUrl?: string;
+  galleryImageUrls?: string[];
   status: LotStatus;
   currentPrice: Money;
   leadingUserId?: string;
@@ -414,6 +421,17 @@ export type AIBuyerResult = {
   href: string;
   reason: string;
   imageUrl?: string;
+};
+
+export type AIBuyerSuggestion = {
+  text: string;
+  reason?: string;
+};
+
+export type AIBuyerSuggestionsReply = {
+  result?: ReplyResult;
+  suggestions: AIBuyerSuggestion[];
+  fallbackUsed: boolean;
 };
 
 export type AISource = {

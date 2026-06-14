@@ -7,14 +7,17 @@ export function noticeForAuctionEvent(event: AuctionSocketEvent, currentUserId: 
     if (event.bid?.userId === currentUserId || event.lot?.leadingUserId === currentUserId) {
       return `出价已确认，当前价 ${formatMoney(event.bid?.amount || event.lot?.currentPrice || 0)}`;
     }
-    return `${event.bid?.nickname || '有买家'} 出价 ${formatMoney(event.bid?.amount || event.lot?.currentPrice || 0)}`;
+    if (previousLeaderId === currentUserId && event.lot?.leadingUserId !== currentUserId) {
+      return '你已被超越，可继续加价';
+    }
+    return '';
   }
 
   if (event.type === AUCTION_EVENT_TYPE.BID_OUTBID) {
     if (previousLeaderId === currentUserId && event.lot?.leadingUserId !== currentUserId) {
       return '你已被超越，可继续加价';
     }
-    return '排名发生变化';
+    return '';
   }
 
   if (event.type === AUCTION_EVENT_TYPE.BID_REJECTED) {

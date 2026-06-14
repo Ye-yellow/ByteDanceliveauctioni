@@ -8,6 +8,8 @@
   width: min(100%, 430px);
   padding: 0;
   overflow: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   background: var(--dy-message-bg);
   color: var(--dy-message-text);
 }
@@ -72,9 +74,13 @@
   min-height: 0;
   overflow-y: auto;
   padding: 10px 0 var(--live-bottom-nav-total-height);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
 }
 
+#root > .mobileShell.dyMessageReplica::-webkit-scrollbar,
+.dyMessageReplica::-webkit-scrollbar,
 .dyMessageScroll::-webkit-scrollbar,
 .dyMessageSearchReplica::-webkit-scrollbar,
 .dyMessageSheetScroll::-webkit-scrollbar,

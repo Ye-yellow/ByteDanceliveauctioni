@@ -3,14 +3,31 @@ package service
 import (
 	"context"
 	"log/slog"
+	"math"
+	mathrand "math/rand"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/aiassistant"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	"live-auction-bid/backend/app/auction/service/internal/searchindex"
 )
+
+var buyerBudgetPattern = regexp.MustCompile(`(\d+(?:\.\d+)?)\s*(?:元|块)?`)
+
+type buyerQueryIntent struct {
+	Query        string
+	Budget       int64
+	StatusIntent string
+	RoomName     string
+	Terms        []string
+	Gift         bool
+	LowPrice     bool
+}
 
 func (s *AuctionService) SetAIAssistant(assistant *aiassistant.Assistant) *AuctionService {
 	if s == nil {
@@ -37,8 +54,12 @@ func (s *AuctionService) ConsultBuyer(ctx context.Context, req *v1.BuyerConsultR
 		Budget:         req.GetBudget(),
 		RiskPreference: req.GetRiskPreference(),
 	}
+	intent := parseBuyerQuery(aiReq.Query, aiReq.Budget)
+	if aiReq.Budget <= 0 {
+		aiReq.Budget = intent.Budget
+	}
 	assistant := s.aiAssistant()
-	aiCtx := aiassistant.BuyerConsultContext{Candidates: s.buyerCandidates(ctx, aiReq)}
+	aiCtx := aiassistant.BuyerConsultContext{Candidates: s.buyerCandidates(ctx, aiReq, intent)}
 	if strings.TrimSpace(aiReq.RoomID) != "" {
 		if snapshot, err := s.auction.Snapshot(ctx, strings.TrimSpace(aiReq.RoomID)); err == nil {
 			aiCtx.Snapshot = auction.SnapshotForViewer(snapshot, lotResultViewerFromContext(ctx))
@@ -51,6 +72,13 @@ func (s *AuctionService) ConsultBuyer(ctx context.Context, req *v1.BuyerConsultR
 	return buyerConsultReplyToProto(ctx, reply), nil
 }
 
+func (s *AuctionService) BuyerSuggestions(ctx context.Context, limit int) (aiassistant.BuyerSuggestionReply, error) {
+	limit = normalizeBuyerSuggestionLimit(limit)
+	assistant := s.aiAssistant()
+	candidates := s.buyerSuggestionCandidates(ctx, limit*4)
+	return assistant.SuggestBuyerPrompts(ctx, aiassistant.BuyerSuggestionRequest{Limit: limit}, aiassistant.BuyerSuggestionContext{Candidates: candidates})
+}
+
 func (s *AuctionService) aiAssistant() *aiassistant.Assistant {
 	if s != nil && s.ai != nil {
 		return s.ai
@@ -58,13 +86,107 @@ func (s *AuctionService) aiAssistant() *aiassistant.Assistant {
 	return aiassistant.New(aiassistant.Config{Provider: "mock"})
 }
 
-func (s *AuctionService) buyerCandidates(ctx context.Context, req aiassistant.BuyerConsultRequest) []aiassistant.LotCandidate {
-	vector := s.vectorBuyerCandidates(ctx, req)
-	keyword := s.keywordBuyerCandidates(ctx, req)
+func (s *AuctionService) buyerCandidates(ctx context.Context, req aiassistant.BuyerConsultRequest, intent buyerQueryIntent) []aiassistant.LotCandidate {
+	vector := s.vectorBuyerCandidates(ctx, req, intent)
+	keyword := s.keywordBuyerCandidates(ctx, req, intent)
 	return mergeBuyerCandidates(vector, keyword, 8)
 }
 
-func (s *AuctionService) keywordBuyerCandidates(ctx context.Context, req aiassistant.BuyerConsultRequest) []aiassistant.LotCandidate {
+func (s *AuctionService) buyerSuggestionCandidates(ctx context.Context, limit int) []aiassistant.LotCandidate {
+	if limit <= 0 {
+		limit = 24
+	}
+	vector := s.randomVectorBuyerCandidates(ctx, limit)
+	keyword := s.randomKeywordBuyerCandidates(ctx, limit)
+	return mergeRandomBuyerCandidates(vector, keyword, limit)
+}
+
+func (s *AuctionService) randomVectorBuyerCandidates(ctx context.Context, limit int) []aiassistant.LotCandidate {
+	if s == nil || s.buyerSearch == nil {
+		return nil
+	}
+	docs, err := s.buyerSearch.RandomPublicDocuments(ctx, limit*2)
+	if err != nil {
+		slog.Warn("buyer suggestion vector pool failed", "error", err)
+		return nil
+	}
+	roomNames := s.publicVisibleRoomNames(ctx)
+	out := make([]aiassistant.LotCandidate, 0, len(docs))
+	seen := map[string]bool{}
+	for _, doc := range docs {
+		if doc.LotID == "" || seen[doc.LotID] {
+			continue
+		}
+		if _, ok := roomNames[doc.RoomID]; !ok {
+			continue
+		}
+		lot, err := s.auction.GetLot(ctx, doc.LotID)
+		if err != nil || lot == nil || !auction.IsPublicVisibleLotStatus(lot.GetStatus()) {
+			continue
+		}
+		seen[doc.LotID] = true
+		_, reason := scoreLot(buyerQueryIntent{}, lot, roomNames[doc.RoomID])
+		out = append(out, aiassistant.LotCandidate{
+			Type:         "lot",
+			Title:        lot.GetTitle(),
+			RoomID:       lot.GetRoomId(),
+			LotID:        lot.GetId(),
+			Status:       lot.GetStatus().String(),
+			CurrentPrice: searchPriceMoney(lot),
+			Href:         "/m/room/" + lot.GetRoomId(),
+			Reason:       reason,
+			ImageURL:     lot.GetImageUrl(),
+			Score:        100 - len(out),
+		})
+		if len(out) >= limit {
+			break
+		}
+	}
+	return out
+}
+
+func (s *AuctionService) randomKeywordBuyerCandidates(ctx context.Context, limit int) []aiassistant.LotCandidate {
+	rooms, err := s.auction.ListRooms(ctx, auction.RoomQuery{PublicOnly: true, PublicVisibleOnly: true})
+	if err != nil {
+		return nil
+	}
+	out := make([]aiassistant.LotCandidate, 0, limit)
+	seen := map[string]bool{}
+	for _, room := range rooms {
+		for _, status := range buyerCandidateStatuses(buyerQueryIntent{}) {
+			lots, err := s.auction.ListLots(ctx, room.ID, status)
+			if err != nil {
+				continue
+			}
+			for _, lot := range lots {
+				if lot == nil || seen[lot.GetId()] || !auction.IsPublicVisibleLotStatus(lot.GetStatus()) {
+					continue
+				}
+				seen[lot.GetId()] = true
+				score, reason := scoreLot(buyerQueryIntent{}, lot, room.Name)
+				out = append(out, aiassistant.LotCandidate{
+					Type:         "lot",
+					Title:        lot.GetTitle(),
+					RoomID:       lot.GetRoomId(),
+					LotID:        lot.GetId(),
+					Status:       lot.GetStatus().String(),
+					CurrentPrice: searchPriceMoney(lot),
+					Href:         "/m/room/" + lot.GetRoomId(),
+					Reason:       reason,
+					ImageURL:     lot.GetImageUrl(),
+					Score:        score,
+				})
+			}
+		}
+	}
+	shuffleBuyerCandidates(out)
+	if len(out) > limit {
+		return out[:limit]
+	}
+	return out
+}
+
+func (s *AuctionService) keywordBuyerCandidates(ctx context.Context, req aiassistant.BuyerConsultRequest, intent buyerQueryIntent) []aiassistant.LotCandidate {
 	rooms, err := s.auction.ListRooms(ctx, auction.RoomQuery{PublicOnly: true, PublicVisibleOnly: true})
 	if err != nil {
 		return nil
@@ -79,7 +201,10 @@ func (s *AuctionService) keywordBuyerCandidates(ctx context.Context, req aiassis
 		if req.RoomID != "" && room.ID != req.RoomID {
 			continue
 		}
-		for _, status := range []v1.LotStatus{v1.LotStatus_LOT_STATUS_QUEUED, v1.LotStatus_LOT_STATUS_LIVE} {
+		if intent.RoomName != "" && !strings.Contains(strings.ToLower(room.Name), strings.ToLower(intent.RoomName)) {
+			continue
+		}
+		for _, status := range buyerCandidateStatuses(intent) {
 			lots, err := s.auction.ListLots(ctx, room.ID, status)
 			if err != nil {
 				continue
@@ -92,7 +217,7 @@ func (s *AuctionService) keywordBuyerCandidates(ctx context.Context, req aiassis
 					continue
 				}
 				seen[lot.GetId()] = true
-				score, reason := scoreLot(req, lot, roomNames[room.ID])
+				score, reason := scoreLot(intent, lot, roomNames[room.ID])
 				if strings.TrimSpace(req.Query) != "" && score <= 0 {
 					continue
 				}
@@ -102,7 +227,7 @@ func (s *AuctionService) keywordBuyerCandidates(ctx context.Context, req aiassis
 					RoomID:       lot.GetRoomId(),
 					LotID:        lot.GetId(),
 					Status:       lot.GetStatus().String(),
-					CurrentPrice: startSearchPriceMoney(lot),
+					CurrentPrice: searchPriceMoney(lot),
 					Href:         "/m/room/" + lot.GetRoomId(),
 					Reason:       reason,
 					ImageURL:     lot.GetImageUrl(),
@@ -123,7 +248,7 @@ func (s *AuctionService) keywordBuyerCandidates(ctx context.Context, req aiassis
 	return candidates
 }
 
-func (s *AuctionService) vectorBuyerCandidates(ctx context.Context, req aiassistant.BuyerConsultRequest) []aiassistant.LotCandidate {
+func (s *AuctionService) vectorBuyerCandidates(ctx context.Context, req aiassistant.BuyerConsultRequest, intent buyerQueryIntent) []aiassistant.LotCandidate {
 	if s == nil || s.buyerSearch == nil || s.buyerEmbedder == nil || !s.buyerEmbedder.Configured() {
 		return nil
 	}
@@ -168,10 +293,20 @@ func (s *AuctionService) vectorBuyerCandidates(ctx context.Context, req aiassist
 		if err != nil || lot == nil || !auction.IsPublicVisibleLotStatus(lot.GetStatus()) {
 			continue
 		}
+		if !buyerStatusMatchesIntent(lot.GetStatus(), intent.StatusIntent) {
+			continue
+		}
+		if intent.RoomName != "" && !strings.Contains(strings.ToLower(roomNames[doc.RoomID]), strings.ToLower(intent.RoomName)) {
+			continue
+		}
 		seen[doc.LotID] = true
-		score := 80 - rank
-		if price := currentSearchPrice(lot); req.Budget > 0 && price > 0 && price <= req.Budget {
+		matchScore, reason := scoreLot(intent, lot, roomNames[doc.RoomID])
+		score := 80 - rank + matchScore
+		if price := currentSearchPrice(lot); intent.Budget > 0 && price > 0 && price <= intent.Budget {
 			score += 4
+		}
+		if reason == "" {
+			reason = "语义匹配你的描述"
 		}
 		out = append(out, aiassistant.LotCandidate{
 			Type:         "lot",
@@ -179,9 +314,9 @@ func (s *AuctionService) vectorBuyerCandidates(ctx context.Context, req aiassist
 			RoomID:       lot.GetRoomId(),
 			LotID:        lot.GetId(),
 			Status:       lot.GetStatus().String(),
-			CurrentPrice: startSearchPriceMoney(lot),
+			CurrentPrice: searchPriceMoney(lot),
 			Href:         "/m/room/" + lot.GetRoomId(),
-			Reason:       "语义匹配你的描述",
+			Reason:       reason,
 			ImageURL:     lot.GetImageUrl(),
 			Score:        score,
 		})
@@ -241,40 +376,133 @@ func mergeBuyerCandidates(primary, secondary []aiassistant.LotCandidate, limit i
 	return out
 }
 
-func scoreLot(req aiassistant.BuyerConsultRequest, lot *v1.Lot, roomName string) (int, string) {
-	query := strings.ToLower(strings.TrimSpace(req.Query))
-	haystack := strings.ToLower(strings.Join([]string{
-		lot.GetTitle(),
-		lot.GetDescription(),
-		lot.GetCategory(),
-		strings.Join(lot.GetTags(), " "),
-		roomName,
-	}, " "))
+func mergeRandomBuyerCandidates(primary, secondary []aiassistant.LotCandidate, limit int) []aiassistant.LotCandidate {
+	if limit <= 0 {
+		limit = 24
+	}
+	seen := map[string]bool{}
+	out := make([]aiassistant.LotCandidate, 0, len(primary)+len(secondary))
+	add := func(candidate aiassistant.LotCandidate) {
+		if strings.TrimSpace(candidate.LotID) == "" || seen[candidate.LotID] {
+			return
+		}
+		seen[candidate.LotID] = true
+		out = append(out, candidate)
+	}
+	for _, candidate := range primary {
+		add(candidate)
+	}
+	for _, candidate := range secondary {
+		add(candidate)
+	}
+	shuffleBuyerCandidates(out)
+	if len(out) > limit {
+		return out[:limit]
+	}
+	return out
+}
+
+func shuffleBuyerCandidates(candidates []aiassistant.LotCandidate) {
+	if len(candidates) <= 1 {
+		return
+	}
+	rng := mathrand.New(mathrand.NewSource(time.Now().UnixNano()))
+	rng.Shuffle(len(candidates), func(i, j int) {
+		candidates[i], candidates[j] = candidates[j], candidates[i]
+	})
+}
+
+func normalizeBuyerSuggestionLimit(limit int) int {
+	if limit <= 0 {
+		return 6
+	}
+	if limit > 8 {
+		return 8
+	}
+	return limit
+}
+
+func scoreLot(intent buyerQueryIntent, lot *v1.Lot, roomName string) (int, string) {
+	title := strings.ToLower(lot.GetTitle())
+	description := strings.ToLower(lot.GetDescription())
+	category := strings.ToLower(lot.GetCategory())
+	tagsText := strings.ToLower(strings.Join(lot.GetTags(), " "))
+	roomText := strings.ToLower(roomName)
 	score := 0
-	matches := make([]string, 0)
-	for _, token := range queryTokens(query) {
-		if token != "" && strings.Contains(haystack, token) {
-			score += 5
-			matches = append(matches, token)
+	reasons := make([]string, 0)
+	addReason := func(reason string) {
+		for _, item := range reasons {
+			if item == reason {
+				return
+			}
+		}
+		reasons = append(reasons, reason)
+	}
+	for _, token := range intent.Terms {
+		if token == "" {
+			continue
+		}
+		switch {
+		case strings.Contains(title, token):
+			score += 12
+			addReason("标题命中“" + token + "”")
+		case strings.Contains(tagsText, token):
+			score += 10
+			addReason("标签命中“" + token + "”")
+		case strings.Contains(category, token):
+			score += 8
+			addReason("品类命中“" + token + "”")
+		case strings.Contains(roomText, token):
+			score += 7
+			addReason("直播间命中“" + token + "”")
+		case strings.Contains(description, token):
+			score += 3
+			addReason("描述命中“" + token + "”")
 		}
 	}
 	switch lot.GetStatus() {
-	case v1.LotStatus_LOT_STATUS_LIVE, v1.LotStatus_LOT_STATUS_EXTENDED:
-		score += 3
+	case v1.LotStatus_LOT_STATUS_LIVE:
+		score += 12
+		addReason("正在竞拍")
+	case v1.LotStatus_LOT_STATUS_EXTENDED:
+		score += 12
+		addReason("加时中")
 	case v1.LotStatus_LOT_STATUS_QUEUED:
-		score += 2
+		score += 6
+		addReason("即将开拍")
 	}
-	current := lot.GetCurrentPrice().GetAmount()
-	if current <= 0 {
-		current = lot.GetRule().GetStartPrice().GetAmount()
+	if intent.StatusIntent != "" && buyerStatusMatchesIntent(lot.GetStatus(), intent.StatusIntent) {
+		score += 12
 	}
-	if req.Budget > 0 && current > 0 && current <= req.Budget {
-		score += 2
+	current := currentSearchPrice(lot)
+	if intent.Budget > 0 && current > 0 {
+		switch {
+		case current <= intent.Budget:
+			score += 18
+			addReason("预算内")
+		case current <= intent.Budget+intent.Budget/4:
+			score += 6
+			addReason("接近预算")
+		default:
+			score -= 8
+		}
 	}
-	if len(matches) == 0 {
-		return score, "公开可见拍品，可进入直播间查看"
+	if intent.LowPrice && current > 0 && current <= 50000 {
+		score += 8
+		addReason("低价开拍")
 	}
-	return score, "命中：" + strings.Join(matches, "、")
+	if intent.Gift && textContainsAny(title+" "+description+" "+category+" "+tagsText, []string{"送礼", "礼物", "礼盒", "证书", "首饰", "手镯", "吊坠", "纪念", "寓意", "收藏"}) {
+		score += 8
+		addReason("适合送礼")
+	}
+	if intent.RoomName != "" && strings.Contains(roomText, strings.ToLower(intent.RoomName)) {
+		score += 16
+		addReason("直播间命中")
+	}
+	if len(reasons) == 0 {
+		return score, "公开可见 · 可进直播间查看"
+	}
+	return score, strings.Join(reasons, " · ")
 }
 
 func currentSearchPrice(lot *v1.Lot) int64 {
@@ -284,14 +512,21 @@ func currentSearchPrice(lot *v1.Lot) int64 {
 	if price := lot.GetCurrentPrice(); price != nil && price.GetAmount() > 0 {
 		return price.GetAmount()
 	}
-	return lot.GetRule().GetStartPrice().GetAmount()
+	if rule := lot.GetRule(); rule != nil && rule.GetStartPrice() != nil {
+		return rule.GetStartPrice().GetAmount()
+	}
+	return 0
 }
 
-func startSearchPriceMoney(lot *v1.Lot) *v1.Money {
+func searchPriceMoney(lot *v1.Lot) *v1.Money {
 	if lot == nil {
 		return nil
 	}
-	if price := lot.GetRule().GetStartPrice(); price != nil {
+	if price := lot.GetCurrentPrice(); price != nil && price.GetAmount() > 0 {
+		return &v1.Money{Amount: price.GetAmount(), Currency: price.GetCurrency()}
+	}
+	if rule := lot.GetRule(); rule != nil && rule.GetStartPrice() != nil {
+		price := rule.GetStartPrice()
 		return &v1.Money{Amount: price.GetAmount(), Currency: price.GetCurrency()}
 	}
 	return nil
@@ -329,7 +564,12 @@ func buyerConsultReplyToProto(ctx context.Context, reply aiassistant.BuyerConsul
 }
 
 func queryTokens(query string) []string {
-	query = strings.NewReplacer("，", " ", "。", " ", ",", " ", ".", " ", "的", " ", "想", " ", "看", " ", "找", " ").Replace(query)
+	query = strings.NewReplacer(
+		"，", " ", "。", " ", ",", " ", ".", " ",
+		"的", " ", "想", " ", "看", " ", "找", " ", "拍品", " ",
+		"预算", " ", "以内", " ", "以下", " ", "不超过", " ", "正在", " ",
+		"竞拍", " ", "直播中", " ", "即将", " ", "开拍", " ", "直播间", " ",
+	).Replace(query)
 	fields := strings.Fields(query)
 	out := make([]string, 0, len(fields)+4)
 	for _, field := range fields {
@@ -337,12 +577,102 @@ func queryTokens(query string) []string {
 		if field == "" || len([]rune(field)) <= 1 {
 			continue
 		}
+		if _, err := strconv.ParseFloat(field, 64); err == nil {
+			continue
+		}
 		out = append(out, field)
 	}
-	for _, keyword := range []string{"翡翠", "手镯", "珠宝", "玉", "和田玉", "奢侈品", "收藏"} {
+	for _, keyword := range []string{"翡翠", "手镯", "吊坠", "珠宝", "玉", "玉石", "和田玉", "奢侈品", "收藏", "送礼", "礼物"} {
 		if strings.Contains(query, strings.ToLower(keyword)) {
 			out = append(out, strings.ToLower(keyword))
 		}
 	}
 	return out
+}
+
+func parseBuyerQuery(query string, explicitBudget int64) buyerQueryIntent {
+	normalized := strings.ToLower(strings.TrimSpace(query))
+	intent := buyerQueryIntent{
+		Query:    query,
+		Budget:   explicitBudget,
+		RoomName: parseRoomName(query),
+		Terms:    queryTokens(normalized),
+		Gift:     textContainsAny(normalized, []string{"送礼", "礼物", "生日", "纪念", "收藏品"}),
+		LowPrice: textContainsAny(normalized, []string{"低价", "捡漏", "小预算", "便宜", "新人", "入门"}),
+	}
+	if intent.Budget <= 0 {
+		intent.Budget = parseBudgetFromQuery(normalized)
+	}
+	if textContainsAny(normalized, []string{"正在竞拍", "竞拍中", "直播中", "正在拍", "加时"}) {
+		intent.StatusIntent = "live"
+	} else if textContainsAny(normalized, []string{"即将开拍", "待开拍", "马上开拍", "未开拍"}) {
+		intent.StatusIntent = "queued"
+	}
+	return intent
+}
+
+func parseBudgetFromQuery(query string) int64 {
+	if !textContainsAny(query, []string{"预算", "以内", "以下", "不超过", "低于", "小于", "元", "块", "¥", "￥"}) {
+		return 0
+	}
+	match := buyerBudgetPattern.FindStringSubmatch(query)
+	if len(match) < 2 {
+		return 0
+	}
+	value, err := strconv.ParseFloat(match[1], 64)
+	if err != nil || value <= 0 {
+		return 0
+	}
+	return int64(math.Round(value * 100))
+}
+
+func parseRoomName(query string) string {
+	index := strings.Index(query, "直播间")
+	if index <= 0 {
+		return ""
+	}
+	prefix := strings.TrimSpace(query[:index])
+	prefix = strings.NewReplacer("想看", " ", "看看", " ", "找", " ", "在", " ", "的", " ").Replace(prefix)
+	fields := strings.Fields(prefix)
+	if len(fields) == 0 {
+		return ""
+	}
+	return strings.Trim(fields[len(fields)-1], "：:，,。.!！?？")
+}
+
+func buyerCandidateStatuses(intent buyerQueryIntent) []v1.LotStatus {
+	switch intent.StatusIntent {
+	case "live":
+		return []v1.LotStatus{v1.LotStatus_LOT_STATUS_LIVE, v1.LotStatus_LOT_STATUS_EXTENDED}
+	case "queued":
+		return []v1.LotStatus{v1.LotStatus_LOT_STATUS_QUEUED}
+	default:
+		return []v1.LotStatus{
+			v1.LotStatus_LOT_STATUS_LIVE,
+			v1.LotStatus_LOT_STATUS_EXTENDED,
+			v1.LotStatus_LOT_STATUS_QUEUED,
+		}
+	}
+}
+
+func buyerStatusMatchesIntent(status v1.LotStatus, intent string) bool {
+	switch intent {
+	case "":
+		return true
+	case "live":
+		return status == v1.LotStatus_LOT_STATUS_LIVE || status == v1.LotStatus_LOT_STATUS_EXTENDED
+	case "queued":
+		return status == v1.LotStatus_LOT_STATUS_QUEUED
+	default:
+		return true
+	}
+}
+
+func textContainsAny(value string, needles []string) bool {
+	for _, needle := range needles {
+		if strings.Contains(value, strings.ToLower(needle)) {
+			return true
+		}
+	}
+	return false
 }

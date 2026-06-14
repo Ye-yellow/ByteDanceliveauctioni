@@ -12,7 +12,9 @@ import (
 
 	"live-auction-bid/backend/app/auction/service/internal/aiassistant"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
+	shopbiz "live-auction-bid/backend/app/auction/service/internal/biz/shop"
 	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
+	"live-auction-bid/backend/app/auction/service/internal/cluster"
 	"live-auction-bid/backend/app/auction/service/internal/data"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
 	"live-auction-bid/backend/app/auction/service/internal/realtime"
@@ -27,11 +29,14 @@ func main() {
 	if addr == "" {
 		addr = ":18080"
 	}
+	mysqlDSN := getenv("AUCTION_MYSQL_DSN", "auction:auction_dev@tcp(127.0.0.1:13306)/live_auction?parseTime=true&charset=utf8mb4&loc=Local")
+	redisAddr := getenv("AUCTION_REDIS_ADDR", "127.0.0.1:16379")
+	redisPassword := getenv("AUCTION_REDIS_PASSWORD", "auction_redis")
 
 	store, err := data.NewStore(context.Background(), data.Config{
-		MySQLDSN:                getenv("AUCTION_MYSQL_DSN", "auction:auction_dev@tcp(127.0.0.1:13306)/live_auction?parseTime=true&charset=utf8mb4&loc=Local"),
-		RedisAddr:               getenv("AUCTION_REDIS_ADDR", "127.0.0.1:16379"),
-		RedisPassword:           getenv("AUCTION_REDIS_PASSWORD", "auction_redis"),
+		MySQLDSN:                mysqlDSN,
+		RedisAddr:               redisAddr,
+		RedisPassword:           redisPassword,
 		RuntimeProjectionShards: getenvInt("AUCTION_RUNTIME_PROJECTION_SHARDS", 16),
 		RuntimeProjectionBackpressurePendingLimit: int64(getenvInt("AUCTION_RUNTIME_PROJECTION_BACKPRESSURE_PENDING_LIMIT", 0)),
 		RuntimeProjectionBackpressureLag:          getenvDuration("AUCTION_RUNTIME_PROJECTION_BACKPRESSURE_LAG", 0),
@@ -90,8 +95,14 @@ func main() {
 	}
 	hub := realtime.NewHub(nil, realtimeConfig)
 	hub.BindAuthManager(authManager)
-	eventPublisher := realtime.NewPublisher(hub)
+	eventPublisher, closeRealtimeBus := newRealtimePublisherFromEnv(ctx, hub, instanceID, redisAddr, redisPassword)
+	defer closeRealtimeBus()
+	paymentProvider, err := auction.NewPaymentProviderFromName(os.Getenv("AUCTION_PAYMENT_PROVIDER"))
+	if err != nil {
+		log.Fatal(err)
+	}
 	auctionUsecase := auction.NewAuctionUsecase(store, store, store, eventPublisher).
+		SetPaymentProvider(paymentProvider).
 		SetSyncRuntimeProjection(getenvBool("AUCTION_BID_SYNC_PROJECTION", false)).
 		SetBidDBGuardMode(getenv("AUCTION_BID_DB_GUARD_MODE", "runtime-first"))
 	runtimeProjectionWorker := data.NewRuntimeProjectionWorker(
@@ -106,12 +117,16 @@ func main() {
 	auctionCloseWorker := auction.NewAuctionCloseWorker(auctionUsecase, getenvDuration("AUCTION_CLOSE_WORKER_INTERVAL", 2*time.Second), 100)
 	auctionCloseWorker.BindLease(leaseProvider, "auction:lease:auction-close-worker", instanceID, leaseTTL, leaseRenewInterval)
 	auctionCloseWorker.Start(ctx)
+	clusterStatus := newClusterStatusFromEnv()
 	hub.BindSnapshotProvider(auctionUsecase)
 	auctionService := appsvc.NewAuctionService(auctionUsecase, hub).
 		SetAIAssistant(aiassistant.NewFromEnv(os.Getenv)).
 		SetBuyerSearch(buyerSearch, buyerEmbedder).
 		SetVerboseBidLog(getenvBool("AUCTION_VERBOSE_BID_LOG", false))
 	userService := appsvc.NewUserService(userUsecase)
+	shopUsecase := shopbiz.NewUsecase(store)
+	shopService := appsvc.NewShopService(shopUsecase)
+	orderService := appsvc.NewOrderService(shopUsecase, auctionUsecase)
 	consulRegistration, err := server.RegisterConsulService(context.Background(), server.ConsulConfig{
 		Addr:           getenv("AUCTION_CONSUL_ADDR", "127.0.0.1:18500"),
 		ServiceName:    getenv("AUCTION_SERVICE_NAME", "auction-backend"),
@@ -136,15 +151,113 @@ func main() {
 		RuntimeProjection: runtimeProjectionWorker,
 		ProjectionMetrics: runtimeProjectionWorker,
 		WorkerStatuses:    []auction.WorkerStatusProvider{outboxWorker, auctionCloseWorker, runtimeProjectionWorker},
+		Cluster:           clusterStatus,
 		Consul:            consulRegistration,
 	}
-	httpServer := server.NewHTTPServer(addr, auctionService, userService, hub, readiness, authManager, authManager.Middleware(), imageStorage, store)
-	server.RegisterLocalAssetsHTTP(httpServer, getenv("AUCTION_LOCAL_STORAGE_DIR", "/tmp/live-auction-assets"))
+	httpServer := server.NewHTTPServer(addr, auctionService, userService, shopService, orderService, hub, readiness, authManager, authManager.Middleware(), imageStorage, store)
 
 	log.Printf("auction backend listening on %s via kratos http", addr)
 	if err := httpServer.Start(ctx); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func newRealtimePublisherFromEnv(ctx context.Context, hub *realtime.Hub, instanceID, redisAddr, redisPassword string) (*realtime.Publisher, func()) {
+	mode := strings.ToLower(strings.TrimSpace(os.Getenv("AUCTION_REALTIME_BUS")))
+	if mode == "" || mode == "local" || mode == "memory" {
+		return realtime.NewPublisher(hub), func() {}
+	}
+	switch mode {
+	case "redis", "pubsub", "redis_pubsub":
+		bus, err := realtime.NewRedisPubSubBus(realtime.RedisBusConfig{
+			Addr:     getenv("AUCTION_REALTIME_BUS_REDIS_ADDR", redisAddr),
+			Password: getenv("AUCTION_REALTIME_BUS_REDIS_PASSWORD", redisPassword),
+			Channel:  getenv("AUCTION_REALTIME_BUS_CHANNEL", "auction:realtime:events"),
+			Origin:   instanceID,
+		})
+		if err != nil {
+			log.Fatalf("create redis realtime bus failed: %v", err)
+		}
+		if err := bus.Start(ctx, hub); err != nil {
+			_ = bus.Close()
+			log.Fatalf("start redis realtime bus failed: %v", err)
+		}
+		log.Printf("redis pubsub realtime bus enabled: channel=%s origin=%s", getenv("AUCTION_REALTIME_BUS_CHANNEL", "auction:realtime:events"), instanceID)
+		return realtime.NewPublisher(hub, bus), func() {
+			_ = bus.Close()
+		}
+	case "stream", "redis_stream":
+		bus, err := realtime.NewRedisStreamBus(realtime.RedisStreamBusConfig{
+			Addr:         getenv("AUCTION_REALTIME_BUS_REDIS_ADDR", redisAddr),
+			Password:     getenv("AUCTION_REALTIME_BUS_REDIS_PASSWORD", redisPassword),
+			Stream:       getenv("AUCTION_REALTIME_BUS_STREAM", "auction:realtime:events:stream"),
+			Group:        getenv("AUCTION_REALTIME_BUS_GROUP", "auction-realtime-"+instanceID),
+			Consumer:     getenv("AUCTION_REALTIME_BUS_CONSUMER", instanceID),
+			Origin:       instanceID,
+			Block:        getenvDuration("AUCTION_REALTIME_BUS_STREAM_BLOCK", 2*time.Second),
+			Count:        int64(getenvInt("AUCTION_REALTIME_BUS_STREAM_COUNT", 100)),
+			MaxLenApprox: int64(getenvInt("AUCTION_REALTIME_BUS_STREAM_MAXLEN", 100000)),
+		})
+		if err != nil {
+			log.Fatalf("create redis stream realtime bus failed: %v", err)
+		}
+		if err := bus.Start(ctx, hub); err != nil {
+			_ = bus.Close()
+			log.Fatalf("start redis stream realtime bus failed: %v", err)
+		}
+		log.Printf("redis stream realtime bus enabled: stream=%s group=%s consumer=%s origin=%s", getenv("AUCTION_REALTIME_BUS_STREAM", "auction:realtime:events:stream"), getenv("AUCTION_REALTIME_BUS_GROUP", "auction-realtime-"+instanceID), getenv("AUCTION_REALTIME_BUS_CONSUMER", instanceID), instanceID)
+		return realtime.NewPublisher(hub, bus), func() {
+			_ = bus.Close()
+		}
+	case "nats":
+		bus, err := realtime.NewNATSBus(realtime.NATSBusConfig{
+			URL:     getenv("AUCTION_REALTIME_BUS_NATS_URL", "nats://127.0.0.1:4222"),
+			Subject: getenv("AUCTION_REALTIME_BUS_NATS_SUBJECT", "auction.realtime.events"),
+			Queue:   getenv("AUCTION_REALTIME_BUS_NATS_QUEUE", ""),
+			Name:    getenv("AUCTION_REALTIME_BUS_NATS_NAME", "live-auction-"+instanceID),
+			Origin:  instanceID,
+		})
+		if err != nil {
+			log.Fatalf("create nats realtime bus failed: %v", err)
+		}
+		if err := bus.Start(ctx, hub); err != nil {
+			_ = bus.Close()
+			log.Fatalf("start nats realtime bus failed: %v", err)
+		}
+		log.Printf("nats realtime bus enabled: url=%s subject=%s queue=%s origin=%s", getenv("AUCTION_REALTIME_BUS_NATS_URL", "nats://127.0.0.1:4222"), getenv("AUCTION_REALTIME_BUS_NATS_SUBJECT", "auction.realtime.events"), getenv("AUCTION_REALTIME_BUS_NATS_QUEUE", ""), instanceID)
+		return realtime.NewPublisher(hub, bus), func() {
+			_ = bus.Close()
+		}
+	default:
+		log.Fatalf("unsupported AUCTION_REALTIME_BUS: %s", mode)
+	}
+	return realtime.NewPublisher(hub), func() {}
+}
+
+type runtimeClusterStatus struct {
+	mode     string
+	registry *cluster.StaticRegistry
+}
+
+func newClusterStatusFromEnv() runtimeClusterStatus {
+	mode := strings.ToLower(strings.TrimSpace(getenv("AUCTION_CLUSTER_MODE", "single")))
+	if mode == "" || mode == "single" || mode == "standalone" {
+		return runtimeClusterStatus{mode: "single"}
+	}
+	registry, err := cluster.ParseStaticRegistryJSON(os.Getenv("AUCTION_CLUSTER_REGISTRY_JSON"))
+	if err != nil {
+		log.Fatalf("parse AUCTION_CLUSTER_REGISTRY_JSON failed: %v", err)
+	}
+	snapshot := registry.Snapshot()
+	log.Printf("cluster mode enabled: mode=%s shards=%d assignments=%d", mode, len(snapshot.Shards), len(snapshot.Assignments))
+	return runtimeClusterStatus{mode: mode, registry: registry}
+}
+
+func (s runtimeClusterStatus) ClusterSnapshot(context.Context) map[string]any {
+	if s.registry == nil {
+		return map[string]any{"ok": true, "mode": "single"}
+	}
+	return map[string]any{"ok": true, "mode": s.mode, "registry": s.registry.Snapshot()}
 }
 
 func newBuyerSearchFromEnv(ctx context.Context, source searchindex.DocumentSource) (*searchindex.PGVectorIndex, *searchindex.EmbeddingClient, *searchindex.SyncWorker) {
@@ -263,30 +376,30 @@ func bootstrapMainAccount(ctx context.Context, users *userbiz.Usecase) error {
 }
 
 func newImageStorageFromEnv() (storage.StorageProvider, error) {
-	provider := strings.ToLower(strings.TrimSpace(os.Getenv("AUCTION_STORAGE_PROVIDER")))
+	provider := strings.TrimSpace(os.Getenv("AUCTION_STORAGE_PROVIDER"))
 	if provider == "" {
-		provider = "local"
+		provider = "tos"
 	}
 	switch provider {
 	case "local":
 		return storage.NewLocalStorage(storage.LocalConfig{
-			RootDir:       strings.TrimSpace(getenv("AUCTION_LOCAL_STORAGE_DIR", "/tmp/live-auction-assets")),
-			Bucket:        strings.TrimSpace(getenv("AUCTION_LOCAL_STORAGE_BUCKET", "local")),
+			RootDir:       strings.TrimSpace(os.Getenv("AUCTION_LOCAL_STORAGE_DIR")),
+			Bucket:        strings.TrimSpace(os.Getenv("AUCTION_LOCAL_STORAGE_BUCKET")),
 			PublicBaseURL: strings.TrimSpace(os.Getenv("AUCTION_LOCAL_STORAGE_PUBLIC_BASE_URL")),
 		})
 	case "tos":
-		return storage.NewTOSStorage(storage.TOSConfig{
-			Endpoint:      strings.TrimSpace(os.Getenv("AUCTION_TOS_ENDPOINT")),
-			Region:        strings.TrimSpace(os.Getenv("AUCTION_TOS_REGION")),
-			Bucket:        strings.TrimSpace(os.Getenv("AUCTION_TOS_BUCKET")),
-			AccessKey:     strings.TrimSpace(os.Getenv("AUCTION_TOS_ACCESS_KEY")),
-			SecretKey:     strings.TrimSpace(os.Getenv("AUCTION_TOS_SECRET_KEY")),
-			PublicBaseURL: strings.TrimSpace(os.Getenv("AUCTION_TOS_PUBLIC_BASE_URL")),
-			UseSSL:        getenvBool("AUCTION_TOS_USE_SSL", true),
-		})
 	default:
 		return nil, errors.New("unsupported auction storage provider: " + provider)
 	}
+	return storage.NewTOSStorage(storage.TOSConfig{
+		Endpoint:      strings.TrimSpace(os.Getenv("AUCTION_TOS_ENDPOINT")),
+		Region:        strings.TrimSpace(os.Getenv("AUCTION_TOS_REGION")),
+		Bucket:        strings.TrimSpace(os.Getenv("AUCTION_TOS_BUCKET")),
+		AccessKey:     strings.TrimSpace(os.Getenv("AUCTION_TOS_ACCESS_KEY")),
+		SecretKey:     strings.TrimSpace(os.Getenv("AUCTION_TOS_SECRET_KEY")),
+		PublicBaseURL: strings.TrimSpace(os.Getenv("AUCTION_TOS_PUBLIC_BASE_URL")),
+		UseSSL:        getenvBool("AUCTION_TOS_USE_SSL", true),
+	})
 }
 
 func getenvBool(key string, fallback bool) bool {

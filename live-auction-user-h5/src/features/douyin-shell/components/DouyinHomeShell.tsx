@@ -8,11 +8,19 @@ import { DouyinTabBar, type DouyinTab } from '../../../shared/ui/DouyinTabBar';
 import { DouyinLoading } from '../../../shared/ui/DouyinLoading';
 import { UserPanel } from '../../profile/components/UserPanel';
 import type { CommentTarget, DouyinVideoRecord, FeedItem, HomeSheet } from '../../feed/model/feedTypes';
+import {
+  DOUYIN_LIVE_CHANNEL_INDEX,
+  liveRoomIdFromHref,
+  readHomeReturnState,
+  writeHomeReturnState,
+} from '../model/homeReturnState';
 
-const LIVE_CHANNEL_INDEX = 3;
+const LIVE_CHANNEL_INDEX = DOUYIN_LIVE_CHANNEL_INDEX;
 const CHANNELS = ['热点', '长视频', '关注', '直播', '推荐'];
+const TOP_NAV_CHANNELS = ['热点', '长视频', '关注', '直播', '商城', '推荐'];
 const DOUYIN_VIDEO_SOURCE = '/data/douyin-feed.json';
 const DOUYIN_IMAGE_BASE = 'https://liveauction.tos-cn-beijing.volces.com/douyin-h5/images/';
+const DATA_FETCH_OPTIONS: RequestInit = { cache: 'no-store' };
 const DOUYIN_COMMENT_VIDEO_IDS = [
   '6686589698707590411',
   '6826943630775831812',
@@ -119,17 +127,8 @@ const WHEEL_SWIPE_DISTANCE = 72;
 const WHEEL_LOCK_MS = 330;
 const WHEEL_STALE_MS = 180;
 const CHANNEL_VIDEO_WINDOW = 32;
-const HOME_RETURN_STATE_KEY = 'douyin-home-return-state';
-const HOME_RETURN_STATE_TTL_MS = 5 * 60 * 1000;
 const FEED_TONES: FeedItem['tone'][] = ['rose', 'cyan', 'amber', 'violet', 'dark'];
 const DY_HEART_PATH = 'M453.036 88.712C493.774 30.664 560.66 0 634.251 0C774.403 0 890.972 121.59 890.972 266.137C890.972 266.155 890.972 266.173 890.972 266.191C890.981 266.171 890.991 266.151 891 266.131C891 270.252 890.93 273.372 890.878 275.668C890.806 278.819 890.77 280.416 891 280.916C890.469 311.319 885.222 336.438 875.899 369.628C870.609 375.588 865.694 386.812 860.798 399.199C853.074 411.197 850.151 417.009 845.697 428.77C841.152 436.399 836.324 444.063 831.245 451.744C793.796 508.544 743.708 565.074 693.667 615.252C615.336 694.277 535.544 760.058 500.832 788.675C491.247 796.576 485.1 801.644 483.368 803.375C471.067 815.678 458.765 815.986 446.463 815.994C446.139 815.998 445.814 816 445.486 816C420.25 816 407.632 803.381 395.014 790.763C394.051 789.8 391.601 787.779 387.858 784.783C349.625 756.6 263.586 687.786 182.742 604.783C121.066 542.02 61.622 470.007 29.092 399.588C16.474 374.351 0.731 314.264 0 280.922C0.269 280.655 0.227 279.049 0.144 275.844C0.083 273.498 0 270.297 0 266.137C0 121.524 116.502 0 256.721 0C330.179 0 397.131 30.664 453.036 88.712z';
-
-type HomeReturnState = {
-  baseIndex: number;
-  channelIndex: number;
-  itemIndexes: number[];
-  at: number;
-};
 
 function clampIndex(value: number, length: number) {
   return Math.max(0, Math.min(length - 1, value));
@@ -144,32 +143,16 @@ function isMeEntryPath() {
   return location.pathname === '/me' || location.pathname.startsWith('/m/profile') || new URLSearchParams(location.search).get('tab') === 'me';
 }
 
+function isLiveEntryPath() {
+  return location.pathname === '/home/live';
+}
+
 function initialBaseIndex() {
   return isMeEntryPath() ? 2 : 1;
 }
 
-function readHomeReturnState(): HomeReturnState | null {
-  try {
-    const raw = sessionStorage.getItem(HOME_RETURN_STATE_KEY);
-    if (!raw) return null;
-    sessionStorage.removeItem(HOME_RETURN_STATE_KEY);
-    const parsed = JSON.parse(raw) as Partial<HomeReturnState>;
-    if (!parsed || Date.now() - Number(parsed.at || 0) > HOME_RETURN_STATE_TTL_MS) return null;
-    if (!Array.isArray(parsed.itemIndexes)) return null;
-    return {
-      baseIndex: Number(parsed.baseIndex),
-      channelIndex: Number(parsed.channelIndex),
-      itemIndexes: parsed.itemIndexes.map((value) => Number(value) || 0),
-      at: Number(parsed.at),
-    };
-  } catch {
-    sessionStorage.removeItem(HOME_RETURN_STATE_KEY);
-    return null;
-  }
-}
-
-function writeHomeReturnState(state: Omit<HomeReturnState, 'at'>) {
-  sessionStorage.setItem(HOME_RETURN_STATE_KEY, JSON.stringify({ ...state, at: Date.now() }));
+function initialChannelIndex() {
+  return isLiveEntryPath() ? LIVE_CHANNEL_INDEX : 4;
 }
 
 function shuffleItems<T>(items: T[]) {
@@ -297,7 +280,10 @@ function remoteVideoToFeedItem(video: DouyinVideoRecord, index: number): FeedIte
 }
 
 async function fetchDouyinFeedItemsFrom(source: string) {
-  const response = await fetch(source, source.startsWith('/') ? undefined : { mode: 'cors' });
+  const response = await fetch(
+    source,
+    source.startsWith('/') ? DATA_FETCH_OPTIONS : { ...DATA_FETCH_OPTIONS, mode: 'cors' },
+  );
   if (!response.ok) throw new Error(`load douyin feed failed: ${response.status}`);
   const rows = await response.json() as DouyinVideoRecord[];
   const items = rows
@@ -320,11 +306,12 @@ function takeLoop<T>(items: T[], count: number, start = 0) {
   return Array.from({ length: size }, (_, index) => items[(start + index) % items.length]);
 }
 
-function liveRoomFeedItems(rooms: Room[]): FeedItem[] {
+function liveRoomFeedItems(rooms: Room[], liveSources: string[]): FeedItem[] {
   if (!rooms.length) return [];
   const tones: FeedItem['tone'][] = ['cyan', 'dark', 'violet', 'rose'];
   return rooms.map((room, index) => {
     const name = room.name || `直播间${index + 1}`;
+    const videoUrls = liveSources.length ? takeLoop(liveSources, liveSources.length, index) : undefined;
     return {
       id: `room-${room.id}`,
       kind: 'live',
@@ -339,6 +326,8 @@ function liveRoomFeedItems(rooms: Room[]): FeedItem[] {
       tone: tones[index % tones.length] || 'cyan',
       liveLabel: `LIVE · ${name}`,
       liveHref: `/m/room/${encodeURIComponent(room.id)}`,
+      videoUrl: videoUrls?.[0],
+      videoUrls,
     };
   });
 }
@@ -519,11 +508,23 @@ function IndicatorHome({
     <header className="dyHomeReplicaIndicator">
       <button type="button" aria-label="打开侧边栏" onClick={onOpenSidebar}><HomeIcon name="menu" /></button>
       <nav aria-label="首页频道">
-        {CHANNELS.map((channel, index) => (
-          <button type="button" className={activeChannel === index ? 'active' : ''} onClick={() => onSetChannel(index)} key={channel}>
-            {channel}
-          </button>
-        ))}
+        {TOP_NAV_CHANNELS.map((channel) => {
+          const feedIndex = CHANNELS.indexOf(channel);
+          const isShop = channel === '商城';
+          return (
+            <button
+              type="button"
+              className={!isShop && activeChannel === feedIndex ? 'active' : ''}
+              onClick={() => {
+                if (isShop) navigateTo('/shop');
+                else if (feedIndex >= 0) onSetChannel(feedIndex);
+              }}
+              key={channel}
+            >
+              {channel}
+            </button>
+          );
+        })}
       </nav>
       <a href="/home/search" aria-label="搜索"><HomeIcon name="search" /></a>
     </header>
@@ -916,7 +917,7 @@ function FriendSheet({ onClose }: { onClose: () => void }) {
 export function DouyinHomeShell() {
   const restoredHomeState = useMemo(() => (isMeEntryPath() ? null : readHomeReturnState()), []);
   const [baseIndex, setBaseIndex] = useState(() => clampIndex(restoredHomeState?.baseIndex ?? initialBaseIndex(), 3));
-  const [channelIndex, setChannelIndex] = useState(() => clampIndex(restoredHomeState?.channelIndex ?? 4, CHANNELS.length));
+  const [channelIndex, setChannelIndex] = useState(() => clampIndex(restoredHomeState?.channelIndex ?? initialChannelIndex(), CHANNELS.length));
   const [itemIndexes, setItemIndexes] = useState(() => {
     const saved = restoredHomeState?.itemIndexes || [];
     return CHANNELS.map((_, index) => Math.max(0, saved[index] || 0));
@@ -927,12 +928,15 @@ export function DouyinHomeShell() {
   const [commentTarget, setCommentTarget] = useState<CommentTarget | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [publicRooms, setPublicRooms] = useState<Room[]>([]);
+  const [publicRoomsLoaded, setPublicRoomsLoaded] = useState(false);
   const [remoteVideoItems, setRemoteVideoItems] = useState<FeedItem[]>([]);
   const touchStart = useRef({ x: 0, y: 0, at: 0 });
   const wheelGesture = useRef({ x: 0, y: 0, lastAt: 0, lockedUntil: 0 });
+  const restoredLiveRoomApplied = useRef(false);
   const fallbackVideoItems = useMemo(() => shuffleItems(VIDEO_FEED_ITEMS), []);
+  const liveDemoSources = useMemo(() => shuffleItems(resolveLivePlaylist()), []);
   const videoItems = remoteVideoItems.length ? remoteVideoItems : fallbackVideoItems;
-  const liveItems = useMemo(() => liveRoomFeedItems(publicRooms), [publicRooms]);
+  const liveItems = useMemo(() => liveRoomFeedItems(shuffleItems(publicRooms), liveDemoSources), [liveDemoSources, publicRooms]);
   const channelFeeds = useMemo(() => CHANNELS.map((_, index) => channelItems(index, liveItems, videoItems)), [liveItems, videoItems]);
   const items = channelFeeds[channelIndex] || FEED_ITEMS;
   const itemIndex = clampIndex(itemIndexes[channelIndex] || 0, items.length);
@@ -943,6 +947,8 @@ export function DouyinHomeShell() {
       if (!disposed) setPublicRooms(rooms);
     }).catch(() => {
       if (!disposed) setPublicRooms([]);
+    }).finally(() => {
+      if (!disposed) setPublicRoomsLoaded(true);
     });
     void fetchDouyinFeedItems().then((items) => {
       if (!disposed) setRemoteVideoItems(items);
@@ -955,9 +961,32 @@ export function DouyinHomeShell() {
   }, []);
 
   useEffect(() => {
+    if (restoredLiveRoomApplied.current) return;
+    const targetLiveRoomId = restoredHomeState?.targetLiveRoomId;
+    if (!targetLiveRoomId || !liveItems.length) return;
+
+    const liveFeed = channelFeeds[LIVE_CHANNEL_INDEX] || [];
+    const targetIndex = liveFeed.findIndex((item) => liveRoomIdFromHref(item.liveHref) === targetLiveRoomId);
+    if (targetIndex < 0) return;
+
+    restoredLiveRoomApplied.current = true;
+    setBaseIndex(1);
+    setChannelIndex(LIVE_CHANNEL_INDEX);
+    setItemIndexes((current) => {
+      const next = current.slice();
+      next[LIVE_CHANNEL_INDEX] = targetIndex;
+      return next;
+    });
+    setPausedId('');
+  }, [channelFeeds, liveItems.length, restoredHomeState?.targetLiveRoomId]);
+
+  useEffect(() => {
     const syncEntryPath = () => {
       if (isMeEntryPath()) setBaseIndex(2);
-      else if (location.pathname === '/' || location.pathname === '/home') setBaseIndex(1);
+      else if (isLiveEntryPath()) {
+        setBaseIndex(1);
+        setChannelIndex(LIVE_CHANNEL_INDEX);
+      } else if (location.pathname === '/' || location.pathname === '/home') setBaseIndex(1);
     };
     window.addEventListener('popstate', syncEntryPath);
     window.addEventListener(SPA_NAVIGATE_EVENT, syncEntryPath);
@@ -1007,12 +1036,16 @@ export function DouyinHomeShell() {
     if (baseIndex === 1 && swipeDistance(dy, elapsed, VERTICAL_SWIPE_DISTANCE) && Math.abs(dy) > Math.abs(dx) * 1.08) {
       if (dy > 72 && itemIndex === 0) {
         setRefreshing(true);
+        setPublicRoomsLoaded(false);
         void Promise.allSettled([listPublicRooms(), fetchDouyinFeedItems()])
           .then(([roomsResult, videosResult]) => {
             if (roomsResult.status === 'fulfilled') setPublicRooms(roomsResult.value);
             if (videosResult.status === 'fulfilled') setRemoteVideoItems(videosResult.value);
           })
-          .finally(() => window.setTimeout(() => setRefreshing(false), 450));
+          .finally(() => window.setTimeout(() => {
+            setPublicRoomsLoaded(true);
+            setRefreshing(false);
+          }, 450));
         return;
       }
       setCurrentItemIndex((current) => current + (dy < 0 ? 1 : -1));
@@ -1088,7 +1121,12 @@ export function DouyinHomeShell() {
   }
 
   function enterLiveRoom(href: string) {
-    writeHomeReturnState({ baseIndex: 1, channelIndex, itemIndexes });
+    writeHomeReturnState({
+      baseIndex: 1,
+      channelIndex,
+      itemIndexes,
+      targetLiveRoomId: liveRoomIdFromHref(href) || undefined,
+    });
     navigateTo(href);
   }
 
@@ -1128,6 +1166,7 @@ export function DouyinHomeShell() {
           <section className="dyHomeReplicaChannelTrack" style={{ transform: `translateX(-${channelIndex * 100}%)` }}>
             {channelFeeds.map((feed, feedIndex) => {
               const paneItemIndex = clampIndex(itemIndexes[feedIndex] || 0, feed.length);
+              const liveFeedLoading = feedIndex === LIVE_CHANNEL_INDEX && !feed.length && !publicRoomsLoaded;
               return (
                 <section className="dyHomeReplicaChannelPane" key={CHANNELS[feedIndex]}>
                   {feed.length ? (
@@ -1149,6 +1188,11 @@ export function DouyinHomeShell() {
                         />
                       ))}
                     </section>
+                  ) : liveFeedLoading ? (
+                    <section className="dyHomeReplicaLiveEmpty">
+                      <DouyinLoading mode="inline" />
+                      <b>直播加载中</b>
+                    </section>
                   ) : feedIndex === LIVE_CHANNEL_INDEX ? (
                     <section className="dyHomeReplicaLiveEmpty">
                       <b>目前暂无直播</b>
@@ -1157,10 +1201,14 @@ export function DouyinHomeShell() {
                         type="button"
                         onClick={() => {
                           setRefreshing(true);
+                          setPublicRoomsLoaded(false);
                           void listPublicRooms()
                             .then((rooms) => setPublicRooms(rooms))
                             .catch(() => setPublicRooms([]))
-                            .finally(() => window.setTimeout(() => setRefreshing(false), 300));
+                            .finally(() => window.setTimeout(() => {
+                              setPublicRoomsLoaded(true);
+                              setRefreshing(false);
+                            }, 300));
                         }}
                       >
                         刷新

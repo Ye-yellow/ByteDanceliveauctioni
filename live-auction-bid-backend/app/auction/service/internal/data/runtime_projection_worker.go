@@ -779,7 +779,7 @@ func (w *RuntimeProjectionWorker) decodeRuntimeProjection(ctx context.Context, m
 	lot := runtimeJSONToLot(baseLot, payload.UpdatedLot)
 	bid := runtimeJSONToBid(payload.Bid)
 	ranking := runtimeJSONToRanking(payload.RankingTop)
-	return auction.RuntimeProjectionEvent{
+	projection := auction.RuntimeProjectionEvent{
 		RuntimeEventID:     payload.EventID,
 		RuntimeStreamID:    message.ID,
 		RoomID:             payload.RoomID,
@@ -796,7 +796,19 @@ func (w *RuntimeProjectionWorker) decodeRuntimeProjection(ctx context.Context, m
 		LotVersion:         payload.LotVersion,
 		OccurredAtUnixMs:   payload.OccurredAtUnixMs,
 		OrderID:            payload.OrderID,
-	}, nil
+	}
+	if projection.Lot != nil && auction.AuctionStateOf(projection.Lot) == auction.AuctionStateSettled && projection.Bid.GetUserId() != "" {
+		hold, found, err := w.store.FindDepositHoldByLotBuyer(ctx, projection.LotID, projection.Bid.GetUserId())
+		if err != nil {
+			return auction.RuntimeProjectionEvent{}, err
+		}
+		if found && hold.Status == auction.DepositStatusHeld {
+			projection.ShippingAddressID = hold.AddressID
+			snapshot := hold.AddressSnapshot
+			projection.ShippingAddressSnapshot = &snapshot
+		}
+	}
+	return projection, nil
 }
 
 func RuntimeProjectionMetricsFromMap(snapshot map[string]any) map[string]string {

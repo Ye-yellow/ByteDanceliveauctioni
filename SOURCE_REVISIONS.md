@@ -2,10 +2,10 @@
 
 This delivery monorepo was assembled from sanitized snapshots of three private project repositories.
 
-| Component | Source repository | Source HEAD before filtering | Sanitized HEAD after filtering |
+| Component | Source repository | Source HEAD before filtering | Public mirror rule |
 | --- | --- | --- | --- |
-| Backend | `Ye-yellow/auction-backend` | `43a4c29` | `be5ce93` |
-| PC merchant console | `Ye-yellow/auction-frontend` | `f5d084d` | `e638a24` |
-| H5 buyer client | `Ye-yellow/aution-h5` | `303a9bf` | `22098c8` |
+| Backend | `Ye-yellow/auction-backend` | `21eca17` | Source files only; tests, secrets, local data, and build outputs excluded. |
+| PC merchant console | `Ye-yellow/auction-frontend` | `8e4c4b2` | Source files only; tests, secrets, local data, and build outputs excluded. |
+| H5 buyer client | `Ye-yellow/aution-h5` | `3c760f4` | Source files only; tests, secrets, local data, and build outputs excluded. |
 
 History was rewritten to remove sensitive configuration, internal agent notes, and non-public scraped data before importing the components into this repository.

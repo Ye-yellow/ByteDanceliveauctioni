@@ -3,6 +3,19 @@ import type { OrderStatus, PaymentStatus } from './orderStatus';
 
 export type AuctionState = 'DRAFT' | 'QUEUED' | 'LIVE' | 'EXTENDED' | 'SETTLED' | 'CANCELLED' | 'FAILED' | (string & {});
 
+export type DeliveryAddressSnapshot = {
+  addressId?: string;
+  receiverName?: string;
+  receiver?: string;
+  phone?: string;
+  province?: string;
+  city?: string;
+  district?: string;
+  street?: string;
+  detail?: string;
+  fullAddress?: string;
+};
+
 export type OrderSummary = {
   id: string;
   lotId: string;
@@ -14,6 +27,9 @@ export type OrderSummary = {
   status: OrderStatus;
   paymentStatus: PaymentStatus;
   paymentId?: string;
+  shippingAddressId?: string;
+  shippingAddressSnapshot?: DeliveryAddressSnapshot | null;
+  addressSnapshot?: string;
   amount: number | string;
   currency: string;
   createdAtUnixMs: number | string;

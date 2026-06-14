@@ -1,0 +1,118 @@
+.liveProductDetailHero {
+  touch-action: none;
+}
+
+.liveProductDetailGallery {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+  transition: transform 220ms cubic-bezier(0.22, 0.86, 0.28, 1);
+}
+
+.liveProductDetailGallery.isDragging {
+  transition: none;
+}
+
+.liveProductDetailHero .liveProductDetailGallery img {
+  flex: 0 0 100%;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 68%;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.liveProductDetailHero i,
+.liveProductDetailGalleryCount,
+.liveProductDetailGalleryDots {
+  z-index: 2;
+}
+
+.liveProductDetailGalleryCount {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  min-width: 42px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.42);
+  color: #fff;
+  padding: 5px 10px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  backdrop-filter: blur(10px);
+}
+
+.liveProductDetailGalleryDots {
+  position: absolute;
+  left: 50%;
+  bottom: 17px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transform: translateX(-50%);
+}
+
+.liveProductDetailGalleryDots button {
+  width: 5px;
+  height: 5px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.52);
+  padding: 0;
+  transition: width 180ms ease, background-color 180ms ease;
+}
+
+.liveProductDetailGalleryDots button.active {
+  width: 14px;
+  background: #ff2f5f;
+}
+
+.liveProductTrustGrid {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.liveProductTrustGrid article {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #eef0f5;
+  border-radius: 12px;
+  background: #f8f9fc;
+  padding: 10px;
+}
+
+.liveProductTrustGrid b {
+  color: #151824;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.liveProductTrustGrid p {
+  margin: 0;
+  color: #6f7480;
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.45;
+}
+
+.liveProductTrustGrid img {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  border-radius: 10px;
+  object-fit: contain;
+  background: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liveProductDetailGallery,
+  .liveProductDetailGalleryDots button {
+    transition: none;
+  }
+}

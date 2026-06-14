@@ -609,7 +609,7 @@ var auctionBusinessLocation = time.FixedZone("Asia/Shanghai", 8*60*60)
 
 func IsAutoCancellablePreStartStatus(status v1.LotStatus) bool {
 	switch status {
-	case v1.LotStatus_LOT_STATUS_READY, v1.LotStatus_LOT_STATUS_QUEUED:
+	case v1.LotStatus_LOT_STATUS_READY:
 		return true
 	default:
 		return false
@@ -618,6 +618,9 @@ func IsAutoCancellablePreStartStatus(status v1.LotStatus) bool {
 
 func IsStalePreStartLot(lot *v1.Lot, nowMs int64) bool {
 	if lot == nil || nowMs <= 0 || lot.GetStartedAtUnixMs() > 0 || !IsAutoCancellablePreStartStatus(lot.GetStatus()) {
+		return false
+	}
+	if lot.GetQueueStatus() == v1.LotQueueStatus_LOT_QUEUE_STATUS_QUEUED || lot.GetQueuePosition() > 0 {
 		return false
 	}
 	createdAtMs := lot.GetCreatedAtUnixMs()

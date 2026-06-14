@@ -67,8 +67,21 @@ function eventServerTime(event: AuctionSocketEvent): number | string | undefined
   return event.serverTimeUnixMs || event.occurredAtUnixMs;
 }
 
+function mergeEventLot(currentLot: Lot | null, eventLot?: Lot): Lot | null {
+  if (!eventLot) return currentLot;
+  if (!currentLot || currentLot.id !== eventLot.id) return eventLot;
+
+  return {
+    ...eventLot,
+    imageUrl: eventLot.imageUrl || currentLot.imageUrl,
+    galleryImageUrls: eventLot.galleryImageUrls?.length ? eventLot.galleryImageUrls : currentLot.galleryImageUrls,
+    description: eventLot.description || currentLot.description,
+    trustCards: eventLot.trustCards?.length ? eventLot.trustCards : currentLot.trustCards,
+  };
+}
+
 function withLot(state: AuctionRoomState, lot?: Lot): Pick<AuctionRoomState, 'currentLot'> {
-  return { currentLot: lot || state.currentLot };
+  return { currentLot: mergeEventLot(state.currentLot, lot) };
 }
 
 function withRanking(state: AuctionRoomState, ranking?: RankingItem[]): Pick<AuctionRoomState, 'ranking'> {

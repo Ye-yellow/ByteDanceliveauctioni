@@ -24,16 +24,19 @@ import (
 // - 实时广播通过 EventPublisher 接口隔离；
 // - HTTP/WS 适配不放在 biz 层。
 type AuctionUsecase struct {
-	lots        LotRepository
-	rooms       RoomRepository
-	expiredLots ExpiredLotRepository
-	bids        BidRepository
-	runtime     AuctionRuntime
-	projector   RuntimeProjectionRepository
-	orders      OrderRepository
-	payments    PaymentRepository
-	eventsStore EventRepository
-	events      EventPublisher
+	lots            LotRepository
+	rooms           RoomRepository
+	expiredLots     ExpiredLotRepository
+	bids            BidRepository
+	runtime         AuctionRuntime
+	projector       RuntimeProjectionRepository
+	orders          OrderRepository
+	payments        PaymentRepository
+	deposits        DepositRepository
+	addresses       DeliveryAddressRepository
+	eventsStore     EventRepository
+	events          EventPublisher
+	paymentProvider PaymentProvider
 
 	syncRuntimeProjection bool
 	bidDBGuardMode        bidDBGuardMode
@@ -174,6 +177,12 @@ func NewAuctionUsecase(lots LotRepository, bids BidRepository, eventStore EventR
 	if repo, ok := lots.(PaymentRepository); ok {
 		uc.payments = repo
 	}
+	if repo, ok := lots.(DepositRepository); ok {
+		uc.deposits = repo
+	}
+	if repo, ok := lots.(DeliveryAddressRepository); ok {
+		uc.addresses = repo
+	}
 	if repo, ok := bids.(AuctionRuntime); ok {
 		uc.runtime = repo
 	} else if repo, ok := lots.(AuctionRuntime); ok {
@@ -184,6 +193,11 @@ func NewAuctionUsecase(lots LotRepository, bids BidRepository, eventStore EventR
 	} else if repo, ok := lots.(RuntimeProjectionRepository); ok {
 		uc.projector = repo
 	}
+	return uc
+}
+
+func (uc *AuctionUsecase) SetPaymentProvider(provider PaymentProvider) *AuctionUsecase {
+	uc.paymentProvider = provider
 	return uc
 }
 
@@ -488,6 +502,13 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest,
 	if req.GetIdempotencyKey() == "" {
 		return nil, nil, nil, fmt.Errorf("%w: bid idempotency key is required", apperr.ErrInvalidArgument)
 	}
+	depositLot, err := uc.lots.FindCoreByID(ctx, req.GetLotId())
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if err := uc.ensureDepositHeld(ctx, depositLot, bidderID); err != nil {
+		return depositLot, nil, nil, err
+	}
 	if uc.runtime != nil && uc.projector != nil {
 		return uc.placeBidRuntime(ctx, req, bidderID, nickname)
 	}
@@ -587,6 +608,9 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest,
 		if AuctionStateOf(lot) == AuctionStateSettled {
 			createdOrder, err := NewOrderFromSettledLot(idgen.New("order"), lot, nowMs)
 			if err != nil {
+				return nil, nil, nil, err
+			}
+			if err := uc.attachDepositAddressSnapshot(ctx, createdOrder); err != nil {
 				return nil, nil, nil, err
 			}
 			order = createdOrder
@@ -719,6 +743,9 @@ func (uc *AuctionUsecase) placeBidRuntime(ctx context.Context, req *v1.PlaceBidR
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	if err := uc.attachDepositAddressSnapshot(ctx, order); err != nil {
+		return nil, nil, nil, err
+	}
 	if err := uc.projector.ProjectRuntimeBid(ctx, bid, result.Lot, req.GetIdempotencyKey(), order, commitEvents); err != nil {
 		replayLot, replayBid, replayRanking, found, replayErr := uc.replayBidByIdempotencyKey(ctx, lot.Id, bidderID, req.GetIdempotencyKey())
 		if replayErr == nil && found {
@@ -793,7 +820,7 @@ func bidRejectReason(err error) string {
 	return string(apperr.CodeBidRejected)
 }
 
-func (uc *AuctionUsecase) acceptedBidEvents(lot *v1.Lot, bid v1.Bid, ranking []*v1.RankingItem, previousLeaderID string, endsBeforeBid int64, extendCountBeforeBid int32, nowMs int64) ([]v1.AuctionEvent, *Order, error) {
+func (uc *AuctionUsecase) acceptedBidEvents(ctx context.Context, lot *v1.Lot, bid v1.Bid, ranking []*v1.RankingItem, previousLeaderID string, endsBeforeBid int64, extendCountBeforeBid int32, nowMs int64) ([]v1.AuctionEvent, *Order, error) {
 	acceptedEvent := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_BID_ACCEPTED, lot)
 	acceptedEvent.Bid = &bid
 	acceptedEvent.Ranking = ranking
@@ -830,6 +857,9 @@ func (uc *AuctionUsecase) acceptedBidEvents(lot *v1.Lot, bid v1.Bid, ranking []*
 	}
 	order, err := NewOrderFromSettledLot(idgen.New("order"), lot, nowMs)
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := uc.attachDepositAddressSnapshot(ctx, order); err != nil {
 		return nil, nil, err
 	}
 	settledEvent := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_SETTLED, lot)
@@ -962,6 +992,9 @@ func (uc *AuctionUsecase) SettleLot(ctx context.Context, lotID, mainAccountID, o
 	if err != nil {
 		return nil, err
 	}
+	if err := uc.attachDepositAddressSnapshot(ctx, order); err != nil {
+		return nil, err
+	}
 	if uc.orders == nil {
 		return nil, errors.New("order repository is required")
 	}
@@ -1049,6 +1082,9 @@ func (uc *AuctionUsecase) closeExpiredLot(ctx context.Context, lotID string, now
 	}
 	order, err := NewOrderFromSettledLot(idgen.New("order"), lot, nowMs)
 	if err != nil {
+		return false, false, err
+	}
+	if err := uc.attachDepositAddressSnapshot(ctx, order); err != nil {
 		return false, false, err
 	}
 	settledEvent := newAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_SETTLED, lot)
@@ -1179,6 +1215,163 @@ func (uc *AuctionUsecase) ListBidRecordsByBuyer(ctx context.Context, buyerUserID
 	}
 	query.Page, query.PageSize = NormalizePagination(query.Page, query.PageSize)
 	return uc.bids.ListBidRecordsByBuyer(ctx, buyerUserID, query)
+}
+
+func (uc *AuctionUsecase) CreateDepositHold(ctx context.Context, buyerUserID, buyerNickname string, req CreateDepositHoldRequest) (*DepositHoldResult, error) {
+	buyerUserID = strings.TrimSpace(buyerUserID)
+	buyerNickname = strings.TrimSpace(buyerNickname)
+	req.LotID = strings.TrimSpace(req.LotID)
+	req.AddressID = strings.TrimSpace(req.AddressID)
+	req.IdempotencyKey = strings.TrimSpace(req.IdempotencyKey)
+	if buyerUserID == "" {
+		return nil, apperr.ErrUnauthenticated
+	}
+	if req.LotID == "" {
+		return nil, fmt.Errorf("%w: lot id is required", apperr.ErrInvalidArgument)
+	}
+	if req.AddressID == "" {
+		return nil, fmt.Errorf("%w: address id is required", apperr.ErrAddressRequired)
+	}
+	if req.IdempotencyKey == "" {
+		return nil, fmt.Errorf("%w: deposit idempotency key is required", apperr.ErrInvalidArgument)
+	}
+	if uc.deposits == nil || uc.addresses == nil || uc.lots == nil {
+		return nil, errors.New("deposit, address and lot repositories are required")
+	}
+	if uc.paymentProvider == nil || strings.TrimSpace(uc.paymentProvider.Name()) == "" {
+		return nil, apperr.ErrPaymentProviderNotConfigured
+	}
+	if existing, found, err := uc.deposits.FindDepositHoldByIdempotencyKey(ctx, req.LotID, buyerUserID, req.IdempotencyKey); err != nil {
+		return nil, err
+	} else if found {
+		return &DepositHoldResult{DepositHold: *existing, Paid: existing.Status == DepositStatusHeld}, nil
+	}
+	if existing, found, err := uc.deposits.FindDepositHoldByLotBuyer(ctx, req.LotID, buyerUserID); err != nil {
+		return nil, err
+	} else if found && existing.Status == DepositStatusHeld {
+		return &DepositHoldResult{DepositHold: *existing, Paid: true}, nil
+	} else if found {
+		return nil, fmt.Errorf("%w: deposit already exists with status %s", apperr.ErrInvalidArgument, existing.Status)
+	}
+	lot, err := uc.lots.FindCoreByID(ctx, req.LotID)
+	if err != nil {
+		return nil, err
+	}
+	depositAmount, depositCurrency := requiredDepositMoney(lot)
+	address, err := uc.addresses.FindDeliveryAddress(ctx, buyerUserID, req.AddressID)
+	if err != nil {
+		return nil, err
+	}
+	nowMs := clock.NowMs()
+	hold := DepositHold{
+		ID:              idgen.New("deposit"),
+		MainAccountID:   lot.GetMainAccountId(),
+		RoomID:          lot.GetRoomId(),
+		LotID:           lot.GetId(),
+		BuyerUserID:     buyerUserID,
+		BuyerNickname:   buyerNickname,
+		Status:          DepositStatusProcessing,
+		Amount:          depositAmount,
+		Currency:        depositCurrency,
+		PaymentProvider: uc.paymentProvider.Name(),
+		IdempotencyKey:  req.IdempotencyKey,
+		AddressID:       address.ID,
+		AddressSnapshot: address.Snapshot(),
+		CreatedAtUnixMs: nowMs,
+		UpdatedAtUnixMs: nowMs,
+	}
+	payment, err := uc.paymentProvider.Pay(ctx, PaymentProviderRequest{
+		BusinessID:     hold.ID,
+		BusinessType:   "auction_deposit",
+		UserID:         buyerUserID,
+		Amount:         hold.Amount,
+		Currency:       hold.Currency,
+		IdempotencyKey: hold.IdempotencyKey,
+	})
+	if err != nil {
+		return nil, err
+	}
+	hold.PaymentID = payment.ProviderPaymentID
+	hold.Status = DepositStatusHeld
+	hold.HeldAtUnixMs = payment.PaidAtUnixMs
+	hold.UpdatedAtUnixMs = payment.PaidAtUnixMs
+	committed, err := uc.deposits.CommitDepositHold(ctx, hold)
+	if err != nil {
+		return nil, err
+	}
+	return &DepositHoldResult{DepositHold: *committed, Paid: committed.Status == DepositStatusHeld}, nil
+}
+
+func (uc *AuctionUsecase) GetMyDepositHold(ctx context.Context, lotID, buyerUserID string) (*DepositHold, bool, error) {
+	if uc.deposits == nil {
+		return nil, false, errors.New("deposit repository is required")
+	}
+	lotID = strings.TrimSpace(lotID)
+	buyerUserID = strings.TrimSpace(buyerUserID)
+	if lotID == "" {
+		return nil, false, fmt.Errorf("%w: lot id is required", apperr.ErrInvalidArgument)
+	}
+	if buyerUserID == "" {
+		return nil, false, apperr.ErrUnauthenticated
+	}
+	return uc.deposits.FindDepositHoldByLotBuyer(ctx, lotID, buyerUserID)
+}
+
+func (uc *AuctionUsecase) attachDepositAddressSnapshot(ctx context.Context, order *Order) error {
+	if order == nil || uc.deposits == nil {
+		return nil
+	}
+	hold, found, err := uc.deposits.FindDepositHoldByLotBuyer(ctx, order.LotID, order.BuyerUserID)
+	if err != nil {
+		return err
+	}
+	if !found || hold.Status != DepositStatusHeld {
+		return nil
+	}
+	order.ShippingAddressID = hold.AddressID
+	snapshot := hold.AddressSnapshot
+	order.ShippingAddressSnapshot = &snapshot
+	return nil
+}
+
+func requiredDepositMoney(lot *v1.Lot) (int64, string) {
+	if lot == nil {
+		return 0, "CNY"
+	}
+	deposit := lot.GetDepositAmount()
+	currency := strings.TrimSpace(deposit.GetCurrency())
+	if currency == "" {
+		currency = "CNY"
+	}
+	amount := deposit.GetAmount()
+	if amount < 0 {
+		amount = 0
+	}
+	return amount, currency
+}
+
+func (uc *AuctionUsecase) ensureDepositHeld(ctx context.Context, lot *v1.Lot, bidderID string) error {
+	if lot == nil {
+		return apperr.ErrNotFound
+	}
+	depositAmount, depositCurrency := requiredDepositMoney(lot)
+	if uc.deposits == nil && depositAmount <= 0 {
+		return nil
+	}
+	if uc.deposits == nil {
+		return errors.New("deposit repository is required")
+	}
+	hold, found, err := uc.deposits.FindDepositHoldByLotBuyer(ctx, lot.GetId(), strings.TrimSpace(bidderID))
+	if err != nil {
+		return err
+	}
+	if !found || hold.Status != DepositStatusHeld {
+		return fmt.Errorf("%w: lot deposit is required", apperr.ErrDepositRequired)
+	}
+	if hold.Amount != depositAmount || hold.Currency != depositCurrency {
+		return fmt.Errorf("%w: deposit amount changed, please pay again", apperr.ErrDepositRequired)
+	}
+	return nil
 }
 
 func (uc *AuctionUsecase) MockPayOrder(ctx context.Context, buyerUserID, orderID string, req MockPayRequest) (*PaymentResult, error) {

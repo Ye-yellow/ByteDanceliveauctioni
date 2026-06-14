@@ -350,8 +350,9 @@ func (s *Store) ListStalePreStart(ctx context.Context, nowMs, localDayStartMs in
 	var models []AuctionLotModel
 	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
-			Where("status IN ? AND started_at_unix_ms = 0 AND (created_at <= ? OR created_at < ?)",
-				[]int32{int32(v1.LotStatus_LOT_STATUS_READY), int32(v1.LotStatus_LOT_STATUS_QUEUED)},
+			Where("status = ? AND started_at_unix_ms = 0 AND queue_status <> ? AND queue_position = 0 AND (created_at <= ? OR created_at < ?)",
+				int32(v1.LotStatus_LOT_STATUS_READY),
+				int32(v1.LotQueueStatus_LOT_QUEUE_STATUS_QUEUED),
 				cutoff24h,
 				localDayStart,
 			).

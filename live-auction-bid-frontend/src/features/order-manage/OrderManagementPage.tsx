@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ChevronLeft, ChevronRight, CircleDollarSign, Clock3, Package, ReceiptText, RefreshCw, Search, ShieldAlert, X } from 'lucide-react';
 import { getLotResult, listAdminOrders, type AdminOrdersQuery } from '../order/api/orderApi';
-import type { LotResultReply, OrderSummary } from '../../entities/order/model/orderTypes';
+import type { DeliveryAddressSnapshot, LotResultReply, OrderSummary } from '../../entities/order/model/orderTypes';
 import { ORDER_STATUS_FILTERS, isAbnormalOrder, isOrderPaidStatus, orderStatusLabel, orderStatusTone, paymentStatusLabel } from '../../entities/order/model/orderStatus';
 import { resultMessage } from '../../shared/api/result';
 import { formatAmountText, formatDateTimeText } from '../../shared/lib/format';
@@ -176,9 +176,26 @@ function orderAmountLabel(order: OrderSummary) {
   return isOrderPaidStatus(order.status, order.paymentStatus) ? '成交价' : '落锤价';
 }
 
+function buyerDisplayName(order?: OrderSummary, fallback = '') {
+  return order?.buyerNickname || order?.shippingAddressSnapshot?.receiverName || order?.shippingAddressSnapshot?.receiver || order?.buyerUserId || fallback || '买家未同步';
+}
+
+function receiverName(address?: DeliveryAddressSnapshot | null) {
+  return address?.receiverName || address?.receiver || '';
+}
+
+function formatShippingAddress(address?: DeliveryAddressSnapshot | null, fallback = '') {
+  if (!address) return fallback;
+  if (address.fullAddress) return address.fullAddress;
+  return [address.province, address.city, address.district, address.street, address.detail].filter(Boolean).join('');
+}
+
 function OrderDetailDrawer({ detail, loading, onClose }: { detail: LotResultReply; loading: boolean; onClose: () => void }) {
   const order = detail.order;
   const subtitle = order?.id || detail.lot?.id || 'lot result';
+  const shippingAddress = order?.shippingAddressSnapshot;
+  const addressText = formatShippingAddress(shippingAddress, order?.addressSnapshot || '');
+  const buyerName = buyerDisplayName(order, detail.lot?.winnerNickname);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -195,8 +212,13 @@ function OrderDetailDrawer({ detail, loading, onClose }: { detail: LotResultRepl
         <StudioButton type="button" size="sm" variant="ghost" icon={<X size={15} />} onClick={onClose}>关闭</StudioButton>
       </header>
       {loading ? <div className="orderDetailLoading"><StudioTableSkeleton rows={2} columns={2} /></div> : <div className="orderDetailBody">
-        <div className="drawerOrderHero"><img src={order?.lotImageUrl || detail.lot?.imageUrl || '/vite.svg'} alt={order?.lotTitle || detail.lot?.title || '成交拍品'} /><div><h3>{order?.lotTitle || detail.lot?.title || '成交拍品'}</h3><strong>{order ? formatAmountText(order.amount, order.currency) : '订单不可见'}</strong><span>{order?.buyerNickname || order?.buyerUserId || detail.lot?.winnerNickname || '买家未同步'} · {formatDateTimeText(order?.createdAtUnixMs || detail.lot?.settledAtUnixMs)}</span></div></div>
+        <div className="drawerOrderHero"><img src={order?.lotImageUrl || detail.lot?.imageUrl || '/vite.svg'} alt={order?.lotTitle || detail.lot?.title || '成交拍品'} /><div><h3>{order?.lotTitle || detail.lot?.title || '成交拍品'}</h3><strong>{order ? formatAmountText(order.amount, order.currency) : '订单不可见'}</strong><span>{buyerName} · {formatDateTimeText(order?.createdAtUnixMs || detail.lot?.settledAtUnixMs)}</span></div></div>
         <div className="drawerInfoGrid">
+          <span>买家姓名：<b>{buyerName}</b></span>
+          <span>买家 ID：<b>{order?.buyerUserId || detail.lot?.winnerUserId || '未同步'}</b></span>
+          <span>收货人：<b>{receiverName(shippingAddress) || '未填写'}</b></span>
+          <span>联系电话：<b>{shippingAddress?.phone || '未填写'}</b></span>
+          <span className="isWide">收货地址：<b>{addressText || '未同步收货地址'}</b></span>
           <span>订单状态：<b>{orderStatusLabel(order?.status)}</b></span>
           <span>支付状态：<b>{paymentStatusLabel(order?.paymentStatus)}</b></span>
           <span>竞拍状态：<b>{detail.auctionState || detail.lot?.status || '未同步'}</b></span>

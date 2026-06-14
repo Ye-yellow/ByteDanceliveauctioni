@@ -13,14 +13,21 @@ type Props = {
   onlineCount?: number;
   wsState: string;
   roomName: string;
+  source?: string;
+  onSourceChange?: (source: string) => void;
 };
 
-export function LivePlayer({ poster, anchorName, onlineCount, wsState, roomName }: Props) {
+export function LivePlayer({ poster, anchorName, onlineCount, wsState, roomName, source: controlledSource, onSourceChange }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [source, setSource] = useState(resolveInitialLiveSource);
+  const [internalSource, setInternalSource] = useState(resolveInitialLiveSource);
+  const source = controlledSource || internalSource;
   const [message, setMessage] = useState('');
   const playlist = resolveLivePlaylist();
   const hasPlaylistLoop = playlist.length > 1;
+  const updateSource = useCallback((nextSource: string) => {
+    if (onSourceChange) onSourceChange(nextSource);
+    else setInternalSource(nextSource);
+  }, [onSourceChange]);
 
   const playVideo = () => {
     const video = videoRef.current;
@@ -36,9 +43,9 @@ export function LivePlayer({ poster, anchorName, onlineCount, wsState, roomName 
     const nextSource = resolveNextLiveSource(source);
     if (nextSource && nextSource !== source) {
       setMessage('直播画面加载中');
-      setSource(nextSource);
+      updateSource(nextSource);
     }
-  }, [source]);
+  }, [source, updateSource]);
 
   useEffect(() => {
     const video = videoRef.current;

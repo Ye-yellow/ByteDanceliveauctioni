@@ -1,494 +1,211 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, Heart, Home, MessageCircle, Search, Share2, ShoppingCart, Store } from 'lucide-react';
+import { createShopOrder, FALLBACK_PRODUCTS, formatShopMoney, getShopProduct } from '../features/shop/api/shopApi';
+import type { ShopProduct, ShopSKU } from '../features/shop/api/shopApi';
+import { isAuthRequiredError } from '../shared/api/errors';
+import { getDefaultDeliveryAddress, listDeliveryAddresses } from '../shared/address/addressBook';
+import { BuyerAuthSheet } from '../shared/auth/BuyerAuthSheet';
+import { useAuthSession } from '../shared/auth/useAuthSession';
+import { navigateTo } from '../shared/navigation';
 import './shop-replica.css';
 
-type VisualKind = 'socket' | 'tv' | 'sweater' | 'socks' | 'storage' | 'beauty' | 'snack' | 'phone';
-type DetailTab = '商品' | '评价' | '详情' | '推荐';
-
-type DetailProduct = {
-  id: string;
-  name: string;
-  price: string;
-  realPrice: string;
-  sold: string;
-  visual: VisualKind;
-  coverLabel: string;
-  specs: string[];
-};
-
-type RecommendProduct = {
-  id: string;
-  name: string;
-  price: string;
-  sold: string;
-  tag?: string;
-  visual: VisualKind;
-  coverLabel: string;
-};
-
-const PRODUCTS: DetailProduct[] = [
-  {
-    id: 'socket',
-    name: '多功能电源插座 家用宿舍办公插排 直播热卖同款',
-    price: '39.9',
-    realPrice: '29.9',
-    sold: '12.3万',
-    visual: 'socket',
-    coverLabel: '插座',
-    specs: ['【10A】五孔插排1.8米', '【10A】三孔插排3米', '白色独立开关款'],
-  },
-  {
-    id: 'tv-oled',
-    name: '小米电视6 65英寸 OLED 超薄全面屏官方补贴',
-    price: '470',
-    realPrice: '429',
-    sold: '2.7万',
-    visual: 'tv',
-    coverLabel: 'OLED',
-    specs: ['65英寸 OLED', '官方标配', '含上门安装'],
-  },
-  {
-    id: 'stripe-knit',
-    name: '红白撞色条纹软糯针织上衣女秋季新款',
-    price: '69.9',
-    realPrice: '59.9',
-    sold: '8.8万',
-    visual: 'sweater',
-    coverLabel: '针织',
-    specs: ['红白条纹 S', '红白条纹 M', '红白条纹 L'],
-  },
-  {
-    id: 'sp-socks',
-    name: '男士SP中筒袜十双装 透气耐穿不易滑落',
-    price: '8.8',
-    realPrice: '8.8',
-    sold: '10万+',
-    visual: 'socks',
-    coverLabel: '袜子',
-    specs: ['【10双】男士SP中筒袜', '【5双】男士SP中筒袜', '黑白混色装'],
-  },
-  {
-    id: 'makeup-set',
-    name: '水光持妆粉底液套装 清透遮瑕自然妆感',
-    price: '88',
-    realPrice: '79',
-    sold: '6.4万',
-    visual: 'beauty',
-    coverLabel: '美妆',
-    specs: ['自然色', '亮肤色', '粉底液+散粉套装'],
-  },
-  {
-    id: 'storage-box',
-    name: '桌面透明收纳盒 多层防尘展示柜带抽屉',
-    price: '29.9',
-    realPrice: '24.9',
-    sold: '4.2万',
-    visual: 'storage',
-    coverLabel: '收纳',
-    specs: ['两层透明款', '三层透明款', '加宽抽屉款'],
-  },
-  {
-    id: 'snack-box',
-    name: '休闲零食大礼包 组合装办公室下午茶',
-    price: '19.9',
-    realPrice: '16.9',
-    sold: '9.6万',
-    visual: 'snack',
-    coverLabel: '零食',
-    specs: ['经典组合', '辣味组合', '甜口组合'],
-  },
-  {
-    id: 'phone-card',
-    name: '50元话费充值 即充即到账 全国通用',
-    price: '49.8',
-    realPrice: '49.5',
-    sold: '18.5万',
-    visual: 'phone',
-    coverLabel: '话费',
-    specs: ['50元话费', '100元话费', '200元话费'],
-  },
-];
-
-const COMMENT_TAGS = [
-  ['物美价廉', '29'],
-  ['物流很好', '26'],
-  ['推荐', '18'],
-  ['商家服务好', '15'],
-];
-
-const COMMENTS = [
-  {
-    user: '花***栽',
-    text: '东西不错质量也很好，性价比很高，良心商家，就冲这图必须给好评。',
-    sku: 'china款/超值【买3双+送2双】共5双',
-    visual: 'socks' as VisualKind,
-    coverLabel: '实拍',
-  },
-  {
-    user: '橘***海',
-    text: '包装完整，页面里展示的细节都对得上，发货也很快。',
-    sku: '升级款/家用办公室多场景',
-    visual: 'socket' as VisualKind,
-    coverLabel: '晒单',
-  },
-];
-
-const SHOP_RECOMMENDS: RecommendProduct[] = [
-  { id: 'tv-oled', name: '小米电视6 65英寸 OLED 超薄全面屏', price: '470', sold: '2.7万', visual: 'tv', coverLabel: 'OLED' },
-  { id: 'stripe-knit', name: '红白撞色条纹软糯针织上衣女秋季新款', price: '69.9', sold: '8.8万', visual: 'sweater', coverLabel: '针织' },
-  { id: 'sp-socks', name: '男士SP中筒袜十双装 透气耐穿', price: '8.8', sold: '10万+', visual: 'socks', coverLabel: '袜子' },
-];
-
-const WATERFALL: RecommendProduct[] = [
-  { id: 'storage-box', name: '桌面透明收纳盒 多层防尘展示柜带抽屉', price: '29.9', sold: '4.2万', tag: '限时抢', visual: 'storage', coverLabel: '收纳' },
-  { id: 'makeup-set', name: '水光持妆粉底液套装 清透遮瑕自然妆感', price: '88', sold: '6.4万', tag: '38节补贴', visual: 'beauty', coverLabel: '美妆' },
-  { id: 'snack-box', name: '休闲零食大礼包 组合装办公室下午茶', price: '19.9', sold: '9.6万', tag: '近30天低价', visual: 'snack', coverLabel: '零食' },
-  { id: 'phone-card', name: '50元话费充值 即充即到账 全国通用', price: '49.8', sold: '18.5万', tag: '极速到账', visual: 'phone', coverLabel: '话费' },
-];
-
-const DETAIL_NOTES = ['五孔间距升级', '儿童保护门', '阻燃外壳', '一体铜芯'];
+function productFromURL(): ShopProduct {
+  const id = new URLSearchParams(window.location.search).get('id');
+  return FALLBACK_PRODUCTS.find((item) => item.id === id) ?? FALLBACK_PRODUCTS[0];
+}
 
 function backToShop() {
   if (window.history.length > 1) {
     window.history.back();
     return;
   }
-  window.location.assign('/shop');
-}
-
-function ArrowIcon() {
-  return <span className="dyShopArrow" aria-hidden="true">›</span>;
-}
-
-function Price({ value }: { value: string }) {
-  const [intPart, decimalPart = ''] = value.split('.');
-  return (
-    <span className="dyShopPrice">
-      <i>￥</i>
-      <b>{intPart}</b>
-      {decimalPart ? <em>.{decimalPart}</em> : null}
-    </span>
-  );
-}
-
-function ProductPoster({
-  visual,
-  label,
-  className = '',
-}: {
-  visual: VisualKind;
-  label: string;
-  className?: string;
-}) {
-  return (
-    <div className={`dyShopPoster dyShopPoster-${visual} ${className}`}>
-      <span className="dyShopPosterObject" aria-hidden="true">
-        <i />
-        <i />
-        <b />
-      </span>
-      <strong>{label}</strong>
-    </div>
-  );
-}
-
-function findProduct() {
-  const id = new URLSearchParams(window.location.search).get('id');
-  return PRODUCTS.find((product) => product.id === id) ?? PRODUCTS[0];
+  navigateTo('/shop', { replace: true });
 }
 
 export function ShopDetailPage() {
-  const pageRef = useRef<HTMLElement | null>(null);
-  const slidesRef = useRef<HTMLDivElement | null>(null);
-  const productRef = useRef<HTMLElement | null>(null);
-  const commentsRef = useRef<HTMLElement | null>(null);
-  const detailRef = useRef<HTMLElement | null>(null);
-  const recommendRef = useRef<HTMLElement | null>(null);
-  const toastTimerRef = useRef<number | null>(null);
-  const product = useMemo(() => findProduct(), []);
-  const [headerProgress, setHeaderProgress] = useState(0);
-  const [slideIndex, setSlideIndex] = useState(0);
-  const [activeTab, setActiveTab] = useState<DetailTab>('商品');
-  const [selectedSpec, setSelectedSpec] = useState(product.specs[0]);
-  const [openIndexes, setOpenIndexes] = useState<number[]>([]);
+  const { user } = useAuthSession();
+  const fallback = useMemo(() => productFromURL(), []);
+  const [product, setProduct] = useState<ShopProduct>(fallback);
+  const [activeImage, setActiveImage] = useState(0);
+  const [selectedSkuId, setSelectedSkuId] = useState(fallback.skus[0]?.id ?? '');
+  const [quantity, setQuantity] = useState(1);
   const [toast, setToast] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
 
-  const heroSlides = useMemo(() => ([
-    { visual: product.visual, label: product.coverLabel },
-    { visual: product.visual, label: '细节' },
-    { visual: 'storage' as VisualKind, label: '包装' },
-    { visual: 'phone' as VisualKind, label: '保障' },
-  ]), [product.coverLabel, product.visual]);
-
-  useEffect(() => () => {
-    if (toastTimerRef.current) {
-      window.clearTimeout(toastTimerRef.current);
-    }
-  }, []);
-
-  const showToast = (message: string) => {
-    if (toastTimerRef.current) {
-      window.clearTimeout(toastTimerRef.current);
-    }
-    setToast(message);
-    toastTimerRef.current = window.setTimeout(() => setToast(''), 1600);
-  };
-
-  const handlePageScroll = () => {
-    const top = pageRef.current?.scrollTop ?? 0;
-    const nextProgress = Math.max(0, Math.min(1, top / 200));
-    setHeaderProgress((current) => (Math.abs(current - nextProgress) < 0.015 ? current : nextProgress));
-  };
-
-  const handleSlideScroll = () => {
-    const node = slidesRef.current;
-    if (!node) return;
-    const next = Math.round(node.scrollLeft / Math.max(1, node.clientWidth));
-    setSlideIndex(Math.max(0, Math.min(heroSlides.length - 1, next)));
-  };
-
-  const toggleSection = (index: number) => {
-    setOpenIndexes((current) => (
-      current.includes(index) ? current.filter((item) => item !== index) : [...current, index]
-    ));
-  };
-
-  const scrollToSection = (tab: DetailTab) => {
-    const refMap = {
-      商品: productRef,
-      评价: commentsRef,
-      详情: detailRef,
-      推荐: recommendRef,
+  useEffect(() => {
+    let cancelled = false;
+    getShopProduct(fallback.id)
+      .then((reply) => {
+        if (cancelled) return;
+        setProduct(reply);
+        setSelectedSkuId(reply.skus[0]?.id ?? '');
+      })
+      .catch(() => {
+        if (!cancelled) setProduct(fallback);
+      });
+    return () => {
+      cancelled = true;
     };
-    setActiveTab(tab);
-    refMap[tab].current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [fallback]);
+
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = window.setTimeout(() => setToast(''), 1800);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  const images = product.detailImageUrls.length ? product.detailImageUrls : [product.mainImageUrl];
+  const selectedSku: ShopSKU | undefined = product.skus.find((item) => item.id === selectedSkuId) ?? product.skus[0];
+  const price = selectedSku?.priceAmount ?? product.priceAmount;
+
+  const handleCreateOrder = async () => {
+    if (!selectedSku) {
+      setToast('请选择规格');
+      return;
+    }
+    if (!user) {
+      setToast('');
+      setAuthOpen(true);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const addresses = await listDeliveryAddresses();
+      const address = getDefaultDeliveryAddress(addresses);
+      if (!address) {
+        setToast('请先新增收货地址');
+        window.setTimeout(() => navigateTo('/shop/addresses/new'), 500);
+        return;
+      }
+      const order = await createShopOrder({
+        skuId: selectedSku.id,
+        quantity,
+        addressId: address.id,
+        idempotencyKey: `h5-shop-${Date.now()}-${selectedSku.id}`,
+      });
+      setToast('订单已创建');
+      window.setTimeout(() => navigateTo(`/shop/orders?status=pending_payment&orderId=${encodeURIComponent(order.id)}`), 350);
+    } catch (error) {
+      if (isAuthRequiredError(error)) {
+        setToast('');
+        setAuthOpen(true);
+        return;
+      }
+      setToast(error instanceof Error ? error.message : '下单失败，请稍后重试');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <main ref={pageRef} className="mobileShell dyShopDetailShell" onScroll={handlePageScroll}>
-      <header className="dyShopDetailTop dyShopDetailTopFloat" style={{ opacity: 1 - headerProgress }}>
-        <button className="dyShopRoundButton" type="button" aria-label="返回" onClick={backToShop}>‹</button>
-        <div className="dyShopDetailTopRight">
-          <div className="dyShopDetailSearch dyShopDetailSearchGhost">
-            <span>⌕</span>
-            <b>{product.coverLabel}</b>
-          </div>
-          <button type="button" aria-label="搜索">⌕</button>
-          <button type="button" aria-label="收藏">☆</button>
-          <button type="button" aria-label="分享">↗</button>
-        </div>
-      </header>
+    <main className="mobileShell dyMallDetailShell">
+      <section className="dyMallDetailScroll">
+        <header className="dyMallDetailTop">
+          <button type="button" aria-label="返回" onClick={backToShop}><ChevronLeft size={26} /></button>
+          <label>
+            <Search size={17} />
+            <span>{product.category}</span>
+          </label>
+          <button type="button" aria-label="收藏"><Heart size={20} /></button>
+          <button type="button" aria-label="分享"><Share2 size={20} /></button>
+        </header>
 
-      <header className="dyShopDetailTop dyShopDetailTopShadow" style={{ opacity: headerProgress }}>
-        <div className="dyShopDetailTopRow">
-          <button className="dyShopPlainButton" type="button" aria-label="返回" onClick={backToShop}>‹</button>
-          <div className="dyShopDetailSearch">
-            <span>⌕</span>
-            <b>{product.coverLabel}</b>
+        <section className="dyMallDetailGallery">
+          <div className="dyMallDetailSlides" style={{ transform: `translateX(-${activeImage * 100}%)` }}>
+            {images.map((image) => <img src={image} alt={product.title} key={image} />)}
           </div>
-          <button type="button" aria-label="收藏">☆</button>
-          <button type="button" aria-label="分享">↗</button>
-        </div>
-        <nav className="dyShopDetailTabs" aria-label="商品详情锚点">
-          {(['商品', '评价', '详情', '推荐'] as DetailTab[]).map((tab) => (
-            <button
-              className={tab === activeTab ? 'isActive' : ''}
-              type="button"
-              key={tab}
-              onClick={() => scrollToSection(tab)}
-            >
-              {tab}
-            </button>
-          ))}
-        </nav>
-      </header>
-
-      <section ref={productRef} className="dyShopDetailHero" aria-label="商品图片">
-        <div ref={slidesRef} className="dyShopDetailSlides" onScroll={handleSlideScroll}>
-          {heroSlides.map((slide, index) => (
-            <ProductPoster
-              className="dyShopDetailHeroPoster"
-              key={`${slide.label}-${index}`}
-              label={slide.label}
-              visual={slide.visual}
-            />
-          ))}
-        </div>
-        <span className="dyShopDetailIndex">{slideIndex + 1}/{heroSlides.length}</span>
-      </section>
-
-      <section className="dyShopDetailContent">
-        <section className="dyShopDetailInfo">
-          <div className="dyShopDetailPriceWrap">
-            <Price value={product.price} />
-            <span className="dyShopDetailCoupon">
-              <small>热销款券后</small>
-              <Price value={product.realPrice} />
-            </span>
-          </div>
-          <h1>{product.name}</h1>
-          <p>已售{product.sold}</p>
+          <span>{activeImage + 1}/{images.length}</span>
         </section>
 
-        <section className="dyShopDetailCard dyShopDescCard">
-          <article className="dyShopSpecRow">
+        {images.length > 1 ? (
+          <nav className="dyMallDetailThumbs" aria-label="商品图片">
+            {images.map((image, index) => (
+              <button className={index === activeImage ? 'isActive' : ''} type="button" key={image} onClick={() => setActiveImage(index)}>
+                <img src={image} alt="" />
+              </button>
+            ))}
+          </nav>
+        ) : null}
+
+        <section className="dyMallDetailInfo">
+          <p className="dyMallDetailPrice">
+            <b>￥{formatShopMoney(price)}</b>
+            {product.originalPriceAmount ? <del>￥{formatShopMoney(product.originalPriceAmount)}</del> : null}
+          </p>
+          <h1>{product.title}</h1>
+          <p className="dyMallDetailSub">{product.subtitle || product.description}</p>
+          <div className="dyMallDetailBadges">
+            {product.tags.slice(0, 4).map((tag) => <span key={tag}>{tag}</span>)}
+          </div>
+        </section>
+
+        <section className="dyMallDetailCard">
+          <article>
             <b>保障</b>
-            <p>假一赔四 · 运费险 · 极速退款</p>
-            <ArrowIcon />
+            <p>假一赔四 · 运费险 · 极速退款 · 7天无理由</p>
           </article>
-          <article className="dyShopSpecRow">
-            <b>选择</b>
-            <div className="dyShopSpecScroller">
-              {product.specs.map((spec) => (
-                <button
-                  className={spec === selectedSpec ? 'isActive' : ''}
-                  type="button"
-                  key={spec}
-                  onClick={() => setSelectedSpec(spec)}
-                >
-                  {spec}
+          <article>
+            <b>物流</b>
+            <p>48小时内发货，预计明后天送达</p>
+          </article>
+          <article className="dyMallDetailSpecs">
+            <b>规格</b>
+            <div>
+              {product.skus.map((sku) => (
+                <button className={sku.id === selectedSkuId ? 'isActive' : ''} type="button" key={sku.id} onClick={() => setSelectedSkuId(sku.id)}>
+                  {sku.name}
                 </button>
               ))}
-              <em>共{product.specs.length}种规格可选</em>
             </div>
-            <ArrowIcon />
           </article>
-          <article className="dyShopSpecRow dyShopSpecRowTall">
-            <b>物流</b>
+          <article className="dyMallDetailQuantity">
+            <b>数量</b>
             <div>
-              <p>发货 四川成都 <i>|</i> 免运费</p>
-              <p>48小时内发货</p>
-              <p className="dyShopMuted">送至 四川省成都市</p>
+              <button type="button" onClick={() => setQuantity((current) => Math.max(1, current - 1))}>-</button>
+              <span>{quantity}</span>
+              <button type="button" onClick={() => setQuantity((current) => Math.min(99, current + 1))}>+</button>
             </div>
-            <ArrowIcon />
-          </article>
-          <article className="dyShopSpecRow">
-            <b>参数</b>
-            <p className="dyShopEllipsis">优惠新人券 立减4 额定功率 线长 适用场景 售后服务</p>
-            <ArrowIcon />
           </article>
         </section>
 
-        <section ref={commentsRef} className="dyShopDetailCard dyShopComments">
+        <section className="dyMallDetailCard dyMallStoreCard">
           <header>
-            <h2>商品评论(507)</h2>
-            <ArrowIcon />
-          </header>
-          <div className="dyShopCommentTags">
-            {COMMENT_TAGS.map(([tag, count]) => (
-              <span key={tag}>{tag} <i>{count}</i></span>
-            ))}
-          </div>
-          {COMMENTS.map((comment) => (
-            <article className="dyShopComment" key={comment.user}>
-              <header>
-                <span>{comment.user.slice(0, 1)}</span>
-                <b>{comment.user}</b>
-              </header>
-              <div className="dyShopCommentBody">
-                <div>
-                  <p>{comment.text}</p>
-                  <small>{comment.sku}</small>
-                </div>
-                <ProductPoster className="dyShopCommentPoster" visual={comment.visual} label={comment.coverLabel} />
-              </div>
-            </article>
-          ))}
-        </section>
-
-        <section className="dyShopDetailCard dyShopStoreCard">
-          <header>
-            <span className="dyShopStoreLogo">店</span>
+            <span><Store size={22} /></span>
             <div>
-              <h2>店铺名</h2>
-              <p><em>金牌店铺</em><em>好评过千</em><em>销量超10万</em></p>
-              <small>店铺口碑4.90分</small>
+              <h2>{product.shopName}</h2>
+              <p>店铺销量 {product.soldLabel} · 口碑 4.9</p>
             </div>
-            <button type="button">进店</button>
+            <a href="/shop">进店</a>
           </header>
-          <div className="dyShopStoreScores">
-            {['商品质量|商品评价一般', '物流速度|平均24小时发货', '服务体验|售后响应稳定'].map((item) => {
-              const [label, value] = item.split('|');
-              return (
-                <span key={item}>
-                  <small>{label}</small>
-                  <b>{value}</b>
-                </span>
-              );
-            })}
-          </div>
-          <section className="dyShopStoreRecommend">
-            <header>
-              <b>店铺推荐</b>
-              <a href="/shop">查看全部 <ArrowIcon /></a>
-            </header>
-            <div>
-              {SHOP_RECOMMENDS.map((item) => (
-                <a href={`/shop/detail?id=${item.id}`} key={item.id}>
-                  <ProductPoster className="dyShopStorePoster" visual={item.visual} label={item.coverLabel} />
-                  <b>{item.name}</b>
-                  <Price value={item.price} />
-                </a>
-              ))}
-            </div>
-          </section>
+        </section>
+
+        <section className="dyMallDetailCard dyMallDetailDesc">
+          <h2>商品详情</h2>
+          <p>{product.description || '直播精选好物，支持进入直播间看实物细节，实际成交以订单页为准。'}</p>
+          {images.map((image) => <img src={image} alt={product.title} key={`detail-${image}`} />)}
         </section>
       </section>
 
-      <section ref={detailRef} className="dyShopDetailImages">
-        <header><span />商品详情<span /></header>
-        {DETAIL_NOTES.map((note, index) => (
-          <ProductPoster
-            className="dyShopDetailImagePoster"
-            key={note}
-            label={note}
-            visual={index % 2 === 0 ? product.visual : 'storage'}
-          />
-        ))}
-      </section>
-
-      <section className="dyShopDetailPad">
-        <section className="dyShopDetailCard dyShopAccordion">
-          {[0, 1, 2].map((index) => (
-            <article className={openIndexes.includes(index) ? 'isOpen' : ''} key={index}>
-              <button type="button" onClick={() => toggleSection(index)}>
-                <span>价格说明</span>
-                <ArrowIcon />
-              </button>
-              <p>页面展示价格、券后价和活动价会随库存、优惠券、补贴活动发生变化，实际成交价以提交订单页展示为准。</p>
-            </article>
-          ))}
-        </section>
-
-        <section ref={recommendRef} className="dyShopOtherRecommend">
-          <h2>你可能还会喜欢</h2>
-          <div>
-            {WATERFALL.map((item) => (
-              <a href={`/shop/detail?id=${item.id}`} className="dyShopRecommendGoods" key={item.id}>
-                <ProductPoster visual={item.visual} label={item.coverLabel} />
-                <section>
-                  <h3>{item.name}</h3>
-                  {item.tag ? <em>{item.tag}</em> : null}
-                  <p><b>￥{item.price}</b><span>已售{item.sold}件</span></p>
-                </section>
-              </a>
-            ))}
-          </div>
-        </section>
-      </section>
-
-      <footer className="dyShopBuyToolbar">
-        <div className="dyShopToolbarOptions">
-          <button type="button"><span>⌂</span><b>进店</b></button>
-          <button type="button"><span>☻</span><b>客服</b></button>
-          <button type="button"><span>▱</span><b>购物车</b></button>
+      <footer className="dyMallBuyBar">
+        <div>
+          <a href="/shop"><Home size={20} /><span>首页</span></a>
+          <button type="button" onClick={() => setToast('客服已收到消息')}><MessageCircle size={20} /><span>客服</span></button>
+          <button type="button" onClick={() => setToast('已加入购物车')}><ShoppingCart size={20} /><span>购物车</span></button>
         </div>
-        <div className="dyShopBuyButtons">
-          <button type="button" onClick={() => showToast(`已加入购物车：${selectedSpec}`)}>加入购物车</button>
-          <button type="button" onClick={() => showToast('已领取优惠券，准备下单')}>领券购买</button>
-        </div>
+        <button type="button" onClick={() => setToast('已加入购物车')}>加入购物车</button>
+        <button type="button" disabled={submitting} onClick={handleCreateOrder}>{submitting ? '提交中' : '立即购买'}</button>
       </footer>
 
-      {toast ? <div className="dyShopToast" role="status">{toast}</div> : null}
+      {toast ? <div className="dyMallToast" role="status">{toast}</div> : null}
+      {authOpen && !user ? (
+        <BuyerAuthSheet
+          title="登录后继续购买"
+          description="订单、地址和支付状态会按当前买家账号隔离。"
+          actionLabel="继续购买"
+          onAuthenticated={() => setAuthOpen(false)}
+        />
+      ) : null}
     </main>
   );
 }

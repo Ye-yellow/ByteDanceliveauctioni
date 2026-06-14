@@ -13,22 +13,10 @@ export const ROOM_VISUAL_PROFILES: RoomVisualProfile[] = [
     summary: '好物上新，进直播间参与竞拍',
   },
   {
-    roomName: '严选专场',
-    anchorName: '严选主理人',
-    heatText: '专场热度上升中',
-    summary: '本场拍品正在陆续上新',
-  },
-  {
     roomName: '收藏专场',
     anchorName: '收藏顾问',
     heatText: '收藏榜热度上升中',
     summary: '精选拍品轮番开拍',
-  },
-  {
-    roomName: '器物专场',
-    anchorName: '器物主理人',
-    heatText: '文玩榜热度上升中',
-    summary: '本场连续竞拍，关注开拍提醒',
   },
 ];
 

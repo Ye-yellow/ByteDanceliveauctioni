@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { canPayOrder, ownOrderForLot } from '../../../entities/order/model/privacy';
 import { LOT_STATUS, type Lot, type OrderSummary } from '../../../shared/api/types';
 import { formatMoney, moneyNumber } from '../../../shared/lib/money';
 import { formatLeftMs, getLeftMsWithOffset } from '../../../shared/lib/time';
@@ -46,6 +47,7 @@ function lotResultPrice(lot: Lot) {
 function queueLotView(lot: Lot, order: OrderSummary | null, paymentKnownPaid: boolean, nowMs?: number): QueueLotView {
   const displayState = deriveLotDisplayState(lot, { order, paymentKnownPaid, nowMs });
   const hasBid = lotHasBid(lot);
+  const canPay = displayState === 'pendingPayment' && canPayOrder(order);
   const resultPrice = lotResultPrice(lot);
   const priceLabel = displayState === 'finished'
     ? '落槌价'
@@ -81,8 +83,8 @@ function queueLotView(lot: Lot, order: OrderSummary | null, paymentKnownPaid: bo
     statusClass: statusClassByState[displayState],
     priceLabel,
     priceValue,
-    actionText: displayState === 'live' ? '立即出价' : displayState === 'upcoming' || displayState === 'syncing' ? '去看看' : displayState === 'pendingPayment' ? '截拍中' : displayState === 'cancelled' ? '已取消' : '已结束',
-    actionDisabled: displayState === 'finished' || displayState === 'failed' || displayState === 'cancelled',
+    actionText: displayState === 'live' ? '去出价' : displayState === 'upcoming' || displayState === 'syncing' ? '去看看' : displayState === 'pendingPayment' ? canPay ? '去支付' : '截拍中' : displayState === 'cancelled' ? '已取消' : '已结束',
+    actionDisabled: canPay ? false : displayState === 'finished' || displayState === 'failed' || displayState === 'cancelled',
   };
 }
 
@@ -176,8 +178,10 @@ export function LotQueueList({
   onRefresh,
   onSelectLot,
   onPrimaryAction,
+  onPayOrder,
   orders = [],
   paidLotIds = {},
+  meId = '',
   nowMs,
 }: {
   lots: Lot[];
@@ -188,8 +192,10 @@ export function LotQueueList({
   onRefresh: () => void;
   onSelectLot?: (lot: Lot) => void;
   onPrimaryAction?: (lot: Lot) => void;
+  onPayOrder?: (order: OrderSummary) => void;
   orders?: OrderSummary[];
   paidLotIds?: Record<string, boolean>;
+  meId?: string;
   nowMs?: number;
 }) {
   const [bidPulse, setBidPulse] = useState<BidPulse | null>(null);
@@ -289,7 +295,9 @@ export function LotQueueList({
 
       <div className="queueList">
         {sortedLots.map((lot, index) => {
-          const view = queueLotView(lot, orderForLot(orders, lot), Boolean(paidLotIds[lot.id]), nowMs);
+          const lotOrder = ownOrderForLot(orderForLot(orders, lot), meId, lot.id);
+          const payableOrder = canPayOrder(lotOrder) ? lotOrder : null;
+          const view = queueLotView(lot, lotOrder, Boolean(paidLotIds[lot.id]), nowMs);
           const active = lot.id === currentLotId;
           const selected = lot.id === selectedLotId;
           const priceParts = ecomPriceParts(view.priceValue);
@@ -358,6 +366,10 @@ export function LotQueueList({
                     disabled={view.actionDisabled}
                     onClick={(event) => {
                       event.stopPropagation();
+                      if (payableOrder && view.actionText === '去支付') {
+                        onPayOrder?.(payableOrder);
+                        return;
+                      }
                       onPrimaryAction?.(lot);
                     }}
                   >

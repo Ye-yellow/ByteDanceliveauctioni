@@ -161,8 +161,13 @@ func (s *Store) migrate(ctx context.Context) error {
 		&AuctionLotParticipantModel{},
 		&AuctionRuntimeProjectionOffsetModel{},
 		&AuctionRuntimeProjectionShardOffsetModel{},
-		&AuctionOrderModel{},
-		&AuctionPaymentModel{},
+		&UserOrderModel{},
+		&UserOrderItemModel{},
+		&UserOrderPaymentModel{},
+		&AuctionDepositHoldModel{},
+		&ShopProductModel{},
+		&ShopSKUModel{},
+		&UserDeliveryAddressModel{},
 		&AuctionEventModel{},
 		&AssetFileModel{},
 		&AuctionUserModel{},
@@ -175,5 +180,8 @@ func (s *Store) migrate(ctx context.Context) error {
 	); err != nil {
 		return err
 	}
-	return s.EnsureRBACDefaults(ctx)
+	if err := s.EnsureRBACDefaults(ctx); err != nil {
+		return err
+	}
+	return s.EnsureShopSeeds(ctx)
 }

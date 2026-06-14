@@ -7,10 +7,10 @@ function roomSourceText(source: AuctionRoomState['eventState']['source']): strin
   return '初始化中';
 }
 
-export function RoomStatusBar({ roomId, source }: { roomId: string; source: AuctionRoomState['eventState']['source'] }) {
+export function RoomStatusBar({ source }: { roomId: string; source: AuctionRoomState['eventState']['source'] }) {
   return (
     <nav className="mobileQuickNav">
-      <a href={`/m/history?roomId=${encodeURIComponent(roomId)}&from=room`}>我的订单</a>
+      <a href="/shop/orders?from=room">我的订单</a>
       <span>{roomSourceText(source)}</span>
     </nav>
   );

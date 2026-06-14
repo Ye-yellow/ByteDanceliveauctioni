@@ -245,6 +245,23 @@ func shouldWarnBidReject(err error) bool {
 	}
 }
 
+func (s *AuctionService) CreateDepositHold(ctx context.Context, lotID string, req auction.CreateDepositHoldRequest) (*auction.DepositHoldResult, error) {
+	claims, err := auth.RequirePermission(ctx, userbiz.PermissionBidPlace)
+	if err != nil {
+		return nil, err
+	}
+	req.LotID = lotID
+	return s.auction.CreateDepositHold(ctx, claims.UserID, claims.Nickname, req)
+}
+
+func (s *AuctionService) GetMyDepositHold(ctx context.Context, lotID string) (*auction.DepositHold, bool, error) {
+	claims, err := auth.RequirePermission(ctx, userbiz.PermissionBidPlace)
+	if err != nil {
+		return nil, false, err
+	}
+	return s.auction.GetMyDepositHold(ctx, lotID, claims.UserID)
+}
+
 func (s *AuctionService) RevealTrustCard(ctx context.Context, req *v1.RevealTrustCardRequest) (*v1.RevealTrustCardReply, error) {
 	_, mainAccountID, err := requirePermissionMainAccount(ctx, userbiz.PermissionAuctionControl)
 	if err != nil {

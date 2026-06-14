@@ -1,0 +1,309 @@
+syntax = "proto3";
+
+package auction.service.v1;
+
+option go_package = "live-auction-bid/backend/api/auction/service/v1;v1";
+
+import "google/api/annotations.proto";
+import "api/auction/service/v1/auction.proto";
+
+// ShopService covers buyer commerce APIs used by the H5 client.
+service ShopService {
+  rpc ListDeliveryAddresses(ListDeliveryAddressesRequest) returns (ListDeliveryAddressesReply) {
+    option (google.api.http) = { get: "/api/shop/addresses" };
+  }
+
+  rpc CreateDeliveryAddress(CreateDeliveryAddressRequest) returns (CreateDeliveryAddressReply) {
+    option (google.api.http) = {
+      post: "/api/shop/addresses"
+      body: "*"
+    };
+  }
+
+  rpc UpdateDeliveryAddress(UpdateDeliveryAddressRequest) returns (UpdateDeliveryAddressReply) {
+    option (google.api.http) = {
+      put: "/api/shop/addresses/{address_id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteDeliveryAddress(DeleteDeliveryAddressRequest) returns (DeleteDeliveryAddressReply) {
+    option (google.api.http) = { delete: "/api/shop/addresses/{address_id}" };
+  }
+
+  rpc SetDefaultDeliveryAddress(SetDefaultDeliveryAddressRequest) returns (ListDeliveryAddressesReply) {
+    option (google.api.http) = {
+      post: "/api/shop/addresses/{address_id}/default"
+      body: "*"
+    };
+  }
+
+  rpc CreateDepositHold(CreateDepositHoldRequest) returns (CreateDepositHoldReply) {
+    option (google.api.http) = {
+      post: "/api/lots/{lot_id}/deposit-holds/mock-pay"
+      body: "*"
+    };
+  }
+
+  rpc GetMyDepositHold(GetMyDepositHoldRequest) returns (GetMyDepositHoldReply) {
+    option (google.api.http) = { get: "/api/lots/{lot_id}/deposit-holds/me" };
+  }
+
+  rpc ListMyUnifiedOrders(ListMyUnifiedOrdersRequest) returns (ListMyUnifiedOrdersReply) {
+    option (google.api.http) = { get: "/api/orders/me" };
+  }
+
+  rpc ListMyFrequentStores(ListMyFrequentStoresRequest) returns (ListMyFrequentStoresReply) {
+    option (google.api.http) = { get: "/api/orders/me/frequent-stores" };
+  }
+
+  rpc GetMyUnifiedOrder(GetMyUnifiedOrderRequest) returns (GetMyUnifiedOrderReply) {
+    option (google.api.http) = { get: "/api/orders/{order_id}" };
+  }
+
+  rpc MockPayUnifiedOrder(MockPayUnifiedOrderRequest) returns (MockPayUnifiedOrderReply) {
+    option (google.api.http) = {
+      post: "/api/orders/{order_id}/mock-pay"
+      body: "*"
+    };
+  }
+}
+
+message DeliveryAddress {
+  string id = 1;
+  string user_id = 2;
+  string receiver_name = 3;
+  string phone = 4;
+  string province = 5;
+  string city = 6;
+  string district = 7;
+  string street = 8;
+  string detail = 9;
+  string postal_code = 10;
+  string tag = 11;
+  bool is_default = 12;
+  string status = 13;
+  int64 created_at_unix_ms = 14;
+  int64 updated_at_unix_ms = 15;
+}
+
+message DeliveryAddressInput {
+  string receiver_name = 1;
+  string phone = 2;
+  string province = 3;
+  string city = 4;
+  string district = 5;
+  string street = 6;
+  string detail = 7;
+  string postal_code = 8;
+  string tag = 9;
+  bool is_default = 10;
+}
+
+message DeliveryAddressSnapshot {
+  string address_id = 1;
+  string receiver_name = 2;
+  string phone = 3;
+  string province = 4;
+  string city = 5;
+  string district = 6;
+  string street = 7;
+  string detail = 8;
+  string postal_code = 9;
+  string full_address = 10;
+}
+
+message ListDeliveryAddressesRequest {}
+
+message ListDeliveryAddressesReply {
+  ReplyResult result = 1;
+  repeated DeliveryAddress addresses = 2;
+}
+
+message CreateDeliveryAddressRequest {
+  DeliveryAddressInput address = 1;
+}
+
+message CreateDeliveryAddressReply {
+  ReplyResult result = 1;
+  DeliveryAddress address = 2;
+}
+
+message UpdateDeliveryAddressRequest {
+  string address_id = 1;
+  DeliveryAddressInput address = 2;
+}
+
+message UpdateDeliveryAddressReply {
+  ReplyResult result = 1;
+  DeliveryAddress address = 2;
+}
+
+message DeleteDeliveryAddressRequest {
+  string address_id = 1;
+}
+
+message DeleteDeliveryAddressReply {
+  ReplyResult result = 1;
+}
+
+message SetDefaultDeliveryAddressRequest {
+  string address_id = 1;
+}
+
+message DepositHold {
+  string id = 1;
+  string lot_id = 2;
+  string buyer_user_id = 3;
+  string status = 4;
+  Money amount = 5;
+  string payment_provider = 6;
+  string payment_id = 7;
+  string idempotency_key = 8;
+  string address_id = 9;
+  DeliveryAddressSnapshot address_snapshot = 10;
+  int64 created_at_unix_ms = 11;
+  int64 held_at_unix_ms = 12;
+}
+
+message CreateDepositHoldRequest {
+  string lot_id = 1;
+  string address_id = 2;
+  string idempotency_key = 3;
+}
+
+message CreateDepositHoldReply {
+  ReplyResult result = 1;
+  DepositHold deposit_hold = 2;
+  bool paid = 3;
+}
+
+message GetMyDepositHoldRequest {
+  string lot_id = 1;
+}
+
+message GetMyDepositHoldReply {
+  ReplyResult result = 1;
+  DepositHold deposit_hold = 2;
+  bool found = 3;
+  bool paid = 4;
+}
+
+message UnifiedOrderItem {
+  string id = 1;
+  string order_id = 2;
+  string source = 3;
+  string source_item_id = 4;
+  string product_id = 5;
+  string sku_id = 6;
+  string lot_id = 7;
+  string room_id = 8;
+  string title = 9;
+  string image_url = 10;
+  string sku_name = 11;
+  int64 quantity = 12;
+  int64 unit_amount = 13;
+  int64 total_amount = 14;
+  string currency = 15;
+}
+
+message UnifiedOrder {
+  string id = 1;
+  string source = 2;
+  string source_order_id = 3;
+  string order_no = 4;
+  string main_account_id = 5;
+  string user_id = 6;
+  string nickname = 7;
+  string status = 8;
+  string payment_status = 9;
+  string payment_id = 10;
+  string title = 11;
+  string shop_name = 12;
+  int64 total_amount = 13;
+  string currency = 14;
+  string shipping_address_id = 15;
+  DeliveryAddressSnapshot shipping_address_snapshot = 16;
+  string address_snapshot = 17;
+  int64 created_at_unix_ms = 18;
+  int64 updated_at_unix_ms = 19;
+  int64 paid_at_unix_ms = 20;
+  int64 expires_at_unix_ms = 21;
+  repeated UnifiedOrderItem items = 22;
+}
+
+message UnifiedOrderPayment {
+  string id = 1;
+  string order_id = 2;
+  string source = 3;
+  string provider = 4;
+  string user_id = 5;
+  string status = 6;
+  int64 amount = 7;
+  string currency = 8;
+  string idempotency_key = 9;
+  int64 created_at_unix_ms = 10;
+  int64 updated_at_unix_ms = 11;
+  int64 succeeded_at_unix_ms = 12;
+}
+
+message ListMyUnifiedOrdersRequest {
+  string source = 1;
+  string status = 2;
+  string q = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+  string lot_id = 6;
+}
+
+message ListMyUnifiedOrdersReply {
+  ReplyResult result = 1;
+  repeated UnifiedOrder orders = 2;
+  int64 total = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+}
+
+message FrequentStore {
+  string store_key = 1;
+  string store_name = 2;
+  string source = 3;
+  int64 order_count = 4;
+  int64 last_order_at_unix_ms = 5;
+  string image_url = 6;
+  string target_url = 7;
+}
+
+message ListMyFrequentStoresRequest {
+  int32 limit = 1;
+}
+
+message ListMyFrequentStoresReply {
+  ReplyResult result = 1;
+  repeated FrequentStore stores = 2;
+  int64 total = 3;
+  int32 limit = 4;
+}
+
+message GetMyUnifiedOrderRequest {
+  string order_id = 1;
+}
+
+message GetMyUnifiedOrderReply {
+  ReplyResult result = 1;
+  UnifiedOrder order = 2;
+}
+
+message MockPayUnifiedOrderRequest {
+  string order_id = 1;
+  string idempotency_key = 2;
+  int64 amount = 3;
+  string currency = 4;
+}
+
+message MockPayUnifiedOrderReply {
+  ReplyResult result = 1;
+  UnifiedOrder order = 2;
+  UnifiedOrderPayment payment = 3;
+  bool paid = 4;
+}

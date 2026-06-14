@@ -5,6 +5,7 @@ services:
       dockerfile: deploy/Dockerfile
     image: live-auction-bid-backend:prod
     container_name: live-auction-bid-backend
+    restart: unless-stopped
     env_file:
       - ./.env
     environment:
@@ -34,6 +35,7 @@ services:
       AUCTION_AI_TIMEOUT: "${AUCTION_AI_TIMEOUT:-8s}"
       AUCTION_AI_MOCK_ON_FAILURE: "${AUCTION_AI_MOCK_ON_FAILURE:-true}"
       AUCTION_AI_API_KEY: "${AUCTION_AI_API_KEY:-}"
+      AUCTION_PAYMENT_PROVIDER: "${AUCTION_PAYMENT_PROVIDER:?AUCTION_PAYMENT_PROVIDER is required}"
       AUCTION_CONSUL_ADDR: "consul:8500"
       AUCTION_SERVICE_NAME: "auction-backend"
       AUCTION_SERVICE_ADDR: "auction-backend"
@@ -77,6 +79,7 @@ services:
   mysql:
     image: mysql:8.4
     container_name: live-auction-mysql
+    restart: unless-stopped
     environment:
       MYSQL_DATABASE: live_auction
       MYSQL_USER: auction
@@ -100,6 +103,7 @@ services:
   redis:
     image: redis:7.2-alpine
     container_name: live-auction-redis
+    restart: unless-stopped
     environment:
       REDIS_PASSWORD: "${AUCTION_REDIS_PASSWORD:?AUCTION_REDIS_PASSWORD is required}"
     command: ["sh", "-c", "redis-server --appendonly yes --requirepass \"$${REDIS_PASSWORD}\""]
@@ -116,6 +120,7 @@ services:
   pgvector:
     image: pgvector/pgvector:pg16
     container_name: live-auction-pgvector
+    restart: unless-stopped
     profiles: ["search"]
     environment:
       POSTGRES_DB: live_auction_search
@@ -141,6 +146,7 @@ services:
   consul:
     image: hashicorp/consul:1.18
     container_name: live-auction-consul
+    restart: unless-stopped
     command: ["agent", "-dev", "-client=0.0.0.0"]
     healthcheck:
       test: ["CMD", "consul", "members"]
@@ -153,6 +159,7 @@ services:
   prometheus:
     image: prom/prometheus:v2.53.1
     container_name: live-auction-prometheus
+    restart: unless-stopped
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
@@ -172,6 +179,7 @@ services:
   grafana:
     image: grafana/grafana:11.1.4
     container_name: live-auction-grafana
+    restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-admin}"
       GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:-admin}"

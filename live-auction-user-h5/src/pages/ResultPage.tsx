@@ -203,7 +203,7 @@ export function ResultPage() {
   const [loading, setLoading] = useState(Boolean(lotId));
   const [error, setError] = useState(lotId ? '' : '缺少拍品 ID，正在展示临时结果信息');
   const roomHref = view.roomId ? `/m/room/${encodeURIComponent(view.roomId)}` : '/home';
-  const historyHref = view.roomId ? `/m/history?roomId=${encodeURIComponent(view.roomId)}&from=result` : '/m/history';
+  const historyHref = '/shop/orders?from=result';
   const displayView = error && view.source === 'fallback' ? unverifiedView(view) : view;
   const lotInitial = Array.from(displayView.title)[0] || '拍';
 

@@ -11,6 +11,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
+	"live-auction-bid/backend/app/auction/service/internal/aiassistant"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
@@ -68,6 +69,17 @@ type listPublicRoomsHTTPResponse struct {
 	Rooms  []publicRoomHTTPResponse `json:"rooms"`
 }
 
+type buyerSuggestionHTTPResponse struct {
+	Text   string `json:"text"`
+	Reason string `json:"reason,omitempty"`
+}
+
+type buyerSuggestionsHTTPResponse struct {
+	Result       *v1.ReplyResult               `json:"result"`
+	Suggestions  []buyerSuggestionHTTPResponse `json:"suggestions"`
+	FallbackUsed bool                          `json:"fallbackUsed"`
+}
+
 type listUsersHTTPResponse struct {
 	Result *v1.ReplyResult   `json:"result"`
 	Users  []json.RawMessage `json:"users"`
@@ -81,6 +93,13 @@ type mockPayHTTPResponse struct {
 	Order   *auction.OrderSummary   `json:"order,omitempty"`
 	Payment *auction.PaymentSummary `json:"payment,omitempty"`
 	Paid    bool                    `json:"paid"`
+}
+
+type depositHoldHTTPResponse struct {
+	Result      *v1.ReplyResult      `json:"result"`
+	DepositHold *auction.DepositHold `json:"depositHold,omitempty"`
+	Paid        bool                 `json:"paid,omitempty"`
+	Found       bool                 `json:"found,omitempty"`
 }
 
 var domainProtoJSONMarshal = protojson.MarshalOptions{
@@ -206,6 +225,28 @@ func registerDomainHTTP(srv *httptransport.Server, service *appsvc.AuctionServic
 		}
 		return ctx.Result(200, listPublicRoomsHTTPResponse{Result: appsvc.OKResult(ctx), Rooms: publicRoomsHTTP(rooms)})
 	})
+	r.GET("/api/ai/buyer/suggestions", func(ctx httptransport.Context) error {
+		limit := intQuery(ctx.Request().URL.Query().Get("limit"))
+		if limit <= 0 {
+			limit = 6
+		}
+		h := ctx.Middleware(func(ctx context.Context, req any) (any, error) {
+			reply, err := service.BuyerSuggestions(ctx, limit)
+			if err != nil {
+				return buyerSuggestionsHTTPResponse{Result: appsvc.ErrorResult(ctx, err), Suggestions: []buyerSuggestionHTTPResponse{}}, nil
+			}
+			return buyerSuggestionsHTTPResponse{
+				Result:       appsvc.OKResult(ctx),
+				Suggestions:  buyerSuggestionsHTTP(reply),
+				FallbackUsed: reply.FallbackUsed,
+			}, nil
+		})
+		out, err := h(ctx, nil)
+		if err != nil {
+			return ctx.Result(200, buyerSuggestionsHTTPResponse{Result: appsvc.ErrorResult(ctx, err), Suggestions: []buyerSuggestionHTTPResponse{}})
+		}
+		return ctx.Result(200, out)
+	})
 	r.GET("/api/admin/users", func(ctx httptransport.Context) error {
 		query := userQueryFromHTTP(ctx)
 		h := ctx.Middleware(func(ctx context.Context, req any) (any, error) {
@@ -221,22 +262,37 @@ func registerDomainHTTP(srv *httptransport.Server, service *appsvc.AuctionServic
 		}
 		return ctx.Result(200, out)
 	})
-	r.POST("/api/orders/{order_id}/mock-pay", func(ctx httptransport.Context) error {
-		orderID := ctx.Vars().Get("order_id")
-		var req auction.MockPayRequest
+	r.POST("/api/lots/{lot_id}/deposit-holds/mock-pay", func(ctx httptransport.Context) error {
+		lotID := ctx.Vars().Get("lot_id")
+		var req auction.CreateDepositHoldRequest
 		if err := ctx.Bind(&req); err != nil {
-			return ctx.Result(200, mockPayHTTPResponse{Result: appsvc.ErrorResult(ctx, fmt.Errorf("%w: invalid request body", apperr.ErrInvalidArgument))})
+			return ctx.Result(200, depositHoldHTTPResponse{Result: appsvc.ErrorResult(ctx, fmt.Errorf("%w: invalid request body", apperr.ErrInvalidArgument))})
 		}
 		h := ctx.Middleware(func(ctx context.Context, raw any) (any, error) {
-			result, err := service.MockPayOrder(ctx, orderID, req)
+			result, err := service.CreateDepositHold(ctx, lotID, req)
 			if err != nil {
-				return mockPayHTTPResponse{Result: appsvc.ErrorResult(ctx, err)}, nil
+				return depositHoldHTTPResponse{Result: appsvc.ErrorResult(ctx, err)}, nil
 			}
-			return mockPayHTTPResponse{Result: appsvc.OKResult(ctx), Order: &result.Order, Payment: &result.Payment, Paid: result.Paid}, nil
+			return depositHoldHTTPResponse{Result: appsvc.OKResult(ctx), DepositHold: &result.DepositHold, Paid: result.Paid, Found: true}, nil
 		})
 		out, err := h(ctx, &req)
 		if err != nil {
-			return ctx.Result(200, mockPayHTTPResponse{Result: appsvc.ErrorResult(ctx, err)})
+			return ctx.Result(200, depositHoldHTTPResponse{Result: appsvc.ErrorResult(ctx, err)})
+		}
+		return ctx.Result(200, out)
+	})
+	r.GET("/api/lots/{lot_id}/deposit-holds/me", func(ctx httptransport.Context) error {
+		lotID := ctx.Vars().Get("lot_id")
+		h := ctx.Middleware(func(ctx context.Context, raw any) (any, error) {
+			hold, found, err := service.GetMyDepositHold(ctx, lotID)
+			if err != nil {
+				return depositHoldHTTPResponse{Result: appsvc.ErrorResult(ctx, err)}, nil
+			}
+			return depositHoldHTTPResponse{Result: appsvc.OKResult(ctx), DepositHold: hold, Paid: found && hold.Status == auction.DepositStatusHeld, Found: found}, nil
+		})
+		out, err := h(ctx, nil)
+		if err != nil {
+			return ctx.Result(200, depositHoldHTTPResponse{Result: appsvc.ErrorResult(ctx, err)})
 		}
 		return ctx.Result(200, out)
 	})
@@ -254,6 +310,14 @@ func publicRoomsHTTP(rooms []auction.Room) []publicRoomHTTPResponse {
 			CreatedAtUnixMs: room.CreatedAtUnixMs,
 			UpdatedAtUnixMs: room.UpdatedAtUnixMs,
 		})
+	}
+	return out
+}
+
+func buyerSuggestionsHTTP(reply aiassistant.BuyerSuggestionReply) []buyerSuggestionHTTPResponse {
+	out := make([]buyerSuggestionHTTPResponse, 0, len(reply.Suggestions))
+	for _, suggestion := range reply.Suggestions {
+		out = append(out, buyerSuggestionHTTPResponse{Text: suggestion.Text, Reason: suggestion.Reason})
 	}
 	return out
 }

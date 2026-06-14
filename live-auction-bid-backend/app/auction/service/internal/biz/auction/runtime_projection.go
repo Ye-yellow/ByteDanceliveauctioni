@@ -68,6 +68,13 @@ func BuildRuntimeBidProjectionArtifacts(projection RuntimeProjectionEvent) ([]v1
 	if err != nil {
 		return nil, nil, err
 	}
+	if projection.ShippingAddressID != "" {
+		order.ShippingAddressID = projection.ShippingAddressID
+	}
+	if projection.ShippingAddressSnapshot != nil {
+		snapshot := *projection.ShippingAddressSnapshot
+		order.ShippingAddressSnapshot = &snapshot
+	}
 	settledEvent := newAuctionEventWithID(eventID("settled"), v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_SETTLED, projection.Lot, nowMs)
 	settledEvent.Bid = cloneBid(projection.Bid)
 	settledEvent.Ranking = projection.Ranking

@@ -1,6 +1,6 @@
 import { apiRequest } from '../../../shared/api/httpClient';
 import { toQueryString } from '../../../shared/api/query';
-import { assertOkResult, normalizeAuctionEvent } from '../../../shared/api/result';
+import { assertOkResult, normalizeAuctionEvent, publicResultMessage } from '../../../shared/api/result';
 import { normalizeLot, normalizeRoom, normalizeRoomPresence, normalizeRoomSnapshot, normalizeTrustRevealCard, normalizeUploadedAsset } from '../../../shared/api/normalizers';
 import { clientLog, createRequestId } from '../../../shared/lib/clientLogger';
 import type { AuctionEvent, CancelLotReply, CreateLotReply, CreateLotRequest, GetRoomPresenceReply, GetRoomSnapshotReply, ListLotsReply, ListRoomEventsReply, ListRoomsReply, Lot, LotStatus, PatchLotDraftRequest, PatchLotDraftReply, QueueLotReply, ReplyResult, RevealTrustCardReply, Room, RoomPresence, RoomSnapshot, SettleLotReply, StartDuelReply, StartLotReply, TrustRevealCard, UploadedAsset, UploadImageReply } from '../../../shared/api/types';
@@ -54,10 +54,7 @@ export async function listPublicRooms(): Promise<Room[]> {
 
 function formatApiError(input: { status?: number; code?: number; message?: string; requestId?: string; result?: { code?: number; message?: string; traceId?: string; trace_id?: string }; error?: string }) {
   const code = input.code ?? input.result?.code;
-  const requestId = input.requestId ?? input.result?.traceId ?? input.result?.trace_id;
-  const message = input.message || input.result?.message || input.error || (input.status ? `HTTP ${input.status}` : 'request failed');
-  const meta = [code !== undefined ? `code=${code}` : '', requestId ? `requestId=${requestId}` : ''].filter(Boolean).join('，');
-  return meta ? `${message}（${meta}）` : message;
+  return publicResultMessage(input.result ?? (code !== undefined ? { code, message: input.message } : undefined), input.message || input.error || (input.status ? `HTTP ${input.status}` : '请求失败'));
 }
 
 function requireLot(reply: { lot?: unknown }) {

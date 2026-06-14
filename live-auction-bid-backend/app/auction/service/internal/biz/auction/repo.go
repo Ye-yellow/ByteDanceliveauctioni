@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
+	"live-auction-bid/backend/app/auction/service/internal/biz/shop"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 )
 
@@ -131,22 +132,24 @@ func (e *RuntimeBidRejectError) Lot(lotID string, fallbackAmount *v1.Money) *v1.
 }
 
 type RuntimeProjectionEvent struct {
-	RuntimeEventID     string
-	RuntimeStreamID    string
-	RoomID             string
-	LotID              string
-	EventType          string
-	IdempotencyKey     string
-	Bid                v1.Bid
-	Lot                *v1.Lot
-	Ranking            []*v1.RankingItem
-	PreviousLeaderID   string
-	EndsBeforeBid      int64
-	ExtendCountBefore  int32
-	PreviousLotVersion int64
-	LotVersion         int64
-	OccurredAtUnixMs   int64
-	OrderID            string
+	RuntimeEventID          string
+	RuntimeStreamID         string
+	RoomID                  string
+	LotID                   string
+	EventType               string
+	IdempotencyKey          string
+	Bid                     v1.Bid
+	Lot                     *v1.Lot
+	Ranking                 []*v1.RankingItem
+	PreviousLeaderID        string
+	EndsBeforeBid           int64
+	ExtendCountBefore       int32
+	PreviousLotVersion      int64
+	LotVersion              int64
+	OccurredAtUnixMs        int64
+	OrderID                 string
+	ShippingAddressID       string
+	ShippingAddressSnapshot *shop.DeliveryAddressSnapshot
 }
 
 type RuntimeProjectionOutcome struct {
@@ -180,6 +183,16 @@ type OrderRepository interface {
 type PaymentRepository interface {
 	FindPaymentByIdempotencyKey(ctx context.Context, orderID, key string) (*Payment, bool, error)
 	CommitPaymentSuccess(ctx context.Context, payment Payment, order Order, expectedOrderVersion int64, events []v1.AuctionEvent) error
+}
+
+type DepositRepository interface {
+	FindDepositHoldByLotBuyer(ctx context.Context, lotID, buyerUserID string) (*DepositHold, bool, error)
+	FindDepositHoldByIdempotencyKey(ctx context.Context, lotID, buyerUserID, key string) (*DepositHold, bool, error)
+	CommitDepositHold(ctx context.Context, hold DepositHold) (*DepositHold, error)
+}
+
+type DeliveryAddressRepository interface {
+	FindDeliveryAddress(ctx context.Context, userID, addressID string) (*shop.DeliveryAddress, error)
 }
 
 // EventRepository 持久化不伴随聚合状态更新的领域事件。

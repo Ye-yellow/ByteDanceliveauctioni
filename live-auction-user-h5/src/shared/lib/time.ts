@@ -25,7 +25,7 @@ export function getLeftMsWithOffset(endsAtUnixMs?: number | string, serverOffset
 }
 
 export function formatLeftMs(leftMs: number): string {
-  if (leftMs <= 0) return '等待落锤';
+  if (leftMs <= 0) return '结算中';
 
   const totalSeconds = Math.floor(leftMs / 1000);
   const minutes = Math.floor(totalSeconds / 60);

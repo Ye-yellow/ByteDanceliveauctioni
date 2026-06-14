@@ -3,10 +3,8 @@ import type { ComponentType } from 'react';
 import { SPA_NAVIGATE_EVENT } from '../shared/navigation';
 
 const HomePage = lazy(() => import('../pages/HomePage').then((module) => ({ default: module.HomePage })));
-const HomeLivePage = lazy(() => import('../pages/HomeLivePage').then((module) => ({ default: module.HomeLivePage })));
 const LiveRoomPage = lazy(() => import('../pages/LiveRoomPage').then((module) => ({ default: module.LiveRoomPage })));
 const ResultPage = lazy(() => import('../pages/ResultPage').then((module) => ({ default: module.ResultPage })));
-const HistoryPage = lazy(() => import('../pages/HistoryPage').then((module) => ({ default: module.HistoryPage })));
 const AuthorProfilePage = lazy(() => import('../pages/AuthorProfilePage').then((module) => ({ default: module.AuthorProfilePage })));
 const ShopPage = lazy(() => import('../pages/ShopPage').then((module) => ({ default: module.ShopPage })));
 const MessagePage = lazy(() => import('../pages/MessagePage').then((module) => ({ default: module.MessagePage })));
@@ -16,6 +14,9 @@ const SearchPage = lazy(() => import('../pages/SearchPage'));
 const MusicPage = lazy(() => import('../pages/MusicPage'));
 const MusicRankPage = lazy(() => import('../pages/MusicRankPage'));
 const ShopDetailPage = lazy(() => import('../pages/ShopDetailPage').then((module) => ({ default: module.ShopDetailPage })));
+const ShopOrdersPage = lazy(() => import('../pages/ShopOrdersPage').then((module) => ({ default: module.ShopOrdersPage })));
+const ShopAddressesPage = lazy(() => import('../pages/ShopAddressesPage').then((module) => ({ default: module.ShopAddressesPage })));
+const ShopAddressEditPage = lazy(() => import('../pages/ShopAddressesPage').then((module) => ({ default: module.ShopAddressEditPage })));
 const VideoDetailPage = lazy(() => import('../pages/VideoDetailPage').then((module) => ({ default: module.VideoDetailPage })));
 const ReportPage = lazy(() => import('../pages/ReportPage').then((module) => ({ default: module.ReportPage })));
 const SubmitReportPage = lazy(() => import('../pages/SubmitReportPage').then((module) => ({ default: module.SubmitReportPage })));
@@ -75,10 +76,9 @@ function routeForPath(path: string) {
   const roomMatch = path.match(/^\/m\/room\/([^/]+)/);
   if (roomMatch) return <LiveRoomPage roomId={decodeURIComponent(roomMatch[1])} />;
   if (path.startsWith('/m/result/')) return <ResultPage />;
-  if (matchesRoute(path, '/m/history')) return <HistoryPage />;
 
   if (path === '/home/search') return <SearchPage />;
-  if (path === '/home/live') return <HomeLivePage />;
+  if (path === '/home/live') return <HomePage />;
   if (path === '/home/music') return <MusicPage />;
   if (path === '/home/music-rank-list') return <MusicRankPage />;
   if (path === '/home/report') return <ReportPage />;
@@ -89,6 +89,9 @@ function routeForPath(path: string) {
   if (path === '/service-protocol') return <ServiceProtocolPage />;
 
   if (path === '/shop/detail') return <ShopDetailPage />;
+  if (path === '/shop/orders') return <ShopOrdersPage />;
+  if (path === '/shop/addresses/new') return <ShopAddressEditPage />;
+  if (path === '/shop/addresses') return <ShopAddressesPage />;
   if (matchesRoute(path, '/shop') || matchesRoute(path, '/m/shop')) return <ShopPage />;
 
   if (path === '/message/chat/red-packet-detail') return <RedPacketPage />;
@@ -163,7 +166,14 @@ export function Router() {
   }, []);
 
   return (
-    <Suspense fallback={<main className="mobileShell"><section className="emptyState">正在加载页面...</section></main>}>
+    <Suspense fallback={(
+      <main className="mobileShell routeLoadingShell" role="status" aria-label="正在加载页面">
+        <span className="routeLoadingDots" aria-hidden="true">
+          <i />
+          <i />
+        </span>
+      </main>
+    )}>
       {routeForPath(path)}
     </Suspense>
   );

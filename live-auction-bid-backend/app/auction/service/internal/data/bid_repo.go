@@ -42,9 +42,10 @@ func (s *Store) CommitAcceptedBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, 
 	if err != nil {
 		return err
 	}
-	var orderModel *AuctionOrderModel
+	var orderModel *UserOrderModel
+	var orderItemModel *UserOrderItemModel
 	if order != nil {
-		orderModel, err = orderToModel(*order)
+		orderModel, orderItemModel, err = auctionOrderToUserModels(*order)
 		if err != nil {
 			return err
 		}
@@ -74,7 +75,10 @@ func (s *Store) CommitAcceptedBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, 
 			return err
 		}
 		if orderModel != nil {
-			if err := tx.Create(orderModel).Error; err != nil {
+			if err := s.fillAuctionOrderShopName(ctx, tx, orderModel); err != nil {
+				return err
+			}
+			if err := createUserOrderWithItemsIgnoringDuplicates(ctx, tx, orderModel, orderItemModel); err != nil {
 				return err
 			}
 		}
@@ -97,6 +101,14 @@ func (s *Store) ProjectRuntimeBid(ctx context.Context, bid v1.Bid, lot *v1.Lot, 
 		PreviousLotVersion: lot.GetVersion() - 1,
 		LotVersion:         lot.GetVersion(),
 		OccurredAtUnixMs:   bid.GetCreatedAtUnixMs(),
+	}
+	if order != nil {
+		projection.OrderID = order.ID
+		projection.ShippingAddressID = order.ShippingAddressID
+		if order.ShippingAddressSnapshot != nil {
+			snapshot := *order.ShippingAddressSnapshot
+			projection.ShippingAddressSnapshot = &snapshot
+		}
 	}
 	_, err := s.ProjectRuntimeEvent(ctx, projection, order, events)
 	return err
@@ -179,10 +191,14 @@ func (s *Store) projectRuntimeEventInTx(ctx context.Context, tx *gorm.DB, projec
 	if err != nil {
 		return auction.RuntimeProjectionOutcome{}, err
 	}
-	var orderModel *AuctionOrderModel
+	var orderModel *UserOrderModel
+	var orderItemModel *UserOrderItemModel
 	if order != nil {
-		orderModel, err = orderToModel(*order)
+		orderModel, orderItemModel, err = auctionOrderToUserModels(*order)
 		if err != nil {
+			return auction.RuntimeProjectionOutcome{}, err
+		}
+		if err := s.fillAuctionOrderShopName(ctx, tx, orderModel); err != nil {
 			return auction.RuntimeProjectionOutcome{}, err
 		}
 	}
@@ -206,7 +222,7 @@ func (s *Store) projectRuntimeEventInTx(ctx context.Context, tx *gorm.DB, projec
 		return outcome, err
 	}
 	if projection.LotVersion <= offset.LastProjectedVersion {
-		if err := projectRuntimeFactsWithoutLotUpdate(ctx, tx, bidModel, bid, lot, nil, events); err != nil {
+		if err := projectRuntimeFactsWithoutLotUpdate(ctx, tx, bidModel, bid, lot, nil, nil, events); err != nil {
 			return outcome, err
 		}
 		outcome.AlreadyProjected = true
@@ -214,11 +230,13 @@ func (s *Store) projectRuntimeEventInTx(ctx context.Context, tx *gorm.DB, projec
 	}
 	if offset.LastProjectedVersion != projection.PreviousLotVersion || current.Version != projection.PreviousLotVersion {
 		if canFastForwardRuntimeProjection(current, offset, projection) {
-			var projectionOrder *AuctionOrderModel
+			var projectionOrder *UserOrderModel
+			var projectionOrderItem *UserOrderItemModel
 			if v1.LotStatus(current.Status) == v1.LotStatus_LOT_STATUS_SETTLED && lot.GetStatus() == v1.LotStatus_LOT_STATUS_SETTLED {
 				projectionOrder = orderModel
+				projectionOrderItem = orderItemModel
 			}
-			if err := projectRuntimeFactsWithoutLotUpdate(ctx, tx, bidModel, bid, lot, projectionOrder, events); err != nil {
+			if err := projectRuntimeFactsWithoutLotUpdate(ctx, tx, bidModel, bid, lot, projectionOrder, projectionOrderItem, events); err != nil {
 				return outcome, err
 			}
 			if err := updateProjectionOffset(ctx, tx, lot.Id, lot.RoomId, projection.LotVersion, projection.RuntimeStreamID, bid.CreatedAtUnixMs); err != nil {
@@ -267,7 +285,7 @@ func (s *Store) projectRuntimeEventInTx(ctx context.Context, tx *gorm.DB, projec
 		outcome.AlreadyProjected = true
 	}
 	if orderModel != nil {
-		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(orderModel).Error; err != nil {
+		if err := createUserOrderWithItemsIgnoringDuplicates(ctx, tx, orderModel, orderItemModel); err != nil {
 			return outcome, err
 		}
 	}
@@ -301,7 +319,7 @@ func canFastForwardRuntimeProjection(current AuctionLotModel, offset AuctionRunt
 	return false
 }
 
-func projectRuntimeFactsWithoutLotUpdate(ctx context.Context, tx *gorm.DB, bidModel *AuctionBidModel, bid v1.Bid, lot *v1.Lot, orderModel *AuctionOrderModel, events []v1.AuctionEvent) error {
+func projectRuntimeFactsWithoutLotUpdate(ctx context.Context, tx *gorm.DB, bidModel *AuctionBidModel, bid v1.Bid, lot *v1.Lot, orderModel *UserOrderModel, orderItemModel *UserOrderItemModel, events []v1.AuctionEvent) error {
 	bidCreate := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(bidModel)
 	if bidCreate.Error != nil {
 		return bidCreate.Error
@@ -312,7 +330,7 @@ func projectRuntimeFactsWithoutLotUpdate(ctx context.Context, tx *gorm.DB, bidMo
 		}
 	}
 	if orderModel != nil && lot.GetStatus() == v1.LotStatus_LOT_STATUS_SETTLED {
-		if err := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(orderModel).Error; err != nil {
+		if err := createUserOrderWithItemsIgnoringDuplicates(ctx, tx, orderModel, orderItemModel); err != nil {
 			return err
 		}
 	}

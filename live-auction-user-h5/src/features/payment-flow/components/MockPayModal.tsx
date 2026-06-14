@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { mockPay } from '../../auction/api/auctionApi';
 import type { OrderSummary, PaymentSummary } from '../../../shared/api/types';
+import { isAuthRequiredError } from '../../../shared/api/errors';
 import { createIdempotencyKey } from '../../../shared/lib/idempotency';
 import { formatMoney } from '../../../shared/lib/money';
 
@@ -8,11 +9,13 @@ export function MockPayModal({
   order,
   onStartPayment,
   onPaid,
+  onAuthRequired,
   onClose,
 }: {
   order: OrderSummary;
   onStartPayment: (orderId: string, idempotencyKey: string) => void;
   onPaid: (order?: OrderSummary, payment?: PaymentSummary) => Promise<void> | void;
+  onAuthRequired?: (reason: unknown) => void;
   onClose: () => void;
 }) {
   const [method, setMethod] = useState('模拟余额');
@@ -42,6 +45,12 @@ export function MockPayModal({
       if (result.paid || result.order?.paymentStatus === 'SUCCESS' || result.payment?.status === 'SUCCESS') setPaidOrderId(order.id);
       setMessage({ orderId: order.id, text: result.paid ? '支付成功，订单已刷新' : result.message || '支付状态已同步' });
     } catch (e) {
+      if (isAuthRequiredError(e)) {
+        await onPaid(undefined, undefined);
+        setMessage(null);
+        onAuthRequired?.(e);
+        return;
+      }
       setMessage({ orderId: order.id, text: e instanceof Error ? e.message : '模拟支付失败，请重试' });
       await onPaid(undefined, undefined);
     } finally {

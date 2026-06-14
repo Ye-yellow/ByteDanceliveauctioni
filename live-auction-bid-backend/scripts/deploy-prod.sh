@@ -7,11 +7,11 @@ BACKEND_DIR="${BACKEND_DIR:-$ROOT_DIR}"
 ADMIN_DIR="${ADMIN_DIR:-$WORKSPACE_DIR/live-auction-bid-frontend}"
 H5_DIR="${H5_DIR:-$WORKSPACE_DIR/live-auction-user-h5}"
 
-SERVER_HOST="${SERVER_HOST:-120.79.7.110}"
+SERVER_HOST="${SERVER_HOST:-}"
 SERVER_USER="${SERVER_USER:-root}"
 SERVER_DIR="${SERVER_DIR:-/opt/live-auction}"
-SSH_KEY_SOURCE="${SSH_KEY:-/home/ye/OpenClaw/workspace/plans/yexieer.pem}"
-SSH_KEY_RUNTIME="${SSH_KEY_RUNTIME:-/tmp/live-auction-yexieer.pem}"
+SSH_KEY_SOURCE="${SSH_KEY:-}"
+SSH_KEY_RUNTIME="${SSH_KEY_RUNTIME:-/tmp/live-auction-deploy-key.pem}"
 WORK_DIR="${WORK_DIR:-/tmp/live-auction-deploy-fast}"
 INSTALL_NGINX_CONF="${INSTALL_NGINX_CONF:-0}"
 INCLUDE_OBSERVABILITY_IMAGES="${INCLUDE_OBSERVABILITY_IMAGES:-1}"
@@ -33,7 +33,7 @@ Options:
 
 Environment:
   SSH_KEY=/path/to/key.pem
-  SERVER_HOST=120.79.7.110
+  SERVER_HOST=your.server.example
   SERVER_USER=root
   SERVER_DIR=/opt/live-auction
   INSTALL_NGINX_CONF=1
@@ -76,10 +76,27 @@ require_file() {
   fi
 }
 
+require_env() {
+  if [[ -z "${!1:-}" ]]; then
+    echo "Missing required environment variable: $1" >&2
+    exit 1
+  fi
+}
+
 run() {
   echo
   echo "==> $*"
   "$@"
+}
+
+build_frontend() {
+  local app_dir="$1"
+  local node_bin="${NODE_BIN:-node}"
+  (
+    cd "$app_dir"
+    run "$node_bin" node_modules/typescript/bin/tsc -b
+    run "$node_bin" node_modules/vite/bin/vite.js build
+  )
 }
 
 ensure_clean_git() {
@@ -93,6 +110,8 @@ ensure_clean_git() {
 }
 
 prepare_ssh_key() {
+  require_env SERVER_HOST
+  require_env SSH_KEY_SOURCE
   require_file "$SSH_KEY_SOURCE"
   cp "$SSH_KEY_SOURCE" "$SSH_KEY_RUNTIME"
   chmod 600 "$SSH_KEY_RUNTIME"
@@ -157,13 +176,13 @@ prepare_packages() {
 
   if [[ "$RUN_ADMIN" -eq 1 ]]; then
     ensure_clean_git "$ADMIN_DIR" "admin frontend"
-    run npm --prefix "$ADMIN_DIR" run build
+    build_frontend "$ADMIN_DIR"
     run tar -czf "$WORK_DIR/admin-dist.tar.gz" -C "$ADMIN_DIR/dist" .
   fi
 
   if [[ "$RUN_H5" -eq 1 ]]; then
     ensure_clean_git "$H5_DIR" "H5 frontend"
-    run npm --prefix "$H5_DIR" run build
+    build_frontend "$H5_DIR"
     run tar -czf "$WORK_DIR/h5-dist.tar.gz" -C "$H5_DIR/dist" .
   fi
 }

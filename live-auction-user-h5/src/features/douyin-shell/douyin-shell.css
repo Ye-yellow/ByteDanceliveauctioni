@@ -2611,7 +2611,6 @@
   font-weight: 950;
 }
 
-.dyUtilityLiveHero,
 .dyUtilityAlbumHero {
   min-height: 210px;
   display: grid;
@@ -2626,34 +2625,21 @@
   padding: 16px;
 }
 
-.dyUtilityLiveHero h2,
-.dyUtilityLiveHero p,
 .dyUtilityAlbumHero b,
 .dyUtilityAlbumHero p {
   margin: 0;
 }
 
-.dyUtilityLiveHero h2,
 .dyUtilityAlbumHero b {
   font-size: 26px;
   font-weight: 950;
 }
 
-.dyUtilityLiveHero p,
 .dyUtilityAlbumHero p {
   color: rgba(255, 255, 255, 0.58);
   font-size: 13px;
 }
 
-.dyUtilityLiveHero > b {
-  width: max-content;
-  border-radius: 999px;
-  background: #fe2c55;
-  padding: 4px 8px;
-  font-size: 11px;
-}
-
-.dyUtilityLiveHero a,
 .dyUtilityRedPacket a,
 .dyUtilityLoginPanel a,
 .dyUtilityAccount button {

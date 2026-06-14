@@ -161,51 +161,167 @@ type AuctionEventModel struct {
 
 func (AuctionEventModel) TableName() string { return "auction_events" }
 
-type AuctionOrderModel struct {
+type UserOrderModel struct {
+	ID                      string `gorm:"column:id;type:varchar(64);primaryKey"`
+	Source                  string `gorm:"column:source;type:varchar(32);not null;uniqueIndex:uk_user_order_source_id,priority:1;index:idx_user_order_user_status,priority:3;index:idx_user_order_source_created,priority:1"`
+	SourceOrderID           string `gorm:"column:source_order_id;type:varchar(64);not null;uniqueIndex:uk_user_order_source_id,priority:2"`
+	OrderNo                 string `gorm:"column:order_no;type:varchar(64);not null;default:'';index:idx_user_order_no"`
+	MainAccountID           string `gorm:"column:main_account_id;type:varchar(64);not null;default:'';index:idx_user_order_main_created,priority:1"`
+	UserID                  string `gorm:"column:user_id;type:varchar(64);not null;index:idx_user_order_user_status,priority:1"`
+	Nickname                string `gorm:"column:nickname;type:varchar(128);not null;default:''"`
+	Status                  string `gorm:"column:status;type:varchar(32);not null;index:idx_user_order_user_status,priority:2"`
+	PaymentStatus           string `gorm:"column:payment_status;type:varchar(32);not null;index:idx_user_order_payment_status"`
+	PaymentID               string `gorm:"column:payment_id;type:varchar(64);not null;default:''"`
+	Title                   string `gorm:"column:title;type:varchar(255);not null;default:''"`
+	ShopName                string `gorm:"column:shop_name;type:varchar(128);not null;default:''"`
+	TotalAmount             int64  `gorm:"column:total_amount;not null"`
+	Currency                string `gorm:"column:currency;type:varchar(16);not null;default:'CNY'"`
+	ShippingAddressID       string `gorm:"column:shipping_address_id;type:varchar(64);not null;default:'';index:idx_user_order_shipping_address"`
+	ShippingAddressSnapshot string `gorm:"column:shipping_address_snapshot;type:json"`
+	AddressSnapshot         string `gorm:"column:address_snapshot;type:varchar(512);not null;default:''"`
+	CreatedAtUnixMs         int64  `gorm:"column:created_at_unix_ms;not null;index:idx_user_order_created;index:idx_user_order_main_created,priority:2;index:idx_user_order_source_created,priority:2"`
+	UpdatedAtUnixMs         int64  `gorm:"column:updated_at_unix_ms;not null"`
+	PaidAtUnixMs            int64  `gorm:"column:paid_at_unix_ms;not null;default:0"`
+	ExpiresAtUnixMs         int64  `gorm:"column:expires_at_unix_ms;not null;default:0;index:idx_user_order_expiry"`
+	Version                 int64  `gorm:"column:version;not null;default:1"`
+	PaymentIdempotencyKey   string `gorm:"column:payment_idempotency_key;type:varchar(128);not null;default:''"`
+	SourcePayload           string `gorm:"column:source_payload;type:json"`
+	CreatedAt               time.Time
+	UpdatedAt               time.Time
+}
+
+func (UserOrderModel) TableName() string { return "user_orders" }
+
+type UserOrderItemModel struct {
+	ID           string `gorm:"column:id;type:varchar(64);primaryKey"`
+	OrderID      string `gorm:"column:order_id;type:varchar(64);not null;index:idx_user_order_item_order"`
+	Source       string `gorm:"column:source;type:varchar(32);not null;index:idx_user_order_item_source"`
+	SourceItemID string `gorm:"column:source_item_id;type:varchar(64);not null;default:''"`
+	ProductID    string `gorm:"column:product_id;type:varchar(64);not null;default:'';index:idx_user_order_item_product"`
+	SKUID        string `gorm:"column:sku_id;type:varchar(64);not null;default:''"`
+	LotID        string `gorm:"column:lot_id;type:varchar(64);not null;default:'';index:idx_user_order_item_lot"`
+	RoomID       string `gorm:"column:room_id;type:varchar(64);not null;default:'';index:idx_user_order_item_room"`
+	Title        string `gorm:"column:title;type:varchar(255);not null;default:''"`
+	ImageURL     string `gorm:"column:image_url;type:varchar(1024);not null;default:''"`
+	SKUName      string `gorm:"column:sku_name;type:varchar(128);not null;default:''"`
+	Quantity     int64  `gorm:"column:quantity;not null;default:1"`
+	UnitAmount   int64  `gorm:"column:unit_amount;not null"`
+	TotalAmount  int64  `gorm:"column:total_amount;not null"`
+	Currency     string `gorm:"column:currency;type:varchar(16);not null;default:'CNY'"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+func (UserOrderItemModel) TableName() string { return "user_order_items" }
+
+type UserOrderPaymentModel struct {
 	ID              string `gorm:"column:id;type:varchar(64);primaryKey"`
-	MainAccountID   string `gorm:"column:main_account_id;type:varchar(64);not null;index:idx_order_main_room_created,priority:1;index:idx_order_main_status,priority:1"`
-	LotID           string `gorm:"column:lot_id;type:varchar(64);not null;uniqueIndex:uk_lot_order"`
-	RoomID          string `gorm:"column:room_id;type:varchar(64);not null;index:idx_order_room_created,priority:1;index:idx_order_main_room_created,priority:2"`
-	LotTitle        string `gorm:"column:lot_title;type:varchar(255);not null"`
-	LotImageURL     string `gorm:"column:lot_image_url;type:varchar(1024);not null"`
-	BuyerUserID     string `gorm:"column:buyer_user_id;type:varchar(64);not null;index:idx_order_buyer_status,priority:1"`
-	BuyerNickname   string `gorm:"column:buyer_nickname;type:varchar(128);not null"`
-	Status          string `gorm:"column:status;type:varchar(32);not null;index:idx_order_buyer_status,priority:2;index:idx_order_main_status,priority:2"`
-	PaymentStatus   string `gorm:"column:payment_status;type:varchar(32);not null;index:idx_order_payment_status"`
-	PaymentID       string `gorm:"column:payment_id;type:varchar(64);not null;default:''"`
+	OrderID         string `gorm:"column:order_id;type:varchar(64);not null;index:idx_user_order_payment_order;uniqueIndex:uk_user_order_payment_idem,priority:1"`
+	Source          string `gorm:"column:source;type:varchar(32);not null;index:idx_user_order_payment_source"`
+	Provider        string `gorm:"column:provider;type:varchar(32);not null;default:'mock'"`
+	MainAccountID   string `gorm:"column:main_account_id;type:varchar(64);not null;default:'';index:idx_user_order_payment_main_created,priority:1"`
+	LotID           string `gorm:"column:lot_id;type:varchar(64);not null;default:'';index:idx_user_order_payment_lot"`
+	UserID          string `gorm:"column:user_id;type:varchar(64);not null;index:idx_user_order_payment_user"`
+	Status          string `gorm:"column:status;type:varchar(32);not null;index:idx_user_order_payment_status"`
 	Amount          int64  `gorm:"column:amount;not null"`
-	Currency        string `gorm:"column:currency;type:varchar(16);not null"`
-	CreatedAtUnixMs int64  `gorm:"column:created_at_unix_ms;not null;index:idx_order_room_created,priority:2;index:idx_order_main_room_created,priority:3"`
-	UpdatedAtUnixMs int64  `gorm:"column:updated_at_unix_ms;not null"`
-	ExpiresAtUnixMs int64  `gorm:"column:expires_at_unix_ms;not null;index:idx_order_expiry"`
-	PaidAtUnixMs    int64  `gorm:"column:paid_at_unix_ms;not null;default:0"`
-	Version         int64  `gorm:"column:version;not null"`
-	Payload         string `gorm:"column:payload;type:json;not null"`
+	Currency        string `gorm:"column:currency;type:varchar(16);not null;default:'CNY'"`
+	IdempotencyKey  string `gorm:"column:idempotency_key;type:varchar(128);not null;uniqueIndex:uk_user_order_payment_idem,priority:2"`
+	CreatedAtUnixMs int64  `gorm:"column:created_at_unix_ms;not null;index:idx_user_order_payment_created;index:idx_user_order_payment_main_created,priority:2"`
+	UpdatedAtUnixMs int64  `gorm:"column:updated_at_unix_ms;not null;default:0"`
+	SucceededAtMs   int64  `gorm:"column:succeeded_at_unix_ms;not null;default:0"`
+	SourcePayload   string `gorm:"column:source_payload;type:json"`
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
 
-func (AuctionOrderModel) TableName() string { return "auction_orders" }
+func (UserOrderPaymentModel) TableName() string { return "user_order_payments" }
 
-type AuctionPaymentModel struct {
-	ID              string  `gorm:"column:id;type:varchar(64);primaryKey"`
-	MainAccountID   string  `gorm:"column:main_account_id;type:varchar(64);not null;index:idx_payment_main_created,priority:1"`
-	OrderID         string  `gorm:"column:order_id;type:varchar(64);not null;index:idx_payment_order;uniqueIndex:uk_order_payment_idem,priority:1"`
-	LotID           string  `gorm:"column:lot_id;type:varchar(64);not null;index:idx_payment_lot"`
-	BuyerUserID     string  `gorm:"column:buyer_user_id;type:varchar(64);not null;index:idx_payment_buyer"`
-	Status          string  `gorm:"column:status;type:varchar(32);not null;index:idx_payment_status"`
-	Amount          int64   `gorm:"column:amount;not null"`
-	Currency        string  `gorm:"column:currency;type:varchar(16);not null"`
-	IdempotencyKey  *string `gorm:"column:idempotency_key;type:varchar(128);uniqueIndex:uk_order_payment_idem,priority:2"`
-	CreatedAtUnixMs int64   `gorm:"column:created_at_unix_ms;not null;index:idx_payment_created;index:idx_payment_main_created,priority:2"`
-	UpdatedAtUnixMs int64   `gorm:"column:updated_at_unix_ms;not null"`
-	SucceededAtMs   int64   `gorm:"column:succeeded_at_unix_ms;not null;default:0"`
-	Payload         string  `gorm:"column:payload;type:json;not null"`
+type AuctionDepositHoldModel struct {
+	ID               string `gorm:"column:id;type:varchar(64);primaryKey"`
+	MainAccountID    string `gorm:"column:main_account_id;type:varchar(64);not null;index:idx_deposit_main_created,priority:1"`
+	RoomID           string `gorm:"column:room_id;type:varchar(64);not null;index:idx_deposit_room"`
+	LotID            string `gorm:"column:lot_id;type:varchar(64);not null;index:idx_deposit_lot_status,priority:1;uniqueIndex:uk_deposit_lot_buyer,priority:1;uniqueIndex:uk_deposit_idem,priority:1"`
+	BuyerUserID      string `gorm:"column:buyer_user_id;type:varchar(64);not null;index:idx_deposit_buyer_status,priority:1;uniqueIndex:uk_deposit_lot_buyer,priority:2;uniqueIndex:uk_deposit_idem,priority:2"`
+	BuyerNickname    string `gorm:"column:buyer_nickname;type:varchar(128);not null;default:''"`
+	Status           string `gorm:"column:status;type:varchar(32);not null;index:idx_deposit_lot_status,priority:2;index:idx_deposit_buyer_status,priority:2"`
+	Amount           int64  `gorm:"column:amount;not null"`
+	Currency         string `gorm:"column:currency;type:varchar(16);not null"`
+	PaymentProvider  string `gorm:"column:payment_provider;type:varchar(32);not null;default:'mock'"`
+	PaymentID        string `gorm:"column:payment_id;type:varchar(64);not null;default:''"`
+	IdempotencyKey   string `gorm:"column:idempotency_key;type:varchar(128);not null;uniqueIndex:uk_deposit_idem,priority:3"`
+	AddressID        string `gorm:"column:address_id;type:varchar(64);not null;default:''"`
+	AddressSnapshot  string `gorm:"column:address_snapshot;type:json"`
+	CreatedAtUnixMs  int64  `gorm:"column:created_at_unix_ms;not null;index:idx_deposit_main_created,priority:2"`
+	UpdatedAtUnixMs  int64  `gorm:"column:updated_at_unix_ms;not null"`
+	HeldAtUnixMs     int64  `gorm:"column:held_at_unix_ms;not null;default:0"`
+	ReleasedAtUnixMs int64  `gorm:"column:released_at_unix_ms;not null;default:0"`
+	Payload          string `gorm:"column:payload;type:json;not null"`
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
+func (AuctionDepositHoldModel) TableName() string { return "auction_deposit_holds" }
+
+type ShopProductModel struct {
+	ID                  string `gorm:"column:id;type:varchar(64);primaryKey"`
+	Title               string `gorm:"column:title;type:varchar(255);not null"`
+	Subtitle            string `gorm:"column:subtitle;type:varchar(512);not null;default:''"`
+	Description         string `gorm:"column:description;type:text;not null"`
+	Category            string `gorm:"column:category;type:varchar(64);not null;index:idx_shop_product_category"`
+	ShopName            string `gorm:"column:shop_name;type:varchar(128);not null"`
+	MainImageURL        string `gorm:"column:main_image_url;type:varchar(1024);not null"`
+	DetailImageURLs     string `gorm:"column:detail_image_urls;type:json;not null"`
+	Tags                string `gorm:"column:tags;type:json;not null"`
+	Badges              string `gorm:"column:badges;type:json;not null"`
+	PriceAmount         int64  `gorm:"column:price_amount;not null"`
+	OriginalPriceAmount int64  `gorm:"column:original_price_amount;not null;default:0"`
+	Currency            string `gorm:"column:currency;type:varchar(16);not null;default:'CNY'"`
+	SoldLabel           string `gorm:"column:sold_label;type:varchar(64);not null;default:''"`
+	Live                bool   `gorm:"column:live;not null;default:false"`
+	Status              string `gorm:"column:status;type:varchar(32);not null;default:'active';index:idx_shop_product_status"`
+	CreatedAtUnixMs     int64  `gorm:"column:created_at_unix_ms;not null"`
+	UpdatedAtUnixMs     int64  `gorm:"column:updated_at_unix_ms;not null;index:idx_shop_product_updated"`
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+}
+
+func (ShopProductModel) TableName() string { return "shop_products" }
+
+type ShopSKUModel struct {
+	ID          string `gorm:"column:id;type:varchar(64);primaryKey"`
+	ProductID   string `gorm:"column:product_id;type:varchar(64);not null;index:idx_shop_sku_product"`
+	Name        string `gorm:"column:name;type:varchar(128);not null"`
+	PriceAmount int64  `gorm:"column:price_amount;not null"`
+	Currency    string `gorm:"column:currency;type:varchar(16);not null;default:'CNY'"`
+	Stock       int64  `gorm:"column:stock;not null;default:0"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+func (ShopSKUModel) TableName() string { return "shop_skus" }
+
+type UserDeliveryAddressModel struct {
+	ID              string `gorm:"column:id;type:varchar(64);primaryKey"`
+	UserID          string `gorm:"column:user_id;type:varchar(64);not null;index:idx_user_address_active,priority:1"`
+	ReceiverName    string `gorm:"column:receiver_name;type:varchar(64);not null"`
+	Phone           string `gorm:"column:phone;type:varchar(32);not null"`
+	Province        string `gorm:"column:province;type:varchar(64);not null;default:''"`
+	City            string `gorm:"column:city;type:varchar(64);not null;default:''"`
+	District        string `gorm:"column:district;type:varchar(64);not null;default:''"`
+	Street          string `gorm:"column:street;type:varchar(128);not null;default:''"`
+	Detail          string `gorm:"column:detail;type:varchar(512);not null"`
+	PostalCode      string `gorm:"column:postal_code;type:varchar(32);not null;default:''"`
+	Tag             string `gorm:"column:tag;type:varchar(32);not null;default:''"`
+	IsDefault       bool   `gorm:"column:is_default;not null;default:false"`
+	Status          string `gorm:"column:status;type:varchar(32);not null;default:'active';index:idx_user_address_active,priority:2"`
+	CreatedAtUnixMs int64  `gorm:"column:created_at_unix_ms;not null"`
+	UpdatedAtUnixMs int64  `gorm:"column:updated_at_unix_ms;not null;index:idx_user_address_active,priority:3"`
+	DeletedAtUnixMs int64  `gorm:"column:deleted_at_unix_ms;not null;default:0"`
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
 
-func (AuctionPaymentModel) TableName() string { return "auction_payments" }
+func (UserDeliveryAddressModel) TableName() string { return "user_delivery_addresses" }
 
 type AuctionUserModel struct {
 	ID              string `gorm:"column:id;type:varchar(64);primaryKey"`

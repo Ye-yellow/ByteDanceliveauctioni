@@ -20,6 +20,8 @@ var (
 	runtimeEventXAddTotal  atomic.Int64
 	activeLotMu            sync.Mutex
 	activeLotCounts        = make(map[string]int64)
+	gatewayShardMu         sync.Mutex
+	gatewaySeenShards      = make(map[string]struct{})
 	statsMu                sync.RWMutex
 	dbStatsProvider        func() sql.DBStats
 	redisStatsProvider     func() RedisPoolStats
@@ -77,6 +79,22 @@ var (
 		Name:    "auction_projection_batch_duration_ms",
 		Help:    "Runtime projection shard batch duration in milliseconds.",
 		Buckets: []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000},
+	}, []string{"shard"})
+	gatewayRoutes = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "auction_gateway_routed_requests_total",
+		Help: "Total shard gateway proxied requests by route source, shard, and result.",
+	}, []string{"route", "shard", "result"})
+	gatewayAggregations = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "auction_gateway_aggregate_shard_requests_total",
+		Help: "Total shard gateway aggregation subrequests by collection path, shard, and result.",
+	}, []string{"path", "shard", "result"})
+	gatewayShardStatus = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "auction_gateway_shard_status",
+		Help: "Current shard status known by the shard gateway. Exactly one status label should be 1 per shard.",
+	}, []string{"shard", "status"})
+	gatewayRoomAssignments = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "auction_gateway_room_assignments",
+		Help: "Current number of room assignments known by the shard gateway per shard.",
 	}, []string{"shard"})
 )
 
@@ -237,6 +255,51 @@ func SetRuntimeProjectionMetrics(xaddTotal, pending, lagMs, failedTotal, gapTota
 
 func RecordProjectionBatchDuration(shard int, duration time.Duration) {
 	projectionBatchDurationMs.WithLabelValues(strconv.Itoa(shard)).Observe(float64(duration.Milliseconds()))
+}
+
+func RecordGatewayRoute(route string, shardID int, result string) {
+	gatewayRoutes.WithLabelValues(
+		cleanLabel(route, "unknown"),
+		strconv.Itoa(shardID),
+		cleanLabel(result, "unknown"),
+	).Inc()
+}
+
+func RecordGatewayAggregate(path string, shardID int, result string) {
+	gatewayAggregations.WithLabelValues(
+		cleanLabel(path, "unknown"),
+		strconv.Itoa(shardID),
+		cleanLabel(result, "unknown"),
+	).Inc()
+}
+
+func SetGatewayShardStatus(shardID int, status string) {
+	shard := strconv.Itoa(shardID)
+	status = cleanLabel(status, "unknown")
+	for _, candidate := range []string{"active", "draining", "offline", "unknown"} {
+		value := 0.0
+		if status == candidate {
+			value = 1
+		}
+		gatewayShardStatus.WithLabelValues(shard, candidate).Set(value)
+	}
+}
+
+func SetGatewayRoomAssignments(counts map[int]int) {
+	gatewayShardMu.Lock()
+	defer gatewayShardMu.Unlock()
+	for shardID := range counts {
+		gatewaySeenShards[strconv.Itoa(shardID)] = struct{}{}
+	}
+	for shard := range gatewaySeenShards {
+		gatewayRoomAssignments.WithLabelValues(shard).Set(0)
+	}
+	for shardID, count := range counts {
+		if count < 0 {
+			count = 0
+		}
+		gatewayRoomAssignments.WithLabelValues(strconv.Itoa(shardID)).Set(float64(count))
+	}
 }
 
 func SetOutboxPendingCount(count int64) {

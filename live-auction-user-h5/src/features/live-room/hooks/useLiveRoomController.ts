@@ -1,20 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isBiddableLotStatus, isPrivateRefreshEventType, isSettlementEventType, lotIdFromPublicEvent } from '../../../entities/auction/model/status';
 import { ownOrderForLot } from '../../../entities/order/model/privacy';
-import { listPublicRooms, listRoomLots, placeBid } from '../../auction/api/auctionApi';
+import { createDepositHold, listPublicRooms, listRoomLots, placeBid } from '../../auction/api/auctionApi';
 import { createIdempotencyKey } from '../../../shared/lib/idempotency';
+import { getServerNowMs } from '../../../shared/lib/time';
 import { normalizeMoney } from '../../../shared/api/adapters';
-import { AuthExpiredError, businessErrorMessageFromUnknown } from '../../../shared/api/errors';
-import { AUCTION_EVENT_TYPE, type AuctionSocketEvent, type Lot, type OrderSummary, type PaymentSummary } from '../../../shared/api/types';
+import { AppApiError, businessErrorMessageFromUnknown, isAuthRequiredError } from '../../../shared/api/errors';
+import { AUCTION_EVENT_TYPE, RESULT_CODE, type AuctionSocketEvent, type Lot, type OrderSummary, type PaymentSummary } from '../../../shared/api/types';
 import { normalizeBuyerUsername, validateBuyerCredentials } from '../../../shared/auth/credentialRules';
 import { useAuthSession } from '../../../shared/auth/useAuthSession';
 import { DEFAULT_ROOM_VISUAL_PROFILE } from '../../../shared/config/demoRooms';
+import type { DeliveryAddress } from '../../../shared/address/addressBook';
 import { noticeForAuctionEvent } from '../model/notices';
+import { lotEndsAtPassed } from '../model/lotDisplayState';
 import { useAuctionRoom } from './useAuctionRoom';
 import { useAuctionSocket } from './useAuctionSocket';
 
 const DEFAULT_ACTIVITY_QUERY = { page: 1, pageSize: 20 };
-const DEPOSIT_CONFIRM_STORAGE_PREFIX = 'live-auction-h5.deposit-confirmed.v1';
+const NOTICE_VISIBLE_MS = 3400;
 
 export type AuctionPanelTab = 'current' | 'queue' | 'mine';
 type DepositPrompt = {
@@ -42,9 +45,7 @@ function bidFailureMessage(reason: unknown, lot?: Lot): string {
 }
 
 function shouldOpenBuyerAuth(reason: unknown): boolean {
-  if (reason instanceof AuthExpiredError) return true;
-  const message = reason instanceof Error ? reason.message : typeof reason === 'string' ? reason : '';
-  return message.includes('请先登录') || message.includes('登录已过期') || message.includes('登录会话已失效') || message.includes('登录凭证无效');
+  return isAuthRequiredError(reason);
 }
 
 function nicknameFromUsername(username: string): string {
@@ -68,26 +69,6 @@ function eventMayChangeLotList(event: AuctionSocketEvent): boolean {
 function isCancellationEvent(event: AuctionSocketEvent): boolean {
   return event.type === AUCTION_EVENT_TYPE.LOT_CANCELLED ||
     (event.type === AUCTION_EVENT_TYPE.AUCTION_CLOSED && event.lot?.status === 'LOT_STATUS_CANCELLED');
-}
-
-function depositConfirmKey(roomId: string, lotId: string, userId: string): string {
-  return `${DEPOSIT_CONFIRM_STORAGE_PREFIX}:${roomId}:${lotId}:${userId}`;
-}
-
-function hasConfirmedDeposit(roomId: string, lotId: string, userId: string): boolean {
-  try {
-    return localStorage.getItem(depositConfirmKey(roomId, lotId, userId)) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function markDepositConfirmed(roomId: string, lotId: string, userId: string) {
-  try {
-    localStorage.setItem(depositConfirmKey(roomId, lotId, userId), '1');
-  } catch {
-    // Local confirmation is best-effort in the H5 demo flow.
-  }
 }
 
 export function useLiveRoomController(roomId: string) {
@@ -126,7 +107,11 @@ export function useLiveRoomController(roomId: string) {
   const [roomLotsLoading, setRoomLotsLoading] = useState(false);
   const [roomLotsError, setRoomLotsError] = useState('');
   const [publicRoomName, setPublicRoomName] = useState('');
+  const noticeTimerRef = useRef<number | null>(null);
+  const visibleNoticeRef = useRef('');
   const dismissedResultLotIdsRef = useRef<Set<string>>(new Set());
+  const shownResultLotIdsRef = useRef<Set<string>>(new Set());
+  const settlementSyncKeyRef = useRef('');
 
   const meId = user?.id ?? '';
   const currentLot = room.currentLot;
@@ -177,9 +162,26 @@ export function useLiveRoomController(roomId: string) {
   }, [roomId]);
 
   const pushNotice = useCallback((notice: string) => {
-    if (!notice) return;
-    setNotices((current) => current.includes(notice) ? current : [notice, ...current].slice(0, 6));
-    window.setTimeout(() => setNotices((current) => current.filter((item) => item !== notice)), 3600);
+    const nextNotice = notice.trim();
+    if (!nextNotice || visibleNoticeRef.current === nextNotice) return;
+
+    if (noticeTimerRef.current) {
+      window.clearTimeout(noticeTimerRef.current);
+    }
+
+    visibleNoticeRef.current = nextNotice;
+    setNotices([nextNotice]);
+    noticeTimerRef.current = window.setTimeout(() => {
+      visibleNoticeRef.current = '';
+      noticeTimerRef.current = null;
+      setNotices((current) => (current[0] === nextNotice ? [] : current));
+    }, NOTICE_VISIBLE_MS);
+  }, []);
+
+  useEffect(() => () => {
+    if (noticeTimerRef.current) {
+      window.clearTimeout(noticeTimerRef.current);
+    }
   }, []);
 
   const closeTransientPanelsForResult = useCallback(() => {
@@ -198,8 +200,18 @@ export function useLiveRoomController(roomId: string) {
     if (!lotId) return null;
     try {
       const result = await refreshLotResult(lotId);
-      const shouldShowModal = (options.showModal ?? true) && !dismissedResultLotIdsRef.current.has(result.lot.id);
+      const resultLotId = result.lot.id;
+      const resultAlreadyVisible = resultLot?.id === resultLotId;
+      if (resultAlreadyVisible) {
+        setResultLot(result.lot);
+        setResultOrder((current) => result.order || (current?.lotId === resultLotId ? current : null));
+      }
+      const shouldShowModal = (options.showModal ?? true) &&
+        !resultAlreadyVisible &&
+        !dismissedResultLotIdsRef.current.has(resultLotId) &&
+        !shownResultLotIdsRef.current.has(resultLotId);
       if (shouldShowModal) {
+        shownResultLotIdsRef.current.add(resultLotId);
         closeTransientPanelsForResult();
         setResultLot(result.lot);
         setResultOrder(result.order || null);
@@ -211,7 +223,7 @@ export function useLiveRoomController(roomId: string) {
       if (!options.silent) pushNotice(e instanceof Error ? e.message : '成交结果同步失败');
       return null;
     }
-  }, [closeTransientPanelsForResult, pushNotice, refreshLotResult, refreshOrders]);
+  }, [closeTransientPanelsForResult, pushNotice, refreshLotResult, refreshOrders, resultLot?.id]);
 
   const recoverRealtimeState = useCallback(async () => {
     await reload().catch(() => undefined);
@@ -251,7 +263,7 @@ export function useLiveRoomController(roomId: string) {
     if (!cancellationEvent && isSettlementEventType(event.type)) {
       const lotId = lotIdFromPublicEvent(event, resultLot?.id || currentLot?.id || '');
       void syncPrivateResult(lotId, {
-        showModal: true,
+        showModal: event.type !== AUCTION_EVENT_TYPE.PAYMENT_SUCCESS,
         refreshOrderList: isPrivateRefreshEventType(event.type),
       });
     }
@@ -265,6 +277,32 @@ export function useLiveRoomController(roomId: string) {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [refreshRoomLots]);
+
+  useEffect(() => {
+    if (!currentLot || !isBiddableLotStatus(currentLot.status)) return undefined;
+    const endsAt = Number(currentLot.endsAtUnixMs || 0);
+    if (!Number.isFinite(endsAt) || endsAt <= 0) return undefined;
+
+    const syncKey = `${currentLot.id}:${endsAt}:${currentLot.version}`;
+    if (settlementSyncKeyRef.current === syncKey) return undefined;
+
+    const nowMs = getServerNowMs(room.serverTimeUnixMs, room.serverTimeReceivedAtUnixMs);
+    const delayMs = Math.max(0, endsAt - nowMs + 120);
+    const timer = window.setTimeout(() => {
+      settlementSyncKeyRef.current = syncKey;
+      void recoverRealtimeState().catch(() => undefined);
+    }, delayMs);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    currentLot?.endsAtUnixMs,
+    currentLot?.id,
+    currentLot?.status,
+    currentLot?.version,
+    recoverRealtimeState,
+    room.serverTimeReceivedAtUnixMs,
+    room.serverTimeUnixMs,
+  ]);
 
   const submitBuyerAuth = useCallback(async () => {
     if (authBusy) return;
@@ -318,14 +356,25 @@ export function useLiveRoomController(roomId: string) {
     setAuctionPanelOpen(true);
   }, []);
 
+  const requireBuyerAuth = useCallback(() => {
+    setBidError('');
+    setDepositPrompt(null);
+    setPayOrder(null);
+    openBuyerAuthPanel();
+  }, [openBuyerAuthPanel]);
+
   const submitBid = useCallback(async (amount: number) => {
     if (isBidPending) return;
     if (!currentLot) {
       setBidError('当前暂无商品，等待主播讲解');
       return;
     }
-    if (!isBiddableLotStatus(currentLot.status)) {
-      setBidError('当前商品还未开始或已结束');
+    const currentServerNowMs = getServerNowMs(room.serverTimeUnixMs, room.serverTimeReceivedAtUnixMs);
+    if (!isBiddableLotStatus(currentLot.status) || lotEndsAtPassed(currentLot, currentServerNowMs)) {
+      const message = lotEndsAtPassed(currentLot, currentServerNowMs) ? '当前商品已截拍，正在结算' : '当前商品还未开始或已结束';
+      setBidError(message);
+      pushNotice(message);
+      void recoverRealtimeState().catch(() => undefined);
       return;
     }
     if (meId && currentLot.leadingUserId === meId) {
@@ -340,15 +389,13 @@ export function useLiveRoomController(roomId: string) {
     try {
       session = await ensureReadyForBid();
     } catch (e) {
+      if (shouldOpenBuyerAuth(e)) {
+        requireBuyerAuth();
+        return;
+      }
       const message = bidFailureMessage(e, currentLot);
       setBidError(message);
-      if (shouldOpenBuyerAuth(e)) openBuyerAuthPanel();
       pushNotice(message);
-      return;
-    }
-
-    if (!hasConfirmedDeposit(roomId, currentLot.id, session.user.id)) {
-      setDepositPrompt({ lot: currentLot, bidAmount: amount, userId: session.user.id });
       return;
     }
 
@@ -367,7 +414,7 @@ export function useLiveRoomController(roomId: string) {
       });
 
       if (res.accepted) {
-        applyEvent({
+        const acceptedEvent = {
           type: AUCTION_EVENT_TYPE.BID_ACCEPTED,
           roomId,
           lotId: currentLot.id,
@@ -375,31 +422,66 @@ export function useLiveRoomController(roomId: string) {
           bid: res.bid,
           ranking: res.ranking,
           serverTimeUnixMs: Date.now(),
-        });
-        pushNotice(res.lot?.leadingUserId === session.user.id || res.bid?.userId === session.user.id ? '已记录你的商品互动' : '互动成功，等待同步');
+        };
+        applyEvent(acceptedEvent);
+        pushNotice(noticeForAuctionEvent(acceptedEvent, session.user.id, currentLot.leadingUserId));
       } else {
         const message = bidFailureMessage(res.rejectReason || '后端未接受本次操作', res.lot || currentLot);
         setBidError(message);
         pushNotice(message);
       }
     } catch (e) {
+      if (e instanceof AppApiError && e.code === RESULT_CODE.DEPOSIT_REQUIRED) {
+        setDepositPrompt({ lot: currentLot, bidAmount: amount, userId: session.user.id });
+        setBidError('');
+        pushNotice('出价前需先支付保证金');
+        return;
+      }
+      if (shouldOpenBuyerAuth(e)) {
+        requireBuyerAuth();
+        return;
+      }
       const message = bidFailureMessage(e, currentLot);
       setBidError(message);
-      if (shouldOpenBuyerAuth(e)) openBuyerAuthPanel();
       pushNotice(message);
     } finally {
       markBidSettled(idempotencyKey);
       setBidding(false);
     }
-  }, [applyEvent, currentLot, ensureReadyForBid, isBidPending, markBidSettled, markBidStarted, meId, openBuyerAuthPanel, pushNotice, roomId]);
+  }, [
+    applyEvent,
+    currentLot,
+    ensureReadyForBid,
+    isBidPending,
+    markBidSettled,
+    markBidStarted,
+    meId,
+    pushNotice,
+    recoverRealtimeState,
+    requireBuyerAuth,
+    room.serverTimeReceivedAtUnixMs,
+    room.serverTimeUnixMs,
+    roomId,
+  ]);
 
-  const confirmDepositPayment = useCallback(() => {
+  const confirmDepositPayment = useCallback(async (address: DeliveryAddress) => {
     if (!depositPrompt) return;
-    markDepositConfirmed(roomId, depositPrompt.lot.id, depositPrompt.userId);
+    try {
+      await createDepositHold(depositPrompt.lot.id, {
+        addressId: address.id,
+        idempotencyKey: createIdempotencyKey('deposit', depositPrompt.lot.id, depositPrompt.userId, address.id),
+      });
+    } catch (e) {
+      if (shouldOpenBuyerAuth(e)) {
+        requireBuyerAuth();
+        return;
+      }
+      throw e;
+    }
     const nextBidAmount = depositPrompt.bidAmount;
     setDepositPrompt(null);
     void submitBid(nextBidAmount);
-  }, [depositPrompt, roomId, submitBid]);
+  }, [depositPrompt, requireBuyerAuth, submitBid]);
 
   const handlePaymentPaid = useCallback(async (order?: OrderSummary, payment?: PaymentSummary) => {
     markPaymentSettled(order, payment);
@@ -425,11 +507,12 @@ export function useLiveRoomController(roomId: string) {
   }, [resultLot?.id]);
 
   const nextLot = useCallback(() => {
+    if (resultLot?.id) dismissedResultLotIdsRef.current.add(resultLot.id);
     setResultLot(null);
     setResultOrder(null);
     void reload().catch(() => undefined);
     void refreshRoomLots().catch(() => undefined);
-  }, [refreshRoomLots, reload]);
+  }, [refreshRoomLots, reload, resultLot?.id]);
 
   return {
     roomId,
@@ -480,6 +563,7 @@ export function useLiveRoomController(roomId: string) {
       nextLot,
       openAuctionPanel,
       closeBuyerAuthPanel: () => setAuthPanelForcedOpen(false),
+      requireBuyerAuth,
       closeAuctionPanel: () => setAuctionPanelOpen(false),
       setAuctionPanelTab,
       showNotice: pushNotice,

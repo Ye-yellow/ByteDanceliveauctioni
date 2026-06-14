@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react';
-import { consultBuyer } from '../features/auction/api/auctionApi';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, ChevronLeft, Clock3, Flame, RefreshCw, Search, Sparkles, Target, X } from 'lucide-react';
+import { consultBuyer, listBuyerSuggestions, listPublicRooms } from '../features/auction/api/auctionApi';
+import { clearSearchAIState, readSearchAIStateForRestore, saveSearchAIStateForRoomReturn } from '../features/search/model/searchAIState';
 import { formatMoney } from '../shared/lib/money';
-import type { AIBuyerConsultReply } from '../shared/api/types';
+import type { AIBuyerConsultReply, AIBuyerResult } from '../shared/api/types';
 
 type SearchGuess = {
   name: string;
@@ -29,6 +31,41 @@ const SEARCH_HISTORY = [
   '拍卖专场',
   '商城爆款',
 ];
+
+const SEARCH_HISTORY_STORAGE_KEY = 'live-auction-h5.search.history.v1';
+
+const AI_PROMPTS = [
+  '翡翠手镯',
+  '玛瑙手镯',
+  '玉石吊坠',
+  '项链',
+  '适合送礼的收藏品',
+  '正在竞拍的拍品',
+  '预算500以内',
+  '预算1000以内',
+  '低价开拍',
+  '即将开拍',
+  '新手可拍',
+  '有实拍图',
+  '送妈妈礼物',
+  '百元低价',
+  '今晚可拍',
+  '翡翠玉石',
+];
+
+function randomPrompts(prompts: string[]) {
+  return [...prompts].sort(() => Math.random() - 0.5).slice(0, 6);
+}
+
+function nextPromptBatch(prompts: string[], current: string[] = []) {
+  const unique = Array.from(new Set(prompts.map((item) => item.trim()).filter(Boolean)));
+  const fresh = unique.filter((item) => !current.includes(item));
+  const picked = randomPrompts(fresh.length >= 6 ? fresh : unique);
+  if (picked.length === current.length && picked.every((item, index) => item === current[index]) && unique.length > 6) {
+    return unique.slice(6).concat(unique.slice(0, 6)).slice(0, 6);
+  }
+  return picked;
+}
 
 const SEARCH_GUESSES: SearchGuess[] = [
   { name: '少年透明人' },
@@ -115,6 +152,7 @@ const RANK_TABS: Array<{ key: SearchRankKey; label: string }> = [
 ];
 
 function goBack() {
+  clearSearchAIState();
   if (window.history.length > 1) {
     window.history.back();
     return;
@@ -141,19 +179,178 @@ function formatLotStatus(status: string) {
   }
 }
 
+function storageAvailable() {
+  return typeof window !== 'undefined' && Boolean(window.localStorage) && Boolean(window.sessionStorage);
+}
+
+function readSearchHistory() {
+  if (!storageAvailable()) return SEARCH_HISTORY;
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(SEARCH_HISTORY_STORAGE_KEY) || '[]');
+    if (!Array.isArray(parsed)) return SEARCH_HISTORY;
+    const values = parsed.filter((item): item is string => typeof item === 'string' && item.trim() !== '');
+    return values.length ? values.slice(0, 10) : SEARCH_HISTORY;
+  } catch {
+    return SEARCH_HISTORY;
+  }
+}
+
+function priceLabel(status: string) {
+  return status === 'LOT_STATUS_LIVE' || status === 'LOT_STATUS_EXTENDED' ? '当前价' : '起拍价';
+}
+
+function reasonTags(reason: string) {
+  const normalized = reason.replace(/^命中[:：]/, '命中：');
+  return normalized
+    .split(/[·、]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+}
+
+function displayReason(item: AIBuyerResult) {
+  if (/标题命中|命中[:：]/.test(item.reason)) {
+    return `${formatLotStatus(item.status)}，可以进直播间看实物`;
+  }
+  return item.reason;
+}
+
+function displayTags(item: AIBuyerResult) {
+  const tags: string[] = [];
+  const status = formatLotStatus(item.status);
+  if (status && status !== '拍品') tags.push(status);
+  if (/手镯|吊坠|项链|首饰|翡翠|玛瑙|玉/.test(item.title)) tags.push('适合送礼');
+  reasonTags(item.reason)
+    .filter((tag) => !/标题命中|命中[:：]/.test(tag))
+    .forEach((tag) => tags.push(tag));
+  return Array.from(new Set(tags)).slice(0, 2);
+}
+
+function emptyCopy(query: string) {
+  if (/预算|\d+\s*(元|块|以内|以下|内)/.test(query)) {
+    return '暂时没找到这个预算内的公开拍品，可以放宽预算或看看低价开拍。';
+  }
+  if (query.includes('直播间')) {
+    return '暂时没找到这个直播间的公开拍品，可以确认名称，或看看正在竞拍的拍品。';
+  }
+  if (/送礼|礼物|收藏/.test(query)) {
+    return '暂时没找到特别匹配送礼场景的拍品，可以看看首饰、玉石或低价开拍。';
+  }
+  return '暂时没有匹配到公开竞拍中的拍品，可以换个品类或预算试试。';
+}
+
+function emptyPrompts(query: string) {
+  if (/预算|\d+\s*(元|块|以内|以下|内)/.test(query)) return ['低价开拍', '预算1000以内', '正在竞拍的拍品'];
+  if (query.includes('直播间')) return ['正在竞拍的拍品', '即将开拍', '翡翠玉石'];
+  if (/送礼|礼物|收藏/.test(query)) return ['翡翠玉石', '手镯吊坠', '预算500以内'];
+  return ['正在竞拍的拍品', '翡翠手镯', '适合送礼的收藏品'];
+}
+
+function compactQueryLabel(query: string) {
+  const text = query.trim().replace(/\s+/g, '');
+  if (!text) return '好拍';
+  return text.length > 8 ? `${text.slice(0, 8)}...` : text;
+}
+
+function resultStatusPhrase(results: AIBuyerResult[]) {
+  if (results.some((item) => item.status === 'LOT_STATUS_LIVE' || item.status === 'LOT_STATUS_EXTENDED')) {
+    return '正在竞拍';
+  }
+  if (results.some((item) => item.status === 'LOT_STATUS_QUEUED')) {
+    return '即将开拍';
+  }
+  return '可查看拍品';
+}
+
+function buyerReplyHeadline(query: string, reply: AIBuyerConsultReply) {
+  if (!reply.results.length) return { lead: emptyCopy(query), highlight: '' };
+  return {
+    lead: `猜你想找${compactQueryLabel(query)}，当前有`,
+    highlight: `${reply.results.length} 件${resultStatusPhrase(reply.results)}`,
+  };
+}
+
 function SearchPage() {
-  const [history, setHistory] = useState(SEARCH_HISTORY);
+  const restoredAIState = useMemo(() => readSearchAIStateForRestore(), []);
+  const restoredScrollY = useRef(restoredAIState.scrollY);
+  const restoredScrollDone = useRef(false);
+  const searchRequestId = useRef(0);
+  const [history, setHistory] = useState(readSearchHistory);
   const [expanded, setExpanded] = useState(false);
   const [guessRound, setGuessRound] = useState(0);
   const [activeRank, setActiveRank] = useState<SearchRankKey>('hot');
   const [activeCategory, setActiveCategory] = useState(Object.keys(CATEGORY_RANKS)[0]);
   const [query, setQuery] = useState('');
-  const [aiQuery, setAIQuery] = useState('');
-  const [aiReply, setAIReply] = useState<AIBuyerConsultReply | null>(null);
+  const [aiQuery, setAIQuery] = useState(restoredAIState.query);
+  const [aiReply, setAIReply] = useState<AIBuyerConsultReply | null>(restoredAIState.reply);
   const [aiLoading, setAILoading] = useState(false);
   const [aiError, setAIError] = useState('');
+  const [aiPrompts, setAIPrompts] = useState(() => nextPromptBatch(AI_PROMPTS));
+  const [aiPromptsRefreshing, setAIPromptsRefreshing] = useState(false);
+  const [aiOpen, setAIOpen] = useState(() => Boolean(restoredAIState.query || restoredAIState.reply));
+  const [aiResultsExpanded, setAIResultsExpanded] = useState(false);
+  const [roomNames, setRoomNames] = useState<Record<string, string>>({});
 
   const visibleHistory = expanded ? history : history.slice(0, 2);
+  useEffect(() => {
+    if (!storageAvailable()) return;
+    window.localStorage.setItem(SEARCH_HISTORY_STORAGE_KEY, JSON.stringify(history.slice(0, 10)));
+  }, [history]);
+
+  useEffect(() => {
+    let disposed = false;
+    void listPublicRooms()
+      .then((rooms) => {
+        if (disposed) return;
+        setRoomNames(Object.fromEntries(rooms.map((room) => [room.id, room.name])));
+      })
+      .catch(() => {});
+    return () => {
+      disposed = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let disposed = false;
+    void listBuyerSuggestions(6)
+      .then((reply) => {
+        if (disposed) return;
+        const next = Array.from(new Set(
+          (reply.suggestions || [])
+            .map((item) => item.text.trim())
+            .filter(Boolean),
+        )).slice(0, 6);
+        if (next.length) setAIPrompts((current) => nextPromptBatch([...next, ...AI_PROMPTS], current));
+      })
+      .catch(() => {});
+    return () => {
+      disposed = true;
+    };
+  }, []);
+
+  const refreshAIPrompts = async () => {
+    setAIPromptsRefreshing(true);
+    try {
+      const reply = await listBuyerSuggestions(12);
+      const next = Array.from(new Set(
+        (reply.suggestions || [])
+          .map((item) => item.text.trim())
+          .filter(Boolean),
+      ));
+      setAIPrompts((current) => nextPromptBatch(next.length ? [...next, ...AI_PROMPTS, ...current] : [...AI_PROMPTS, ...current], current));
+    } catch {
+      setAIPrompts((current) => nextPromptBatch([...AI_PROMPTS, ...current], current));
+    } finally {
+      setAIPromptsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (restoredScrollDone.current || !aiReply || restoredScrollY.current <= 0) return;
+    restoredScrollDone.current = true;
+    window.requestAnimationFrame(() => window.scrollTo({ top: restoredScrollY.current }));
+  }, [aiReply]);
+
   const guesses = useMemo(() => {
     const offset = (guessRound * 6) % SEARCH_GUESSES.length;
     return SEARCH_GUESSES.slice(offset).concat(SEARCH_GUESSES.slice(0, offset)).slice(0, 8);
@@ -164,10 +361,13 @@ function SearchPage() {
     if (activeRank === 'category') return CATEGORY_RANKS[activeCategory] || [];
     return HOT_RANKS;
   }, [activeCategory, activeRank]);
+  const updateHistory = (text: string) => {
+    setHistory((current) => [text, ...current.filter((item) => item !== text)].slice(0, 10));
+  };
   const runPlainSearch = () => {
     const text = query.trim();
     if (!text) return;
-    setHistory((current) => [text, ...current.filter((item) => item !== text)].slice(0, 10));
+    updateHistory(text);
   };
   const runAIConsult = async (nextQuery = aiQuery) => {
     const text = nextQuery.trim();
@@ -175,28 +375,43 @@ function SearchPage() {
       setAIError('请输入想找的拍品、预算或用途');
       return;
     }
+    const requestId = searchRequestId.current + 1;
+    searchRequestId.current = requestId;
+    setAIOpen(true);
     setAILoading(true);
     setAIError('');
     setAIQuery(text);
+    setAIReply(null);
+    setAIResultsExpanded(false);
     try {
       const reply = await consultBuyer({ query: text });
+      if (searchRequestId.current !== requestId) return;
       setAIReply(reply);
-      setHistory((current) => [text, ...current.filter((item) => item !== text)].slice(0, 10));
+      updateHistory(text);
     } catch (error) {
+      if (searchRequestId.current !== requestId) return;
       setAIError(error instanceof Error ? error.message : '找拍品服务暂时不可用');
     } finally {
-      setAILoading(false);
+      if (searchRequestId.current === requestId) setAILoading(false);
     }
   };
+  const persistBeforeEnter = () => saveSearchAIStateForRoomReturn(aiQuery, aiReply, window.scrollY);
+  const aiReplyHeadline = aiReply ? buyerReplyHeadline(aiQuery, aiReply) : null;
+  const visibleAIResults = aiReply
+    ? (aiResultsExpanded ? aiReply.results : aiReply.results.slice(0, 1))
+    : [];
+  const aiGateHint = aiReplyHeadline?.highlight
+    ? `${aiReplyHeadline.lead} ${aiReplyHeadline.highlight}`
+    : '智能帮你找正在拍的好物';
 
   return (
     <main className="mobileShell dySearchPage" aria-label="抖音搜索">
       <header className="dySearchPageHeader">
         <button type="button" aria-label="返回" onClick={goBack}>
-          ‹
+          <ChevronLeft className="dySearchIcon" aria-hidden="true" strokeWidth={2.8} />
         </button>
         <label>
-          <span aria-hidden="true">⌕</span>
+          <span aria-hidden="true"><Search className="dySearchIcon" strokeWidth={2.4} /></span>
           <input
             autoFocus
             value={query}
@@ -211,70 +426,127 @@ function SearchPage() {
       </header>
 
       <div className="dySearchPageContent">
-        <section className="dySearchAI" aria-label="找好拍">
-          <form
-            className="dySearchAIBox"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void runAIConsult();
-            }}
+        <section className={`dySearchAI ${aiOpen ? 'isOpen' : 'isCollapsed'}`} aria-label="找好拍" aria-busy={aiLoading}>
+          <button
+            type="button"
+            className="dySearchAIGate"
+            aria-expanded={aiOpen}
+            onClick={() => setAIOpen((value) => !value)}
           >
-            <span>找好拍</span>
-            <label>
-              <i aria-hidden="true">⌕</i>
-              <input
-                value={aiQuery}
-                placeholder="输入预算、品类或用途"
-                onChange={(event) => setAIQuery(event.target.value)}
-              />
-            </label>
-            <button type="submit" disabled={aiLoading}>
-              {aiLoading ? '查找中' : '找一下'}
-            </button>
-          </form>
-          {aiError ? <p className="dySearchAIError">{aiError}</p> : null}
-          {aiReply ? (
-            <div className="dySearchAIReply">
-              <p>{aiReply.answer}</p>
-              {aiReply.fallbackUsed ? <small>为你推荐</small> : null}
-              {aiReply.results.length ? (
-                <div className="dySearchAIResults">
-                  {aiReply.results.map((item) => (
-                    <a href={item.href || `/m/room/${item.roomId}`} key={`${item.roomId}-${item.lotId}`} className="dySearchAIResultCard">
-                      {item.imageUrl ? (
-                        <img className="dySearchAIResultImage" src={item.imageUrl} alt={item.title} loading="lazy" />
-                      ) : (
-                        <span className="dySearchAIResultImage dySearchAIResultImageEmpty" aria-hidden="true">拍</span>
-                      )}
-                      <div className="dySearchAIResultInfo">
-                        <span>{formatLotStatus(item.status)}</span>
-                        <b>{item.title}</b>
-                        <strong><em>起拍价</em>{formatMoney(item.currentPrice)}</strong>
-                        <small>{item.reason}</small>
-                      </div>
-                    </a>
-                  ))}
+            <span className="dySearchAIGateIcon" aria-hidden="true"><Sparkles className="dySearchIcon" strokeWidth={2.6} /></span>
+            <span className="dySearchAIGateText">
+              <b>找好拍</b>
+              <small>{aiGateHint}</small>
+            </span>
+            <ChevronDown className="dySearchAIGateChevron dySearchIcon" aria-hidden="true" strokeWidth={2.6} />
+          </button>
+
+          <div className="dySearchAIPanelShell" aria-hidden={!aiOpen}>
+            <div className="dySearchAIPanelInner">
+              <form
+                className="dySearchAIBox"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void runAIConsult();
+                }}
+              >
+                <div className="dySearchAIInputPill">
+                  <input
+                    value={aiQuery}
+                    aria-label="找好拍条件"
+                    placeholder="预算 / 品类 / 用途 / 直播间"
+                    onChange={(event) => setAIQuery(event.target.value)}
+                    tabIndex={aiOpen ? 0 : -1}
+                  />
+                  <button type="submit" disabled={aiLoading} tabIndex={aiOpen ? 0 : -1}>
+                    {aiLoading ? '查找中' : '找一下'}
+                  </button>
                 </div>
-              ) : (
-                <div className="dySearchAIEmpty">暂时没有匹配到公开竞拍中的拍品，可以换个品类或预算试试。</div>
-              )}
+              </form>
+              {aiLoading ? (
+                <div className="dySearchAILoading">正在从公开直播间里帮你找好拍...</div>
+              ) : null}
+              {!aiLoading && aiError ? (
+                <div className="dySearchAIErrorState">
+                  <p className="dySearchAIError">{aiError}</p>
+                  <button type="button" onClick={() => void runAIConsult(aiQuery)} tabIndex={aiOpen ? 0 : -1}>重新找拍</button>
+                </div>
+              ) : null}
+              {!aiLoading && !aiError && aiReply && aiReplyHeadline ? (
+                <div className="dySearchAIReply">
+                  <div className="dySearchAIReplySummary">
+                    <span aria-hidden="true"><Target className="dySearchIcon" strokeWidth={2.8} /></span>
+                    <p>
+                      {aiReplyHeadline.lead}
+                      {' '}
+                      {aiReplyHeadline.highlight ? <b>{aiReplyHeadline.highlight}</b> : null}
+                    </p>
+                  </div>
+                  {aiReply.fallbackUsed ? <small>已基于当前公开拍品为你推荐</small> : null}
+                  {aiReply.results.length ? (
+                    <>
+                      <div className="dySearchAIResults">
+                        {visibleAIResults.map((item) => (
+                          <SearchAIResultCard
+                            item={item}
+                            key={`${item.roomId}-${item.lotId}`}
+                            roomName={roomNames[item.roomId]}
+                            onEnter={persistBeforeEnter}
+                          />
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        className="dySearchAIExpand"
+                        disabled={aiReply.results.length <= 1}
+                        onClick={() => setAIResultsExpanded((value) => !value)}
+                        tabIndex={aiOpen ? 0 : -1}
+                      >
+                        {aiResultsExpanded ? '收起' : '展开全部'}
+                        <ChevronDown className="dySearchIcon" aria-hidden="true" strokeWidth={2.6} />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="dySearchAIEmptyState">
+                      <p className="dySearchAIEmpty">{emptyCopy(aiQuery)}</p>
+                      <div className="dySearchAIPrompts compact">
+                        {emptyPrompts(aiQuery).map((item) => (
+                          <button type="button" key={item} onClick={() => void runAIConsult(item)} tabIndex={aiOpen ? 0 : -1}>
+                            {item}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+              {!aiLoading && !aiError && !aiReply ? (
+                <div className="dySearchAIPromptPanel">
+                  <div className="dySearchAIPromptHeader">
+                    <span>为你精选</span>
+                    <button type="button" onClick={() => void refreshAIPrompts()} disabled={aiPromptsRefreshing} tabIndex={aiOpen ? 0 : -1}>
+                      <RefreshCw className="dySearchIcon" aria-hidden="true" strokeWidth={2.4} />
+                      {aiPromptsRefreshing ? '换中' : '换一批'}
+                    </button>
+                  </div>
+                  <div className="dySearchAIPrompts">
+                    {aiPrompts.map((item) => (
+                      <button type="button" key={item} onClick={() => void runAIConsult(item)} tabIndex={aiOpen ? 0 : -1}>
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
-          ) : (
-            <div className="dySearchAIPrompts">
-              {['翡翠手镯', '适合送礼的收藏品', '正在竞拍的拍品'].map((item) => (
-                <button type="button" key={item} onClick={() => void runAIConsult(item)}>
-                  {item}
-                </button>
-              ))}
-            </div>
-          )}
+          </div>
         </section>
 
         <section className="dySearchPageHistory" aria-label="搜索历史">
           {visibleHistory.map((item) => (
             <div className="dySearchPageHistoryRow" key={item}>
-              <button type="button" className="dySearchPageHistoryText">
-                <span aria-hidden="true">◷</span>
+              <button type="button" className="dySearchPageHistoryText" onClick={() => void runAIConsult(item)}>
+                <span aria-hidden="true"><Clock3 className="dySearchIcon" strokeWidth={2.3} /></span>
                 <b>{item}</b>
               </button>
               <button
@@ -282,7 +554,7 @@ function SearchPage() {
                 aria-label={`删除 ${item}`}
                 onClick={() => setHistory((current) => current.filter((entry) => entry !== item))}
               >
-                ×
+                <X className="dySearchIcon" aria-hidden="true" strokeWidth={2.3} />
               </button>
             </div>
           ))}
@@ -306,9 +578,9 @@ function SearchPage() {
 
         <section className="dySearchPageGuess" aria-label="猜你想搜">
           <header>
-            <h2>猜你想搜</h2>
+            <h2><span aria-hidden="true"><Flame className="dySearchIcon" strokeWidth={2.4} /></span>猜你想搜</h2>
             <button type="button" onClick={() => setGuessRound((round) => round + 1)}>
-              <span aria-hidden="true">↻</span>
+              <RefreshCw className="dySearchIcon" aria-hidden="true" strokeWidth={2.4} />
               换一换
             </button>
           </header>
@@ -369,6 +641,49 @@ function SearchPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function SearchAIResultCard({ item, roomName, onEnter }: { item: AIBuyerResult; roomName?: string; onEnter: () => void }) {
+  const href = item.href || `/m/room/${item.roomId}`;
+  const tags = displayTags(item);
+  const [imageFailed, setImageFailed] = useState(false);
+  const showImage = Boolean(item.imageUrl && !imageFailed);
+  return (
+    <article className="dySearchAIResultCard">
+      <a href={href} className="dySearchAIResultThumb" onClick={onEnter} aria-label={`进入${item.title}`}>
+        {showImage ? (
+          <img
+            className="dySearchAIResultImage"
+            src={item.imageUrl}
+            alt={item.title}
+            loading="lazy"
+            onError={(event) => {
+              event.currentTarget.style.display = 'none';
+              setImageFailed(true);
+            }}
+          />
+        ) : null}
+        {!showImage ? <span className="dySearchAIResultImage dySearchAIResultImageEmpty" aria-hidden="true">拍</span> : null}
+      </a>
+      <div className="dySearchAIResultInfo">
+        <div className="dySearchAIResultTop">
+          <span>{formatLotStatus(item.status)}</span>
+          <small>{roomName || `直播间 ${item.roomId}`}</small>
+        </div>
+        <a href={href} className="dySearchAIResultTitle" onClick={onEnter}>{item.title}</a>
+        <div className="dySearchAIResultMeta">
+          <strong><em>{priceLabel(item.status)}</em>{formatMoney(item.currentPrice)}</strong>
+        </div>
+        {tags.length ? (
+          <div className="dySearchAIReasonTags">
+            {tags.map((tag) => <span key={tag}>{tag}</span>)}
+          </div>
+        ) : null}
+        <p>{displayReason(item)}</p>
+      </div>
+      <a href={href} className="dySearchAIEnter" onClick={onEnter}>进入直播间</a>
+    </article>
   );
 }
 

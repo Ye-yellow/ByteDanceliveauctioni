@@ -6,6 +6,7 @@ require (
 	github.com/go-kratos/kratos/v2 v2.8.4
 	github.com/gorilla/websocket v1.5.3
 	github.com/lib/pq v1.10.9
+	github.com/nats-io/nats.go v1.37.0
 	github.com/prometheus/client_golang v1.20.5
 	github.com/redis/go-redis/v9 v9.5.1
 	github.com/volcengine/ve-tos-golang-sdk/v2 v2.9.5
@@ -31,6 +32,8 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/nats-io/nkeys v0.4.7 // indirect
+	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect

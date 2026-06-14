@@ -41,6 +41,7 @@ type RawFeedVideo = {
 
 const FEED_SOURCE = '/data/douyin-feed.json';
 const USER_VIDEO_SOURCE = '/data/user-video-list';
+const DATA_FETCH_OPTIONS: RequestInit = { cache: 'no-store' };
 const CATEGORY_LABELS: Record<string, string> = {
   animals: '萌宠',
   auction: '直播拍卖',
@@ -167,7 +168,7 @@ export function AuthorProfilePage() {
 
   useEffect(() => {
     let disposed = false;
-    void fetch(FEED_SOURCE).then((response) => response.json() as Promise<RawFeedVideo[]>).then((rows) => {
+    void fetch(FEED_SOURCE, DATA_FETCH_OPTIONS).then((response) => response.json() as Promise<RawFeedVideo[]>).then((rows) => {
       if (!disposed) setVideos(rows);
     }).catch(() => {
       if (!disposed) setVideos([]);
@@ -209,7 +210,7 @@ export function AuthorProfilePage() {
   useEffect(() => {
     if (!authorId) return;
     let disposed = false;
-    void fetch(`${USER_VIDEO_SOURCE}/user-${encodeURIComponent(authorId)}.json`)
+    void fetch(`${USER_VIDEO_SOURCE}/user-${encodeURIComponent(authorId)}.json`, DATA_FETCH_OPTIONS)
       .then((response) => {
         if (!response.ok) throw new Error(`load author videos failed: ${response.status}`);
         return response.json() as Promise<RawFeedVideo[]>;

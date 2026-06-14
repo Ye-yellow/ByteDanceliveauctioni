@@ -8,7 +8,7 @@ services:
     environment:
       AUCTION_HTTP_ADDR: ":18080"
       AUCTION_ENV: "${AUCTION_ENV:-dev}"
-      AUCTION_WS_ALLOWED_ORIGINS: "${AUCTION_WS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174,http://120.79.7.110,http://120.79.7.110:8080}"
+      AUCTION_WS_ALLOWED_ORIGINS: "${AUCTION_WS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174}"
       AUCTION_WS_ALLOW_MISSING_ORIGIN: "${AUCTION_WS_ALLOW_MISSING_ORIGIN:-true}"
       AUCTION_WS_TICKET_TTL: "${AUCTION_WS_TICKET_TTL:-60s}"
       AUCTION_BID_SYNC_PROJECTION: "${AUCTION_BID_SYNC_PROJECTION:-false}"
@@ -47,6 +47,7 @@ services:
       AUCTION_AI_TIMEOUT: "${AUCTION_AI_TIMEOUT:-8s}"
       AUCTION_AI_MOCK_ON_FAILURE: "${AUCTION_AI_MOCK_ON_FAILURE:-true}"
       AUCTION_AI_API_KEY: "${AUCTION_AI_API_KEY:-}"
+      AUCTION_PAYMENT_PROVIDER: "${AUCTION_PAYMENT_PROVIDER:-mock}"
       AUCTION_CONSUL_ADDR: "consul:8500"
       AUCTION_SERVICE_NAME: "auction-backend"
       AUCTION_SERVICE_ADDR: "auction-backend"
@@ -55,23 +56,19 @@ services:
       AUCTION_BOOTSTRAP_MAIN_ACCOUNT_USERNAME: "main"
       AUCTION_BOOTSTRAP_MAIN_ACCOUNT_PASSWORD: "main_dev_password"
       AUCTION_BOOTSTRAP_MAIN_ACCOUNT_NICKNAME: "主账号"
-      # 图片对象存储：本地默认用容器 volume，可直接上传和预览；生产可切换 AUCTION_STORAGE_PROVIDER=tos。
-      AUCTION_STORAGE_PROVIDER: "${AUCTION_STORAGE_PROVIDER:-local}"
-      AUCTION_LOCAL_STORAGE_DIR: "${AUCTION_LOCAL_STORAGE_DIR:-/data/live-auction-assets}"
-      AUCTION_LOCAL_STORAGE_BUCKET: "${AUCTION_LOCAL_STORAGE_BUCKET:-local}"
-      AUCTION_LOCAL_STORAGE_PUBLIC_BASE_URL: "${AUCTION_LOCAL_STORAGE_PUBLIC_BASE_URL:-http://localhost:18080/assets}"
-      AUCTION_TOS_ENDPOINT: "${AUCTION_TOS_ENDPOINT:-}"
-      AUCTION_TOS_REGION: "${AUCTION_TOS_REGION:-}"
-      AUCTION_TOS_BUCKET: "${AUCTION_TOS_BUCKET:-}"
-      AUCTION_TOS_ACCESS_KEY: "${AUCTION_TOS_ACCESS_KEY:-}"
-      AUCTION_TOS_SECRET_KEY: "${AUCTION_TOS_SECRET_KEY:-}"
+      # 图片对象存储：默认使用 TOS。启动前必须复制 deploy/.env.example 为 deploy/.env 并填写配置；
+      # 缺少 endpoint/region/bucket/AK/SK 时 Compose 或后端会 fail fast，不等到 upload 接口才报错。
+      AUCTION_STORAGE_PROVIDER: "${AUCTION_STORAGE_PROVIDER:-tos}"
+      AUCTION_TOS_ENDPOINT: "${AUCTION_TOS_ENDPOINT:?AUCTION_TOS_ENDPOINT is required}"
+      AUCTION_TOS_REGION: "${AUCTION_TOS_REGION:?AUCTION_TOS_REGION is required}"
+      AUCTION_TOS_BUCKET: "${AUCTION_TOS_BUCKET:?AUCTION_TOS_BUCKET is required}"
+      AUCTION_TOS_ACCESS_KEY: "${AUCTION_TOS_ACCESS_KEY:?AUCTION_TOS_ACCESS_KEY is required}"
+      AUCTION_TOS_SECRET_KEY: "${AUCTION_TOS_SECRET_KEY:?AUCTION_TOS_SECRET_KEY is required}"
       AUCTION_TOS_PUBLIC_BASE_URL: "${AUCTION_TOS_PUBLIC_BASE_URL:-}"
       AUCTION_TOS_USE_SSL: "${AUCTION_TOS_USE_SSL:-true}"
       AUCTION_TEMP_ASSET_CLEANUP_INTERVAL: "${AUCTION_TEMP_ASSET_CLEANUP_INTERVAL:-1h}"
     ports:
       - "18080:18080"
-    volumes:
-      - live-auction-assets:/data/live-auction-assets
     depends_on:
       mysql:
         condition: service_healthy
@@ -214,7 +211,6 @@ volumes:
   live-auction-pgvector:
   live-auction-prometheus:
   live-auction-grafana:
-  live-auction-assets:
 
 networks:
   live-auction:

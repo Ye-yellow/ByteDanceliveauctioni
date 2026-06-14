@@ -2662,6 +2662,10 @@ html body .laAdminShell .orderReviewPage .orderReviewTable .studioTable td:first
   font-weight: 650;
 }
 
+.drawerInfoGrid > span.isWide {
+  grid-column: 1 / -1;
+}
+
 .orderDetailFooter {
   padding-top: 4px;
 }

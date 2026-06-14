@@ -1,15 +1,19 @@
-import { type CSSProperties, useEffect, useState } from 'react';
+import { type CSSProperties, type TouchEvent, type WheelEvent, useEffect, useRef, useState } from 'react';
 import { LivePlayer } from '../../live/components/LivePlayer';
+import { resolveInitialLiveSource, resolveLivePlaylist } from '../../live/hooks/useLivePlayer';
 import { DepositPayModal } from '../../payment-flow/components/DepositPayModal';
 import { MockPayModal } from '../../payment-flow/components/MockPayModal';
 import { ResultModal } from '../../result-modal/components/ResultModal';
 import { businessErrorMessage } from '../../../shared/api/errors';
+import type { Lot } from '../../../shared/api/types';
 import { formatMoney, moneyNumber } from '../../../shared/lib/money';
+import { getServerNowMs } from '../../../shared/lib/time';
 import { navigateTo } from '../../../shared/navigation';
 import type { LiveRoomController } from '../hooks/useLiveRoomController';
 import { deriveLotDisplayState, orderForLot } from '../model/lotDisplayState';
 import { AuctionDrawer } from './AuctionDrawer';
 import { AuctionNoticeLayer } from './AuctionNoticeLayer';
+import { LiveProductDetailOverlay } from './LiveProductDetailOverlay';
 
 function shortCount(value: number): string {
   if (value >= 10000) return `${(value / 10000).toFixed(value >= 100000 ? 0 : 1)}w`;
@@ -27,6 +31,12 @@ const GIFT_OPTIONS = [
   { name: '嘉年华', value: '999', image: '/douyin-assets/gifts/jia-nian-hua.png' },
 ];
 const MORE_ACTIONS = ['清屏', '小窗播放', '画质', '直播公告', '订单', '举报'];
+const LIVE_ROOM_SWIPE_DISTANCE = 52;
+const LIVE_ROOM_QUICK_SWIPE_MS = 280;
+const LIVE_ROOM_WHEEL_SWIPE_DISTANCE = 88;
+const LIVE_ROOM_WHEEL_LOCK_MS = 420;
+const LIVE_ROOM_WHEEL_STALE_MS = 180;
+const LIVE_ROOM_SETTLE_MS = 230;
 const LIVE_AVATAR_POOL = [
   'https://liveauction.tos-cn-beijing.volces.com/douyin-h5/images/avatar-71158770-d8597.jpeg',
   'https://liveauction.tos-cn-beijing.volces.com/douyin-h5/images/avatar-lsy0508-160edjy.jpeg',
@@ -36,12 +46,63 @@ const LIVE_AVATAR_POOL = [
   'https://liveauction.tos-cn-beijing.volces.com/douyin-h5/images/avatar-8357999-1bd1vnm.jpeg',
 ];
 
+type RoomSwipeDirection = 1 | -1;
+type RoomSwipePhase = 'idle' | 'dragging' | 'settling';
+type RoomSwitchPreview = { id: string; name: string };
+
+function roomSwipeDistance(distance: number, elapsed: number) {
+  return Math.abs(distance) > (elapsed < LIVE_ROOM_QUICK_SWIPE_MS ? LIVE_ROOM_SWIPE_DISTANCE * 0.72 : LIVE_ROOM_SWIPE_DISTANCE);
+}
+
+function liveRoomViewportHeight() {
+  return Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0, 640);
+}
+
+function rubberBandRoomSwipeOffset(distance: number) {
+  const viewportHeight = liveRoomViewportHeight();
+  const limit = viewportHeight * 0.96;
+  const absDistance = Math.abs(distance);
+  if (absDistance <= limit) return distance;
+  return Math.sign(distance) * (limit + (absDistance - limit) * 0.18);
+}
+
+function shouldIgnoreRoomSwipe(target: EventTarget | null) {
+  if (!(target instanceof Element)) return false;
+  return Boolean(target.closest([
+    'button',
+    'a',
+    'input',
+    'textarea',
+    'select',
+    '[role="button"]',
+    '.auctionDrawerMask',
+    '.auctionDrawer',
+    '.dyCommentOverlay',
+    '.dyCommentSheet',
+    '.douyinSheetMask',
+    '.douyinBottomSheet',
+    '.liveProductFloatCard',
+    '.liveBidLeaderboard',
+    '.liveComposer',
+    '.depositPayModal',
+    '.mockPayModal',
+    '.resultModal',
+    '.liveProductDetailOverlay',
+  ].join(',')));
+}
+
 function stableAvatarIndex(key: string): number {
   return Array.from(key || 'live-room').reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) % LIVE_AVATAR_POOL.length, 0);
 }
 
 function liveAvatarFor(key: string, offset = 0): string {
   return LIVE_AVATAR_POOL[(stableAvatarIndex(key) + offset) % LIVE_AVATAR_POOL.length];
+}
+
+function livePreviewSourceFor(key: string): string {
+  const playlist = resolveLivePlaylist();
+  if (!playlist.length) return '/demo-live.mp4';
+  return playlist[stableAvatarIndex(key) % playlist.length] || playlist[0] || '/demo-live.mp4';
 }
 
 function firstNameChar(name: string): string {
@@ -60,6 +121,7 @@ function currentLotDisplayState(controller: LiveRoomController) {
   return deriveLotDisplayState(currentLot, {
     order: orderForLot(room.orders, currentLot),
     paymentKnownPaid: Boolean(room.paidLotIds[currentLot.id]),
+    nowMs: getServerNowMs(room.serverTimeUnixMs, room.serverTimeReceivedAtUnixMs),
   });
 }
 
@@ -72,7 +134,7 @@ function liveLotStatusLabel(controller: LiveRoomController): string {
   return '已结束';
 }
 
-function LiveRoomChrome({ controller }: { controller: LiveRoomController }) {
+function LiveRoomChrome({ controller, onCloseRoom }: { controller: LiveRoomController; onCloseRoom?: () => void }) {
   const { anchorName, currentLot, room } = controller;
   const statusLabel = liveLotStatusLabel(controller);
   const likes = Math.max(room.snapshot?.onlineCount || 0, 93000);
@@ -91,8 +153,8 @@ function LiveRoomChrome({ controller }: { controller: LiveRoomController }) {
   ];
   const topRank = Math.max(1, Math.min(99, Number(String(room.roomId).replace(/\D/g, '').slice(-2)) || 15));
   const closeRoom = () => {
-    if (window.history.length > 1) {
-      window.history.back();
+    if (onCloseRoom) {
+      onCloseRoom();
       return;
     }
 
@@ -317,11 +379,11 @@ function compactFloatPrice(value: Parameters<typeof formatMoney>[0]): string {
 
 function LiveProductFloatCard({
   controller,
-  onOpenAuction,
+  onOpenDetail,
   onClose,
 }: {
   controller: LiveRoomController;
-  onOpenAuction: () => void;
+  onOpenDetail: () => void;
   onClose: () => void;
 }) {
   const { currentLot, room } = controller;
@@ -340,7 +402,7 @@ function LiveProductFloatCard({
           <path d="M14.75 4.46a.86.86 0 0 0-1.21-1.21L9 7.79 4.46 3.25a.86.86 0 0 0-1.21 1.21L7.79 9l-4.54 4.54a.86.86 0 0 0 1.21 1.21L9 10.21l4.54 4.54a.86.86 0 0 0 1.21-1.21L10.21 9l4.54-4.54Z" />
         </svg>
       </button>
-      <button type="button" className="liveProductFloatBody" onClick={onOpenAuction}>
+      <button type="button" className="liveProductFloatBody" onClick={onOpenDetail}>
         <span className="liveProductFloatMedia">
           {currentLot.imageUrl ? <img src={currentLot.imageUrl} alt="" loading="lazy" /> : <b>拍</b>}
           <em>竞拍中</em>
@@ -729,7 +791,7 @@ function DouyinMoreSheet({
     }
     if (action === '订单') {
       onClose();
-      window.location.assign(`/m/history?roomId=${encodeURIComponent(controller.roomId)}&from=live-more`);
+      window.location.assign('/shop/orders?from=live-more');
       return;
     }
     if (action === '直播公告') {
@@ -769,12 +831,68 @@ function DouyinMoreSheet({
   );
 }
 
-export function LiveRoomView({ controller }: { controller: LiveRoomController }) {
+function LiveRoomSwitchPreview({
+  room,
+  direction,
+}: {
+  room?: RoomSwitchPreview;
+  direction: 'previous' | 'next';
+}) {
+  const roomName = room?.name || '直播间';
+  const previewSource = livePreviewSourceFor(`${room?.id || roomName}:${direction}`);
+
+  return (
+    <section className={`liveRoomSwipePage liveRoomSwitchPreview ${direction}`} aria-hidden="true">
+      <div className="liveRoomPreviewVideo">
+        <video className="liveRoomPreviewMedia" src={previewSource} autoPlay muted loop playsInline preload="metadata" />
+      </div>
+      <div className="liveRoomPreviewTop">
+        <span className="liveRoomPreviewAvatar">
+          <AvatarMedia src={liveAvatarFor(`${room?.id || roomName}:preview`)} name={roomName} />
+        </span>
+        <span>
+          <b>{roomName}</b>
+          <small>直播中</small>
+        </span>
+      </div>
+      <div className="liveRoomPreviewCenter">
+        <span>LIVE</span>
+        <strong>{roomName}</strong>
+      </div>
+    </section>
+  );
+}
+
+type LiveRoomViewProps = {
+  controller: LiveRoomController;
+  hasRoomSwipeTargets?: boolean;
+  previousRoom?: RoomSwitchPreview;
+  nextRoom?: RoomSwitchPreview;
+  onSwipeRoom?: (direction: RoomSwipeDirection) => void;
+  onCloseRoom?: () => void;
+};
+
+export function LiveRoomView({
+  controller,
+  hasRoomSwipeTargets = false,
+  previousRoom,
+  nextRoom,
+  onSwipeRoom,
+  onCloseRoom,
+}: LiveRoomViewProps) {
   const [activeSheet, setActiveSheet] = useState<'comments' | 'share' | 'gift' | 'more' | null>(null);
   const [clearScreen, setClearScreen] = useState(false);
   const [giftBurst, setGiftBurst] = useState<GiftBurst | null>(null);
   const [leaderboardCollapsed, setLeaderboardCollapsed] = useState(false);
   const [closedProductCardLotId, setClosedProductCardLotId] = useState<string | null>(null);
+  const [detailLotId, setDetailLotId] = useState<string | null>(null);
+  const [liveSource, setLiveSource] = useState(resolveInitialLiveSource);
+  const roomSwipeStart = useRef<{ x: number; y: number; at: number } | null>(null);
+  const roomWheelGesture = useRef({ x: 0, y: 0, lastAt: 0, lockedUntil: 0 });
+  const roomSwipeSettleDirection = useRef<RoomSwipeDirection | 0>(0);
+  const roomSwipeSettleTimer = useRef<number | null>(null);
+  const [roomSwipeOffset, setRoomSwipeOffset] = useState(0);
+  const [roomSwipePhase, setRoomSwipePhase] = useState<RoomSwipePhase>('idle');
   const {
     room,
     error,
@@ -792,6 +910,20 @@ export function LiveRoomView({ controller }: { controller: LiveRoomController })
     actions,
   } = controller;
   const openCurrentAuction = () => actions.openAuctionPanel('current');
+  const openLotDetail = (lot: Lot) => {
+    setActiveSheet(null);
+    setClearScreen(false);
+    actions.closeAuctionPanel();
+    setDetailLotId(lot.id);
+    void actions.refreshRoomLots().catch(() => undefined);
+  };
+  const openCurrentProductDetail = () => {
+    if (!currentLot) {
+      actions.showNotice('当前暂无商品，等待主播上架');
+      return;
+    }
+    openLotDetail(currentLot);
+  };
   const closeActiveSheet = () => setActiveSheet(null);
   const sendGift = (name: string) => {
     setGiftBurst({ id: Date.now(), name });
@@ -799,89 +931,277 @@ export function LiveRoomView({ controller }: { controller: LiveRoomController })
     window.setTimeout(() => setGiftBurst(null), 2300);
   };
   const hasResultModal = Boolean(resultLot);
+  const detailLotCandidates = [currentLot, ...auctionPanel.lots].filter((lot): lot is Lot => Boolean(lot));
+  const detailLot = detailLotId ? detailLotCandidates.find((lot) => lot.id === detailLotId) || null : null;
+  const detailVisible = Boolean(detailLot);
+  const roomSwipeLocked = Boolean(activeSheet || auctionPanel.open || resultLot || payOrder || depositPrompt || detailVisible);
 
   useEffect(() => {
     if (!resultLot) return;
     setActiveSheet(null);
     setClearScreen(false);
+    setDetailLotId(null);
   }, [resultLot]);
 
-  return (
-    <main className={`mobileShell douyinShell ${auctionPanel.open && !hasResultModal ? 'drawerVisible' : ''} ${clearScreen ? 'isClearScreen' : ''}`}>
-      <LivePlayer
-        poster={currentLot?.imageUrl}
-        anchorName={anchorName}
-        onlineCount={room.snapshot?.onlineCount}
-        wsState={wsState}
-        roomName={roomName}
-      />
+  useEffect(() => {
+    if (!depositPrompt) return;
+    setActiveSheet(null);
+    setClearScreen(false);
+    actions.closeAuctionPanel();
+    if (controller.bidAuthPanelOpen) actions.closeBuyerAuthPanel();
+  }, [depositPrompt?.lot.id]);
 
-      {clearScreen ? (
-        <button type="button" className="exitClearScreen" onClick={() => setClearScreen(false)}>退出清屏</button>
-      ) : null}
-      <LiveRoomChrome controller={controller} />
-      <LiveRoomEffectsLayer controller={controller} giftBurst={giftBurst} />
-      <LiveBidLeaderboard
-        controller={controller}
-        onOpenAuction={openCurrentAuction}
-        collapsed={leaderboardCollapsed}
-        onToggleCollapsed={() => setLeaderboardCollapsed((value) => !value)}
-      />
-      {currentLot && closedProductCardLotId !== currentLot.id ? (
-        <LiveProductFloatCard
+  useEffect(() => {
+    if (roomSwipeSettleTimer.current) window.clearTimeout(roomSwipeSettleTimer.current);
+    roomSwipeSettleTimer.current = null;
+    roomSwipeSettleDirection.current = 0;
+    roomSwipeStart.current = null;
+    setDetailLotId(null);
+    setRoomSwipeOffset(0);
+    setRoomSwipePhase('idle');
+  }, [controller.roomId]);
+
+  useEffect(() => () => {
+    if (roomSwipeSettleTimer.current) window.clearTimeout(roomSwipeSettleTimer.current);
+  }, []);
+
+  function finishRoomSwipeSettle() {
+    if (roomSwipeSettleTimer.current) window.clearTimeout(roomSwipeSettleTimer.current);
+    roomSwipeSettleTimer.current = null;
+    const direction = roomSwipeSettleDirection.current;
+    roomSwipeSettleDirection.current = 0;
+    if (direction && onSwipeRoom) {
+      onSwipeRoom(direction);
+      window.setTimeout(() => {
+        setRoomSwipeOffset(0);
+        setRoomSwipePhase('idle');
+      }, 80);
+      return;
+    }
+    setRoomSwipeOffset(0);
+    setRoomSwipePhase('idle');
+  }
+
+  function settleRoomSwipe(direction: RoomSwipeDirection | 0) {
+    if (roomSwipeSettleTimer.current) window.clearTimeout(roomSwipeSettleTimer.current);
+    if (!direction && Math.abs(roomSwipeOffset) < 0.5) {
+      roomSwipeSettleTimer.current = null;
+      roomSwipeSettleDirection.current = 0;
+      setRoomSwipeOffset(0);
+      setRoomSwipePhase('idle');
+      return;
+    }
+    roomSwipeSettleDirection.current = direction;
+    setRoomSwipePhase('settling');
+    setRoomSwipeOffset(direction === 1 ? -liveRoomViewportHeight() : direction === -1 ? liveRoomViewportHeight() : 0);
+    roomSwipeSettleTimer.current = window.setTimeout(finishRoomSwipeSettle, LIVE_ROOM_SETTLE_MS + 80);
+  }
+
+  function handleRoomTouchStart(event: TouchEvent<HTMLElement>) {
+    if (!hasRoomSwipeTargets || roomSwipeLocked || roomSwipePhase === 'settling' || shouldIgnoreRoomSwipe(event.target)) {
+      roomSwipeStart.current = null;
+      return;
+    }
+
+    const touch = event.touches[0];
+    if (!touch) return;
+    roomSwipeStart.current = { x: touch.clientX, y: touch.clientY, at: Date.now() };
+    roomSwipeSettleDirection.current = 0;
+    setRoomSwipePhase('dragging');
+    setRoomSwipeOffset(0);
+  }
+
+  function handleRoomTouchMove(event: TouchEvent<HTMLElement>) {
+    const start = roomSwipeStart.current;
+    if (!start || roomSwipeLocked || shouldIgnoreRoomSwipe(event.target)) return;
+
+    const touch = event.touches[0];
+    if (!touch) return;
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    if (Math.abs(dy) < 6 && Math.abs(dx) < 6) return;
+    if (Math.abs(dy) <= Math.abs(dx) * 1.04) return;
+
+    event.preventDefault();
+    setRoomSwipeOffset(rubberBandRoomSwipeOffset(dy));
+  }
+
+  function handleRoomTouchEnd(event: TouchEvent<HTMLElement>) {
+    const start = roomSwipeStart.current;
+    roomSwipeStart.current = null;
+    if (!start) return;
+    if (!hasRoomSwipeTargets || !onSwipeRoom || roomSwipeLocked || shouldIgnoreRoomSwipe(event.target)) {
+      settleRoomSwipe(0);
+      return;
+    }
+
+    const touch = event.changedTouches[0];
+    const dx = (touch?.clientX ?? start.x) - start.x;
+    const dy = (touch?.clientY ?? start.y) - start.y;
+    const elapsed = Date.now() - start.at;
+    if (!roomSwipeDistance(dy, elapsed) || Math.abs(dy) <= Math.abs(dx) * 1.12) {
+      settleRoomSwipe(0);
+      return;
+    }
+
+    event.preventDefault();
+    settleRoomSwipe(dy < 0 ? 1 : -1);
+  }
+
+  function handleRoomWheel(event: WheelEvent<HTMLElement>) {
+    if (!hasRoomSwipeTargets || !onSwipeRoom || roomSwipeLocked || roomSwipePhase === 'settling' || shouldIgnoreRoomSwipe(event.target)) return;
+
+    const now = Date.now();
+    const gesture = roomWheelGesture.current;
+    if (now < gesture.lockedUntil) return;
+    if (now - gesture.lastAt > LIVE_ROOM_WHEEL_STALE_MS) {
+      gesture.x = 0;
+      gesture.y = 0;
+    }
+
+    gesture.x += event.deltaX;
+    gesture.y += event.deltaY;
+    gesture.lastAt = now;
+
+    const absX = Math.abs(gesture.x);
+    const absY = Math.abs(gesture.y);
+    if (Math.max(absX, absY) < LIVE_ROOM_WHEEL_SWIPE_DISTANCE) return;
+
+    if (absY > absX * 1.08) {
+      event.preventDefault();
+      settleRoomSwipe(gesture.y > 0 ? 1 : -1);
+      roomWheelGesture.current = { x: 0, y: 0, lastAt: now, lockedUntil: now + LIVE_ROOM_WHEEL_LOCK_MS };
+      return;
+    }
+
+    roomWheelGesture.current = { x: 0, y: 0, lastAt: now, lockedUntil: now + 160 };
+  }
+
+  const swipeStageClassName = [
+    'liveRoomSwipeStage',
+    roomSwipePhase === 'settling' ? 'settling' : '',
+    roomSwipePhase === 'dragging' ? 'dragging' : '',
+  ].filter(Boolean).join(' ');
+  const swipeStageStyle = {
+    transform: `translate3d(0, calc(-100dvh + ${roomSwipeOffset}px), 0)`,
+  } as CSSProperties;
+
+  return (
+    <main
+      className={`mobileShell douyinShell liveRoomSwipeShell ${auctionPanel.open && !hasResultModal ? 'drawerVisible' : ''} ${clearScreen ? 'isClearScreen' : ''} ${detailVisible ? 'productDetailVisible' : ''}`}
+      onTouchStart={handleRoomTouchStart}
+      onTouchMove={handleRoomTouchMove}
+      onTouchEnd={handleRoomTouchEnd}
+      onTouchCancel={() => {
+        roomSwipeStart.current = null;
+        if (roomSwipePhase === 'dragging') settleRoomSwipe(0);
+      }}
+      onWheel={handleRoomWheel}
+    >
+      <div
+        className={swipeStageClassName}
+        style={swipeStageStyle}
+        onTransitionEnd={(event) => {
+          if (event.currentTarget === event.target && roomSwipePhase === 'settling') finishRoomSwipeSettle();
+        }}
+      >
+        <LiveRoomSwitchPreview room={previousRoom} direction="previous" />
+
+        <section className={`mobileShell douyinShell liveRoomSwipePage liveRoomSwipeCurrent ${auctionPanel.open && !hasResultModal ? 'drawerVisible' : ''} ${clearScreen ? 'isClearScreen' : ''} ${detailVisible ? 'productDetailVisible' : ''}`}>
+          <LivePlayer
+            poster={currentLot?.imageUrl}
+            anchorName={anchorName}
+            onlineCount={room.snapshot?.onlineCount}
+            wsState={wsState}
+            roomName={roomName}
+            source={liveSource}
+            onSourceChange={setLiveSource}
+          />
+
+          {clearScreen ? (
+            <button type="button" className="exitClearScreen" onClick={() => setClearScreen(false)}>退出清屏</button>
+          ) : null}
+          <LiveRoomChrome controller={controller} onCloseRoom={onCloseRoom} />
+          <LiveRoomEffectsLayer controller={controller} giftBurst={giftBurst} />
+          <LiveBidLeaderboard
+            controller={controller}
+            onOpenAuction={openCurrentAuction}
+            collapsed={leaderboardCollapsed}
+            onToggleCollapsed={() => setLeaderboardCollapsed((value) => !value)}
+          />
+          {currentLot && closedProductCardLotId !== currentLot.id ? (
+            <LiveProductFloatCard
+              controller={controller}
+              onOpenDetail={openCurrentProductDetail}
+              onClose={() => setClosedProductCardLotId(currentLot.id)}
+            />
+          ) : null}
+          {wsState === '已断开' ? <div className="liveConnectionWarn">实时连接中断，正在恢复</div> : null}
+          {error ? <div className="liveConnectionWarn error">{error}</div> : null}
+          {!hasResultModal ? <AuctionDrawer controller={controller} onOpenLotDetail={openLotDetail} /> : null}
+          <AuctionNoticeLayer notices={notices} />
+          <LiveComposer
+            controller={controller}
+            onOpenComments={() => setActiveSheet('comments')}
+            onOpenAuction={openCurrentAuction}
+            onOpenGift={() => setActiveSheet('gift')}
+            onOpenMore={() => setActiveSheet('more')}
+          />
+          {activeSheet === 'comments' ? <DouyinCommentsSheet controller={controller} onClose={closeActiveSheet} /> : null}
+          {activeSheet === 'share' ? <DouyinShareSheet controller={controller} onClose={closeActiveSheet} /> : null}
+          {activeSheet === 'gift' ? <DouyinGiftSheet controller={controller} onClose={closeActiveSheet} onSendGift={sendGift} /> : null}
+          {activeSheet === 'more' ? (
+            <DouyinMoreSheet
+              controller={controller}
+              onClose={closeActiveSheet}
+              onOpenAuction={openCurrentAuction}
+              onOpenShare={() => setActiveSheet('share')}
+              onToggleClear={() => setClearScreen(true)}
+            />
+          ) : null}
+          {resultLot ? (
+            <ResultModal
+              lot={resultLot}
+              meId={meId}
+              order={visibleResultOrder}
+              onClose={actions.closeResult}
+              onNext={actions.nextLot}
+              onPay={actions.setPayOrder}
+            />
+          ) : null}
+
+          {payOrder ? (
+            <MockPayModal
+              order={payOrder}
+              onStartPayment={actions.markPaymentStarted}
+              onPaid={actions.handlePaymentPaid}
+              onAuthRequired={actions.requireBuyerAuth}
+              onClose={() => actions.setPayOrder(null)}
+            />
+          ) : null}
+        </section>
+
+        <LiveRoomSwitchPreview room={nextRoom} direction="next" />
+      </div>
+      {detailLot ? (
+        <LiveProductDetailOverlay
           controller={controller}
-          onOpenAuction={openCurrentAuction}
-          onClose={() => setClosedProductCardLotId(currentLot.id)}
-        />
-      ) : null}
-      {wsState === '已断开' ? <div className="liveConnectionWarn">实时连接中断，正在恢复</div> : null}
-      {error ? <div className="liveConnectionWarn error">{error}</div> : null}
-      {!hasResultModal ? <AuctionDrawer controller={controller} /> : null}
-      <AuctionNoticeLayer notices={notices} />
-      <LiveComposer
-        controller={controller}
-        onOpenComments={() => setActiveSheet('comments')}
-        onOpenAuction={openCurrentAuction}
-        onOpenGift={() => setActiveSheet('gift')}
-        onOpenMore={() => setActiveSheet('more')}
-      />
-      {activeSheet === 'comments' ? <DouyinCommentsSheet controller={controller} onClose={closeActiveSheet} /> : null}
-      {activeSheet === 'share' ? <DouyinShareSheet controller={controller} onClose={closeActiveSheet} /> : null}
-      {activeSheet === 'gift' ? <DouyinGiftSheet controller={controller} onClose={closeActiveSheet} onSendGift={sendGift} /> : null}
-      {activeSheet === 'more' ? (
-        <DouyinMoreSheet
-          controller={controller}
-          onClose={closeActiveSheet}
-          onOpenAuction={openCurrentAuction}
-          onOpenShare={() => setActiveSheet('share')}
-          onToggleClear={() => setClearScreen(true)}
+          lot={detailLot}
+          liveSource={liveSource}
+          onClose={() => {
+            setDetailLotId(null);
+            if (controller.bidAuthPanelOpen) actions.closeBuyerAuthPanel();
+            actions.closeAuctionPanel();
+          }}
+          onSelectLot={openLotDetail}
         />
       ) : null}
       {depositPrompt ? (
         <DepositPayModal
           lot={depositPrompt.lot}
           onConfirm={actions.confirmDepositPayment}
+          onAuthRequired={actions.requireBuyerAuth}
           onClose={actions.closeDepositPrompt}
-        />
-      ) : null}
-
-      {resultLot ? (
-        <ResultModal
-          lot={resultLot}
-          meId={meId}
-          order={visibleResultOrder}
-          onClose={actions.closeResult}
-          onNext={actions.nextLot}
-          onPay={actions.setPayOrder}
-        />
-      ) : null}
-
-      {payOrder ? (
-        <MockPayModal
-          order={payOrder}
-          onStartPayment={actions.markPaymentStarted}
-          onPaid={actions.handlePaymentPaid}
-          onClose={() => actions.setPayOrder(null)}
         />
       ) : null}
     </main>

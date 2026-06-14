@@ -46,6 +46,13 @@ function stringValue(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback;
 }
 
+function stringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => stringValue(item).trim())
+    .filter(Boolean);
+}
+
 function numberValue(value: unknown, fallback = 0): number {
   const next = Number(value);
   return Number.isFinite(next) ? next : fallback;
@@ -77,10 +84,19 @@ export function normalizeMoney(value: MoneyInput): Money {
 
 function normalizeMoneyFields(raw: RawRecord): Money {
   if (raw.amount && typeof raw.amount === 'object') return normalizeMoney(raw.amount as MoneyInput);
+  const totalAmount = pick(raw, 'totalAmount', 'total_amount');
+  if (typeof totalAmount === 'number' || typeof totalAmount === 'string') {
+    return { amount: totalAmount, currency: stringValue(raw.currency, 'CNY') };
+  }
   return {
     amount: typeof raw.amount === 'number' || typeof raw.amount === 'string' ? raw.amount : 0,
     currency: stringValue(raw.currency, 'CNY'),
   };
+}
+
+function normalizeAuctionOrderStatus(value: unknown): string {
+  const status = stringValue(value);
+  return status.includes('_') || status === status.toLowerCase() ? status.toUpperCase() : status;
 }
 
 export function normalizeAuthTokens(input: unknown): AuthTokens {
@@ -179,6 +195,7 @@ export function normalizeLot(input: unknown): Lot {
     title: stringValue(raw.title),
     description: stringValue(raw.description),
     imageUrl: stringValue(pick(raw, 'imageUrl', 'image_url')),
+    galleryImageUrls: stringArray(pick(raw, 'galleryImageUrls', 'gallery_image_urls')),
     status: normalizeLotStatus(raw.status),
     currentPrice: normalizeMoney(pick(raw, 'currentPrice', 'current_price')),
     leadingUserId: stringValue(pick(raw, 'leadingUserId', 'leading_user_id')),
@@ -256,17 +273,19 @@ export function normalizeOrder(input: unknown): OrderSummary | undefined {
   const raw = asRecord(input);
   const id = stringValue(raw.id);
   if (!id) return undefined;
+  const items = Array.isArray(raw.items) ? raw.items.map(asRecord) : [];
+  const firstItem = items[0] ?? {};
   return {
     id,
-    lotId: stringValue(pick(raw, 'lotId', 'lot_id')),
-    roomId: stringValue(pick(raw, 'roomId', 'room_id')),
-    lotTitle: stringValue(pick(raw, 'lotTitle', 'lot_title')),
-    lotImageUrl: stringValue(pick(raw, 'lotImageUrl', 'lot_image_url')),
-    buyerUserId: stringValue(pick(raw, 'buyerUserId', 'buyer_user_id')),
-    buyerNickname: stringValue(pick(raw, 'buyerNickname', 'buyer_nickname')),
+    lotId: stringValue(pick(raw, 'lotId', 'lot_id')) || stringValue(pick(firstItem, 'lotId', 'lot_id')),
+    roomId: stringValue(pick(raw, 'roomId', 'room_id')) || stringValue(pick(firstItem, 'roomId', 'room_id')),
+    lotTitle: stringValue(pick(raw, 'lotTitle', 'lot_title')) || stringValue(pick(raw, 'title')) || stringValue(pick(firstItem, 'title')),
+    lotImageUrl: stringValue(pick(raw, 'lotImageUrl', 'lot_image_url')) || stringValue(pick(firstItem, 'imageUrl', 'image_url')),
+    buyerUserId: stringValue(pick(raw, 'buyerUserId', 'buyer_user_id')) || stringValue(pick(raw, 'userId', 'user_id')),
+    buyerNickname: stringValue(pick(raw, 'buyerNickname', 'buyer_nickname')) || stringValue(raw.nickname),
     amount: normalizeMoneyFields(raw),
-    status: stringValue(raw.status),
-    paymentStatus: stringValue(pick(raw, 'paymentStatus', 'payment_status')),
+    status: normalizeAuctionOrderStatus(raw.status),
+    paymentStatus: normalizeAuctionOrderStatus(pick(raw, 'paymentStatus', 'payment_status')),
     paymentId: stringValue(pick(raw, 'paymentId', 'payment_id')),
     createdAtUnixMs: pick(raw, 'createdAtUnixMs', 'created_at_unix_ms'),
     updatedAtUnixMs: pick(raw, 'updatedAtUnixMs', 'updated_at_unix_ms'),

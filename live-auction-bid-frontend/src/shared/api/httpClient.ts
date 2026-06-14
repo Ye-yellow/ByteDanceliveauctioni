@@ -2,6 +2,7 @@ import { API_BASE } from '../config/env';
 import { createRequestId } from '../lib/clientLogger';
 import { authSession } from '../auth/authSession';
 import { normalizeAuthTokens } from './normalizers';
+import { publicResultMessage } from './result';
 import type { AuthTokens, RefreshTokenReply, ReplyResult } from './types';
 import { RESULT_CODE_LOGIN_REQUIRED, RESULT_CODE_OK, RESULT_CODE_SESSION_EXPIRED, RESULT_CODE_TOKEN_EXPIRED, RESULT_CODE_TOKEN_INVALID } from './types';
 
@@ -42,7 +43,7 @@ export class ApiResultError extends Error {
   readonly requestId: string;
 
   constructor(result: Partial<ReplyResult>, requestId: string) {
-    super(result.message || `request failed with result code ${result.code}`);
+    super(publicResultMessage(result));
     this.name = 'ApiResultError';
     this.result = result;
     this.requestId = requestId;
@@ -90,18 +91,10 @@ function responseRequestId(response: Response, fallback: string) {
   return response.headers.get('X-Request-Id') || response.headers.get('X-Trace-Id') || fallback;
 }
 
-function resultTraceId(result?: Partial<ReplyResult>) {
-  return result?.traceId || result?.trace_id;
-}
-
 function formatResponseError(input: { status: number; body: unknown; result?: Partial<ReplyResult>; requestId: string }) {
   const body = input.body as { message?: string; error?: string; code?: number; requestId?: string } | string | null;
   if (typeof body === 'string') return body || `HTTP ${input.status}`;
-  const code = input.result?.code ?? body?.code;
-  const requestId = input.requestId || body?.requestId || resultTraceId(input.result);
-  const message = input.result?.message || body?.message || body?.error || `HTTP ${input.status}`;
-  const meta = [code !== undefined ? `code=${code}` : '', requestId ? `requestId=${requestId}` : ''].filter(Boolean).join('，');
-  return meta ? `${message}（${meta}）` : message;
+  return input.result ? publicResultMessage(input.result, body?.message || body?.error || `HTTP ${input.status}`) : body?.message || body?.error || `HTTP ${input.status}`;
 }
 
 async function sendOnce<T>(options: ApiRequestOptions, token: string | null, requestId: string): Promise<ParsedResponse<T>> {

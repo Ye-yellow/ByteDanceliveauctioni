@@ -16,8 +16,21 @@ vendor/
 dist/
 build/
 coverage/
+*.tsbuildinfo
 *.test
 *.out
+
+# Tests are private-only in the public mirror
+*_test.go
+*test*
+*Test*
+*spec*
+*Spec*
+*.test.*
+*.spec.*
+__tests__/
+test/
+tests/
 
 # Logs and reports
 *.log
@@ -44,3 +57,11 @@ Thumbs.db
 .codex/
 .workflow/
 docs/KNOWLEDGE_BASE.md
+**/docs/KNOWLEDGE_BASE.md
+**/docs/openclaw/
+**/docs/task/
+**/design-qa.md
+
+# Non-public sample/scraped data and design drafts
+**/public/data/
+**/public/shop-icon-drafts/

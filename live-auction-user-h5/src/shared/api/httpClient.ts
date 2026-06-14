@@ -2,6 +2,7 @@ import { AppApiError, AuthExpiredError, isAuthResultCode, isRefreshableAuthResul
 import type { ReplyResult } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
+const DEV_API_FALLBACK_BASE = import.meta.env.VITE_DEV_API_FALLBACK_URL || (import.meta.env.DEV && !API_BASE ? 'http://localhost:18080' : '');
 const CLIENT_APP = 'buyer-h5';
 const CLIENT_VERSION = import.meta.env.VITE_CLIENT_VERSION || import.meta.env.VITE_APP_VERSION || 'dev';
 
@@ -45,9 +46,9 @@ export function createRequestId(operation = 'h5'): string {
   return `${operation}-${Date.now()}-${random}`;
 }
 
-function buildUrl(path: string): string {
+function buildUrl(path: string, apiBase = API_BASE): string {
   if (/^https?:\/\//.test(path)) return path;
-  return `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
+  return `${apiBase}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
 function resultFromPayload(data: unknown): ReplyResult | undefined {
@@ -139,9 +140,18 @@ async function tokenFor(auth: AuthMode): Promise<string | null> {
   return token;
 }
 
-async function rawRequest(options: ApiRequestOptions, token: string | null, requestId: string): Promise<ParsedResponse> {
+function shouldRetryWithDevFallback(path: string): boolean {
+  return Boolean(DEV_API_FALLBACK_BASE) && !/^https?:\/\//.test(path) && path.startsWith('/api/');
+}
+
+function networkErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.name === 'AbortError') return '请求已取消';
+  return '网络连接失败，请确认后端服务已启动后重试';
+}
+
+async function rawRequest(options: ApiRequestOptions, token: string | null, requestId: string, apiBase?: string): Promise<ParsedResponse> {
   const contentType = options.contentType ?? (options.body instanceof FormData ? 'form-data' : 'json');
-  const response = await fetch(buildUrl(options.path), {
+  const response = await fetch(buildUrl(options.path, apiBase), {
     method: options.method || 'GET',
     headers: headersForRequest(options, token, requestId),
     body: bodyForRequest(options.body, contentType),
@@ -160,11 +170,22 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
   try {
     parsed = await rawRequest(options, token, requestId);
   } catch (error) {
-    if (error instanceof AppApiError) throw error;
-    throw new AppApiError(error instanceof Error ? error.message : '网络请求失败', {
-      kind: 'network',
-      requestId,
-    });
+    if (shouldRetryWithDevFallback(options.path)) {
+      try {
+        parsed = await rawRequest(options, token, requestId, DEV_API_FALLBACK_BASE);
+      } catch (fallbackError) {
+        throw new AppApiError(networkErrorMessage(fallbackError), {
+          kind: 'network',
+          requestId,
+        });
+      }
+    } else {
+      if (error instanceof AppApiError) throw error;
+      throw new AppApiError(networkErrorMessage(error), {
+        kind: 'network',
+        requestId,
+      });
+    }
   }
 
   if (isAuthExpired(parsed) && canRefreshAuth(parsed) && auth !== 'none' && !options.skipAuthRefresh && authProvider) {

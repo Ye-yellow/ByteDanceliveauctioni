@@ -1,94 +1,43 @@
-import { useEffect, useMemo, useState } from 'react';
-import { orderStatusLabel } from '../../../entities/order/model/privacy';
-import { LOT_STATUS, type Lot, type OrderSummary } from '../../../shared/api/types';
-import { formatMoney } from '../../../shared/lib/money';
-import { formatEventTime, getServerNowMs } from '../../../shared/lib/time';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
+import { ClipboardList, MoreHorizontal, Search, ShoppingCart } from 'lucide-react';
+import { LOT_STATUS, type Lot } from '../../../shared/api/types';
+import { getServerNowMs } from '../../../shared/lib/time';
 import type { AuctionPanelTab, LiveRoomController } from '../hooks/useLiveRoomController';
+import { ShopOrdersContent } from '../../../pages/ShopOrdersPage';
 import { BidPanel } from '../../auction-bid/components/BidPanel';
 import { BuyerAuthPanel } from './BuyerAuthPanel';
 import { CurrentLotCard } from './CurrentLotCard';
 import { LotQueueList } from './LotQueueList';
 import { deriveLotDisplayState, orderForLot } from '../model/lotDisplayState';
 
-function tabLabel(tab: AuctionPanelTab): string {
-  if (tab === 'current') return '商品橱窗';
-  return '我的订单';
-}
-
-const DRAWER_TABS: AuctionPanelTab[] = ['current', 'mine'];
 type SheetMode = 'detail' | 'bid';
+type DrawerDragState = {
+  pointerId: number;
+  startY: number;
+  startHeight: number;
+  lastHeight: number;
+};
 
-function DrawerTabIcon({ tab }: { tab: AuctionPanelTab }) {
-  if (tab === 'mine') {
-    return (
-      <svg className="drawerTabIcon" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M7 4.8h10a2 2 0 0 1 2 2v12.4l-3-1.5-3 1.5-3-1.5-3 1.5V6.8a2 2 0 0 1 2-2Z" />
-        <path d="M10 9h6" />
-        <path d="M10 13h5" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg className="drawerTabIcon" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4.5 11.4 11.4 4.5H19v7.6L12.1 19 4.5 11.4Z" />
-      <path d="M15.8 8.2h.01" />
-      <path d="M9.8 11.2 12.8 14.2" />
-    </svg>
-  );
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
-function MyPanel({
-  controller,
+function DrawerToolButton({
+  active = false,
+  icon,
+  label,
+  onClick,
 }: {
-  controller: LiveRoomController;
+  active?: boolean;
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
 }) {
-  const { roomId, room, showBuyerAuth, buyerAuth, actions } = controller;
-  const orders = room.orders.slice(0, 3);
-
-  if (showBuyerAuth) {
-    return (
-      <section className="drawerAuthBlock">
-        <BuyerAuthPanel auth={buyerAuth} />
-      </section>
-    );
-  }
-
   return (
-    <section className="minePanel">
-      <header className="drawerSectionHeader">
-        <div>
-          <b>我的订单</b>
-          <span>订单和互动记录来自当前账号</span>
-        </div>
-        <button type="button" onClick={() => void actions.refreshOrders().catch(() => undefined)}>
-          刷新
-        </button>
-      </header>
-      {orders.length === 0 ? <section className="drawerEmpty">暂无订单，成交后会同步到这里</section> : null}
-      <div className="miniOrderList">
-        {orders.map((order) => <MiniOrder order={order} key={order.id} />)}
-      </div>
-      <a className="historyLink" href={`/m/history?roomId=${encodeURIComponent(roomId)}&from=room`}>
-        查看全部订单记录
-      </a>
-    </section>
-  );
-}
-
-function MiniOrder({ order }: { order: OrderSummary }) {
-  return (
-    <article className="miniOrder">
-      {order.lotImageUrl ? <img src={order.lotImageUrl} alt={order.lotTitle || order.id} /> : <div className="miniOrderFallback">单</div>}
-      <div>
-        <b>{order.lotTitle || order.lotId || '成交商品'}</b>
-        <span>{formatEventTime(order.createdAtUnixMs)}</span>
-      </div>
-      <aside>
-        <strong className="scrollAmount" title={formatMoney(order.amount)}>{formatMoney(order.amount)}</strong>
-        <small>{orderStatusLabel(order)}</small>
-      </aside>
-    </article>
+    <button type="button" className={`auctionDrawerToolButton${active ? ' active' : ''}`} onClick={onClick}>
+      {icon}
+      <span>{label}</span>
+    </button>
   );
 }
 
@@ -96,10 +45,14 @@ function CurrentAuctionPanel({
   controller,
   onBidSheetOpenChange,
   onCloseBidSheet,
+  onOpenLotDetail,
+  onCloseAuctionPanel,
 }: {
   controller: LiveRoomController;
   onBidSheetOpenChange: (open: boolean) => void;
   onCloseBidSheet: () => void;
+  onOpenLotDetail?: (lot: Lot) => void;
+  onCloseAuctionPanel: () => void;
 }) {
   const {
     room,
@@ -107,6 +60,7 @@ function CurrentAuctionPanel({
     loading,
     error,
     currentLot,
+    meId,
     accountRoleMessage,
     bidAuthPanelOpen,
     buyerAuth,
@@ -138,6 +92,12 @@ function CurrentAuctionPanel({
   });
   const canBidLot = (lot: Lot) => lotDisplayState(lot) === 'live' && currentLot?.id === lot.id;
   const openLotSheet = (lot: Lot) => {
+    if (onOpenLotDetail) {
+      onCloseAuctionPanel();
+      onOpenLotDetail(lot);
+      return;
+    }
+
     const nextMode: SheetMode = canBidLot(lot) ? 'bid' : 'detail';
     setSheetLotId(lot.id);
     setSheetMode(nextMode);
@@ -145,6 +105,13 @@ function CurrentAuctionPanel({
   };
   const handleQueuePrimaryAction = (lot: Lot) => {
     const displayState = lotDisplayState(lot);
+
+    if (displayState === 'live' && currentLot?.id === lot.id) {
+      setSheetLotId(lot.id);
+      setSheetMode('bid');
+      onBidSheetOpenChange(true);
+      return;
+    }
 
     openLotSheet(lot);
     if (displayState === 'live' && currentLot?.id !== lot.id) actions.showNotice('请等待主播切到该拍品后再出价');
@@ -189,8 +156,10 @@ function CurrentAuctionPanel({
           onRefresh={() => void actions.refreshRoomLots().catch(() => undefined)}
           onSelectLot={openLotSheet}
           onPrimaryAction={handleQueuePrimaryAction}
+          onPayOrder={actions.setPayOrder}
           orders={room.orders}
           paidLotIds={room.paidLotIds}
+          meId={meId}
           nowMs={displayNowMs}
         />
       ) : null}
@@ -241,16 +210,43 @@ function CurrentAuctionPanel({
   );
 }
 
-export function AuctionDrawer({ controller }: { controller: LiveRoomController }) {
-  const { auctionPanel, currentLot, actions } = controller;
+export function AuctionDrawer({
+  controller,
+  onOpenLotDetail,
+}: {
+  controller: LiveRoomController;
+  onOpenLotDetail?: (lot: Lot) => void;
+}) {
+  const { auctionPanel, actions } = controller;
   const [bidSheetOpen, setBidSheetOpen] = useState(false);
+  const [drawerHeight, setDrawerHeight] = useState<number | null>(null);
+  const [drawerExpanded, setDrawerExpanded] = useState(false);
+  const drawerRef = useRef<HTMLElement | null>(null);
+  const dragStateRef = useRef<DrawerDragState | null>(null);
+  const windowDragCleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (!auctionPanel.open) setBidSheetOpen(false);
+    if (!auctionPanel.open) {
+      setBidSheetOpen(false);
+      setDrawerHeight(null);
+      setDrawerExpanded(false);
+    }
   }, [auctionPanel.open]);
+
+  useEffect(() => () => {
+    windowDragCleanupRef.current?.();
+    windowDragCleanupRef.current = null;
+  }, []);
 
   if (!auctionPanel.open) return null;
   const activeTab = auctionPanel.tab === 'mine' ? 'mine' : 'current';
+  const drawerStyle = drawerHeight ? ({ '--auction-drawer-height': `${drawerHeight}px` } as CSSProperties) : undefined;
+  const drawerClassName = [
+    'auctionDrawer',
+    bidSheetOpen ? 'auctionDrawerBidSheet' : '',
+    activeTab === 'mine' ? 'auctionDrawerOrdersSheet' : '',
+    drawerExpanded ? 'auctionDrawerExpanded' : '',
+  ].filter(Boolean).join(' ');
 
   const closeAuctionPanel = () => {
     setBidSheetOpen(false);
@@ -263,34 +259,113 @@ export function AuctionDrawer({ controller }: { controller: LiveRoomController }
     if (tab === 'mine') void actions.refreshOrders().catch(() => undefined);
   };
 
+  const measureDrawerBounds = () => {
+    const viewportHeight = typeof window === 'undefined' ? 844 : window.innerHeight || 844;
+    const rootHeight = drawerRef.current?.parentElement?.getBoundingClientRect().height || viewportHeight;
+    const compactHeight = Math.min(rootHeight * 0.78, 760);
+    const minHeight = clamp(compactHeight, Math.min(430, rootHeight - 34), Math.max(430, rootHeight - 34));
+    const lowerHeight = Math.max(170, Math.min(minHeight - 1, rootHeight * 0.34));
+    return {
+      lower: lowerHeight,
+      min: minHeight,
+      max: Math.max(minHeight, rootHeight),
+    };
+  };
+
+  const currentDrawerHeight = () => {
+    const { min, max } = measureDrawerBounds();
+    return drawerRef.current?.getBoundingClientRect().height || (drawerExpanded ? max : min);
+  };
+
+  const updateDrawerDrag = (clientY: number) => {
+    const drag = dragStateRef.current;
+    if (!drag) return;
+    const { lower, min, max } = measureDrawerBounds();
+    const nextHeight = clamp(drag.startHeight + drag.startY - clientY, lower, max);
+    drag.lastHeight = nextHeight;
+    setDrawerHeight(nextHeight);
+    setDrawerExpanded(nextHeight > min + (max - min) * 0.42);
+  };
+
+  const finishDrawerDragAt = () => {
+    const drag = dragStateRef.current;
+    if (!drag) return;
+    const { min, max } = measureDrawerBounds();
+    const shouldExpand = drag.lastHeight > min + (max - min) * 0.42;
+    dragStateRef.current = null;
+    windowDragCleanupRef.current?.();
+    windowDragCleanupRef.current = null;
+    setDrawerHeight(shouldExpand ? max : null);
+    setDrawerExpanded(shouldExpand);
+    if (drag.lastHeight < min) {
+      if (activeTab === 'mine') {
+        selectTab('current');
+      } else {
+        closeAuctionPanel();
+      }
+    }
+  };
+
+  const handleDragStart = (event: PointerEvent<HTMLElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const startHeight = currentDrawerHeight();
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      startHeight,
+      lastHeight: startHeight,
+    };
+    setDrawerHeight(startHeight);
+    try {
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+    } catch {
+      // Window listeners below keep dragging responsive when pointer capture is unavailable.
+    }
+    const handleWindowMove = (moveEvent: globalThis.PointerEvent) => {
+      if (moveEvent.pointerId !== event.pointerId) return;
+      moveEvent.preventDefault();
+      updateDrawerDrag(moveEvent.clientY);
+    };
+    const handleWindowEnd = (endEvent: globalThis.PointerEvent) => {
+      if (endEvent.pointerId !== event.pointerId) return;
+      finishDrawerDragAt();
+    };
+    windowDragCleanupRef.current?.();
+    window.addEventListener('pointermove', handleWindowMove, { passive: false });
+    window.addEventListener('pointerup', handleWindowEnd);
+    window.addEventListener('pointercancel', handleWindowEnd);
+    windowDragCleanupRef.current = () => {
+      window.removeEventListener('pointermove', handleWindowMove);
+      window.removeEventListener('pointerup', handleWindowEnd);
+      window.removeEventListener('pointercancel', handleWindowEnd);
+    };
+  };
+
   return (
     <div className="auctionDrawerMask" onClick={closeAuctionPanel}>
-      <section className={`auctionDrawer${bidSheetOpen ? ' auctionDrawerBidSheet' : ''}`} role="dialog" aria-modal="true" aria-label="直播商品" onClick={(event) => event.stopPropagation()}>
+      <section ref={drawerRef} className={drawerClassName} style={drawerStyle} role="dialog" aria-modal="true" aria-label={activeTab === 'mine' ? '我的订单' : '直播商品'} onClick={(event) => event.stopPropagation()}>
         {!bidSheetOpen ? (
+          <button type="button" className="auctionDrawerDragHandle" aria-label="拖动面板" onPointerDown={handleDragStart} />
+        ) : null}
+        {!bidSheetOpen && activeTab === 'current' ? (
           <>
             <header className="auctionDrawerHeader">
-              <div>
-                <span>进主播橱窗 ›</span>
-                <h2>{currentLot?.title || '本场商品'}</h2>
-                <div className="auctionDrawerTrust">
-                  <em>带货口碑 5.0高</em>
-                  <em>安心购</em>
-                  <em>真实宝</em>
-                </div>
-              </div>
-              <button type="button" className="drawerClose" onClick={closeAuctionPanel} aria-label="关闭商品面板">
-                ×
+              <button
+                type="button"
+                className="auctionDrawerSearch"
+                onClick={() => actions.showNotice('商品搜索暂未开放')}
+              >
+                <Search size={23} />
+                <span>搜索商品/序号</span>
               </button>
+              <div className="auctionDrawerTools" aria-label="橱窗快捷入口">
+                <DrawerToolButton icon={<ClipboardList size={25} />} label="订单" onClick={() => selectTab('mine')} />
+                <DrawerToolButton icon={<ShoppingCart size={26} />} label="购物车" onClick={() => actions.showNotice('购物车暂未开放')} />
+                <DrawerToolButton icon={<MoreHorizontal size={27} />} label="更多" onClick={() => actions.showNotice('更多橱窗工具暂未开放')} />
+              </div>
             </header>
-
-            <nav className="drawerTabs">
-              {DRAWER_TABS.map((tab) => (
-                <button type="button" className={activeTab === tab ? 'active' : ''} onClick={() => selectTab(tab)} key={tab}>
-                  <DrawerTabIcon tab={tab} />
-                  <b>{tabLabel(tab)}</b>
-                </button>
-              ))}
-            </nav>
           </>
         ) : null}
 
@@ -300,9 +375,11 @@ export function AuctionDrawer({ controller }: { controller: LiveRoomController }
               controller={controller}
               onBidSheetOpenChange={setBidSheetOpen}
               onCloseBidSheet={closeAuctionPanel}
+              onOpenLotDetail={onOpenLotDetail}
+              onCloseAuctionPanel={closeAuctionPanel}
             />
           ) : null}
-          {activeTab === 'mine' ? <MyPanel controller={controller} /> : null}
+          {activeTab === 'mine' ? <ShopOrdersContent embedded initialFrom="room" onBack={() => selectTab('current')} onSheetDragStart={handleDragStart} /> : null}
         </div>
       </section>
     </div>

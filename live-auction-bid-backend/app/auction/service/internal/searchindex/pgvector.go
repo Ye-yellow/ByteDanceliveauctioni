@@ -312,3 +312,42 @@ LIMIT $4`,
 	}
 	return out, nil
 }
+
+func (i *PGVectorIndex) RandomPublicDocuments(ctx context.Context, limit int) ([]LotDocument, error) {
+	if i == nil || i.db == nil {
+		return nil, errors.New("pgvector index is not initialized")
+	}
+	limit = NormalizeLimit(limit, DefaultSearchLimit)
+	rows, err := i.db.QueryContext(ctx, `
+SELECT lot_id, room_id, main_account_id, title, search_text, status,
+       current_price_amount, current_price_currency, href, public_visible,
+       lot_updated_at_unix_ms, embedding_model, embedding_dimensions, embedding_hash
+FROM auction_lot_search_docs
+WHERE public_visible = TRUE
+  AND status IN ('LOT_STATUS_QUEUED', 'LOT_STATUS_LIVE', 'LOT_STATUS_EXTENDED')
+ORDER BY random()
+LIMIT $1`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]LotDocument, 0, limit)
+	for rows.Next() {
+		var doc LotDocument
+		var amount int64
+		var currency string
+		if err := rows.Scan(
+			&doc.LotID, &doc.RoomID, &doc.MainAccountID, &doc.Title, &doc.SearchText, &doc.Status,
+			&amount, &currency, &doc.Href, &doc.PublicVisible,
+			&doc.LotUpdatedAtUnixMs, &doc.EmbeddingModel, &doc.EmbeddingDimensions, &doc.EmbeddingHash,
+		); err != nil {
+			return nil, err
+		}
+		doc.CurrentPrice = &v1.Money{Amount: amount, Currency: currency}
+		out = append(out, doc)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}

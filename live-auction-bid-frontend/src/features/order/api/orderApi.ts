@@ -4,7 +4,7 @@ import { toQueryString } from '../../../shared/api/query';
 import { assertOkResult } from '../../../shared/api/result';
 import { listLots } from '../../auction/api/auctionApi';
 import type { Lot, ReplyResult } from '../../../shared/api/types';
-import type { LotResultReply, OrderPage, OrderRecord, OrderStatus, OrderSummary, PaymentStatus } from '../model/orderTypes';
+import type { DeliveryAddressSnapshot, LotResultReply, OrderPage, OrderRecord, OrderStatus, OrderSummary, PaymentStatus } from '../model/orderTypes';
 
 export type AdminOrdersQuery = {
   page?: number;
@@ -46,6 +46,23 @@ function stringValue(value: unknown) {
   return value === undefined || value === null ? '' : String(value);
 }
 
+function normalizeDeliveryAddressSnapshot(input: unknown): DeliveryAddressSnapshot | null {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
+  const raw = input as Record<string, unknown>;
+  return {
+    addressId: stringValue(readField(raw, 'addressId', 'address_id')),
+    receiverName: stringValue(readField(raw, 'receiverName', 'receiver_name')),
+    receiver: stringValue(readField(raw, 'receiver')),
+    phone: stringValue(readField(raw, 'phone')),
+    province: stringValue(readField(raw, 'province')),
+    city: stringValue(readField(raw, 'city')),
+    district: stringValue(readField(raw, 'district')),
+    street: stringValue(readField(raw, 'street')),
+    detail: stringValue(readField(raw, 'detail')),
+    fullAddress: stringValue(readField(raw, 'fullAddress', 'full_address')),
+  };
+}
+
 function normalizeOrderSummary(input: unknown): OrderSummary {
   const raw = asRecord(input, 'order');
   return {
@@ -59,6 +76,9 @@ function normalizeOrderSummary(input: unknown): OrderSummary {
     status: stringValue(requiredValue(readField(raw, 'status'), 'order.status')) as OrderStatus,
     paymentStatus: stringValue(requiredValue(readField(raw, 'paymentStatus', 'payment_status'), 'order.paymentStatus')) as PaymentStatus,
     paymentId: stringValue(readField(raw, 'paymentId', 'payment_id')) || undefined,
+    shippingAddressId: stringValue(readField(raw, 'shippingAddressId', 'shipping_address_id')) || undefined,
+    shippingAddressSnapshot: normalizeDeliveryAddressSnapshot(readField(raw, 'shippingAddressSnapshot', 'shipping_address_snapshot')),
+    addressSnapshot: stringValue(readField(raw, 'addressSnapshot', 'address_snapshot')) || undefined,
     amount: requiredValue(readField(raw, 'amount'), 'order.amount') as number | string,
     currency: stringValue(readField(raw, 'currency') ?? 'CNY') || 'CNY',
     createdAtUnixMs: requiredValue(readField(raw, 'createdAtUnixMs', 'created_at_unix_ms'), 'order.createdAtUnixMs') as number | string,

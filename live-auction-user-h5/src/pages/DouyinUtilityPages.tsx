@@ -55,23 +55,6 @@ function Rows({ rows }: { rows: Row[] }) {
   );
 }
 
-export function HomeLivePage() {
-  return (
-    <main className="mobileShell dyUtilityDarkPage">
-      <Header title="直播" fallback="/home" right={<a href="/home/search">搜索</a>} />
-      <section className="dyUtilityLiveHero">
-        <b>LIVE</b>
-        <h2>正在直播</h2>
-        <p>真实竞拍直播已混入首页推荐流，直播入口保留抖音式频道结构。</p>
-        <a href="/home">进入推荐流</a>
-      </section>
-      <section className="dyUtilityPosterGrid">
-        {FRIENDS.slice(0, 4).map((item) => <a href="/home" key={item}><span>{item.slice(0, 1)}</span><b>{item}</b><small>直播中 · 999w人气</small></a>)}
-      </section>
-    </main>
-  );
-}
-
 export function AlbumDetailPage() {
   return (
     <main className="mobileShell dyUtilityDarkPage">
@@ -104,7 +87,7 @@ export function NoticePage({ title, group }: { title: string; group: keyof typeo
       <Header title={title} fallback="/message" right={<a href="/message/notice-setting">设置</a>} />
       <section className="dyUtilityNoticeList">
         {[first, second].map((item, index) => (
-          <a href={group === 'money' ? '/m/history?from=money-notice' : '/message'} key={item}>
+          <a href={group === 'money' ? '/shop/orders?from=money-notice' : '/message'} key={item}>
             <header><b>{item}</b>{index === 0 ? <em>官方</em> : null}</header>
             <p>{desc}</p>
             <time>今天 10:28</time>
@@ -229,7 +212,7 @@ export function ProfileHistoryPage({ title = '观看历史' }: { title?: string 
   return (
     <main className="mobileShell dyUtilityLightPage">
       <Header title={title} fallback="/me" />
-      <nav className="dyUtilityHistoryTabs">{['视频', '直播', '商城', '竞拍订单'].map((tab, index) => <a href={index === 3 ? '/m/history?from=look-history' : '/video-detail'} className={index === 0 ? 'active' : ''} key={tab}>{tab}</a>)}</nav>
+      <nav className="dyUtilityHistoryTabs">{['视频', '直播', '商城', '竞拍订单'].map((tab, index) => <a href={index === 3 ? '/shop/orders?from=look-history' : '/video-detail'} className={index === 0 ? 'active' : ''} key={tab}>{tab}</a>)}</nav>
       <section className="dyUtilityPosterGrid light">{MUSIC_POSTERS.map((item) => <a href="/video-detail" key={item}><span>{item.slice(0, 1)}</span><b>{item}</b><small>浏览记录</small></a>)}</section>
     </main>
   );

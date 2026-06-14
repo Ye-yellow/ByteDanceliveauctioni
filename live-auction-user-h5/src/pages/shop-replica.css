@@ -1,925 +1,1647 @@
-.dyShopShell,
-.dyShopDetailShell {
-  width: min(100%, 430px);
-  background: #f8f8f8;
-  color: #101010;
+.dyMallShell,
+.dyMallDetailShell,
+.dyMallOrdersShell {
+  width: 100%;
+  min-height: 100vh;
+  color: #141414;
+  background: #f4f4f5;
+  overflow-x: hidden;
 }
 
-.dyShopShell {
-  padding: 10px 10px calc(66px + var(--live-safe-bottom));
+#root > .mobileShell.dyMallShell {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 0 calc(74px + var(--live-safe-bottom));
+  border-radius: 0;
+  box-shadow: none;
+  scrollbar-width: none;
 }
 
-.dyShopSearchBar {
-  position: sticky;
+#root > .mobileShell.dyMallShell::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.dyMallShell {
+  padding-bottom: calc(74px + var(--live-safe-bottom));
+}
+
+.dyMallHero {
+  position: relative;
+  padding: calc(72px + var(--live-safe-top)) 12px 12px;
+  background:
+    radial-gradient(circle at 84% 12%, rgba(255, 231, 138, 0.5), transparent 29%),
+    radial-gradient(circle at 4% 10%, rgba(255, 255, 255, 0.16), transparent 25%),
+    linear-gradient(180deg, #ff5949 0%, #ff4961 28%, #ff416e 61%, #ffe8dc 100%);
+}
+
+.dyMallHero::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
   top: 0;
-  z-index: 3;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 36px;
-  gap: 10px;
-  align-items: center;
-  padding: 8px 0 10px;
-  background: #f8f8f8;
+  left: 0;
+  right: 0;
+  height: calc(64px + var(--live-safe-top));
+  pointer-events: none;
 }
 
-.dyShopSearchBox {
-  height: 36px;
+.dyMallTopNav {
+  position: absolute;
+  z-index: 8;
+  top: calc(8px + var(--live-safe-top));
+  left: 0;
+  right: 0;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(104, 4, 25, 0.42);
+}
+
+.dyMallTopNav > button,
+.dyMallTopNav > a {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  text-decoration: none;
+  font: inherit;
+  font-weight: 900;
+  padding: 0;
+}
+
+.dyMallTopNav > button svg,
+.dyMallTopNav > a svg {
+  width: 25px;
+  height: 25px;
+  stroke-width: 2.15;
+  stroke-linecap: round;
+  filter: drop-shadow(0 2px 8px rgba(104, 4, 25, 0.38));
+}
+
+.dyMallTopNav nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.dyMallTopNav nav button {
+  position: relative;
+  width: auto;
+  min-height: 42px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.62);
+  padding: 0;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.dyMallTopNav nav button.isActive {
+  color: #fff;
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.dyMallTopNav nav button.isActive::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 18px;
+  height: 3px;
+  border-radius: 999px;
+  background: #fff;
+  transform: translateX(-50%);
+}
+
+.dyMallSearch {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 6px;
+}
+
+.dyMallSearchSide,
+.dyMallSearch > a {
+  width: 40px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.96);
+  text-decoration: none;
+  filter: drop-shadow(0 2px 8px rgba(158, 16, 45, 0.22));
+}
+
+.dyMallSearchSide {
+  width: 48px;
+}
+
+.dyMallSearchSide img {
+  width: 42px;
+  height: 42px;
+  display: block;
+  object-fit: contain;
+}
+
+.dyMallSearch > a svg {
+  width: 34px;
+  height: 34px;
+  stroke-width: 2.25;
+}
+
+.dyMallSearch label {
+  height: 44px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 34px auto;
   align-items: center;
   gap: 8px;
-  border: 2px solid #fe2c55;
-  border-radius: 12px;
-  padding: 0 3px 0 10px;
+  padding: 0 4px 0 14px;
+  border: 2px solid rgba(255, 37, 82, 0.92);
+  border-radius: 999px;
   background: #fff;
+  color: #8b8d98;
+  box-shadow: 0 11px 22px rgba(233, 20, 64, 0.18);
 }
 
-.dyShopSearchBox input {
+.dyMallSearch input {
   min-width: 0;
   border: 0;
   outline: 0;
   background: transparent;
-  color: #111;
-  font-size: 14px;
-  font-weight: 650;
+  color: #1f2229;
+  font-size: 16px;
+  font-weight: 720;
 }
 
-.dyShopSearchGlyph,
-.dyShopCameraButton {
-  color: #8c8c92;
+.dyMallSearch input::placeholder {
+  color: #b6bac4;
 }
 
-.dyShopCameraButton,
-.dyShopSearchButton,
-.dyShopCartButton {
+.dyMallSearch button {
   border: 0;
-  text-decoration: none;
 }
 
-.dyShopCameraButton {
+.dyMallSearch button[type="button"] {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
   background: transparent;
+  color: #555b65;
 }
 
-.dyShopSearchButton {
-  height: 29px;
-  padding: 0 11px;
-  border-radius: 10px;
-  background: #fe2c55;
-  color: #fff;
-  font-weight: 800;
-}
-
-.dyShopCartButton {
+.dyMallSearch button[type="submit"] {
   height: 36px;
-  display: grid;
-  place-items: center;
-  color: #111;
-  font-size: 23px;
-}
-
-.dyShopCategoryTabs {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 0 0 10px;
-  scrollbar-width: none;
-}
-
-.dyShopCategoryTabs::-webkit-scrollbar {
-  display: none;
-}
-
-.dyShopCategoryTabs button {
-  flex: 0 0 auto;
-  border: 0;
+  padding: 0 18px;
   border-radius: 999px;
-  background: #fff;
-  color: #626268;
-  padding: 7px 13px;
-  font-weight: 800;
-}
-
-.dyShopCategoryTabs button.isActive {
-  background: #111;
+  background: linear-gradient(135deg, #ff6c32, #ff1972);
   color: #fff;
-}
-
-.dyShopCard {
-  border-radius: 8px;
-  background: #fff;
-}
-
-.dyShopShortcutCard {
-  padding: 12px 14px;
-  margin-bottom: 10px;
-}
-
-.dyShopShortcutScroller {
-  display: flex;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.dyShopShortcutScroller::-webkit-scrollbar {
-  display: none;
-}
-
-.dyShopShortcutScroller a {
-  flex: 0 0 17vw;
-  min-width: 62px;
-  display: grid;
-  justify-items: center;
-  gap: 5px;
-  color: #161616;
-  text-decoration: none;
-  font-size: 12px;
-}
-
-.dyShopShortcutIcon {
-  width: 31px;
-  height: 31px;
-  display: grid;
-  place-items: center;
-  border-radius: 11px;
-  background: #f5f5f6;
-}
-
-.dyShopShortcutIcon::before {
-  content: "";
-  width: 17px;
-  height: 17px;
-  display: block;
-  border-radius: 5px;
-  background: #111;
-}
-
-.dyShopShortcutIcon-charge::before {
-  background: #fe2c55;
-}
-
-.dyShopShortcutIcon-message::before {
-  border-radius: 50%;
-  background: #35c9ff;
-}
-
-.dyShopShortcutIcon-nearby::before {
-  background: #16a34a;
-}
-
-.dyShopShortcutIcon-refund::before {
-  background: #f59e0b;
-}
-
-.dyShopShortcutIcon-fashion::before {
-  background: #8b5cf6;
-}
-
-.dyShopSubsidyCard {
-  display: grid;
-  grid-template-columns: 1.1fr repeat(4, 1fr);
-  gap: 8px;
-  align-items: center;
-  padding: 12px 10px;
-  margin-bottom: 10px;
-}
-
-.dyShopSubsidyTitle {
-  display: grid;
-  gap: 2px;
-  color: #fe2c55;
-}
-
-.dyShopSubsidyTitle span {
-  font-size: 24px;
-  font-weight: 950;
-  line-height: 1;
-}
-
-.dyShopSubsidyCard a {
-  min-width: 0;
-  color: #111;
-  text-align: center;
-  text-decoration: none;
-}
-
-.dyShopSubsidyPrice {
-  color: #fe2c55;
+  font-size: 16px;
   font-weight: 900;
-  font-size: 12px;
 }
 
-.dyShopWaterfall,
-.dyShopOtherRecommend > div {
-  column-count: 2;
-  column-gap: 10px;
-}
-
-.dyShopGoodsCard,
-.dyShopRecommendGoods {
-  break-inside: avoid;
-  display: block;
-  overflow: hidden;
-  border-radius: 8px;
-  background: #fff;
-  color: #111;
-  text-decoration: none;
-  margin-bottom: 10px;
-}
-
-.dyShopGoodsCard section,
-.dyShopRecommendGoods section {
-  padding: 10px;
-}
-
-.dyShopGoodsCard h2,
-.dyShopRecommendGoods h3 {
-  margin: 0 0 8px;
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  color: #111;
-  font-size: 15px;
-  line-height: 1.25;
-}
-
-.dyShopGoodsCard em,
-.dyShopRecommendGoods em {
-  display: inline-block;
-  border: 1px solid #c7596a;
-  color: #c7596a;
-  font-size: 11px;
-  font-style: normal;
-  padding: 1px 4px;
-  margin-bottom: 5px;
-}
-
-.dyShopGoodsCard p,
-.dyShopRecommendGoods p {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin: 0;
-}
-
-.dyShopGoodsCard p b,
-.dyShopRecommendGoods p b {
-  color: #f8264a;
-  font-size: 19px;
-}
-
-.dyShopGoodsCard p span,
-.dyShopRecommendGoods p span {
-  color: #888;
-  font-size: 11px;
-}
-
-.dyShopGoodsCard small {
-  display: block;
-  margin-top: 4px;
-  color: #e6995c;
-}
-
-.dyShopEmpty {
-  padding: 38px 0;
-  color: #888;
-  text-align: center;
-}
-
-.dyShopPoster {
+.dyMallShortcutPanel {
   position: relative;
-  min-height: 176px;
   display: grid;
-  place-items: center;
-  overflow: hidden;
-  background: linear-gradient(135deg, #f3f4f6, #dedfe5);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 2px;
+  margin-top: 8px;
+  padding: 13px 7px 24px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.92) 100%);
+  box-shadow:
+    0 14px 26px rgba(146, 31, 36, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
 }
 
-.dyShopPosterCompact {
-  min-height: 54px;
-  border-radius: 8px;
-}
-
-.dyShopPosterObject {
-  position: relative;
-  width: 58%;
-  aspect-ratio: 1;
-  display: block;
-}
-
-.dyShopPosterObject i,
-.dyShopPosterObject b {
+.dyMallShortcutPanel::after {
+  content: "";
   position: absolute;
-  display: block;
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
-}
-
-.dyShopPosterObject i:first-child {
-  inset: 13% 20% 25%;
-  border-radius: 16px;
-}
-
-.dyShopPosterObject i:nth-child(2) {
-  left: 11%;
-  right: 11%;
-  bottom: 10%;
-  height: 18%;
-  border-radius: 999px;
-}
-
-.dyShopPosterObject b {
-  left: 37%;
-  top: 28%;
-  width: 26%;
-  height: 26%;
-  border-radius: 50%;
-}
-
-.dyShopPoster strong {
-  position: absolute;
-  left: 10px;
-  bottom: 8px;
-  color: rgba(0, 0, 0, 0.46);
-  font-size: 12px;
-}
-
-.dyShopPoster-socket {
-  background: linear-gradient(135deg, #ebedf2, #cfd5dd);
-}
-
-.dyShopPoster-tv {
-  background: linear-gradient(135deg, #111827, #687386);
-}
-
-.dyShopPoster-sweater {
-  background: linear-gradient(135deg, #fee2e2, #fb7185);
-}
-
-.dyShopPoster-socks {
-  background: linear-gradient(135deg, #f8fafc, #a3a3a3);
-}
-
-.dyShopPoster-storage {
-  background: linear-gradient(135deg, #e0f2fe, #93c5fd);
-}
-
-.dyShopPoster-beauty {
-  background: linear-gradient(135deg, #fce7f3, #f9a8d4);
-}
-
-.dyShopPoster-snack {
-  background: linear-gradient(135deg, #fef3c7, #f59e0b);
-}
-
-.dyShopPoster-phone {
-  background: linear-gradient(135deg, #dcfce7, #22c55e);
-}
-
-.dyShopDetailShell {
-  padding: 0 0 calc(76px + var(--live-safe-bottom));
-}
-
-.dyShopDetailTop {
-  position: fixed;
   left: 50%;
-  top: 0;
-  z-index: 5;
-  width: min(100%, 430px);
+  bottom: 8px;
+  width: 22px;
+  height: 6px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 6px 50%, rgba(98, 100, 107, 0.88) 0 3px, transparent 3.5px),
+    radial-gradient(circle at 15px 50%, rgba(207, 209, 215, 0.9) 0 3px, transparent 3.5px);
   transform: translateX(-50%);
   pointer-events: none;
 }
 
-.dyShopDetailTop > * {
-  pointer-events: auto;
-}
-
-.dyShopDetailTopFloat {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: calc(10px + var(--live-safe-top)) 12px 0;
-}
-
-.dyShopDetailTopRight,
-.dyShopDetailTopRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.dyShopRoundButton,
-.dyShopPlainButton,
-.dyShopDetailTopRight button,
-.dyShopDetailTopRow button {
-  border: 0;
-  background: rgba(0, 0, 0, 0.38);
-  color: #fff;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  font-size: 20px;
-}
-
-.dyShopDetailTopShadow {
-  background: #fff;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
-}
-
-.dyShopDetailTopShadow .dyShopPlainButton,
-.dyShopDetailTopShadow button {
-  background: transparent;
-  color: #111;
-}
-
-.dyShopDetailTopRow {
-  height: calc(45px + var(--live-safe-top));
-  padding: var(--live-safe-top) 10px 0;
-}
-
-.dyShopDetailSearch {
-  flex: 1;
-  height: 31px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  border-radius: 999px;
-  background: #f2f2f4;
-  color: #777;
-  padding: 0 12px;
-  font-size: 13px;
-}
-
-.dyShopDetailSearchGhost {
-  width: 118px;
-  flex: none;
-  background: rgba(0, 0, 0, 0.36);
-  color: rgba(255, 255, 255, 0.88);
-}
-
-.dyShopDetailTabs {
-  height: 36px;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-}
-
-.dyShopDetailTabs button {
-  border: 0;
-  background: transparent;
-  color: #666;
-  font-weight: 800;
-}
-
-.dyShopDetailTabs button.isActive {
-  color: #111;
-}
-
-.dyShopDetailHero {
+.dyMallShortcutPanel a {
   position: relative;
-  background: #f3f3f4;
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  color: #202229;
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 890;
+  line-height: 1;
 }
 
-.dyShopDetailSlides {
+.dyMallShortcutIcon {
+  position: relative;
+  width: 51px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  color: #222733;
+}
+
+.dyMallShortcutIcon img {
+  width: 43px;
+  height: 43px;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(1px 2px 0 rgba(255, 120, 36, 0.2));
+}
+
+.dyMallShortcutIcon em {
+  position: absolute;
+  top: -7px;
+  right: -9px;
+  max-width: 58px;
+  overflow: hidden;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff7cad, #ff3470);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 900;
+  font-style: normal;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 3px 8px rgba(230, 23, 88, 0.24);
+}
+
+.dyMallPromoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 10px;
+}
+
+.dyMallPromoGrid article {
+  min-width: 0;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  overflow: hidden;
+}
+
+.dyMallPromoGrid strong {
+  display: block;
+  color: #202025;
+  font-size: 19px;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.dyMallPromoGrid span {
+  display: block;
+  margin-top: 3px;
+  color: #ff315f;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.dyMallPromoGrid div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.dyMallPromoGrid a {
+  min-width: 0;
+  color: #ff245c;
+  text-align: center;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.dyMallPromoGrid img {
+  width: 100%;
+  aspect-ratio: 1;
+  display: block;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #edf0f4;
+}
+
+.dyMallCategoryTabs {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
+  gap: 20px;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
+  padding: 12px 14px 9px;
+  background: rgba(244, 244, 245, 0.94);
+  backdrop-filter: blur(14px);
   scrollbar-width: none;
 }
 
-.dyShopDetailSlides::-webkit-scrollbar {
+.dyMallCategoryTabs::-webkit-scrollbar {
   display: none;
 }
 
-.dyShopDetailHeroPoster {
-  flex: 0 0 100%;
-  height: 430px;
-  min-height: 430px;
-  scroll-snap-align: start;
+.dyMallCategoryTabs button {
+  position: relative;
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: #696b72;
+  font-size: 18px;
+  font-weight: 820;
+  white-space: nowrap;
 }
 
-.dyShopDetailIndex {
+.dyMallCategoryTabs button.isActive {
+  color: #161616;
+}
+
+.dyMallCategoryTabs button.isActive::after {
+  content: "";
   position: absolute;
-  right: 12px;
-  bottom: 12px;
+  left: 50%;
+  bottom: -7px;
+  width: 22px;
+  height: 4px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.44);
-  color: #fff;
-  padding: 4px 9px;
-  font-size: 12px;
+  background: #ff2b58;
+  transform: translateX(-50%);
 }
 
-.dyShopDetailContent,
-.dyShopDetailPad {
+.dyMallInlineNotice,
+.dyMallEmpty {
+  margin: 10px 10px 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff;
+  color: #7b7f89;
+  font-size: 13px;
+}
+
+.dyMallWaterfall {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   padding: 10px;
 }
 
-.dyShopDetailInfo,
-.dyShopDetailCard {
-  border-radius: 10px;
-  background: #fff;
-}
-
-.dyShopDetailInfo {
-  padding: 12px;
-}
-
-.dyShopDetailPriceWrap {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.dyShopPrice {
-  color: #f8264a;
-  font-weight: 950;
-}
-
-.dyShopPrice i,
-.dyShopPrice em {
-  font-size: 13px;
-  font-style: normal;
-}
-
-.dyShopPrice b {
-  font-size: 30px;
-}
-
-.dyShopDetailCoupon {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #f8264a;
-}
-
-.dyShopDetailCoupon small {
-  border-radius: 3px;
-  background: #fff1f2;
-  padding: 2px 4px;
-}
-
-.dyShopDetailInfo h1 {
-  margin: 8px 0;
-  font-size: 18px;
-  line-height: 1.35;
-}
-
-.dyShopDetailInfo p {
-  margin: 0;
-  color: #777;
-}
-
-.dyShopDescCard,
-.dyShopComments,
-.dyShopStoreCard,
-.dyShopAccordion {
-  padding: 0 12px;
-}
-
-.dyShopSpecRow {
-  min-height: 48px;
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: center;
-  border-bottom: 1px solid #f1f1f2;
-}
-
-.dyShopSpecRowTall {
-  align-items: start;
-  padding: 10px 0;
-}
-
-.dyShopSpecRow b {
-  color: #777;
-}
-
-.dyShopSpecRow p {
-  margin: 0;
-  color: #222;
-}
-
-.dyShopMuted {
-  color: #999 !important;
-}
-
-.dyShopEllipsis {
+.dyMallGoodsCard {
+  min-width: 0;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.dyShopSpecScroller {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  overflow-x: auto;
-}
-
-.dyShopSpecScroller button {
-  flex: 0 0 auto;
-  border: 0;
-  border-radius: 5px;
-  background: #f5f5f6;
-  padding: 5px 8px;
-}
-
-.dyShopSpecScroller button.isActive {
-  background: #fff1f2;
-  color: #fe2c55;
-}
-
-.dyShopSpecScroller em {
-  flex: 0 0 auto;
-  color: #999;
-  font-style: normal;
-}
-
-.dyShopArrow {
-  color: #aaa;
-}
-
-.dyShopComments {
-  padding-top: 12px;
-  padding-bottom: 12px;
-}
-
-.dyShopComments > header,
-.dyShopStoreRecommend > header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.dyShopComments h2,
-.dyShopStoreCard h2,
-.dyShopOtherRecommend h2 {
-  margin: 0;
-  font-size: 17px;
-}
-
-.dyShopCommentTags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 10px 0;
-}
-
-.dyShopCommentTags span {
-  border-radius: 999px;
-  background: #f5f5f6;
-  padding: 6px 9px;
-  font-size: 12px;
-}
-
-.dyShopComment header {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.dyShopComment header span,
-.dyShopStoreLogo {
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: #111;
-  color: #fff;
-}
-
-.dyShopCommentBody {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 72px;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.dyShopCommentBody p {
-  margin: 0 0 6px;
-  line-height: 1.45;
-}
-
-.dyShopCommentBody small {
-  color: #999;
-}
-
-.dyShopCommentPoster,
-.dyShopStorePoster {
-  min-height: 72px;
   border-radius: 8px;
+  background: #fff;
+  color: #111;
+  text-decoration: none;
+  box-shadow: 0 1px 0 rgba(16, 20, 28, 0.03);
 }
 
-.dyShopStoreCard {
-  padding-top: 12px;
-  padding-bottom: 12px;
+.dyMallGoodsCard figure {
+  position: relative;
+  margin: 0;
+  background: #eceff4;
 }
 
-.dyShopStoreCard > header {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-}
-
-.dyShopStoreCard > header p,
-.dyShopStoreCard > header small {
-  margin: 4px 0 0;
-  color: #777;
-}
-
-.dyShopStoreCard em {
-  margin-right: 4px;
-  color: #fe2c55;
-  font-style: normal;
-  font-size: 11px;
-}
-
-.dyShopStoreCard > header button {
-  border: 0;
+.dyMallGoodsCard figure span {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  left: 8px;
+  padding: 3px 8px;
   border-radius: 999px;
-  background: #fe2c55;
+  background: rgba(18, 18, 18, 0.72);
   color: #fff;
-  padding: 7px 13px;
+  font-size: 11px;
   font-weight: 800;
 }
 
-.dyShopStoreScores {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin: 12px 0;
-}
-
-.dyShopStoreScores span {
-  display: grid;
-  gap: 3px;
-  color: #999;
-  font-size: 11px;
-}
-
-.dyShopStoreScores b {
-  color: #111;
-  font-size: 12px;
-}
-
-.dyShopStoreRecommend > header a {
-  color: #777;
-  text-decoration: none;
-}
-
-.dyShopStoreRecommend > div {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.dyShopStoreRecommend a {
-  min-width: 0;
-  color: #111;
-  text-decoration: none;
-}
-
-.dyShopStoreRecommend a > b {
-  display: block;
-  margin: 6px 0 2px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: 12px;
-}
-
-.dyShopDetailImages {
-  padding: 0 10px;
-}
-
-.dyShopDetailImages > header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  height: 44px;
-  color: #999;
-}
-
-.dyShopDetailImages > header span {
-  width: 40px;
-  height: 1px;
-  background: #ddd;
-}
-
-.dyShopDetailImagePoster {
-  min-height: 360px;
-  margin-bottom: 10px;
-  border-radius: 8px;
-}
-
-.dyShopAccordion article {
-  border-bottom: 1px solid #f1f1f2;
-}
-
-.dyShopAccordion button {
+.dyMallGoodsCard img {
   width: 100%;
-  min-height: 48px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: 0;
-  background: transparent;
+  aspect-ratio: 1 / 1.12;
+  display: block;
+  object-fit: cover;
 }
 
-.dyShopAccordion p {
-  display: none;
+.dyMallGoodsCard section {
+  padding: 9px 10px 10px;
+}
+
+.dyMallGoodsCard h2 {
   margin: 0;
-  padding: 0 0 12px;
-  color: #777;
-  line-height: 1.5;
+  min-height: 38px;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  color: #17181c;
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.34;
 }
 
-.dyShopAccordion article.isOpen p {
-  display: block;
-}
-
-.dyShopBuyToolbar {
-  position: fixed;
-  left: 50%;
-  bottom: 0;
-  z-index: 6;
-  width: min(100%, 430px);
-  min-height: calc(66px + var(--live-safe-bottom));
-  display: grid;
-  grid-template-columns: 126px minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-  padding: 8px 10px calc(8px + var(--live-safe-bottom));
-  box-sizing: border-box;
-  background: #fff;
-  transform: translateX(-50%);
-}
-
-.dyShopToolbarOptions,
-.dyShopBuyButtons {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.dyMallGoodsTags {
+  display: flex;
+  flex-wrap: wrap;
   gap: 4px;
+  margin: 7px 0 5px;
 }
 
-.dyShopToolbarOptions button {
-  border: 0;
-  background: transparent;
-  color: #555;
+.dyMallGoodsTags em {
+  max-width: 100%;
+  padding: 2px 5px;
+  border: 1px solid #ff5878;
+  border-radius: 3px;
+  color: #ff315f;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 760;
+}
+
+.dyMallGoodsPrice {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+  margin: 0;
+}
+
+.dyMallGoodsPrice b {
+  color: #ff244d;
+  font-size: 19px;
+  font-weight: 950;
+}
+
+.dyMallGoodsPrice span,
+.dyMallGoodsCard small {
+  color: #8b8f98;
   font-size: 11px;
+  font-weight: 650;
 }
 
-.dyShopToolbarOptions span,
-.dyShopToolbarOptions b {
-  display: block;
+.dyMallDetailShell {
+  padding: 0;
+  overflow: hidden;
 }
 
-.dyShopBuyButtons {
-  grid-template-columns: 1fr 1fr;
+.dyMallDetailScroll {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 0 calc(92px + var(--live-safe-bottom));
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
-.dyShopBuyButtons button {
-  min-height: 42px;
+.dyMallDetailTop {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px 40px;
+  gap: 7px;
+  align-items: center;
+  padding: calc(8px + var(--live-safe-top)) 10px 9px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(15px);
+}
+
+.dyMallDetailTop button {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
   border: 0;
+  border-radius: 50%;
+  background: rgba(239, 240, 244, 0.92);
+  color: #22242b;
+}
+
+.dyMallDetailTop label {
+  height: 38px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 13px;
+  border-radius: 999px;
+  background: #f0f1f4;
+  color: #757a85;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.dyMallDetailTop label span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dyMallDetailGallery {
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+}
+
+.dyMallDetailSlides {
+  display: flex;
+  transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dyMallDetailSlides img {
+  flex: 0 0 100%;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: #f0f2f6;
+}
+
+.dyMallDetailGallery > span {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(20, 20, 20, 0.62);
   color: #fff;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.dyMallDetailThumbs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 9px 12px;
+  background: #fff;
+}
+
+.dyMallDetailThumbs button {
+  flex: 0 0 auto;
+  padding: 2px;
+  border: 2px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+}
+
+.dyMallDetailThumbs button.isActive {
+  border-color: #ff2c55;
+}
+
+.dyMallDetailThumbs img {
+  width: 58px;
+  height: 58px;
+  display: block;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.dyMallDetailInfo,
+.dyMallDetailCard {
+  margin: 8px 10px 0;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.dyMallDetailInfo {
+  padding: 13px 14px 14px;
+}
+
+.dyMallDetailPrice {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+}
+
+.dyMallDetailPrice b {
+  color: #ff244d;
+  font-size: 30px;
+  font-weight: 960;
+}
+
+.dyMallDetailPrice del {
+  color: #a6a9b1;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.dyMallDetailInfo h1 {
+  margin: 8px 0 0;
+  color: #141414;
+  font-size: 19px;
+  line-height: 1.32;
   font-weight: 900;
 }
 
-.dyShopBuyButtons button:first-child {
-  border-radius: 999px 0 0 999px;
-  background: #ff9f1a;
+.dyMallDetailSub {
+  margin: 8px 0 0;
+  color: #6f7480;
+  font-size: 13px;
+  line-height: 1.42;
 }
 
-.dyShopBuyButtons button:last-child {
-  border-radius: 0 999px 999px 0;
-  background: #fe2c55;
+.dyMallDetailBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
 }
 
-.dyShopToast {
-  position: fixed;
-  left: 50%;
-  bottom: calc(88px + var(--live-safe-bottom));
-  z-index: 9;
-  max-width: 280px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.78);
+.dyMallDetailBadges span {
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: #fff1f4;
+  color: #ff315f;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.dyMallDetailCard {
+  padding: 2px 14px;
+}
+
+.dyMallDetailCard article {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f1f3;
+}
+
+.dyMallDetailCard article:last-child {
+  border-bottom: 0;
+}
+
+.dyMallDetailCard b {
+  color: #22252d;
+  font-size: 14px;
+  font-weight: 880;
+}
+
+.dyMallDetailCard p {
+  margin: 0;
+  color: #6c707a;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.dyMallDetailSpecs div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dyMallDetailSpecs button {
+  min-height: 30px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 0 10px;
+  background: #f3f4f7;
+  color: #30343c;
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.dyMallDetailSpecs button.isActive {
+  border-color: #ff315f;
+  background: #fff2f5;
+  color: #ff315f;
+}
+
+.dyMallDetailQuantity > div {
+  display: inline-grid;
+  grid-template-columns: 32px 38px 32px;
+  align-items: center;
+  border-radius: 7px;
+  background: #f3f4f7;
+  overflow: hidden;
+}
+
+.dyMallDetailQuantity button {
+  height: 30px;
+  border: 0;
+  background: transparent;
+  color: #20232a;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.dyMallDetailQuantity span {
+  text-align: center;
+  color: #20232a;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.dyMallStoreCard {
+  padding: 12px 14px;
+}
+
+.dyMallStoreCard header {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.dyMallStoreCard header > span {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #101116;
   color: #fff;
-  padding: 10px 15px;
+}
+
+.dyMallStoreCard h2,
+.dyMallDetailDesc h2 {
+  margin: 0;
+  color: #15161a;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.dyMallStoreCard header p {
+  margin: 4px 0 0;
+}
+
+.dyMallStoreCard a {
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: #ff2d58;
+  color: #fff;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.dyMallDetailDesc {
+  padding: 14px;
+}
+
+.dyMallDetailDesc p {
+  margin: 9px 0 12px;
+}
+
+.dyMallDetailDesc img {
+  width: 100%;
+  display: block;
+  margin-top: 8px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.dyMallBuyBar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 118px) 1fr 1fr;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 10px calc(9px + var(--live-safe-bottom));
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 -8px 22px rgba(26, 28, 36, 0.1);
+}
+
+.dyMallBuyBar > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.dyMallBuyBar a,
+.dyMallBuyBar > div button {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  border: 0;
+  background: transparent;
+  color: #565b65;
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.dyMallBuyBar > button {
+  height: 42px;
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.dyMallBuyBar > button:nth-of-type(1) {
+  background: linear-gradient(135deg, #ffc233, #ff8038);
+}
+
+.dyMallBuyBar > button:nth-of-type(2) {
+  background: linear-gradient(135deg, #ff7040, #ff1972);
+}
+
+.dyMallBuyBar > button:disabled {
+  opacity: 0.6;
+}
+
+.dyMallToast {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  z-index: 30;
+  padding: 13px 18px;
+  border-radius: 12px;
+  background: rgba(20, 20, 20, 0.78);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 750;
+  transform: translate(-50%, -50%);
+}
+
+.dyMallOrdersShell {
+  padding: 0 0 calc(18px + var(--live-safe-bottom));
+  scrollbar-width: none;
+}
+
+.dyMallOrdersShell.dyMallOrdersEmbedded {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0 0 calc(18px + var(--live-safe-bottom));
+  border-radius: inherit;
+  background: #f4f4f5;
+  box-shadow: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.dyMallOrdersShell.dyMallOrdersEmbedded::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+#root > .mobileShell.dyMallOrdersShell {
+  padding: 0 0 calc(18px + var(--live-safe-bottom));
+}
+
+#root > .mobileShell.dyMallOrdersShell::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.dyMallOrdersTop {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 52px 38px;
+  gap: 6px;
+  align-items: center;
+  padding: calc(12px + var(--live-safe-top)) 12px 9px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(14px);
+}
+
+.dyMallOrdersTop > button,
+.dyMallOrdersTop > a {
+  width: 38px;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #11141a;
+  text-decoration: none;
+}
+
+.dyMallOrdersTop > a {
+  width: 52px;
+  transform: translateX(8px);
+}
+
+.dyMallOrdersTop form {
+  min-width: 0;
+  height: 39px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #f0f1f4;
+  color: #9aa0aa;
+}
+
+.dyMallOrdersTop input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #262a33;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.dyMallOrderTabs {
+  position: sticky;
+  top: calc(60px + var(--live-safe-top));
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0;
+  overflow-x: auto;
+  padding: 9px 12px 13px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 5px 14px rgba(26, 28, 36, 0.04);
+  scrollbar-width: none;
+}
+
+.dyMallOrderTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.dyMallOrderTabs button {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 0 3px;
+  border: 0;
+  background: transparent;
+  color: #666b75;
+  font-size: 17px;
+  font-weight: 780;
+  white-space: nowrap;
+}
+
+.dyMallOrderTabs button.isActive {
+  color: #16181d;
+  font-weight: 900;
+}
+
+.dyMallOrderTabs button.isActive::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
+  background: #ef3148;
   transform: translateX(-50%);
 }
 
-@media (max-width: 360px) {
-  .dyShopSubsidyCard {
-    grid-template-columns: repeat(4, 1fr);
+.dyMallOrdersNotice {
+  margin: 11px 14px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff;
+  color: #7b808b;
+  font-size: 13px;
+}
+
+.dyMallOrderEmpty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 52px 24px 76px;
+  color: #a5a9b1;
+}
+
+.dyMallOrderEmpty svg {
+  color: #ffd9e1;
+}
+
+.dyMallOrderEmpty h1 {
+  margin: 4px 0 0;
+  color: #555963;
+  font-size: 21px;
+  font-weight: 860;
+}
+
+.dyMallOrderEmpty p {
+  margin: 0;
+  color: #8c929e;
+  font-size: 14px;
+}
+
+.dyMallFrequentStores {
+  margin: 8px 8px 0;
+  padding: 14px 12px 12px;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.dyMallFrequentStores header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.dyMallFrequentStores h2 {
+  margin: 0;
+  color: #14161b;
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.dyMallFrequentStores header a {
+  color: #8c9099;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.dyMallFrequentStores > div {
+  display: flex;
+  gap: 15px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.dyMallFrequentStores > div::-webkit-scrollbar {
+  display: none;
+}
+
+.dyMallFrequentStores > div a {
+  flex: 0 0 60px;
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  color: #6d717b;
+  text-align: center;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dyMallFrequentStores img {
+  width: 58px;
+  height: 58px;
+  display: block;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.dyMallFrequentStores i {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #f3f4f7;
+  color: #8b909b;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.dyMallFrequentStores span {
+  width: 68px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dyMallOrderList {
+  display: grid;
+  gap: 10px;
+  padding: 10px 8px 18px;
+}
+
+.dyMallOrderCard {
+  padding: 15px 13px 13px;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.dyMallOrderCard > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding-bottom: 12px;
+}
+
+.dyMallOrderCard > header b {
+  min-width: 0;
+  overflow: hidden;
+  color: #111318;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.dyMallOrderCard > header span {
+  flex: 0 0 auto;
+  color: #858a94;
+  font-size: 15px;
+  font-weight: 720;
+}
+
+.dyMallOrderItem {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr) auto;
+  gap: 10px;
+  color: #191b20;
+  text-decoration: none;
+}
+
+.dyMallOrderItem img {
+  width: 86px;
+  height: 86px;
+  display: block;
+  border-radius: 9px;
+  object-fit: cover;
+  background: #f0f2f6;
+}
+
+.dyMallOrderItem h2 {
+  margin: 0;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  color: #15171c;
+  font-size: 15px;
+  line-height: 1.33;
+  font-weight: 860;
+}
+
+.dyMallOrderItem p {
+  margin: 7px 0 0;
+  color: #8f949d;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.dyMallOrderItem em {
+  display: inline-block;
+  margin-top: 7px;
+  padding: 1px 5px;
+  border: 1px solid #bde4f4;
+  border-radius: 3px;
+  color: #3a9abb;
+  font-size: 12px;
+  font-style: normal;
+}
+
+.dyMallOrderItem aside {
+  display: grid;
+  justify-items: end;
+  align-content: start;
+  gap: 6px;
+  color: #191b20;
+}
+
+.dyMallOrderItem aside b {
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.dyMallOrderItem aside span {
+  color: #8e939c;
+  font-size: 13px;
+}
+
+.dyMallOrderCoupon {
+  margin-top: 13px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  background: #f6f7f9;
+  color: #6f7480;
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.dyMallOrderCard footer {
+  display: grid;
+  justify-items: end;
+  gap: 12px;
+  margin-top: 13px;
+}
+
+.dyMallOrderCard footer > span {
+  color: #6c7078;
+  font-size: 13px;
+}
+
+.dyMallOrderCard footer > span b {
+  color: #181a20;
+  font-size: 20px;
+  font-weight: 950;
+}
+
+.dyMallOrderCard footer div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dyMallOrderCard footer button {
+  min-width: 86px;
+  height: 35px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid #d5d7dd;
+  border-radius: 999px;
+  background: #fff;
+  color: #24272f;
+  font-size: 14px;
+  font-weight: 780;
+}
+
+.dyMallOrderCard footer button.isPrimary {
+  border-color: #ff4969;
+  color: #ff315f;
+}
+
+.dyMallOrderCard footer button:disabled {
+  opacity: 0.62;
+}
+
+.dyMallOrderToolsMask {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: start center;
+  background: rgba(14, 16, 22, 0.44);
+}
+
+.dyMallOrderToolsSheet {
+  width: 100%;
+  border-radius: 0 0 24px 24px;
+  background: #fff;
+  padding: calc(15px + var(--live-safe-top)) 18px 24px;
+  color: #151821;
+  box-shadow: 0 16px 34px rgba(18, 20, 28, 0.16);
+}
+
+.dyMallOrderToolsSheet header {
+  position: relative;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  align-items: center;
+  margin-bottom: 22px;
+}
+
+.dyMallOrderToolsSheet h2 {
+  grid-column: 2;
+  margin: 0;
+  color: #11141a;
+  text-align: center;
+  font-size: 21px;
+  font-weight: 930;
+}
+
+.dyMallOrderToolsSheet header button {
+  grid-column: 3;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #141821;
+}
+
+.dyMallOrderToolsSheet nav {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dyMallOrderToolsSheet nav button {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  color: #222630;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 760;
+}
+
+.dyMallOrderToolsSheet nav span {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #f4f5f7;
+  color: #171a22;
+}
+
+.dyMallOrderAuthMask {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: end center;
+  background: rgba(13, 14, 20, 0.5);
+}
+
+.dyMallOrderAuthSheet {
+  width: 100%;
+  max-width: 430px;
+  padding: 22px 20px calc(22px + var(--live-safe-bottom));
+  border-radius: 24px 24px 0 0;
+  background: #fff;
+  box-shadow: 0 -18px 38px rgba(12, 14, 20, 0.2);
+}
+
+.dyMallOrderAuthSheet h2 {
+  margin: 0;
+  color: #161922;
+  font-size: 22px;
+  font-weight: 930;
+}
+
+.dyMallOrderAuthSheet > p {
+  margin: 8px 0 16px;
+  color: #7d838f;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.dyMallOrderAuthSheet nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #f3f4f7;
+}
+
+.dyMallOrderAuthSheet nav button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #717783;
+  font-size: 15px;
+  font-weight: 820;
+}
+
+.dyMallOrderAuthSheet nav button.isActive {
+  background: #fff;
+  color: #141722;
+  box-shadow: 0 8px 18px rgba(18, 22, 32, 0.08);
+}
+
+.dyMallOrderAuthSheet form {
+  display: grid;
+  gap: 11px;
+}
+
+.dyMallOrderAuthSheet input {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 14px;
+  outline: 0;
+  background: #f5f6f8;
+  padding: 0 14px;
+  color: #171a22;
+  font-size: 15px;
+  font-weight: 760;
+}
+
+.dyMallOrderAuthSheet form p {
+  margin: 0;
+  color: #ff2f62;
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.dyMallOrderAuthSheet form > button {
+  min-height: 52px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff6b78 0%, #ff1f58 100%);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 920;
+}
+
+.dyMallOrderAuthSheet form > button:disabled {
+  opacity: 0.65;
+}
+
+.shopAddressPage {
+  width: 100%;
+  padding: 0 0 calc(92px + var(--live-safe-bottom));
+  background: #f5f6f9;
+  color: #151821;
+  scrollbar-width: none;
+}
+
+.shopAddressPage::-webkit-scrollbar {
+  display: none;
+}
+
+.shopAddressTop {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  height: calc(66px + var(--live-safe-top));
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) 58px;
+  align-items: center;
+  padding: var(--live-safe-top) 0 0;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 rgba(18, 20, 28, 0.04);
+}
+
+.shopAddressTop button {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #11141a;
+}
+
+.shopAddressTop h1 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin: 0;
+  color: #11141a;
+  text-align: center;
+  font-size: 23px;
+  font-weight: 930;
+}
+
+.shopAddressList {
+  display: grid;
+  gap: 12px;
+  padding: 18px 12px 22px;
+}
+
+.shopAddressEmpty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 96px 28px;
+  color: #9aa0aa;
+  text-align: center;
+}
+
+.shopAddressEmpty h2 {
+  margin: 0;
+  color: #424752;
+  font-size: 20px;
+}
+
+.shopAddressEmpty p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.shopAddressError,
+.shopAddressSaving {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff0f4;
+  color: #ff2f62;
+  font-size: 14px;
+  font-weight: 760;
+  text-align: center;
+}
+
+.shopAddressSaving {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: calc(84px + var(--live-safe-bottom));
+  background: rgba(255, 255, 255, 0.9);
+  color: #8f94a1;
+}
+
+.shopAddressBottomAction {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  padding: 14px 14px calc(14px + var(--live-safe-bottom));
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 -10px 24px rgba(20, 22, 30, 0.06);
+}
+
+.shopAddressBottomAction button {
+  width: 100%;
+  min-height: 58px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff6b35 0%, #ff005d 100%);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 930;
+}
+
+.shopAddressPage.isEdit {
+  padding-bottom: calc(92px + var(--live-safe-bottom));
+}
+
+.shopAddressPage.isEdit .deliveryAddressForm.isEmbedded {
+  min-height: calc(100dvh - 66px - var(--live-safe-top));
+  padding: 22px 18px calc(18px + var(--live-safe-bottom));
+  overflow: visible;
+}
+
+.shopAddressPage.isEdit .deliveryAddressPaste,
+.shopAddressPage.isEdit .deliveryAddressFields,
+.shopAddressPage.isEdit .deliveryAddressDefaultSwitch {
+  border-radius: 18px;
+}
+
+.shopAddressPage.isEdit .deliveryAddressFields label {
+  grid-template-columns: 92px minmax(0, 1fr) auto;
+}
+
+.shopAddressPage.isEdit .deliveryAddressSave {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: calc(18px + var(--live-safe-bottom));
+  width: auto;
+  margin: 0;
+}
+
+@media (max-width: 374px) {
+  .dyMallTopNav nav {
+    gap: 11px;
+    font-size: 14px;
   }
 
-  .dyShopSubsidyTitle {
-    grid-column: 1 / -1;
-    grid-template-columns: auto 1fr;
-    align-items: end;
+  .dyMallShortcutPanel {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dyMallPromoGrid,
+  .dyMallWaterfall {
+    grid-template-columns: 1fr;
+  }
+
+  .dyMallBuyBar {
+    grid-template-columns: minmax(0, 96px) 1fr 1fr;
+  }
+}
+
+@media (min-width: 700px) {
+  #root > .mobileShell.dyMallShell {
+    margin: 0 auto;
+    border-radius: 18px;
+    box-shadow: var(--live-shell-desktop-shadow);
   }
 }

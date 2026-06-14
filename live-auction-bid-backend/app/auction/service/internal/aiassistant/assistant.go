@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	mathrand "math/rand"
 	"net/http"
 	"sort"
 	"strings"
@@ -46,6 +47,20 @@ type BuyerConsultReply struct {
 	FallbackUsed bool          `json:"fallbackUsed"`
 }
 
+type BuyerSuggestionRequest struct {
+	Limit int `json:"limit,omitempty"`
+}
+
+type BuyerSuggestion struct {
+	Text   string `json:"text"`
+	Reason string `json:"reason,omitempty"`
+}
+
+type BuyerSuggestionReply struct {
+	Suggestions  []BuyerSuggestion `json:"suggestions"`
+	FallbackUsed bool              `json:"fallbackUsed"`
+}
+
 type BuyerResult struct {
 	Type         string    `json:"type"`
 	Title        string    `json:"title"`
@@ -68,6 +83,10 @@ type Source struct {
 type BuyerConsultContext struct {
 	Candidates []LotCandidate   `json:"candidates"`
 	Snapshot   *v1.RoomSnapshot `json:"snapshot,omitempty"`
+}
+
+type BuyerSuggestionContext struct {
+	Candidates []LotCandidate `json:"candidates"`
 }
 
 type LotCandidate struct {
@@ -150,6 +169,32 @@ func (a *Assistant) ConsultBuyer(
 	return reply, nil
 }
 
+func (a *Assistant) SuggestBuyerPrompts(
+	ctx context.Context,
+	req BuyerSuggestionRequest,
+	data BuyerSuggestionContext,
+) (BuyerSuggestionReply, error) {
+	fallback := fallbackBuyerSuggestions(req, data)
+	if a == nil || !a.configured() {
+		return fallback, nil
+	}
+	var rawReply map[string]any
+	system := "你是直播竞拍平台的找拍推荐词助手。必须只基于提供的公开候选拍品生成短搜索词，" +
+		"不能编造不存在的品牌、场次、价格、主播或拍品。每个推荐词 4 到 12 个汉字左右，适合作为搜索 chip。只输出 JSON。"
+	err := a.chatJSONWithTemperature(ctx, system, map[string]any{
+		"task":            "buyer_prompt_suggestions",
+		"request":         req,
+		"public_lot_pool": data,
+		"schema":          "suggestions:[{text,reason}],fallbackUsed",
+	}, &rawReply, 0.7)
+	if err != nil {
+		a.logFallback("buyer_prompt_suggestions", err)
+		return fallback, nil
+	}
+	reply := normalizeBuyerSuggestionReply(buyerSuggestionReplyFromMap(rawReply), fallback, data.Candidates, req.Limit)
+	return reply, nil
+}
+
 func (a *Assistant) configured() bool {
 	if a == nil {
 		return false
@@ -158,6 +203,10 @@ func (a *Assistant) configured() bool {
 }
 
 func (a *Assistant) chatJSON(ctx context.Context, system string, payload any, out any) error {
+	return a.chatJSONWithTemperature(ctx, system, payload, out, 0.2)
+}
+
+func (a *Assistant) chatJSONWithTemperature(ctx context.Context, system string, payload any, out any, temperature float64) error {
 	userPayload, err := json.Marshal(payload)
 	if err != nil {
 		return err
@@ -169,7 +218,7 @@ func (a *Assistant) chatJSON(ctx context.Context, system string, payload any, ou
 			{"role": "system", "content": system},
 			{"role": "user", "content": string(userPayload) + "\n请返回严格 JSON，不要 Markdown。"},
 		},
-		"temperature": 0.2,
+		"temperature": temperature,
 	}
 	body, err := json.Marshal(reqBody)
 	if err != nil {
@@ -304,6 +353,54 @@ func fallbackBuyer(_ BuyerConsultRequest, data BuyerConsultContext) BuyerConsult
 	}
 }
 
+func fallbackBuyerSuggestions(req BuyerSuggestionRequest, data BuyerSuggestionContext) BuyerSuggestionReply {
+	limit := normalizeSuggestionLimit(req.Limit)
+	items := make([]BuyerSuggestion, 0, limit+len(data.Candidates)*2)
+	add := func(text, reason string) {
+		text = cleanSuggestionText(text)
+		if text == "" {
+			return
+		}
+		for _, item := range items {
+			if item.Text == text {
+				return
+			}
+		}
+		items = append(items, BuyerSuggestion{Text: text, Reason: reason})
+	}
+	for _, candidate := range data.Candidates {
+		title := cleanSuggestionText(candidate.Title)
+		if title != "" && len([]rune(title)) <= 12 {
+			add(title, "来自公开拍品标题")
+		}
+		for _, keyword := range supportedTitleKeywords(candidate.Title + " " + candidate.Reason) {
+			add(keyword, "来自公开拍品内容")
+		}
+		switch candidate.Status {
+		case "LOT_STATUS_LIVE":
+			add("正在竞拍的拍品", "来自公开拍品状态")
+		case "LOT_STATUS_EXTENDED":
+			add("加时中的拍品", "来自公开拍品状态")
+		case "LOT_STATUS_QUEUED":
+			add("即将开拍", "来自公开拍品状态")
+		}
+		if strings.Contains(candidate.Reason, "适合送礼") {
+			add("适合送礼的收藏品", "来自候选命中原因")
+		}
+		if strings.Contains(candidate.Reason, "低价") || strings.Contains(candidate.Reason, "预算") {
+			add("预算友好好物", "来自候选命中原因")
+		}
+	}
+	for _, text := range defaultBuyerSuggestionTexts() {
+		add(text, "系统兜底推荐")
+	}
+	shuffleBuyerSuggestions(items)
+	if len(items) > limit {
+		items = items[:limit]
+	}
+	return BuyerSuggestionReply{Suggestions: items, FallbackUsed: true}
+}
+
 func normalizeBuyerReply(reply BuyerConsultReply, fallback BuyerConsultReply) BuyerConsultReply {
 	if strings.TrimSpace(reply.Answer) == "" {
 		reply.Answer = fallback.Answer
@@ -313,14 +410,46 @@ func normalizeBuyerReply(reply BuyerConsultReply, fallback BuyerConsultReply) Bu
 	}
 	if len(reply.Results) == 0 {
 		reply.Results = fallback.Results
+		reply.Sources = fallback.Sources
+		reply.FallbackUsed = true
+		return reply
 	} else {
-		reply.Results = fillBuyerResultFallbackFields(reply.Results, fallback.Results)
+		reply.Results = sanitizeBuyerResults(reply.Results, fallback.Results)
+		if len(reply.Results) == 0 {
+			fallback.Answer = firstNonEmpty(reply.Answer, fallback.Answer)
+			return fallback
+		}
 	}
 	if len(reply.Sources) == 0 {
 		reply.Sources = fallback.Sources
 	}
 	reply.FallbackUsed = false
 	return reply
+}
+
+func normalizeBuyerSuggestionReply(reply BuyerSuggestionReply, fallback BuyerSuggestionReply, candidates []LotCandidate, limit int) BuyerSuggestionReply {
+	limit = normalizeSuggestionLimit(limit)
+	clean := sanitizeBuyerSuggestions(reply.Suggestions, candidates, limit)
+	if len(clean) == 0 {
+		return fallback
+	}
+	if len(clean) < limit {
+		seen := make(map[string]bool, len(clean))
+		for _, item := range clean {
+			seen[item.Text] = true
+		}
+		for _, item := range fallback.Suggestions {
+			if seen[item.Text] {
+				continue
+			}
+			clean = append(clean, item)
+			seen[item.Text] = true
+			if len(clean) >= limit {
+				break
+			}
+		}
+	}
+	return BuyerSuggestionReply{Suggestions: clean, FallbackUsed: false}
 }
 
 func buyerReplyFromMap(raw map[string]any) BuyerConsultReply {
@@ -330,6 +459,33 @@ func buyerReplyFromMap(raw map[string]any) BuyerConsultReply {
 		Results: buyerResultsFromAny(valueFromMap(raw, "results", "lots", "matches")),
 		Sources: sourcesFromAny(valueFromMap(raw, "sources", "source")),
 	}
+}
+
+func buyerSuggestionReplyFromMap(raw map[string]any) BuyerSuggestionReply {
+	return BuyerSuggestionReply{
+		Suggestions: suggestionsFromAny(valueFromMap(raw, "suggestions", "prompts", "chips", "queries")),
+	}
+}
+
+func suggestionsFromAny(value any) []BuyerSuggestion {
+	items := sliceFromAny(value)
+	out := make([]BuyerSuggestion, 0, len(items))
+	for _, item := range items {
+		if text := textFromAny(item); text != "" {
+			out = append(out, BuyerSuggestion{Text: text})
+			continue
+		}
+		m, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		text := textFromMap(m, "text", "query", "prompt", "label", "title")
+		if text == "" {
+			continue
+		}
+		out = append(out, BuyerSuggestion{Text: text, Reason: textFromMap(m, "reason", "source")})
+	}
+	return out
 }
 
 func buyerResultsFromAny(value any) []BuyerResult {
@@ -361,9 +517,9 @@ func buyerResultsFromAny(value any) []BuyerResult {
 	return out
 }
 
-func fillBuyerResultFallbackFields(results []BuyerResult, fallback []BuyerResult) []BuyerResult {
+func sanitizeBuyerResults(results []BuyerResult, fallback []BuyerResult) []BuyerResult {
 	if len(results) == 0 || len(fallback) == 0 {
-		return results
+		return nil
 	}
 	byLotID := make(map[string]BuyerResult, len(fallback))
 	for _, item := range fallback {
@@ -371,25 +527,135 @@ func fillBuyerResultFallbackFields(results []BuyerResult, fallback []BuyerResult
 			byLotID[item.LotID] = item
 		}
 	}
-	for i := range results {
-		fallbackItem, ok := byLotID[results[i].LotID]
+	out := make([]BuyerResult, 0, len(results))
+	seen := map[string]bool{}
+	for _, result := range results {
+		lotID := strings.TrimSpace(result.LotID)
+		if lotID == "" || seen[lotID] {
+			continue
+		}
+		fallbackItem, ok := byLotID[lotID]
 		if !ok {
 			continue
 		}
-		if results[i].ImageURL == "" {
-			results[i].ImageURL = fallbackItem.ImageURL
+		seen[lotID] = true
+		clean := fallbackItem
+		if strings.TrimSpace(result.Reason) != "" {
+			clean.Reason = result.Reason
 		}
-		if results[i].Href == "" {
-			results[i].Href = fallbackItem.Href
+		out = append(out, clean)
+	}
+	return out
+}
+
+func sanitizeBuyerSuggestions(suggestions []BuyerSuggestion, candidates []LotCandidate, limit int) []BuyerSuggestion {
+	limit = normalizeSuggestionLimit(limit)
+	out := make([]BuyerSuggestion, 0, limit)
+	seen := map[string]bool{}
+	for _, suggestion := range suggestions {
+		text := cleanSuggestionText(suggestion.Text)
+		if text == "" || seen[text] || !suggestionSupportedByCandidates(text, candidates) {
+			continue
 		}
-		if results[i].Status == "" {
-			results[i].Status = fallbackItem.Status
-		}
-		if results[i].CurrentPrice == nil {
-			results[i].CurrentPrice = cloneMoney(fallbackItem.CurrentPrice)
+		seen[text] = true
+		out = append(out, BuyerSuggestion{Text: text, Reason: strings.TrimSpace(suggestion.Reason)})
+		if len(out) >= limit {
+			break
 		}
 	}
-	return results
+	return out
+}
+
+func suggestionSupportedByCandidates(text string, candidates []LotCandidate) bool {
+	for _, allowed := range defaultBuyerSuggestionTexts() {
+		if text == allowed {
+			return true
+		}
+	}
+	if text == "加时中的拍品" || text == "预算友好好物" {
+		return true
+	}
+	for _, candidate := range candidates {
+		haystack := candidate.Title + " " + candidate.Reason
+		if strings.Contains(haystack, text) || strings.Contains(text, candidate.Title) {
+			return true
+		}
+		for _, keyword := range supportedTitleKeywords(haystack) {
+			if strings.Contains(text, keyword) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func supportedTitleKeywords(text string) []string {
+	candidates := []string{
+		"翡翠手镯", "翡翠", "手镯", "吊坠", "项链", "玛瑙", "和田玉", "玉石", "珠宝",
+		"首饰", "收藏",
+	}
+	out := make([]string, 0, len(candidates))
+	for _, keyword := range candidates {
+		if strings.Contains(text, keyword) {
+			out = append(out, keyword)
+		}
+	}
+	return out
+}
+
+func cleanSuggestionText(text string) string {
+	text = strings.TrimSpace(text)
+	text = strings.Trim(text, " \t\r\n\"'“”‘’.,，。:：;；!?！？#")
+	text = strings.Join(strings.Fields(text), "")
+	runes := []rune(text)
+	if len(runes) < 2 || len(runes) > 14 {
+		return ""
+	}
+	if isASCIIIntegerText(text) {
+		return ""
+	}
+	for _, bad := range []string{"http://", "https://", "¥", "￥", "元成交", "出价"} {
+		if strings.Contains(text, bad) {
+			return ""
+		}
+	}
+	return text
+}
+
+func isASCIIIntegerText(text string) bool {
+	if text == "" {
+		return false
+	}
+	for _, r := range text {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func normalizeSuggestionLimit(limit int) int {
+	if limit <= 0 {
+		return 6
+	}
+	if limit > 8 {
+		return 8
+	}
+	return limit
+}
+
+func defaultBuyerSuggestionTexts() []string {
+	return []string{"翡翠手镯", "适合送礼的收藏品", "正在竞拍的拍品", "预算500以内", "低价开拍", "即将开拍"}
+}
+
+func shuffleBuyerSuggestions(items []BuyerSuggestion) {
+	if len(items) <= 1 {
+		return
+	}
+	rng := mathrand.New(mathrand.NewSource(time.Now().UnixNano()))
+	rng.Shuffle(len(items), func(i, j int) {
+		items[i], items[j] = items[j], items[i]
+	})
 }
 
 func sourcesFromAny(value any) []Source {

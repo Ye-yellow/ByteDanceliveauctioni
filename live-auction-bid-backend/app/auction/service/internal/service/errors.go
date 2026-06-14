@@ -10,29 +10,33 @@ import (
 )
 
 const (
-	ResultCodeOK                    int32 = 0
-	ResultCodeInvalidArgument       int32 = 400001
-	ResultCodeLoginRequired         int32 = 401001
-	ResultCodeTokenExpired          int32 = 401002
-	ResultCodeTokenInvalid          int32 = 401003
-	ResultCodeSessionExpired        int32 = 401004
-	ResultCodeInvalidCredentials    int32 = 401005
-	ResultCodeForbidden             int32 = 403001
-	ResultCodeAccountDisabled       int32 = 403002
-	ResultCodeLotVersionConflict    int32 = 409001
-	ResultCodeUsernameTaken         int32 = 409002
-	ResultCodeRoomActiveLotExists   int32 = 409003
-	ResultCodeQueuePositionConflict int32 = 409004
-	ResultCodeBidTooLow             int32 = 409101
-	ResultCodeBidNotLive            int32 = 409102
-	ResultCodeBidEnded              int32 = 409103
-	ResultCodeBidAlreadyLeading     int32 = 409104
-	ResultCodeBidCurrencyMismatch   int32 = 409105
-	ResultCodeBidVersionStale       int32 = 409106
-	ResultCodeLotCancelled          int32 = 409107
-	ResultCodeProjectionPending     int32 = 409108
-	ResultCodeUserNotFound          int32 = 404001
-	ResultCodeInternalError         int32 = 500000
+	ResultCodeOK                           int32 = 0
+	ResultCodeInvalidArgument              int32 = 400001
+	ResultCodeLoginRequired                int32 = 401001
+	ResultCodeTokenExpired                 int32 = 401002
+	ResultCodeTokenInvalid                 int32 = 401003
+	ResultCodeSessionExpired               int32 = 401004
+	ResultCodeInvalidCredentials           int32 = 401005
+	ResultCodeForbidden                    int32 = 403001
+	ResultCodeAccountDisabled              int32 = 403002
+	ResultCodeLotVersionConflict           int32 = 409001
+	ResultCodeUsernameTaken                int32 = 409002
+	ResultCodeRoomActiveLotExists          int32 = 409003
+	ResultCodeQueuePositionConflict        int32 = 409004
+	ResultCodeBidTooLow                    int32 = 409101
+	ResultCodeBidNotLive                   int32 = 409102
+	ResultCodeBidEnded                     int32 = 409103
+	ResultCodeBidAlreadyLeading            int32 = 409104
+	ResultCodeBidCurrencyMismatch          int32 = 409105
+	ResultCodeBidVersionStale              int32 = 409106
+	ResultCodeLotCancelled                 int32 = 409107
+	ResultCodeProjectionPending            int32 = 409108
+	ResultCodeDepositRequired              int32 = 409109
+	ResultCodeAddressRequired              int32 = 409110
+	ResultCodeAddressNotFound              int32 = 409111
+	ResultCodeUserNotFound                 int32 = 404001
+	ResultCodePaymentProviderNotConfigured int32 = 500101
+	ResultCodeInternalError                int32 = 500000
 
 	ResultCodeUnauthenticated  = ResultCodeLoginRequired
 	ResultCodeInvalidToken     = ResultCodeTokenInvalid
@@ -130,6 +134,14 @@ func resultCodeForBusinessCode(code apperr.BusinessCode) int32 {
 		return ResultCodeRoomActiveLotExists
 	case apperr.CodeProjectionPending:
 		return ResultCodeProjectionPending
+	case apperr.CodeDepositRequired:
+		return ResultCodeDepositRequired
+	case apperr.CodeAddressRequired:
+		return ResultCodeAddressRequired
+	case apperr.CodeAddressNotFound:
+		return ResultCodeAddressNotFound
+	case apperr.CodePaymentProviderNotConfigured:
+		return ResultCodePaymentProviderNotConfigured
 	default:
 		return ResultCodeInvalidArgument
 	}
@@ -165,6 +177,8 @@ func invalidArgumentMessage(err error) string {
 		return "最低加价必须大于 0"
 	case strings.Contains(message, "duration seconds"):
 		return "竞拍时长不能少于 60 秒"
+	case strings.Contains(message, "address"):
+		return "请先选择收货地址"
 	}
 	return "参数不正确，请检查后重试"
 }

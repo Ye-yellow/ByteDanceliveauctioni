@@ -2,7 +2,6 @@ package data
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"strings"
 
@@ -24,7 +23,7 @@ func (s *Store) CreateOrderForSettledLot(ctx context.Context, order auction.Orde
 	if err != nil {
 		return err
 	}
-	orderModel, err := orderToModel(order)
+	orderModel, itemModel, err := auctionOrderToUserModels(order)
 	if err != nil {
 		return err
 	}
@@ -58,7 +57,13 @@ func (s *Store) CreateOrderForSettledLot(ctx context.Context, order auction.Orde
 		if err := releaseActiveLotIfTerminal(ctx, tx, lot); err != nil {
 			return err
 		}
+		if err := s.fillAuctionOrderShopName(ctx, tx, orderModel); err != nil {
+			return err
+		}
 		if err := tx.Create(orderModel).Error; err != nil {
+			return err
+		}
+		if err := tx.Create(itemModel).Error; err != nil {
 			return err
 		}
 		return createEventModels(ctx, tx, events)
@@ -68,32 +73,75 @@ func (s *Store) CreateOrderForSettledLot(ctx context.Context, order auction.Orde
 	return s.streamEvents(ctx, events)
 }
 
+func (s *Store) fillAuctionOrderShopName(ctx context.Context, tx *gorm.DB, orderModel *UserOrderModel) error {
+	if orderModel == nil || orderModel.Source != userOrderSourceAuction {
+		return nil
+	}
+	name, err := s.auctionShopNameForMainAccount(ctx, tx, orderModel.MainAccountID)
+	if err != nil {
+		return err
+	}
+	orderModel.ShopName = name
+	return nil
+}
+
+func (s *Store) auctionShopNameForMainAccount(ctx context.Context, tx *gorm.DB, mainAccountID string) (string, error) {
+	mainAccountID = strings.TrimSpace(mainAccountID)
+	if mainAccountID == "" {
+		return "直播竞拍", nil
+	}
+	var user AuctionUserModel
+	if err := tx.WithContext(ctx).
+		Where("id = ?", mainAccountID).
+		First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "直播竞拍", nil
+		}
+		return "", err
+	}
+	if name := strings.TrimSpace(user.Nickname); name != "" {
+		return name, nil
+	}
+	if name := strings.TrimSpace(user.Username); name != "" {
+		return name, nil
+	}
+	return "直播竞拍", nil
+}
+
 func (s *Store) FindOrderByID(ctx context.Context, orderID string) (*auction.Order, error) {
 	if orderID == "" {
 		return nil, errors.New("order id is required")
 	}
-	var model AuctionOrderModel
-	if err := s.db.WithContext(ctx).Where("id = ?", orderID).First(&model).Error; err != nil {
+	var model UserOrderModel
+	if err := s.db.WithContext(ctx).
+		Where("id = ? AND source = ?", orderID, userOrderSourceAuction).
+		First(&model).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, apperr.ErrNotFound
 		}
 		return nil, err
 	}
-	return modelToOrder(&model)
+	items, err := s.findUserOrderItems(ctx, model.ID)
+	if err != nil {
+		return nil, err
+	}
+	return userModelToAuctionOrderWithItem(&model, items)
 }
 
 func (s *Store) FindOrderByLot(ctx context.Context, lotID string) (*auction.Order, bool, error) {
 	if lotID == "" {
 		return nil, false, errors.New("lot id is required")
 	}
-	var model AuctionOrderModel
-	if err := s.db.WithContext(ctx).Where("lot_id = ?", lotID).First(&model).Error; err != nil {
+	var item UserOrderItemModel
+	if err := s.db.WithContext(ctx).
+		Where("source = ? AND lot_id = ?", userOrderSourceAuction, lotID).
+		First(&item).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, false, nil
 		}
 		return nil, false, err
 	}
-	order, err := modelToOrder(&model)
+	order, err := s.FindOrderByID(ctx, item.OrderID)
 	return order, err == nil, err
 }
 
@@ -101,52 +149,48 @@ func (s *Store) ListOrdersByBuyer(ctx context.Context, buyerUserID string) ([]au
 	if buyerUserID == "" {
 		return nil, errors.New("buyer user id is required")
 	}
-	var models []AuctionOrderModel
+	var models []UserOrderModel
 	if err := s.db.WithContext(ctx).
-		Where("buyer_user_id = ?", buyerUserID).
+		Where("source = ? AND user_id = ?", userOrderSourceAuction, buyerUserID).
 		Order("created_at_unix_ms DESC").
 		Order("id ASC").
 		Find(&models).Error; err != nil {
 		return nil, err
 	}
-	orders := make([]auction.Order, 0, len(models))
-	for i := range models {
-		order, err := modelToOrder(&models[i])
-		if err != nil {
-			return nil, err
-		}
-		orders = append(orders, *order)
-	}
-	return orders, nil
+	return s.auctionOrdersFromUserModels(ctx, models)
 }
 
 func (s *Store) ListOrders(ctx context.Context, query auction.OrderQuery) (auction.OrderList, error) {
 	query.Page, query.PageSize = auction.NormalizePagination(query.Page, query.PageSize)
-	db := s.db.WithContext(ctx).Model(&AuctionOrderModel{})
+	db := s.db.WithContext(ctx).Model(&UserOrderModel{}).Where("source = ?", userOrderSourceAuction)
 	if query.MainAccountID != "" {
 		db = db.Where("main_account_id = ?", query.MainAccountID)
 	}
 	if query.BuyerUserID != "" {
-		db = db.Where("buyer_user_id = ?", query.BuyerUserID)
+		db = db.Where("user_id = ?", query.BuyerUserID)
 	}
 	if query.Status != "" {
-		db = db.Where("status = ?", string(query.Status))
+		db = db.Where("status = ?", string(auctionOrderStatusToUser(query.Status)))
 	}
 	if query.PaymentStatus != "" {
-		db = db.Where("payment_status = ?", string(query.PaymentStatus))
+		db = db.Where("payment_status = ?", string(auctionPaymentStatusToUser(query.PaymentStatus)))
 	}
 	if query.LotID != "" {
-		db = db.Where("lot_id = ?", query.LotID)
+		db = db.Where(
+			"EXISTS (SELECT 1 FROM user_order_items WHERE user_order_items.order_id = user_orders.id AND user_order_items.source = ? AND user_order_items.lot_id = ?)",
+			userOrderSourceAuction,
+			query.LotID,
+		)
 	}
 	if buyer := strings.TrimSpace(query.Buyer); buyer != "" {
 		like := "%" + buyer + "%"
-		db = db.Where("buyer_user_id LIKE ? OR buyer_nickname LIKE ?", like, like)
+		db = db.Where("user_id LIKE ? OR nickname LIKE ?", like, like)
 	}
 	var total int64
 	if err := db.Count(&total).Error; err != nil {
 		return auction.OrderList{}, err
 	}
-	var models []AuctionOrderModel
+	var models []UserOrderModel
 	if err := db.
 		Order("created_at_unix_ms DESC").
 		Order("id ASC").
@@ -155,15 +199,15 @@ func (s *Store) ListOrders(ctx context.Context, query auction.OrderQuery) (aucti
 		Find(&models).Error; err != nil {
 		return auction.OrderList{}, err
 	}
-	orders := make([]auction.OrderSummary, 0, len(models))
-	for i := range models {
-		order, err := modelToOrder(&models[i])
-		if err != nil {
-			return auction.OrderList{}, err
-		}
-		orders = append(orders, order.Summary())
+	orders, err := s.auctionOrdersFromUserModels(ctx, models)
+	if err != nil {
+		return auction.OrderList{}, err
 	}
-	return auction.OrderList{Orders: orders, Total: total, Page: query.Page, PageSize: query.PageSize}, nil
+	summaries := make([]auction.OrderSummary, 0, len(orders))
+	for _, order := range orders {
+		summaries = append(summaries, order.Summary())
+	}
+	return auction.OrderList{Orders: summaries, Total: total, Page: query.Page, PageSize: query.PageSize}, nil
 }
 
 func (s *Store) FindPaymentByIdempotencyKey(ctx context.Context, orderID, key string) (*auction.Payment, bool, error) {
@@ -173,16 +217,16 @@ func (s *Store) FindPaymentByIdempotencyKey(ctx context.Context, orderID, key st
 	if key == "" {
 		return nil, false, errors.New("payment idempotency key is required")
 	}
-	var model AuctionPaymentModel
+	var model UserOrderPaymentModel
 	if err := s.db.WithContext(ctx).
-		Where("order_id = ? AND idempotency_key = ?", orderID, key).
+		Where("source = ? AND order_id = ? AND idempotency_key = ?", userOrderSourceAuction, orderID, key).
 		First(&model).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, false, nil
 		}
 		return nil, false, err
 	}
-	payment, err := modelToPayment(&model)
+	payment, err := userModelToAuctionPayment(&model)
 	return payment, err == nil, err
 }
 
@@ -190,11 +234,11 @@ func (s *Store) CommitPaymentSuccess(ctx context.Context, payment auction.Paymen
 	if expectedOrderVersion <= 0 {
 		return errors.New("order expected version is required")
 	}
-	paymentModel, err := paymentToModel(payment)
+	paymentModel, err := auctionPaymentToUserModel(payment)
 	if err != nil {
 		return err
 	}
-	orderModel, err := orderToModel(order)
+	orderModel, _, err := auctionOrderToUserModels(order)
 	if err != nil {
 		return err
 	}
@@ -202,11 +246,19 @@ func (s *Store) CommitPaymentSuccess(ctx context.Context, payment auction.Paymen
 		if err := tx.Create(paymentModel).Error; err != nil {
 			return err
 		}
-		result := tx.Model(&AuctionOrderModel{}).
-			Where("id = ? AND version = ?", order.ID, expectedOrderVersion).
-			Select("*").
-			Omit("created_at").
-			Updates(orderModel)
+		updates := map[string]any{
+			"status":                  orderModel.Status,
+			"payment_status":          orderModel.PaymentStatus,
+			"payment_id":              orderModel.PaymentID,
+			"payment_idempotency_key": payment.IdempotencyKey,
+			"paid_at_unix_ms":         orderModel.PaidAtUnixMs,
+			"updated_at_unix_ms":      orderModel.UpdatedAtUnixMs,
+			"version":                 orderModel.Version,
+			"source_payload":          orderModel.SourcePayload,
+		}
+		result := tx.Model(&UserOrderModel{}).
+			Where("id = ? AND source = ? AND version = ?", order.ID, userOrderSourceAuction, expectedOrderVersion).
+			Updates(updates)
 		if result.Error != nil {
 			return result.Error
 		}
@@ -220,104 +272,72 @@ func (s *Store) CommitPaymentSuccess(ctx context.Context, payment auction.Paymen
 	return s.streamEvents(ctx, events)
 }
 
-func orderToModel(order auction.Order) (*AuctionOrderModel, error) {
-	payload, err := json.Marshal(order)
+func (s *Store) findUserOrderItems(ctx context.Context, orderID string) ([]UserOrderItemModel, error) {
+	var items []UserOrderItemModel
+	if err := s.db.WithContext(ctx).
+		Where("order_id = ?", orderID).
+		Order("id ASC").
+		Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (s *Store) auctionOrdersFromUserModels(ctx context.Context, models []UserOrderModel) ([]auction.Order, error) {
+	if len(models) == 0 {
+		return []auction.Order{}, nil
+	}
+	orderIDs := make([]string, 0, len(models))
+	for _, model := range models {
+		orderIDs = append(orderIDs, model.ID)
+	}
+	itemsByOrder, err := s.userOrderItemsByOrderID(ctx, orderIDs)
 	if err != nil {
 		return nil, err
 	}
-	return &AuctionOrderModel{
-		ID:              order.ID,
-		MainAccountID:   order.MainAccountID,
-		LotID:           order.LotID,
-		RoomID:          order.RoomID,
-		LotTitle:        order.LotTitle,
-		LotImageURL:     order.LotImageURL,
-		BuyerUserID:     order.BuyerUserID,
-		BuyerNickname:   order.BuyerNickname,
-		Status:          string(order.Status),
-		PaymentStatus:   string(order.PaymentStatus),
-		PaymentID:       order.PaymentID,
-		Amount:          order.Amount,
-		Currency:        order.Currency,
-		CreatedAtUnixMs: order.CreatedAtUnixMs,
-		UpdatedAtUnixMs: order.UpdatedAtUnixMs,
-		ExpiresAtUnixMs: order.ExpiresAtUnixMs,
-		PaidAtUnixMs:    order.PaidAtUnixMs,
-		Version:         order.Version,
-		Payload:         string(payload),
-	}, nil
+	orders := make([]auction.Order, 0, len(models))
+	for i := range models {
+		order, err := userModelToAuctionOrderWithItem(&models[i], itemsByOrder[models[i].ID])
+		if err != nil {
+			return nil, err
+		}
+		orders = append(orders, *order)
+	}
+	return orders, nil
 }
 
-func modelToOrder(model *AuctionOrderModel) (*auction.Order, error) {
-	var order auction.Order
-	if err := json.Unmarshal([]byte(model.Payload), &order); err != nil {
+func (s *Store) userOrderItemsByOrderID(ctx context.Context, orderIDs []string) (map[string][]UserOrderItemModel, error) {
+	itemsByOrder := make(map[string][]UserOrderItemModel, len(orderIDs))
+	if len(orderIDs) == 0 {
+		return itemsByOrder, nil
+	}
+	var itemModels []UserOrderItemModel
+	if err := s.db.WithContext(ctx).
+		Where("order_id IN ?", orderIDs).
+		Order("id ASC").
+		Find(&itemModels).Error; err != nil {
 		return nil, err
 	}
-	order.ID = model.ID
-	order.MainAccountID = model.MainAccountID
-	order.LotID = model.LotID
-	order.RoomID = model.RoomID
-	order.LotTitle = model.LotTitle
-	order.LotImageURL = model.LotImageURL
-	order.BuyerUserID = model.BuyerUserID
-	order.BuyerNickname = model.BuyerNickname
-	order.Status = auction.OrderStatus(model.Status)
-	order.PaymentStatus = auction.PaymentStatus(model.PaymentStatus)
-	order.PaymentID = model.PaymentID
-	order.Amount = model.Amount
-	order.Currency = model.Currency
-	order.CreatedAtUnixMs = model.CreatedAtUnixMs
-	order.UpdatedAtUnixMs = model.UpdatedAtUnixMs
-	order.ExpiresAtUnixMs = model.ExpiresAtUnixMs
-	order.PaidAtUnixMs = model.PaidAtUnixMs
-	order.Version = model.Version
-	return &order, nil
+	for _, item := range itemModels {
+		itemsByOrder[item.OrderID] = append(itemsByOrder[item.OrderID], item)
+	}
+	return itemsByOrder, nil
 }
 
-func paymentToModel(payment auction.Payment) (*AuctionPaymentModel, error) {
-	payload, err := json.Marshal(payment)
-	if err != nil {
-		return nil, err
+func createUserOrderWithItemsIgnoringDuplicates(ctx context.Context, tx *gorm.DB, orderModel *UserOrderModel, itemModels ...*UserOrderItemModel) error {
+	if orderModel == nil {
+		return nil
 	}
-	var idem *string
-	if payment.IdempotencyKey != "" {
-		idem = &payment.IdempotencyKey
+	if err := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(orderModel).Error; err != nil {
+		return err
 	}
-	return &AuctionPaymentModel{
-		ID:              payment.ID,
-		MainAccountID:   payment.MainAccountID,
-		OrderID:         payment.OrderID,
-		LotID:           payment.LotID,
-		BuyerUserID:     payment.BuyerUserID,
-		Status:          string(payment.Status),
-		Amount:          payment.Amount,
-		Currency:        payment.Currency,
-		IdempotencyKey:  idem,
-		CreatedAtUnixMs: payment.CreatedAtUnixMs,
-		UpdatedAtUnixMs: payment.UpdatedAtUnixMs,
-		SucceededAtMs:   payment.SucceededAtMs,
-		Payload:         string(payload),
-	}, nil
-}
-
-func modelToPayment(model *AuctionPaymentModel) (*auction.Payment, error) {
-	var payment auction.Payment
-	if err := json.Unmarshal([]byte(model.Payload), &payment); err != nil {
-		return nil, err
+	for _, itemModel := range itemModels {
+		if itemModel == nil {
+			continue
+		}
+		if err := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(itemModel).Error; err != nil {
+			return err
+		}
 	}
-	payment.ID = model.ID
-	payment.MainAccountID = model.MainAccountID
-	payment.OrderID = model.OrderID
-	payment.LotID = model.LotID
-	payment.BuyerUserID = model.BuyerUserID
-	payment.Status = auction.PaymentStatus(model.Status)
-	payment.Amount = model.Amount
-	payment.Currency = model.Currency
-	if model.IdempotencyKey != nil {
-		payment.IdempotencyKey = *model.IdempotencyKey
-	}
-	payment.CreatedAtUnixMs = model.CreatedAtUnixMs
-	payment.UpdatedAtUnixMs = model.UpdatedAtUnixMs
-	payment.SucceededAtMs = model.SucceededAtMs
-	return &payment, nil
+	return nil
 }
