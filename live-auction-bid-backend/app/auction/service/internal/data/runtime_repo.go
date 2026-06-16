@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
+	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
 )
@@ -41,24 +42,25 @@ local metric_shard_lag_key = KEYS[12]
 local bid_id = ARGV[1]
 local user_id = ARGV[2]
 local nickname = ARGV[3]
-local amount = tonumber(ARGV[4])
-local currency = ARGV[5]
-local now_ms = tonumber(ARGV[6])
-local idem_ttl = tonumber(ARGV[7])
-local recent_limit = tonumber(ARGV[8])
-local status_live = tonumber(ARGV[9])
-local status_extended = tonumber(ARGV[10])
-local status_settled = tonumber(ARGV[11])
-local stage_bidding = tonumber(ARGV[12])
-local stage_duel = tonumber(ARGV[13])
-local stage_settle = tonumber(ARGV[14])
-local runtime_event_id = ARGV[15]
-local idempotency_key = ARGV[16]
-local order_id = ARGV[17]
-local ranking_limit = tonumber(ARGV[18])
-local event_shard = ARGV[19]
-local projection_pending_limit = tonumber(ARGV[20] or '0')
-local projection_lag_limit_ms = tonumber(ARGV[21] or '0')
+local avatar_url = ARGV[4]
+local amount = tonumber(ARGV[5])
+local currency = ARGV[6]
+local now_ms = tonumber(ARGV[7])
+local idem_ttl = tonumber(ARGV[8])
+local recent_limit = tonumber(ARGV[9])
+local status_live = tonumber(ARGV[10])
+local status_extended = tonumber(ARGV[11])
+local status_settled = tonumber(ARGV[12])
+local stage_bidding = tonumber(ARGV[13])
+local stage_duel = tonumber(ARGV[14])
+local stage_settle = tonumber(ARGV[15])
+local runtime_event_id = ARGV[16]
+local idempotency_key = ARGV[17]
+local order_id = ARGV[18]
+local ranking_limit = tonumber(ARGV[19])
+local event_shard = ARGV[20]
+local projection_pending_limit = tonumber(ARGV[21] or '0')
+local projection_lag_limit_ms = tonumber(ARGV[22] or '0')
 
 local replay = redis.call('GET', idem_key)
 if replay then
@@ -195,6 +197,7 @@ local bid = {
   lot_id = lot_id,
   user_id = user_id,
   nickname = nickname,
+  avatar_url = avatar_url,
   amount = amount,
   currency = currency,
   created_at_unix_ms = now_ms
@@ -202,6 +205,7 @@ local bid = {
 local meta = {
   user_id = user_id,
   nickname = nickname,
+  avatar_url = avatar_url,
   amount = amount,
   currency = currency,
   bid_at_unix_ms = now_ms,
@@ -303,6 +307,7 @@ for i = 1, #ranking_rows, 2 do
     rank = rank,
     user_id = ranking_user_id,
     nickname = ranking_meta.nickname or '',
+    avatar_url = ranking_meta.avatar_url or '',
     amount = ranking_amount,
     currency = ranking_meta.currency or currency,
     bid_at_unix_ms = tonumber(ranking_meta.bid_at_unix_ms or '0'),
@@ -392,6 +397,7 @@ type runtimeBidJSON struct {
 	LotID           string `json:"lot_id"`
 	UserID          string `json:"user_id"`
 	Nickname        string `json:"nickname"`
+	AvatarURL       string `json:"avatar_url"`
 	Amount          int64  `json:"amount"`
 	Currency        string `json:"currency"`
 	CreatedAtUnixMs int64  `json:"created_at_unix_ms"`
@@ -400,6 +406,7 @@ type runtimeBidJSON struct {
 type runtimeRankMetaJSON struct {
 	UserID      string `json:"user_id"`
 	Nickname    string `json:"nickname"`
+	AvatarURL   string `json:"avatar_url"`
 	Amount      int64  `json:"amount"`
 	Currency    string `json:"currency"`
 	BidAtUnixMs int64  `json:"bid_at_unix_ms"`
@@ -410,6 +417,7 @@ type runtimeRankingItemJSON struct {
 	Rank        int32  `json:"rank"`
 	UserID      string `json:"user_id"`
 	Nickname    string `json:"nickname"`
+	AvatarURL   string `json:"avatar_url"`
 	Amount      int64  `json:"amount"`
 	Currency    string `json:"currency"`
 	BidAtUnixMs int64  `json:"bid_at_unix_ms"`
@@ -557,7 +565,7 @@ func (s *Store) CancelLotRuntime(ctx context.Context, lot *v1.Lot, reason, opera
 	return updated, ranking, nil
 }
 
-func (s *Store) PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceBidRequest, bidderID, nickname, bidID string, nowMs int64) (auction.RuntimeBidResult, error) {
+func (s *Store) PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceBidRequest, bidderID, nickname, avatarURL, bidID string, nowMs int64) (auction.RuntimeBidResult, error) {
 	if lot == nil {
 		return auction.RuntimeBidResult{}, fmt.Errorf("%w: lot is required", apperr.ErrInvalidArgument)
 	}
@@ -596,6 +604,7 @@ func (s *Store) PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceB
 		bidID,
 		bidderID,
 		nickname,
+		avatarURL,
 		strconv.FormatInt(req.GetAmount().GetAmount(), 10),
 		req.GetAmount().GetCurrency(),
 		strconv.FormatInt(nowMs, 10),
@@ -731,10 +740,14 @@ func (s *Store) RankingRuntime(ctx context.Context, lotID string, limit int64) (
 		if text, ok := rawMeta.(string); ok && text != "" {
 			_ = json.Unmarshal([]byte(text), &meta)
 		}
+		if meta.AvatarURL == "" {
+			meta.AvatarURL = userbiz.AvatarURLForUserID(meta.UserID)
+		}
 		ranking = append(ranking, &v1.RankingItem{
 			Rank:        int32(i + 1),
 			UserId:      meta.UserID,
 			Nickname:    meta.Nickname,
+			AvatarUrl:   meta.AvatarURL,
 			Amount:      &v1.Money{Amount: meta.Amount, Currency: meta.Currency},
 			BidAtUnixMs: meta.BidAtUnixMs,
 		})
@@ -838,6 +851,7 @@ func (s *Store) writeLotRuntime(ctx context.Context, lot *v1.Lot, bids []v1.Bid)
 		meta := runtimeRankMetaJSON{
 			UserID:      item.UserId,
 			Nickname:    item.Nickname,
+			AvatarURL:   item.AvatarUrl,
 			Amount:      item.GetAmount().GetAmount(),
 			Currency:    item.GetAmount().GetCurrency(),
 			BidAtUnixMs: item.BidAtUnixMs,
@@ -1084,6 +1098,7 @@ func bidToRuntimeJSON(bid v1.Bid) runtimeBidJSON {
 		LotID:           bid.LotId,
 		UserID:          bid.UserId,
 		Nickname:        bid.Nickname,
+		AvatarURL:       bid.AvatarUrl,
 		Amount:          bid.GetAmount().GetAmount(),
 		Currency:        bid.GetAmount().GetCurrency(),
 		CreatedAtUnixMs: bid.CreatedAtUnixMs,
@@ -1091,11 +1106,16 @@ func bidToRuntimeJSON(bid v1.Bid) runtimeBidJSON {
 }
 
 func runtimeJSONToBid(payload runtimeBidJSON) *v1.Bid {
+	avatarURL := payload.AvatarURL
+	if avatarURL == "" {
+		avatarURL = userbiz.AvatarURLForUserID(payload.UserID)
+	}
 	return &v1.Bid{
 		Id:              payload.ID,
 		LotId:           payload.LotID,
 		UserId:          payload.UserID,
 		Nickname:        payload.Nickname,
+		AvatarUrl:       avatarURL,
 		Amount:          &v1.Money{Amount: payload.Amount, Currency: payload.Currency},
 		CreatedAtUnixMs: payload.CreatedAtUnixMs,
 	}
@@ -1104,10 +1124,15 @@ func runtimeJSONToBid(payload runtimeBidJSON) *v1.Bid {
 func runtimeJSONToRanking(items []runtimeRankingItemJSON) []*v1.RankingItem {
 	ranking := make([]*v1.RankingItem, 0, len(items))
 	for _, item := range items {
+		avatarURL := item.AvatarURL
+		if avatarURL == "" {
+			avatarURL = userbiz.AvatarURLForUserID(item.UserID)
+		}
 		ranking = append(ranking, &v1.RankingItem{
 			Rank:        item.Rank,
 			UserId:      item.UserID,
 			Nickname:    item.Nickname,
+			AvatarUrl:   avatarURL,
 			Amount:      &v1.Money{Amount: item.Amount, Currency: item.Currency},
 			BidAtUnixMs: item.BidAtUnixMs,
 		})

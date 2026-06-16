@@ -310,6 +310,7 @@ func (s *Store) CreateOrder(ctx context.Context, user shop.UserRef, req shop.Cre
 			CreatedAtUnixMs:         nowMs,
 			UpdatedAtUnixMs:         nowMs,
 			Version:                 1,
+			SourcePayload:           "{}",
 		}
 		item := UserOrderItemModel{
 			ID:           "shop_item_" + randomHex(10),
@@ -420,6 +421,7 @@ func (s *Store) MockPayOrder(ctx context.Context, userID, orderID string, req sh
 				CreatedAtUnixMs: order.PaidAtUnixMs,
 				UpdatedAtUnixMs: order.PaidAtUnixMs,
 				SucceededAtMs:   order.PaidAtUnixMs,
+				SourcePayload:   "{}",
 			}
 			result = shop.MockPayResult{Order: shopOrderFromUserModels(order, items), Payment: shopPaymentFromUserModel(payment), Paid: true}
 			return nil
@@ -448,6 +450,7 @@ func (s *Store) MockPayOrder(ctx context.Context, userID, orderID string, req sh
 			IdempotencyKey:  req.IdempotencyKey,
 			CreatedAtUnixMs: nowMs,
 			SucceededAtMs:   nowMs,
+			SourcePayload:   "{}",
 		}
 		if err := tx.Create(&payment).Error; err != nil {
 			return err

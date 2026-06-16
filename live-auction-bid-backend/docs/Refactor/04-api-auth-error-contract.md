@@ -62,15 +62,15 @@ PATH=/home/ye/go/bin:$PATH make api PROTOC=/tmp/openclaw-tools/protoc/bin/protoc
 
 ## HTTP DTO 保留边界
 
-以下 P2 DTO 暂时明确保留为 HTTP DTO，不伪装成已生成 proto contract：
+业务 JSON API 已收敛到 `api/auction/service/v1/*.proto`：
 
-- `OrderSummary`、`OrderList`
-- `PaymentSummary`、`PaymentResult`
-- `BidRecord`、`BidRecordList`
-- `LotResult`
-- Admin/H5 查询 request：`OrderQuery`、`LotQuery`、`BidRecordQuery`、`ListUsersQuery`
+- `auction.proto`：拍品、房间、出价、订单查询、后台拍品/订单/房间、买家 AI 推荐。
+- `user.proto`：登录注册、token、当前用户、后台团队用户管理。
+- `shop.proto`：商品、地址、保证金、商城订单、统一订单。
 
-这些 DTO 的权威 Go 定义在 `app/auction/service/internal/biz/auction/order.go`、`app/auction/service/internal/biz/user/usecase.go` 和 `app/auction/service/internal/server/domain_http.go`。当前选择是继续保留为 HTTP DTO，并用 `openapi/auction.openapi.json` 作为可生成合同；Admin 通过 `npm run generate:api` 生成 `src/shared/api/generated/auction.schema.ts`。如果后续迁入 `auction.proto`，必须同步更新 OpenAPI/前端生成物，不能再新增兼容层。
+`openapi/auction.openapi.json` 是跟随 proto HTTP binding 同步的前端生成合同；Admin 可通过 `npm run generate:api` 生成 `src/shared/api/generated/auction.schema.ts`。不再保留 `domain_http.go` / `order_http.go` / `shop_http.go` 的业务双路由兼容。
+
+仍保留手写的不是普通业务 JSON API：`/healthz`、`/readyz`、`/metrics`、`/workerz`、`/clusterz`、`/api/realtime/ws-ticket`、`/ws/rooms/*`、`/api/uploads/images`。
 
 ## 状态和事件合同
 

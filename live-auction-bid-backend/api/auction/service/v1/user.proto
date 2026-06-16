@@ -72,6 +72,13 @@ service UserService {
     };
   }
 
+  // 主账号查询团队子账号列表。
+  rpc ListUsers(ListUsersRequest) returns (ListUsersReply) {
+    option (google.api.http) = {
+      get: "/api/admin/users"
+    };
+  }
+
   // 主账号修改团队子账号角色；不允许改为买家或新的主账号。
   rpc AdminUpdateUserRole(AdminUpdateUserRoleRequest) returns (AdminUpdateUserRoleReply) {
     option (google.api.http) = {
@@ -114,6 +121,7 @@ message User {
   UserStatus status = 9;
   repeated string role_codes = 10;
   repeated string permission_codes = 11;
+  string avatar_url = 12;
 }
 
 message AuthTokens {
@@ -202,6 +210,22 @@ message AdminCreateUserRequest {
 
 message AdminCreateUserReply {
   User user = 1;
+  ReplyResult result = 99;
+}
+
+message ListUsersRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  string role_code = 3;
+  UserStatus status = 4;
+  string keyword = 5;
+}
+
+message ListUsersReply {
+  repeated User users = 1;
+  int64 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
   ReplyResult result = 99;
 }
 

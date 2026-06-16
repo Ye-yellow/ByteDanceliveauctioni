@@ -10,6 +10,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 	v1 "live-auction-bid/backend/api/auction/service/v1"
+	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 	"live-auction-bid/backend/app/auction/service/internal/observability"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/clock"
@@ -483,7 +484,7 @@ func (uc *AuctionUsecase) StartLot(ctx context.Context, lotID, mainAccountID str
 	return proto.Clone(lot).(*v1.Lot), nil
 }
 
-func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest, bidderID, nickname string) (*v1.Lot, *v1.Bid, []*v1.RankingItem, error) {
+func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest, bidderID, nickname string, avatarURLs ...string) (*v1.Lot, *v1.Bid, []*v1.RankingItem, error) {
 	if req == nil {
 		return nil, nil, nil, errors.New("place bid request is required")
 	}
@@ -502,6 +503,7 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest,
 	if req.GetIdempotencyKey() == "" {
 		return nil, nil, nil, fmt.Errorf("%w: bid idempotency key is required", apperr.ErrInvalidArgument)
 	}
+	avatarURL := bidderAvatarURL(bidderID, avatarURLs...)
 	depositLot, err := uc.lots.FindCoreByID(ctx, req.GetLotId())
 	if err != nil {
 		return nil, nil, nil, err
@@ -510,7 +512,7 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest,
 		return depositLot, nil, nil, err
 	}
 	if uc.runtime != nil && uc.projector != nil {
-		return uc.placeBidRuntime(ctx, req, bidderID, nickname)
+		return uc.placeBidRuntime(ctx, req, bidderID, nickname, avatarURL)
 	}
 
 	for attempt := 0; attempt < fallbackBidMaxRetries; attempt++ {
@@ -534,6 +536,7 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest,
 			LotId:           lot.Id,
 			UserId:          bidderID,
 			Nickname:        nickname,
+			AvatarUrl:       avatarURL,
 			Amount:          req.GetAmount(),
 			CreatedAtUnixMs: clock.NowMs(),
 		}
@@ -653,7 +656,7 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest,
 	return nil, nil, nil, apperr.ErrLotVersionConflict
 }
 
-func (uc *AuctionUsecase) placeBidRuntime(ctx context.Context, req *v1.PlaceBidRequest, bidderID, nickname string) (*v1.Lot, *v1.Bid, []*v1.RankingItem, error) {
+func (uc *AuctionUsecase) placeBidRuntime(ctx context.Context, req *v1.PlaceBidRequest, bidderID, nickname, avatarURL string) (*v1.Lot, *v1.Bid, []*v1.RankingItem, error) {
 	nowMs := clock.NowMs()
 	var baseLot *v1.Lot
 	if uc.bidDBGuardMode == bidDBGuardAlways {
@@ -671,7 +674,7 @@ func (uc *AuctionUsecase) placeBidRuntime(ctx context.Context, req *v1.PlaceBidR
 	}
 	lot := &v1.Lot{Id: req.GetLotId()}
 	bidID := idgen.New("bid")
-	result, err := uc.runtime.PlaceBidRuntime(ctx, lot, req, bidderID, nickname, bidID, nowMs)
+	result, err := uc.runtime.PlaceBidRuntime(ctx, lot, req, bidderID, nickname, avatarURL, bidID, nowMs)
 	if err != nil {
 		if uc.bidDBGuardMode != bidDBGuardAlways && isRuntimeProjectionPending(err) {
 			guardLot, guardErr, checked := uc.readBidGuardLot(ctx, req.GetLotId())
@@ -684,7 +687,7 @@ func (uc *AuctionUsecase) placeBidRuntime(ctx context.Context, req *v1.PlaceBidR
 					err := closedLotBidRejectError(guardLot)
 					return proto.Clone(guardLot).(*v1.Lot), nil, nil, err
 				}
-				result, err = uc.runtime.PlaceBidRuntime(ctx, proto.Clone(guardLot).(*v1.Lot), req, bidderID, nickname, bidID, nowMs)
+				result, err = uc.runtime.PlaceBidRuntime(ctx, proto.Clone(guardLot).(*v1.Lot), req, bidderID, nickname, avatarURL, bidID, nowMs)
 			}
 		}
 	}
@@ -692,6 +695,12 @@ func (uc *AuctionUsecase) placeBidRuntime(ctx context.Context, req *v1.PlaceBidR
 		rejectLot := lot
 		if reject, ok := RuntimeBidRejectFromError(err); ok {
 			rejectLot = reject.Lot(req.GetLotId(), req.GetAmount())
+			if reject.Code == string(apperr.CodeBidNotLive) {
+				guardLot, guardErr, checked := uc.readBidGuardLot(ctx, req.GetLotId())
+				if checked && guardErr == nil && !IsAuctionOpenStatus(guardLot.Status) {
+					return proto.Clone(guardLot).(*v1.Lot), nil, nil, closedLotBidRejectError(guardLot)
+				}
+			}
 		}
 		return proto.Clone(rejectLot).(*v1.Lot), nil, nil, err
 	}
@@ -1374,6 +1383,15 @@ func (uc *AuctionUsecase) ensureDepositHeld(ctx context.Context, lot *v1.Lot, bi
 	return nil
 }
 
+func bidderAvatarURL(userID string, avatarURLs ...string) string {
+	for _, avatarURL := range avatarURLs {
+		if trimmed := strings.TrimSpace(avatarURL); trimmed != "" {
+			return trimmed
+		}
+	}
+	return userbiz.AvatarURLForUserID(userID)
+}
+
 func (uc *AuctionUsecase) MockPayOrder(ctx context.Context, buyerUserID, orderID string, req MockPayRequest) (*PaymentResult, error) {
 	if buyerUserID == "" {
 		return nil, fmt.Errorf("%w: buyer user id is required", apperr.ErrInvalidArgument)
@@ -1623,11 +1641,13 @@ func (uc *AuctionUsecase) Snapshot(ctx context.Context, roomID string) (*v1.Room
 	}
 
 	snapshot := &v1.RoomSnapshot{
-		RoomId:           roomID,
-		RoomName:         room.Name,
-		AnchorName:       room.Name,
-		PlaybookStage:    v1.PlaybookStage_PLAYBOOK_STAGE_WARM_UP,
-		ServerTimeUnixMs: clock.NowMs(),
+		RoomId:              roomID,
+		RoomName:            room.Name,
+		AnchorName:          room.Name,
+		LiveSourceUrl:       room.LiveSourceURL,
+		LiveStartedAtUnixMs: room.LiveStartedAtUnixMs,
+		PlaybookStage:       v1.PlaybookStage_PLAYBOOK_STAGE_WARM_UP,
+		ServerTimeUnixMs:    clock.NowMs(),
 	}
 	if current == nil {
 		return snapshot, nil
@@ -1639,6 +1659,8 @@ func (uc *AuctionUsecase) Snapshot(ctx context.Context, roomID string) (*v1.Room
 		}
 		runtimeSnapshot.RoomName = room.Name
 		runtimeSnapshot.AnchorName = room.Name
+		runtimeSnapshot.LiveSourceUrl = room.LiveSourceURL
+		runtimeSnapshot.LiveStartedAtUnixMs = room.LiveStartedAtUnixMs
 		return runtimeSnapshot, nil
 	}
 

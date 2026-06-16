@@ -84,7 +84,7 @@ export async function createDeliveryAddress(input: DeliveryAddressInput): Promis
     method: 'POST',
     auth: 'required',
     operation: 'createDeliveryAddress',
-    body: payloadFromInput(input),
+    body: { address: payloadFromInput(input) },
   });
   const address = normalizeAddress(reply.address);
   if (!address) throw new Error('地址保存失败');
@@ -97,7 +97,7 @@ export async function updateDeliveryAddress(id: string, input: DeliveryAddressIn
     method: 'PUT',
     auth: 'required',
     operation: 'updateDeliveryAddress',
-    body: payloadFromInput(input),
+    body: { address: payloadFromInput(input) },
   });
   const address = normalizeAddress(reply.address);
   if (!address) throw new Error('地址保存失败');

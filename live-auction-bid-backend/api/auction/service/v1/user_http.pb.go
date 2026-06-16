@@ -24,6 +24,7 @@ const OperationUserServiceAdminResetUserPassword = "/auction.service.v1.UserServ
 const OperationUserServiceAdminUpdateUserRole = "/auction.service.v1.UserService/AdminUpdateUserRole"
 const OperationUserServiceAdminUpdateUserStatus = "/auction.service.v1.UserService/AdminUpdateUserStatus"
 const OperationUserServiceGetMe = "/auction.service.v1.UserService/GetMe"
+const OperationUserServiceListUsers = "/auction.service.v1.UserService/ListUsers"
 const OperationUserServiceLogin = "/auction.service.v1.UserService/Login"
 const OperationUserServiceLogout = "/auction.service.v1.UserService/Logout"
 const OperationUserServiceRefreshToken = "/auction.service.v1.UserService/RefreshToken"
@@ -42,6 +43,8 @@ type UserServiceHTTPServer interface {
 	AdminUpdateUserStatus(context.Context, *AdminUpdateUserStatusRequest) (*AdminUpdateUserStatusReply, error)
 	// GetMe 查看当前登录用户。
 	GetMe(context.Context, *GetMeRequest) (*GetMeReply, error)
+	// ListUsers 主账号查询团队子账号列表。
+	ListUsers(context.Context, *ListUsersRequest) (*ListUsersReply, error)
 	// Login 用户名密码登录。
 	Login(context.Context, *LoginRequest) (*LoginReply, error)
 	// Logout 登出当前 refresh session。
@@ -66,6 +69,7 @@ func RegisterUserServiceHTTPServer(s *http.Server, srv UserServiceHTTPServer) {
 	r.POST("/api/users/logout", _UserService_Logout0_HTTP_Handler(srv))
 	r.GET("/api/users/me", _UserService_GetMe0_HTTP_Handler(srv))
 	r.POST("/api/admin/users", _UserService_AdminCreateUser0_HTTP_Handler(srv))
+	r.GET("/api/admin/users", _UserService_ListUsers0_HTTP_Handler(srv))
 	r.POST("/api/admin/users/{user_id}/role", _UserService_AdminUpdateUserRole0_HTTP_Handler(srv))
 	r.POST("/api/admin/users/{user_id}/status", _UserService_AdminUpdateUserStatus0_HTTP_Handler(srv))
 	r.POST("/api/admin/users/{user_id}/reset-password", _UserService_AdminResetUserPassword0_HTTP_Handler(srv))
@@ -244,6 +248,25 @@ func _UserService_AdminCreateUser0_HTTP_Handler(srv UserServiceHTTPServer) func(
 	}
 }
 
+func _UserService_ListUsers0_HTTP_Handler(srv UserServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListUsersRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationUserServiceListUsers)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListUsers(ctx, req.(*ListUsersRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListUsersReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _UserService_AdminUpdateUserRole0_HTTP_Handler(srv UserServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in AdminUpdateUserRoleRequest
@@ -330,6 +353,8 @@ type UserServiceHTTPClient interface {
 	AdminUpdateUserStatus(ctx context.Context, req *AdminUpdateUserStatusRequest, opts ...http.CallOption) (rsp *AdminUpdateUserStatusReply, err error)
 	// GetMe 查看当前登录用户。
 	GetMe(ctx context.Context, req *GetMeRequest, opts ...http.CallOption) (rsp *GetMeReply, err error)
+	// ListUsers 主账号查询团队子账号列表。
+	ListUsers(ctx context.Context, req *ListUsersRequest, opts ...http.CallOption) (rsp *ListUsersReply, err error)
 	// Login 用户名密码登录。
 	Login(ctx context.Context, req *LoginRequest, opts ...http.CallOption) (rsp *LoginReply, err error)
 	// Logout 登出当前 refresh session。
@@ -414,6 +439,20 @@ func (c *UserServiceHTTPClientImpl) GetMe(ctx context.Context, in *GetMeRequest,
 	pattern := "/api/users/me"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationUserServiceGetMe))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListUsers 主账号查询团队子账号列表。
+func (c *UserServiceHTTPClientImpl) ListUsers(ctx context.Context, in *ListUsersRequest, opts ...http.CallOption) (*ListUsersReply, error) {
+	var out ListUsersReply
+	pattern := "/api/admin/users"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationUserServiceListUsers))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

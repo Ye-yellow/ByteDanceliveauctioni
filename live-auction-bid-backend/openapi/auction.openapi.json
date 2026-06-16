@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Live Auction HTTP DTO API",
-    "version": "2026-05-23",
-    "description": "OpenAPI contract for P2 HTTP DTO routes that intentionally remain outside auction.proto."
+    "title": "Live Auction Proto HTTP API",
+    "version": "2026-06-16",
+    "description": "OpenAPI contract synchronized with api/auction/service/v1/*.proto HTTP bindings. Business JSON routes are implemented by Kratos protoc-gen-go-http handlers; upload, websocket, health, metrics, worker and cluster endpoints remain hand-written infrastructure routes."
   },
   "servers": [
     {
@@ -16,70 +16,222 @@
     }
   ],
   "paths": {
-    "/api/admin/orders": {
-      "get": {
-        "operationId": "listAdminOrders",
-        "summary": "List orders for backoffice roles",
-        "parameters": [
-          { "$ref": "#/components/parameters/Page" },
-          { "$ref": "#/components/parameters/PageSize" },
+    "/api/users/register": {
+      "post": {
+        "operationId": "register",
+        "summary": "Register buyer user",
+        "security": [
+          {},
           {
-            "name": "status",
-            "in": "query",
-            "schema": { "$ref": "#/components/schemas/OrderStatus" }
-          },
-          {
-            "name": "lotId",
-            "in": "query",
-            "schema": { "type": "string" }
-          },
-          {
-            "name": "buyer",
-            "in": "query",
-            "schema": { "type": "string" }
+            "bearerAuth": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Unified result envelope with paged orders.",
+            "description": "Unified result envelope.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ListOrdersResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthReply"
+                }
               }
             }
           }
         }
       }
     },
-    "/api/admin/lots": {
-      "get": {
-        "operationId": "listAdminLots",
-        "summary": "List lots for backoffice roles",
-        "parameters": [
-          { "$ref": "#/components/parameters/Page" },
-          { "$ref": "#/components/parameters/PageSize" },
+    "/api/users/login": {
+      "post": {
+        "operationId": "login",
+        "summary": "Login user",
+        "security": [
+          {},
           {
-            "name": "status",
-            "in": "query",
-            "schema": { "$ref": "#/components/schemas/LotStatus" }
-          },
-          {
-            "name": "keyword",
-            "in": "query",
-            "schema": { "type": "string" }
-          },
-          {
-            "name": "roomId",
-            "in": "query",
-            "schema": { "type": "string" }
+            "bearerAuth": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Unified result envelope with paged lots.",
+            "description": "Unified result envelope.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ListLotsResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/reset-password": {
+      "post": {
+        "operationId": "resetPassword",
+        "summary": "Reset password",
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/merchants/register": {
+      "post": {
+        "operationId": "registerMerchant",
+        "summary": "Register merchant account",
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterMerchantRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/refresh": {
+      "post": {
+        "operationId": "refreshToken",
+        "summary": "Refresh access token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "result"
+                  ],
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/ReplyResult"
+                    },
+                    "tokens": {
+                      "$ref": "#/components/schemas/AuthTokens"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/logout": {
+      "post": {
+        "operationId": "logout",
+        "summary": "Logout user session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/me": {
+      "get": {
+        "operationId": "getMe",
+        "summary": "Get current user",
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserReply"
+                }
               }
             }
           }
@@ -91,30 +243,57 @@
         "operationId": "listAdminUsers",
         "summary": "List team users for current main account",
         "parameters": [
-          { "$ref": "#/components/parameters/Page" },
-          { "$ref": "#/components/parameters/PageSize" },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
           {
             "name": "roleCode",
             "in": "query",
-            "schema": { "$ref": "#/components/schemas/TeamRoleCode" }
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           },
           {
             "name": "status",
             "in": "query",
-            "schema": { "$ref": "#/components/schemas/UserStatus" }
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/UserStatus"
+            }
           },
           {
             "name": "keyword",
             "in": "query",
-            "schema": { "type": "string" }
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Unified result envelope with paged users.",
+            "description": "Unified result envelope.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ListUsersResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ListUsersReply"
+                }
               }
             }
           }
@@ -127,16 +306,20 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/AdminCreateUserRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/AdminCreateUserRequest"
+              }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Unified result envelope with created team user.",
+            "description": "Unified result envelope.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AdminUserResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/UserReply"
+                }
               }
             }
           }
@@ -146,29 +329,35 @@
     "/api/admin/users/{user_id}/role": {
       "post": {
         "operationId": "adminUpdateUserRole",
-        "summary": "Update a scoped team user's role",
+        "summary": "Update a scoped team user role",
         "parameters": [
           {
             "name": "user_id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/AdminUpdateUserRoleRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/AdminUpdateUserRoleRequest"
+              }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Unified result envelope with updated team user.",
+            "description": "Unified result envelope.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AdminUserResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/UserReply"
+                }
               }
             }
           }
@@ -178,29 +367,35 @@
     "/api/admin/users/{user_id}/status": {
       "post": {
         "operationId": "adminUpdateUserStatus",
-        "summary": "Enable or disable a scoped team user",
+        "summary": "Update a scoped team user status",
         "parameters": [
           {
             "name": "user_id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/AdminUpdateUserStatusRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/AdminUpdateUserStatusRequest"
+              }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Unified result envelope with updated team user.",
+            "description": "Unified result envelope.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AdminUserResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/UserReply"
+                }
               }
             }
           }
@@ -210,84 +405,613 @@
     "/api/admin/users/{user_id}/reset-password": {
       "post": {
         "operationId": "adminResetUserPassword",
-        "summary": "Reset a scoped team user's password and revoke sessions",
+        "summary": "Reset a scoped team user password",
         "parameters": [
           {
             "name": "user_id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/AdminResetUserPasswordRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/AdminResetUserPasswordRequest"
+              }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Unified result envelope with updated team user.",
+            "description": "Unified result envelope.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AdminUserResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/UserReply"
+                }
               }
             }
           }
         }
       }
     },
-    "/api/me/orders": {
+    "/api/lots": {
       "get": {
-        "operationId": "listMyOrders",
-        "summary": "List orders for current buyer",
+        "operationId": "listLots",
+        "summary": "List lots in room",
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/Page" },
-          { "$ref": "#/components/parameters/PageSize" },
+          {
+            "name": "room_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "status",
             "in": "query",
-            "schema": { "$ref": "#/components/schemas/OrderStatus" }
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/LotStatus"
+            }
           },
           {
-            "name": "lotId",
+            "name": "pageSize",
             "in": "query",
-            "schema": { "type": "string" }
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageToken",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Unified result envelope with current buyer orders.",
+            "description": "Unified result envelope.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ListOrdersResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ListLotsReply"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createLot",
+        "summary": "Create lot",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLotRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LotReply"
+                }
               }
             }
           }
         }
       }
     },
-    "/api/me/bids": {
+    "/api/lots/drafts": {
+      "post": {
+        "operationId": "createLotDraft",
+        "summary": "Create draft lot",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLotRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LotReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lots/{lot_id}": {
       "get": {
-        "operationId": "listMyBids",
-        "summary": "List bid records for current buyer",
-        "parameters": [
-          { "$ref": "#/components/parameters/Page" },
-          { "$ref": "#/components/parameters/PageSize" },
+        "operationId": "getLot",
+        "summary": "Get lot",
+        "security": [
+          {},
           {
-            "name": "lotId",
-            "in": "query",
-            "schema": { "type": "string" }
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Unified result envelope with current buyer bids.",
+            "description": "Unified result envelope.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ListBidRecordsResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/LotReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lots/{lot_id}/draft": {
+      "patch": {
+        "operationId": "patchLotDraft",
+        "summary": "Patch draft lot",
+        "parameters": [
+          {
+            "name": "lot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchLotDraftRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LotReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lots/{lot_id}/queue": {
+      "post": {
+        "operationId": "queueLot",
+        "summary": "Queue draft lot",
+        "parameters": [
+          {
+            "name": "lot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueueLotRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LotReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lots/{lot_id}/start": {
+      "post": {
+        "operationId": "startLot",
+        "summary": "Start lot",
+        "parameters": [
+          {
+            "name": "lot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LotActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LotReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lots/{lot_id}/bid": {
+      "post": {
+        "operationId": "placeBid",
+        "summary": "Place bid",
+        "parameters": [
+          {
+            "name": "lot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaceBidRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceBidReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lots/{lot_id}/trust-cards/{card_id}/reveal": {
+      "post": {
+        "operationId": "revealTrustCard",
+        "summary": "Reveal trust card",
+        "parameters": [
+          {
+            "name": "lot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "card_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevealTrustCardRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LotReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lots/{lot_id}/duel": {
+      "post": {
+        "operationId": "startDuel",
+        "summary": "Start duel mode",
+        "parameters": [
+          {
+            "name": "lot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LotActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LotReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lots/{lot_id}/settle": {
+      "post": {
+        "operationId": "settleLot",
+        "summary": "Settle lot",
+        "parameters": [
+          {
+            "name": "lot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LotActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LotReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lots/{lot_id}/cancel": {
+      "post": {
+        "operationId": "cancelLot",
+        "summary": "Cancel lot",
+        "parameters": [
+          {
+            "name": "lot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LotActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LotReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/{room_id}/snapshot": {
+      "get": {
+        "operationId": "getRoomSnapshot",
+        "summary": "Get room snapshot",
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetRoomSnapshotReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/{room_id}/presence": {
+      "get": {
+        "operationId": "getRoomPresence",
+        "summary": "Get room presence",
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetRoomPresenceReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/{room_id}/events": {
+      "get": {
+        "operationId": "listRoomEvents",
+        "summary": "List room events",
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageToken",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListRoomEventsReply"
+                }
               }
             }
           }
@@ -309,15 +1033,919 @@
             "name": "lot_id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Unified result envelope with lot settlement state.",
+            "description": "Unified result envelope.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/LotResultResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/GetLotResultReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/orders": {
+      "get": {
+        "operationId": "listMyAuctionOrders",
+        "summary": "List current buyer auction orders",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lotId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListAuctionOrdersReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/bids": {
+      "get": {
+        "operationId": "listMyBids",
+        "summary": "List current buyer bid records",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "lotId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListBidRecordsReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/orders": {
+      "get": {
+        "operationId": "listAdminOrders",
+        "summary": "List auction orders for backoffice roles",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "paymentStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lotId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "buyer",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListAuctionOrdersReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/lots": {
+      "get": {
+        "operationId": "listAdminLots",
+        "summary": "List lots for backoffice roles",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/LotStatus"
+            }
+          },
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "roomId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListAdminLotPageReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/rooms": {
+      "get": {
+        "operationId": "listAdminRooms",
+        "summary": "List rooms for current main account",
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListRoomsReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms": {
+      "get": {
+        "operationId": "listPublicRooms",
+        "summary": "List public rooms",
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListRoomsReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/buyer/suggestions": {
+      "get": {
+        "operationId": "listBuyerSuggestions",
+        "summary": "List buyer AI suggestions",
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListBuyerSuggestionsReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/buyer/consult": {
+      "post": {
+        "operationId": "consultBuyer",
+        "summary": "Consult buyer AI",
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BuyerConsultRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerConsultReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/shop/products": {
+      "get": {
+        "operationId": "listShopProducts",
+        "summary": "List shop products",
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListProductsReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/shop/products/{product_id}": {
+      "get": {
+        "operationId": "getShopProduct",
+        "summary": "Get shop product",
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "product_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetProductReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/shop/addresses": {
+      "get": {
+        "operationId": "listDeliveryAddresses",
+        "summary": "List current buyer delivery addresses",
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListDeliveryAddressesReply"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createDeliveryAddress",
+        "summary": "Create delivery address",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDeliveryAddressRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryAddressReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/shop/addresses/{address_id}": {
+      "put": {
+        "operationId": "updateDeliveryAddress",
+        "summary": "Update delivery address",
+        "parameters": [
+          {
+            "name": "address_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDeliveryAddressRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryAddressReply"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteDeliveryAddress",
+        "summary": "Delete delivery address",
+        "parameters": [
+          {
+            "name": "address_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/shop/addresses/{address_id}/default": {
+      "post": {
+        "operationId": "setDefaultDeliveryAddress",
+        "summary": "Set default delivery address",
+        "parameters": [
+          {
+            "name": "address_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "addressId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListDeliveryAddressesReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lots/{lot_id}/deposit-holds/mock-pay": {
+      "post": {
+        "operationId": "createDepositHold",
+        "summary": "Create deposit hold mock payment",
+        "parameters": [
+          {
+            "name": "lot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDepositHoldRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepositHoldReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lots/{lot_id}/deposit-holds/me": {
+      "get": {
+        "operationId": "getMyDepositHold",
+        "summary": "Get current buyer deposit hold",
+        "parameters": [
+          {
+            "name": "lot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepositHoldReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/shop/orders": {
+      "post": {
+        "operationId": "createShopOrder",
+        "summary": "Create shop order",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateShopOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShopOrderReply"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listMyShopOrders",
+        "summary": "List current buyer shop orders",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListMyShopOrdersReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/shop/orders/{order_id}/mock-pay": {
+      "post": {
+        "operationId": "mockPayShopOrder",
+        "summary": "Mock-pay shop order",
+        "parameters": [
+          {
+            "name": "order_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MockPayRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShopOrderReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/me": {
+      "get": {
+        "operationId": "listMyUnifiedOrders",
+        "summary": "List current buyer unified orders",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListUnifiedOrdersReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/me/frequent-stores": {
+      "get": {
+        "operationId": "listMyFrequentStores",
+        "summary": "List current buyer frequent stores",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrequentStoresReply"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/{order_id}": {
+      "get": {
+        "operationId": "getMyUnifiedOrder",
+        "summary": "Get current buyer unified order",
+        "parameters": [
+          {
+            "name": "order_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnifiedOrderReply"
+                }
               }
             }
           }
@@ -326,30 +1954,36 @@
     },
     "/api/orders/{order_id}/mock-pay": {
       "post": {
-        "operationId": "mockPayOrder",
-        "summary": "Mock-pay a buyer order",
+        "operationId": "mockPayUnifiedOrder",
+        "summary": "Mock-pay unified order",
         "parameters": [
           {
             "name": "order_id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/MockPayRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/MockPayRequest"
+              }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Unified result envelope with payment result.",
+            "description": "Unified result envelope.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/MockPayResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/UnifiedOrderReply"
+                }
               }
             }
           }
@@ -365,37 +1999,55 @@
         "bearerFormat": "JWT"
       }
     },
-    "parameters": {
-      "Page": {
-        "name": "page",
-        "in": "query",
-        "schema": { "type": "integer", "format": "int32", "minimum": 1 }
-      },
-      "PageSize": {
-        "name": "pageSize",
-        "in": "query",
-        "schema": { "type": "integer", "format": "int32", "minimum": 1, "maximum": 100 }
-      }
-    },
     "schemas": {
+      "Int64": {
+        "oneOf": [
+          {
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
       "ReplyResult": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["code", "message"],
+        "required": [
+          "code",
+          "message"
+        ],
         "properties": {
-          "code": { "type": "integer", "format": "int32" },
-          "message": { "type": "string" },
-          "traceId": { "type": "string" },
-          "trace_id": { "type": "string" }
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
+          },
+          "trace_id": {
+            "type": "string"
+          }
         }
       },
       "Money": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["amount", "currency"],
+        "required": [
+          "amount",
+          "currency"
+        ],
         "properties": {
-          "amount": { "type": "integer", "format": "int64" },
-          "currency": { "type": "string" }
+          "amount": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "currency": {
+            "type": "string"
+          }
         }
       },
       "LotStatus": {
@@ -412,6 +2064,15 @@
           "LOT_STATUS_FAILED"
         ]
       },
+      "LotQueueStatus": {
+        "type": "string",
+        "enum": [
+          "LOT_QUEUE_STATUS_UNSPECIFIED",
+          "LOT_QUEUE_STATUS_NONE",
+          "LOT_QUEUE_STATUS_QUEUED",
+          "LOT_QUEUE_STATUS_NEXT"
+        ]
+      },
       "UserStatus": {
         "type": "string",
         "enum": [
@@ -422,263 +2083,2320 @@
       },
       "TeamRoleCode": {
         "type": "string",
-        "enum": ["anchor", "operator"]
+        "enum": [
+          "anchor",
+          "operator"
+        ]
       },
       "AuctionState": {
         "type": "string",
-        "enum": ["DRAFT", "QUEUED", "LIVE", "EXTENDED", "SETTLED", "CANCELLED", "FAILED"]
+        "enum": [
+          "DRAFT",
+          "QUEUED",
+          "LIVE",
+          "EXTENDED",
+          "SETTLED",
+          "CANCELLED",
+          "FAILED"
+        ]
       },
       "OrderStatus": {
         "type": "string",
-        "enum": ["CREATED", "PENDING_PAYMENT", "PAID", "CANCELLED", "EXPIRED", "REFUNDED"]
+        "enum": [
+          "CREATED",
+          "PENDING_PAYMENT",
+          "PAID",
+          "CANCELLED",
+          "EXPIRED",
+          "REFUNDED",
+          "pending_payment",
+          "paid",
+          "shipped",
+          "completed",
+          "cancelled"
+        ]
       },
       "PaymentStatus": {
         "type": "string",
-        "enum": ["INIT", "PROCESSING", "SUCCESS", "FAILED", "CLOSED"]
+        "enum": [
+          "INIT",
+          "PROCESSING",
+          "SUCCESS",
+          "FAILED",
+          "CLOSED",
+          "init",
+          "success"
+        ]
       },
       "User": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["id", "username", "nickname", "roleCodes", "permissionCodes", "mainAccountId", "createdByUserId", "status"],
+        "required": [
+          "id",
+          "username",
+          "nickname"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "username": { "type": "string" },
-          "nickname": { "type": "string" },
-          "roleCodes": { "type": "array", "items": { "type": "string" } },
-          "permissionCodes": { "type": "array", "items": { "type": "string" } },
-          "mainAccountId": { "type": "string" },
-          "createdByUserId": { "type": "string" },
-          "status": { "$ref": "#/components/schemas/UserStatus" },
-          "createdAtUnixMs": { "type": "integer", "format": "int64" },
-          "updatedAtUnixMs": { "type": "integer", "format": "int64" }
-        }
-      },
-      "LotStats": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["participantCount", "bidCount"],
-        "properties": {
-          "participantCount": { "type": "integer", "format": "int64" },
-          "bidCount": { "type": "integer", "format": "int64" }
-        }
-      },
-      "Lot": {
-        "type": "object",
-        "additionalProperties": true,
-        "required": ["id", "roomId", "title", "status"],
-        "properties": {
-          "id": { "type": "string" },
-          "roomId": { "type": "string" },
-          "title": { "type": "string" },
-          "description": { "type": "string" },
-          "imageUrl": { "type": "string" },
-          "status": { "$ref": "#/components/schemas/LotStatus" },
-          "currentPrice": { "$ref": "#/components/schemas/Money" },
-          "finalPrice": { "$ref": "#/components/schemas/Money" },
-          "leadingUserId": { "type": "string" },
-          "winnerUserId": { "type": "string" },
-          "stats": { "$ref": "#/components/schemas/LotStats" },
-          "startedAtUnixMs": { "type": "integer", "format": "int64" },
-          "endsAtUnixMs": { "type": "integer", "format": "int64" },
-          "settledAtUnixMs": { "type": "integer", "format": "int64" },
-          "version": { "type": "integer", "format": "int64" }
-        }
-      },
-      "OrderSummary": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["id", "lotId", "roomId", "lotTitle", "lotImageUrl", "buyerUserId", "status", "paymentStatus", "amount", "currency", "createdAtUnixMs", "updatedAtUnixMs", "expiresAtUnixMs"],
-        "properties": {
-          "id": { "type": "string" },
-          "lotId": { "type": "string" },
-          "roomId": { "type": "string" },
-          "lotTitle": { "type": "string" },
-          "lotImageUrl": { "type": "string" },
-          "buyerUserId": { "type": "string" },
-          "buyerNickname": { "type": "string" },
-          "status": { "$ref": "#/components/schemas/OrderStatus" },
-          "paymentStatus": { "$ref": "#/components/schemas/PaymentStatus" },
-          "paymentId": { "type": "string" },
-          "amount": { "type": "integer", "format": "int64" },
-          "currency": { "type": "string" },
-          "createdAtUnixMs": { "type": "integer", "format": "int64" },
-          "updatedAtUnixMs": { "type": "integer", "format": "int64" },
-          "expiresAtUnixMs": { "type": "integer", "format": "int64" },
-          "paidAtUnixMs": { "type": "integer", "format": "int64" },
-          "version": { "type": "integer", "format": "int64" }
-        }
-      },
-      "PaymentSummary": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["id", "orderId", "status", "amount", "currency", "createdAtUnixMs"],
-        "properties": {
-          "id": { "type": "string" },
-          "orderId": { "type": "string" },
-          "status": { "$ref": "#/components/schemas/PaymentStatus" },
-          "amount": { "type": "integer", "format": "int64" },
-          "currency": { "type": "string" },
-          "createdAtUnixMs": { "type": "integer", "format": "int64" },
-          "succeededAtUnixMs": { "type": "integer", "format": "int64" }
-        }
-      },
-      "BidRecord": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["id", "lotId", "roomId", "lotTitle", "lotImageUrl", "userId", "nickname", "amount", "currency", "createdAtUnixMs", "lotStatus", "auctionState", "won"],
-        "properties": {
-          "id": { "type": "string" },
-          "lotId": { "type": "string" },
-          "roomId": { "type": "string" },
-          "lotTitle": { "type": "string" },
-          "lotImageUrl": { "type": "string" },
-          "userId": { "type": "string" },
-          "nickname": { "type": "string" },
-          "amount": { "type": "integer", "format": "int64" },
-          "currency": { "type": "string" },
-          "createdAtUnixMs": { "type": "integer", "format": "int64" },
-          "lotStatus": { "$ref": "#/components/schemas/LotStatus" },
-          "auctionState": { "$ref": "#/components/schemas/AuctionState" },
-          "won": { "type": "boolean" }
-        }
-      },
-      "ListOrdersResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["result", "orders", "total", "page", "pageSize"],
-        "properties": {
-          "result": { "$ref": "#/components/schemas/ReplyResult" },
-          "orders": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/OrderSummary" }
+          "id": {
+            "type": "string"
           },
-          "total": { "type": "integer", "format": "int64" },
-          "page": { "type": "integer", "format": "int32" },
-          "pageSize": { "type": "integer", "format": "int32" }
-        }
-      },
-      "ListLotsResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["result", "lots", "total", "page", "pageSize"],
-        "properties": {
-          "result": { "$ref": "#/components/schemas/ReplyResult" },
-          "lots": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/Lot" }
+          "username": {
+            "type": "string"
           },
-          "total": { "type": "integer", "format": "int64" },
-          "page": { "type": "integer", "format": "int32" },
-          "pageSize": { "type": "integer", "format": "int32" }
-        }
-      },
-      "ListUsersResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["result", "users", "total", "page", "pageSize"],
-        "properties": {
-          "result": { "$ref": "#/components/schemas/ReplyResult" },
-          "users": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/User" }
+          "nickname": {
+            "type": "string"
           },
-          "total": { "type": "integer", "format": "int64" },
-          "page": { "type": "integer", "format": "int32" },
-          "pageSize": { "type": "integer", "format": "int32" }
+          "createdAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "updatedAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "mainAccountId": {
+            "type": "string"
+          },
+          "createdByUserId": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UserStatus"
+          },
+          "roleCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "permissionCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "avatarUrl": {
+            "type": "string"
+          }
         }
       },
-      "AdminUserResponse": {
+      "AuthTokens": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["result", "user"],
+        "required": [
+          "accessToken",
+          "refreshToken"
+        ],
         "properties": {
-          "result": { "$ref": "#/components/schemas/ReplyResult" },
-          "user": { "$ref": "#/components/schemas/User" }
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "accessExpiresAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "refreshExpiresAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "username",
+          "password",
+          "nickname"
+        ],
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          }
+        }
+      },
+      "RegisterMerchantRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "merchantName": {
+            "type": "string"
+          }
+        }
+      },
+      "ResetPasswordRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "RefreshTokenRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "refreshToken"
+        ],
+        "properties": {
+          "refreshToken": {
+            "type": "string"
+          }
+        }
+      },
+      "LogoutRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "refreshToken"
+        ],
+        "properties": {
+          "refreshToken": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "tokens": {
+            "$ref": "#/components/schemas/AuthTokens"
+          }
+        }
+      },
+      "UserReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        }
+      },
+      "EmptyReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          }
         }
       },
       "AdminCreateUserRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["username", "password", "nickname", "roleCode"],
+        "required": [
+          "username",
+          "password",
+          "nickname",
+          "roleCode"
+        ],
         "properties": {
-          "username": { "type": "string", "minLength": 1 },
-          "password": { "type": "string", "minLength": 8, "maxLength": 128 },
-          "nickname": { "type": "string", "minLength": 1 },
-          "roleCode": { "$ref": "#/components/schemas/TeamRoleCode" }
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "roleCode": {
+            "type": "string"
+          }
         }
       },
       "AdminUpdateUserRoleRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["userId", "roleCode"],
+        "required": [
+          "userId",
+          "roleCode"
+        ],
         "properties": {
-          "userId": { "type": "string" },
-          "roleCode": { "$ref": "#/components/schemas/TeamRoleCode" }
+          "userId": {
+            "type": "string"
+          },
+          "roleCode": {
+            "type": "string"
+          }
         }
       },
       "AdminUpdateUserStatusRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["userId", "status"],
+        "required": [
+          "userId",
+          "status"
+        ],
         "properties": {
-          "userId": { "type": "string" },
-          "status": { "$ref": "#/components/schemas/UserStatus" }
+          "userId": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UserStatus"
+          }
         }
       },
       "AdminResetUserPasswordRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["userId", "password"],
+        "required": [
+          "userId",
+          "password"
+        ],
         "properties": {
-          "userId": { "type": "string" },
-          "password": { "type": "string", "minLength": 8, "maxLength": 128 }
+          "userId": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
         }
       },
-      "ListBidRecordsResponse": {
+      "ListUsersReply": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["result", "bids", "total", "page", "pageSize"],
+        "required": [
+          "result",
+          "users",
+          "total",
+          "page",
+          "pageSize"
+        ],
         "properties": {
-          "result": { "$ref": "#/components/schemas/ReplyResult" },
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          },
+          "total": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "LotStats": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "participantCount": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "bidCount": {
+            "$ref": "#/components/schemas/Int64"
+          }
+        }
+      },
+      "BidRule": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "startPrice": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "increment": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "reservePrice": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "antiSnipeThresholdSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "antiSnipeExtensionSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currency": {
+            "type": "string"
+          }
+        }
+      },
+      "TrustRevealCard": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "revealed": {
+            "type": "boolean"
+          },
+          "revealedAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          }
+        }
+      },
+      "DuelState": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {}
+      },
+      "RankingItem": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {}
+      },
+      "Bid": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "lotId": {
+            "type": "string"
+          },
+          "roomId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "createdAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          }
+        }
+      },
+      "AuctionEvent": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {}
+      },
+      "Lot": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id",
+          "roomId",
+          "title",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "roomId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/LotStatus"
+          },
+          "rule": {
+            "$ref": "#/components/schemas/BidRule"
+          },
+          "currentPrice": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "leadingUserId": {
+            "type": "string"
+          },
+          "leadingNickname": {
+            "type": "string"
+          },
+          "startedAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "endsAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "settledAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "winnerUserId": {
+            "type": "string"
+          },
+          "winnerNickname": {
+            "type": "string"
+          },
+          "finalPrice": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "version": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "trustCards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrustRevealCard"
+            }
+          },
+          "duelState": {
+            "$ref": "#/components/schemas/DuelState"
+          },
+          "playbookStage": {
+            "type": "string"
+          },
+          "cancelReason": {
+            "type": "string"
+          },
+          "cancelledAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "queueStatus": {
+            "$ref": "#/components/schemas/LotQueueStatus"
+          },
+          "queuePosition": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "galleryImageUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "category": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "estimatePrice": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "stock": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "afterSaleNotes": {
+            "type": "string"
+          },
+          "depositAmount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/LotStats"
+          },
+          "mainAccountId": {
+            "type": "string"
+          },
+          "createdAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "updatedAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          }
+        }
+      },
+      "RoomSnapshot": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "roomId": {
+            "type": "string"
+          },
+          "currentLot": {
+            "$ref": "#/components/schemas/Lot"
+          },
+          "ranking": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RankingItem"
+            }
+          },
+          "recentBids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Bid"
+            }
+          },
+          "playbookStage": {
+            "type": "string"
+          },
+          "serverTimeUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "roomName": {
+            "type": "string"
+          },
+          "anchorName": {
+            "type": "string"
+          },
+          "liveSourceUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "RoomPresence": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "roomId": {
+            "type": "string"
+          },
+          "onlineCount": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {}
+            }
+          },
+          "serverTimeUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          }
+        }
+      },
+      "AuctionRoom": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "mainAccountId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "platformRoomId": {
+            "type": "string"
+          },
+          "liveSourceUrl": {
+            "type": "string"
+          },
+          "liveStartedAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdByUserId": {
+            "type": "string"
+          },
+          "createdAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "updatedAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          }
+        }
+      },
+      "CreateLotRequest": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "roomId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "rule": {
+            "$ref": "#/components/schemas/BidRule"
+          },
+          "trustCards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrustRevealCard"
+            }
+          },
+          "galleryImageUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "category": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "estimatePrice": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "stock": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "afterSaleNotes": {
+            "type": "string"
+          },
+          "depositAmount": {
+            "$ref": "#/components/schemas/Money"
+          }
+        }
+      },
+      "PatchLotDraftRequest": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "lotId": {
+            "type": "string"
+          },
+          "roomId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "rule": {
+            "$ref": "#/components/schemas/BidRule"
+          },
+          "trustCards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrustRevealCard"
+            }
+          },
+          "galleryImageUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "category": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "estimatePrice": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "stock": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "afterSaleNotes": {
+            "type": "string"
+          },
+          "depositAmount": {
+            "$ref": "#/components/schemas/Money"
+          }
+        }
+      },
+      "QueueLotRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "lotId": {
+            "type": "string"
+          }
+        }
+      },
+      "LotActionRequest": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "lotId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "PlaceBidRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "amount"
+        ],
+        "properties": {
+          "lotId": {
+            "type": "string"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "clientKnownVersion": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          }
+        }
+      },
+      "RevealTrustCardRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "lotId": {
+            "type": "string"
+          },
+          "cardId": {
+            "type": "string"
+          }
+        }
+      },
+      "LotReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "lot": {
+            "$ref": "#/components/schemas/Lot"
+          },
+          "event": {
+            "$ref": "#/components/schemas/AuctionEvent"
+          },
+          "queuePosition": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trustCard": {
+            "$ref": "#/components/schemas/TrustRevealCard"
+          },
+          "duelState": {
+            "$ref": "#/components/schemas/DuelState"
+          }
+        }
+      },
+      "ListLotsReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result",
+          "lots"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "lots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Lot"
+            }
+          },
+          "nextPageToken": {
+            "type": "string"
+          }
+        }
+      },
+      "PlaceBidReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result",
+          "accepted"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "accepted": {
+            "type": "boolean"
+          },
+          "lot": {
+            "$ref": "#/components/schemas/Lot"
+          },
+          "bid": {
+            "$ref": "#/components/schemas/Bid"
+          },
+          "ranking": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RankingItem"
+            }
+          },
+          "event": {
+            "$ref": "#/components/schemas/AuctionEvent"
+          },
+          "rejectReason": {
+            "type": "string"
+          }
+        }
+      },
+      "GetRoomSnapshotReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/RoomSnapshot"
+          }
+        }
+      },
+      "GetRoomPresenceReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "presence": {
+            "$ref": "#/components/schemas/RoomPresence"
+          }
+        }
+      },
+      "ListRoomEventsReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result",
+          "events"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuctionEvent"
+            }
+          },
+          "nextPageToken": {
+            "type": "string"
+          }
+        }
+      },
+      "AuctionDeliveryAddressSnapshot": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "addressId": {
+            "type": "string"
+          },
+          "receiverName": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "province": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "street": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "fullAddress": {
+            "type": "string"
+          }
+        }
+      },
+      "AuctionOrderSummary": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "mainAccountId": {
+            "type": "string"
+          },
+          "lotId": {
+            "type": "string"
+          },
+          "roomId": {
+            "type": "string"
+          },
+          "lotTitle": {
+            "type": "string"
+          },
+          "lotImageUrl": {
+            "type": "string"
+          },
+          "buyerUserId": {
+            "type": "string"
+          },
+          "buyerNickname": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "paymentStatus": {
+            "type": "string"
+          },
+          "paymentId": {
+            "type": "string"
+          },
+          "shippingAddressId": {
+            "type": "string"
+          },
+          "shippingAddressSnapshot": {
+            "$ref": "#/components/schemas/AuctionDeliveryAddressSnapshot"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "createdAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "updatedAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "expiresAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "paidAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          }
+        }
+      },
+      "AuctionBidRecord": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "lotId": {
+            "type": "string"
+          },
+          "roomId": {
+            "type": "string"
+          },
+          "lotTitle": {
+            "type": "string"
+          },
+          "lotImageUrl": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "createdAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "lotStatus": {
+            "type": "string"
+          },
+          "auctionState": {
+            "type": "string"
+          },
+          "won": {
+            "type": "boolean"
+          }
+        }
+      },
+      "GetLotResultReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "lot": {
+            "$ref": "#/components/schemas/Lot"
+          },
+          "auctionState": {
+            "type": "string"
+          },
+          "order": {
+            "$ref": "#/components/schemas/AuctionOrderSummary"
+          }
+        }
+      },
+      "ListAuctionOrdersReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result",
+          "orders",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuctionOrderSummary"
+            }
+          },
+          "total": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ListBidRecordsReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result",
+          "bids",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
           "bids": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/BidRecord" }
+            "items": {
+              "$ref": "#/components/schemas/AuctionBidRecord"
+            }
           },
-          "total": { "type": "integer", "format": "int64" },
-          "page": { "type": "integer", "format": "int32" },
-          "pageSize": { "type": "integer", "format": "int32" }
+          "total": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
         }
       },
-      "LotResultResponse": {
+      "ListAdminLotPageReply": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["result"],
+        "required": [
+          "result",
+          "lots",
+          "total",
+          "page",
+          "pageSize"
+        ],
         "properties": {
-          "result": { "$ref": "#/components/schemas/ReplyResult" },
-          "lot": { "$ref": "#/components/schemas/Lot" },
-          "auctionState": { "$ref": "#/components/schemas/AuctionState" },
-          "order": { "$ref": "#/components/schemas/OrderSummary" }
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "lots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Lot"
+            }
+          },
+          "total": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ListRoomsReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result",
+          "rooms"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "rooms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuctionRoom"
+            }
+          }
+        }
+      },
+      "BuyerSuggestion": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "ListBuyerSuggestionsReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result",
+          "suggestions"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "suggestions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BuyerSuggestion"
+            }
+          },
+          "fallbackUsed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "BuyerConsultRequest": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "roomId": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "BuyerConsultResult": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "roomId": {
+            "type": "string"
+          },
+          "lotId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "currentPrice": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "href": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "BuyerConsultSource": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "roomId": {
+            "type": "string"
+          },
+          "lotId": {
+            "type": "string"
+          }
+        }
+      },
+      "BuyerConsultReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "answer": {
+            "type": "string"
+          },
+          "intent": {
+            "type": "string"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BuyerConsultResult"
+            }
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BuyerConsultSource"
+            }
+          },
+          "fallbackUsed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SKU": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "productId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "priceAmount": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "stock": {
+            "$ref": "#/components/schemas/Int64"
+          }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id",
+          "title"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "shopName": {
+            "type": "string"
+          },
+          "mainImageUrl": {
+            "type": "string"
+          },
+          "detailImageUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "badges": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "priceAmount": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "originalPriceAmount": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "soldLabel": {
+            "type": "string"
+          },
+          "live": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "updatedAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "skus": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SKU"
+            }
+          }
+        }
+      },
+      "ListProductsReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result",
+          "products"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            }
+          },
+          "total": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "GetProductReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "product": {
+            "$ref": "#/components/schemas/Product"
+          }
+        }
+      },
+      "DeliveryAddress": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "receiverName": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "province": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "street": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "updatedAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          }
+        }
+      },
+      "DeliveryAddressInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "receiverName",
+          "phone"
+        ],
+        "properties": {
+          "receiverName": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "province": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "street": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DeliveryAddressSnapshot": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "addressId": {
+            "type": "string"
+          },
+          "receiverName": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "province": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "street": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "fullAddress": {
+            "type": "string"
+          }
+        }
+      },
+      "ListDeliveryAddressesReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result",
+          "addresses"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeliveryAddress"
+            }
+          }
+        }
+      },
+      "CreateDeliveryAddressRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "address"
+        ],
+        "properties": {
+          "address": {
+            "$ref": "#/components/schemas/DeliveryAddressInput"
+          }
+        }
+      },
+      "UpdateDeliveryAddressRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "address"
+        ],
+        "properties": {
+          "addressId": {
+            "type": "string"
+          },
+          "address": {
+            "$ref": "#/components/schemas/DeliveryAddressInput"
+          }
+        }
+      },
+      "DeliveryAddressReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "address": {
+            "$ref": "#/components/schemas/DeliveryAddress"
+          }
+        }
+      },
+      "DepositHold": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "lotId": {
+            "type": "string"
+          },
+          "buyerUserId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "paymentProvider": {
+            "type": "string"
+          },
+          "paymentId": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "addressId": {
+            "type": "string"
+          },
+          "addressSnapshot": {
+            "$ref": "#/components/schemas/DeliveryAddressSnapshot"
+          },
+          "createdAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "heldAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          }
+        }
+      },
+      "CreateDepositHoldRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "addressId",
+          "idempotencyKey"
+        ],
+        "properties": {
+          "lotId": {
+            "type": "string"
+          },
+          "addressId": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          }
+        }
+      },
+      "DepositHoldReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "depositHold": {
+            "$ref": "#/components/schemas/DepositHold"
+          },
+          "found": {
+            "type": "boolean"
+          },
+          "paid": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ShopOrderItem": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orderId": {
+            "type": "string"
+          },
+          "productId": {
+            "type": "string"
+          },
+          "skuId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "skuName": {
+            "type": "string"
+          },
+          "quantity": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "unitAmount": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "totalAmount": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "currency": {
+            "type": "string"
+          }
+        }
+      },
+      "ShopOrder": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orderNo": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "paymentStatus": {
+            "type": "string"
+          },
+          "paymentId": {
+            "type": "string"
+          },
+          "shopName": {
+            "type": "string"
+          },
+          "totalAmount": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "shippingAddressId": {
+            "type": "string"
+          },
+          "shippingAddressSnapshot": {
+            "$ref": "#/components/schemas/DeliveryAddressSnapshot"
+          },
+          "addressSnapshot": {
+            "type": "string"
+          },
+          "createdAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "updatedAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "paidAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShopOrderItem"
+            }
+          }
+        }
+      },
+      "ShopPayment": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orderId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "createdAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "succeededAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          }
+        }
+      },
+      "CreateShopOrderRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "skuId",
+          "quantity",
+          "addressId"
+        ],
+        "properties": {
+          "skuId": {
+            "type": "string"
+          },
+          "quantity": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "addressId": {
+            "type": "string"
+          },
+          "addressSnapshot": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          }
+        }
+      },
+      "ListMyShopOrdersReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result",
+          "orders"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShopOrder"
+            }
+          },
+          "total": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ShopOrderReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "order": {
+            "$ref": "#/components/schemas/ShopOrder"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/ShopPayment"
+          },
+          "paid": {
+            "type": "boolean"
+          }
         }
       },
       "MockPayRequest": {
         "type": "object",
-        "additionalProperties": false,
-        "required": ["idempotencyKey", "amount", "currency"],
+        "additionalProperties": true,
         "properties": {
-          "idempotencyKey": { "type": "string", "minLength": 1 },
-          "amount": { "type": "integer", "format": "int64" },
-          "currency": { "type": "string", "minLength": 1 }
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "currency": {
+            "type": "string"
+          }
         }
       },
-      "MockPayResponse": {
+      "UnifiedOrderItem": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orderId": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "sourceItemId": {
+            "type": "string"
+          },
+          "productId": {
+            "type": "string"
+          },
+          "skuId": {
+            "type": "string"
+          },
+          "lotId": {
+            "type": "string"
+          },
+          "roomId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "skuName": {
+            "type": "string"
+          },
+          "quantity": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "unitAmount": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "totalAmount": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "currency": {
+            "type": "string"
+          }
+        }
+      },
+      "UnifiedOrder": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "sourceOrderId": {
+            "type": "string"
+          },
+          "orderNo": {
+            "type": "string"
+          },
+          "mainAccountId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "paymentStatus": {
+            "type": "string"
+          },
+          "paymentId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "shopName": {
+            "type": "string"
+          },
+          "totalAmount": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "shippingAddressId": {
+            "type": "string"
+          },
+          "shippingAddressSnapshot": {
+            "$ref": "#/components/schemas/DeliveryAddressSnapshot"
+          },
+          "addressSnapshot": {
+            "type": "string"
+          },
+          "createdAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "updatedAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "paidAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "expiresAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnifiedOrderItem"
+            }
+          }
+        }
+      },
+      "ListUnifiedOrdersReply": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["result", "paid"],
+        "required": [
+          "result",
+          "orders"
+        ],
         "properties": {
-          "result": { "$ref": "#/components/schemas/ReplyResult" },
-          "order": { "$ref": "#/components/schemas/OrderSummary" },
-          "payment": { "$ref": "#/components/schemas/PaymentSummary" },
-          "paid": { "type": "boolean" }
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnifiedOrder"
+            }
+          },
+          "total": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "UnifiedOrderReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "order": {
+            "$ref": "#/components/schemas/UnifiedOrder"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/ShopPayment"
+          },
+          "paid": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FrequentStore": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "storeKey": {
+            "type": "string"
+          },
+          "storeName": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "orderCount": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "lastOrderAtUnixMs": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "targetUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "FrequentStoresReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result",
+          "stores"
+        ],
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReplyResult"
+          },
+          "stores": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FrequentStore"
+            }
+          },
+          "total": {
+            "$ref": "#/components/schemas/Int64"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          }
         }
       }
     }

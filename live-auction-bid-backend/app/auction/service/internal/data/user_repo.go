@@ -271,10 +271,15 @@ func (s *Store) RevokeSessionsByUserID(ctx context.Context, userID string, revok
 }
 
 func userToModel(next *v1.User, passwordHash string) *AuctionUserModel {
+	avatarURL := strings.TrimSpace(next.GetAvatarUrl())
+	if avatarURL == "" {
+		avatarURL = user.AvatarURLForUserID(next.GetId())
+	}
 	return &AuctionUserModel{
 		ID:              next.Id,
 		Username:        next.Username,
 		Nickname:        next.Nickname,
+		AvatarURL:       avatarURL,
 		PasswordHash:    passwordHash,
 		MainAccountID:   next.MainAccountId,
 		CreatedByUserID: next.CreatedByUserId,
@@ -293,10 +298,15 @@ func (s *Store) modelToUser(ctx context.Context, model *AuctionUserModel) (*v1.U
 	if err != nil {
 		return nil, err
 	}
+	avatarURL := strings.TrimSpace(model.AvatarURL)
+	if avatarURL == "" {
+		avatarURL = user.AvatarURLForUserID(model.ID)
+	}
 	return &v1.User{
 		Id:              model.ID,
 		Username:        model.Username,
 		Nickname:        model.Nickname,
+		AvatarUrl:       avatarURL,
 		MainAccountId:   model.MainAccountID,
 		CreatedByUserId: model.CreatedByUserID,
 		Status:          effectiveUserModelStatus(v1.UserStatus(model.Status)),

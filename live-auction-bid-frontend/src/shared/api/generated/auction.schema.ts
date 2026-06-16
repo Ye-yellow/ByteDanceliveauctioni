@@ -4,32 +4,117 @@
  */
 
 export interface paths {
-    "/api/admin/orders": {
+    "/api/users/register": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List orders for backoffice roles */
-        get: operations["listAdminOrders"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** Register buyer user */
+        post: operations["register"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/admin/lots": {
+    "/api/users/login": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List lots for backoffice roles */
-        get: operations["listAdminLots"];
+        get?: never;
+        put?: never;
+        /** Login user */
+        post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset password */
+        post: operations["resetPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/merchants/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register merchant account */
+        post: operations["registerMerchant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh access token */
+        post: operations["refreshToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Logout user session */
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get current user */
+        get: operations["getMe"];
         put?: never;
         post?: never;
         delete?: never;
@@ -65,7 +150,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Update a scoped team user's role */
+        /** Update a scoped team user role */
         post: operations["adminUpdateUserRole"];
         delete?: never;
         options?: never;
@@ -82,7 +167,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Enable or disable a scoped team user */
+        /** Update a scoped team user status */
         post: operations["adminUpdateUserStatus"];
         delete?: never;
         options?: never;
@@ -99,7 +184,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Reset a scoped team user's password and revoke sessions */
+        /** Reset a scoped team user password */
         post: operations["adminResetUserPassword"];
         delete?: never;
         options?: never;
@@ -107,15 +192,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/me/orders": {
+    "/api/lots": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List orders for current buyer */
-        get: operations["listMyOrders"];
+        /** List lots in room */
+        get: operations["listLots"];
+        put?: never;
+        /** Create lot */
+        post: operations["createLot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lots/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create draft lot */
+        post: operations["createLotDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lots/{lot_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get lot */
+        get: operations["getLot"];
         put?: never;
         post?: never;
         delete?: never;
@@ -124,15 +244,185 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/me/bids": {
+    "/api/lots/{lot_id}/draft": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List bid records for current buyer */
-        get: operations["listMyBids"];
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch draft lot */
+        patch: operations["patchLotDraft"];
+        trace?: never;
+    };
+    "/api/lots/{lot_id}/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Queue draft lot */
+        post: operations["queueLot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lots/{lot_id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start lot */
+        post: operations["startLot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lots/{lot_id}/bid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Place bid */
+        post: operations["placeBid"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lots/{lot_id}/trust-cards/{card_id}/reveal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reveal trust card */
+        post: operations["revealTrustCard"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lots/{lot_id}/duel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start duel mode */
+        post: operations["startDuel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lots/{lot_id}/settle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Settle lot */
+        post: operations["settleLot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lots/{lot_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel lot */
+        post: operations["cancelLot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{room_id}/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get room snapshot */
+        get: operations["getRoomSnapshot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{room_id}/presence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get room presence */
+        get: operations["getRoomPresence"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{room_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List room events */
+        get: operations["listRoomEvents"];
         put?: never;
         post?: never;
         delete?: never;
@@ -158,6 +448,349 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/me/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List current buyer auction orders */
+        get: operations["listMyAuctionOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/bids": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List current buyer bid records */
+        get: operations["listMyBids"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List auction orders for backoffice roles */
+        get: operations["listAdminOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/lots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List lots for backoffice roles */
+        get: operations["listAdminLots"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List rooms for current main account */
+        get: operations["listAdminRooms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List public rooms */
+        get: operations["listPublicRooms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai/buyer/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List buyer AI suggestions */
+        get: operations["listBuyerSuggestions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai/buyer/consult": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Consult buyer AI */
+        post: operations["consultBuyer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/shop/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List shop products */
+        get: operations["listShopProducts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/shop/products/{product_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get shop product */
+        get: operations["getShopProduct"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/shop/addresses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List current buyer delivery addresses */
+        get: operations["listDeliveryAddresses"];
+        put?: never;
+        /** Create delivery address */
+        post: operations["createDeliveryAddress"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/shop/addresses/{address_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update delivery address */
+        put: operations["updateDeliveryAddress"];
+        post?: never;
+        /** Delete delivery address */
+        delete: operations["deleteDeliveryAddress"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/shop/addresses/{address_id}/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set default delivery address */
+        post: operations["setDefaultDeliveryAddress"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lots/{lot_id}/deposit-holds/mock-pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create deposit hold mock payment */
+        post: operations["createDepositHold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lots/{lot_id}/deposit-holds/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get current buyer deposit hold */
+        get: operations["getMyDepositHold"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/shop/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List current buyer shop orders */
+        get: operations["listMyShopOrders"];
+        put?: never;
+        /** Create shop order */
+        post: operations["createShopOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/shop/orders/{order_id}/mock-pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mock-pay shop order */
+        post: operations["mockPayShopOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List current buyer unified orders */
+        get: operations["listMyUnifiedOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/me/frequent-stores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List current buyer frequent stores */
+        get: operations["listMyFrequentStores"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/{order_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get current buyer unified order */
+        get: operations["getMyUnifiedOrder"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orders/{order_id}/mock-pay": {
         parameters: {
             query?: never;
@@ -167,8 +800,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Mock-pay a buyer order */
-        post: operations["mockPayOrder"];
+        /** Mock-pay unified order */
+        post: operations["mockPayUnifiedOrder"];
         delete?: never;
         options?: never;
         head?: never;
@@ -179,6 +812,7 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        Int64: number | string;
         ReplyResult: {
             /** Format: int32 */
             code: number;
@@ -187,12 +821,13 @@ export interface components {
             trace_id?: string;
         };
         Money: {
-            /** Format: int64 */
-            amount: number;
+            amount: components["schemas"]["Int64"];
             currency: string;
         };
         /** @enum {string} */
         LotStatus: "LOT_STATUS_UNSPECIFIED" | "LOT_STATUS_DRAFT" | "LOT_STATUS_READY" | "LOT_STATUS_QUEUED" | "LOT_STATUS_LIVE" | "LOT_STATUS_EXTENDED" | "LOT_STATUS_SETTLED" | "LOT_STATUS_CANCELLED" | "LOT_STATUS_FAILED";
+        /** @enum {string} */
+        LotQueueStatus: "LOT_QUEUE_STATUS_UNSPECIFIED" | "LOT_QUEUE_STATUS_NONE" | "LOT_QUEUE_STATUS_QUEUED" | "LOT_QUEUE_STATUS_NEXT";
         /** @enum {string} */
         UserStatus: "USER_STATUS_UNSPECIFIED" | "USER_STATUS_ACTIVE" | "USER_STATUS_DISABLED";
         /** @enum {string} */
@@ -200,151 +835,76 @@ export interface components {
         /** @enum {string} */
         AuctionState: "DRAFT" | "QUEUED" | "LIVE" | "EXTENDED" | "SETTLED" | "CANCELLED" | "FAILED";
         /** @enum {string} */
-        OrderStatus: "CREATED" | "PENDING_PAYMENT" | "PAID" | "CANCELLED" | "EXPIRED" | "REFUNDED";
+        OrderStatus: "CREATED" | "PENDING_PAYMENT" | "PAID" | "CANCELLED" | "EXPIRED" | "REFUNDED" | "pending_payment" | "paid" | "shipped" | "completed" | "cancelled";
         /** @enum {string} */
-        PaymentStatus: "INIT" | "PROCESSING" | "SUCCESS" | "FAILED" | "CLOSED";
+        PaymentStatus: "INIT" | "PROCESSING" | "SUCCESS" | "FAILED" | "CLOSED" | "init" | "success";
         User: {
             id: string;
             username: string;
             nickname: string;
-            roleCodes: string[];
-            permissionCodes: string[];
-            mainAccountId: string;
-            createdByUserId: string;
-            status: components["schemas"]["UserStatus"];
-            /** Format: int64 */
-            createdAtUnixMs?: number;
-            /** Format: int64 */
-            updatedAtUnixMs?: number;
+            createdAtUnixMs?: components["schemas"]["Int64"];
+            updatedAtUnixMs?: components["schemas"]["Int64"];
+            mainAccountId?: string;
+            createdByUserId?: string;
+            status?: components["schemas"]["UserStatus"];
+            roleCodes?: string[];
+            permissionCodes?: string[];
+            avatarUrl?: string;
         } & {
             [key: string]: unknown;
         };
-        LotStats: {
-            /** Format: int64 */
-            participantCount: number;
-            /** Format: int64 */
-            bidCount: number;
+        AuthTokens: {
+            accessToken: string;
+            refreshToken: string;
+            accessExpiresAtUnixMs?: components["schemas"]["Int64"];
+            refreshExpiresAtUnixMs?: components["schemas"]["Int64"];
         };
-        Lot: {
-            id: string;
-            roomId: string;
-            title: string;
-            description?: string;
-            imageUrl?: string;
-            status: components["schemas"]["LotStatus"];
-            currentPrice?: components["schemas"]["Money"];
-            finalPrice?: components["schemas"]["Money"];
-            leadingUserId?: string;
-            winnerUserId?: string;
-            stats?: components["schemas"]["LotStats"];
-            /** Format: int64 */
-            startedAtUnixMs?: number;
-            /** Format: int64 */
-            endsAtUnixMs?: number;
-            /** Format: int64 */
-            settledAtUnixMs?: number;
-            /** Format: int64 */
-            version?: number;
-        } & {
-            [key: string]: unknown;
+        LoginRequest: {
+            username: string;
+            password: string;
         };
-        OrderSummary: {
-            id: string;
-            lotId: string;
-            roomId: string;
-            lotTitle: string;
-            lotImageUrl: string;
-            buyerUserId: string;
-            buyerNickname?: string;
-            status: components["schemas"]["OrderStatus"];
-            paymentStatus: components["schemas"]["PaymentStatus"];
-            paymentId?: string;
-            /** Format: int64 */
-            amount: number;
-            currency: string;
-            /** Format: int64 */
-            createdAtUnixMs: number;
-            /** Format: int64 */
-            updatedAtUnixMs: number;
-            /** Format: int64 */
-            expiresAtUnixMs: number;
-            /** Format: int64 */
-            paidAtUnixMs?: number;
-            /** Format: int64 */
-            version?: number;
-        };
-        PaymentSummary: {
-            id: string;
-            orderId: string;
-            status: components["schemas"]["PaymentStatus"];
-            /** Format: int64 */
-            amount: number;
-            currency: string;
-            /** Format: int64 */
-            createdAtUnixMs: number;
-            /** Format: int64 */
-            succeededAtUnixMs?: number;
-        };
-        BidRecord: {
-            id: string;
-            lotId: string;
-            roomId: string;
-            lotTitle: string;
-            lotImageUrl: string;
-            userId: string;
+        RegisterRequest: {
+            username: string;
+            password: string;
             nickname: string;
-            /** Format: int64 */
-            amount: number;
-            currency: string;
-            /** Format: int64 */
-            createdAtUnixMs: number;
-            lotStatus: components["schemas"]["LotStatus"];
-            auctionState: components["schemas"]["AuctionState"];
-            won: boolean;
         };
-        ListOrdersResponse: {
-            result: components["schemas"]["ReplyResult"];
-            orders: components["schemas"]["OrderSummary"][];
-            /** Format: int64 */
-            total: number;
-            /** Format: int32 */
-            page: number;
-            /** Format: int32 */
-            pageSize: number;
+        RegisterMerchantRequest: {
+            username: string;
+            password: string;
+            nickname?: string;
+            merchantName?: string;
         };
-        ListLotsResponse: {
-            result: components["schemas"]["ReplyResult"];
-            lots: components["schemas"]["Lot"][];
-            /** Format: int64 */
-            total: number;
-            /** Format: int32 */
-            page: number;
-            /** Format: int32 */
-            pageSize: number;
+        ResetPasswordRequest: {
+            username: string;
+            password: string;
         };
-        ListUsersResponse: {
-            result: components["schemas"]["ReplyResult"];
-            users: components["schemas"]["User"][];
-            /** Format: int64 */
-            total: number;
-            /** Format: int32 */
-            page: number;
-            /** Format: int32 */
-            pageSize: number;
+        RefreshTokenRequest: {
+            refreshToken: string;
         };
-        AdminUserResponse: {
+        LogoutRequest: {
+            refreshToken: string;
+        };
+        AuthReply: {
             result: components["schemas"]["ReplyResult"];
-            user: components["schemas"]["User"];
+            user?: components["schemas"]["User"];
+            tokens?: components["schemas"]["AuthTokens"];
+        };
+        UserReply: {
+            result: components["schemas"]["ReplyResult"];
+            user?: components["schemas"]["User"];
+        };
+        EmptyReply: {
+            result: components["schemas"]["ReplyResult"];
         };
         AdminCreateUserRequest: {
             username: string;
             password: string;
             nickname: string;
-            roleCode: components["schemas"]["TeamRoleCode"];
+            roleCode: string;
         };
         AdminUpdateUserRoleRequest: {
             userId: string;
-            roleCode: components["schemas"]["TeamRoleCode"];
+            roleCode: string;
         };
         AdminUpdateUserStatusRequest: {
             userId: string;
@@ -354,94 +914,834 @@ export interface components {
             userId: string;
             password: string;
         };
-        ListBidRecordsResponse: {
+        ListUsersReply: {
             result: components["schemas"]["ReplyResult"];
-            bids: components["schemas"]["BidRecord"][];
-            /** Format: int64 */
-            total: number;
+            users: components["schemas"]["User"][];
+            total: components["schemas"]["Int64"];
             /** Format: int32 */
             page: number;
             /** Format: int32 */
             pageSize: number;
         };
-        LotResultResponse: {
+        LotStats: {
+            participantCount?: components["schemas"]["Int64"];
+            bidCount?: components["schemas"]["Int64"];
+        };
+        BidRule: {
+            startPrice?: components["schemas"]["Money"];
+            increment?: components["schemas"]["Money"];
+            reservePrice?: components["schemas"]["Money"];
+            /** Format: int32 */
+            durationSeconds?: number;
+            /** Format: int32 */
+            antiSnipeThresholdSeconds?: number;
+            /** Format: int32 */
+            antiSnipeExtensionSeconds?: number;
+            currency?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        TrustRevealCard: {
+            id?: string;
+            type?: string;
+            title?: string;
+            content?: string;
+            revealed?: boolean;
+            revealedAtUnixMs?: components["schemas"]["Int64"];
+        } & {
+            [key: string]: unknown;
+        };
+        DuelState: {
+            [key: string]: unknown;
+        };
+        RankingItem: {
+            [key: string]: unknown;
+        };
+        Bid: {
+            id?: string;
+            lotId?: string;
+            roomId?: string;
+            userId?: string;
+            nickname?: string;
+            amount?: components["schemas"]["Money"];
+            createdAtUnixMs?: components["schemas"]["Int64"];
+        } & {
+            [key: string]: unknown;
+        };
+        AuctionEvent: {
+            [key: string]: unknown;
+        };
+        Lot: {
+            id: string;
+            roomId: string;
+            title: string;
+            description?: string;
+            imageUrl?: string;
+            status: components["schemas"]["LotStatus"];
+            rule?: components["schemas"]["BidRule"];
+            currentPrice?: components["schemas"]["Money"];
+            leadingUserId?: string;
+            leadingNickname?: string;
+            startedAtUnixMs?: components["schemas"]["Int64"];
+            endsAtUnixMs?: components["schemas"]["Int64"];
+            settledAtUnixMs?: components["schemas"]["Int64"];
+            winnerUserId?: string;
+            winnerNickname?: string;
+            finalPrice?: components["schemas"]["Money"];
+            version?: components["schemas"]["Int64"];
+            trustCards?: components["schemas"]["TrustRevealCard"][];
+            duelState?: components["schemas"]["DuelState"];
+            playbookStage?: string;
+            cancelReason?: string;
+            cancelledAtUnixMs?: components["schemas"]["Int64"];
+            queueStatus?: components["schemas"]["LotQueueStatus"];
+            /** Format: int32 */
+            queuePosition?: number;
+            galleryImageUrls?: string[];
+            category?: string;
+            tags?: string[];
+            estimatePrice?: components["schemas"]["Money"];
+            /** Format: int32 */
+            stock?: number;
+            afterSaleNotes?: string;
+            depositAmount?: components["schemas"]["Money"];
+            stats?: components["schemas"]["LotStats"];
+            mainAccountId?: string;
+            createdAtUnixMs?: components["schemas"]["Int64"];
+            updatedAtUnixMs?: components["schemas"]["Int64"];
+        } & {
+            [key: string]: unknown;
+        };
+        RoomSnapshot: {
+            roomId?: string;
+            currentLot?: components["schemas"]["Lot"];
+            ranking?: components["schemas"]["RankingItem"][];
+            recentBids?: components["schemas"]["Bid"][];
+            playbookStage?: string;
+            serverTimeUnixMs?: components["schemas"]["Int64"];
+            roomName?: string;
+            anchorName?: string;
+            liveSourceUrl?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        RoomPresence: {
+            roomId?: string;
+            onlineCount?: components["schemas"]["Int64"];
+            participants?: {
+                [key: string]: unknown;
+            }[];
+            serverTimeUnixMs?: components["schemas"]["Int64"];
+        } & {
+            [key: string]: unknown;
+        };
+        AuctionRoom: {
+            id: string;
+            mainAccountId?: string;
+            name: string;
+            platform?: string;
+            platformRoomId?: string;
+            liveSourceUrl?: string;
+            liveStartedAtUnixMs?: components["schemas"]["Int64"];
+            status?: string;
+            createdByUserId?: string;
+            createdAtUnixMs?: components["schemas"]["Int64"];
+            updatedAtUnixMs?: components["schemas"]["Int64"];
+        } & {
+            [key: string]: unknown;
+        };
+        CreateLotRequest: {
+            roomId?: string;
+            title?: string;
+            description?: string;
+            imageUrl?: string;
+            rule?: components["schemas"]["BidRule"];
+            trustCards?: components["schemas"]["TrustRevealCard"][];
+            galleryImageUrls?: string[];
+            category?: string;
+            tags?: string[];
+            estimatePrice?: components["schemas"]["Money"];
+            /** Format: int32 */
+            stock?: number;
+            afterSaleNotes?: string;
+            depositAmount?: components["schemas"]["Money"];
+        } & {
+            [key: string]: unknown;
+        };
+        PatchLotDraftRequest: {
+            lotId?: string;
+            roomId?: string;
+            title?: string;
+            description?: string;
+            imageUrl?: string;
+            rule?: components["schemas"]["BidRule"];
+            trustCards?: components["schemas"]["TrustRevealCard"][];
+            galleryImageUrls?: string[];
+            category?: string;
+            tags?: string[];
+            estimatePrice?: components["schemas"]["Money"];
+            /** Format: int32 */
+            stock?: number;
+            afterSaleNotes?: string;
+            depositAmount?: components["schemas"]["Money"];
+        } & {
+            [key: string]: unknown;
+        };
+        QueueLotRequest: {
+            lotId?: string;
+        };
+        LotActionRequest: {
+            lotId?: string;
+            reason?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        PlaceBidRequest: {
+            lotId?: string;
+            amount: components["schemas"]["Money"];
+            clientKnownVersion?: components["schemas"]["Int64"];
+            idempotencyKey?: string;
+        };
+        RevealTrustCardRequest: {
+            lotId?: string;
+            cardId?: string;
+        };
+        LotReply: {
             result: components["schemas"]["ReplyResult"];
             lot?: components["schemas"]["Lot"];
-            auctionState?: components["schemas"]["AuctionState"];
-            order?: components["schemas"]["OrderSummary"];
+            event?: components["schemas"]["AuctionEvent"];
+            /** Format: int32 */
+            queuePosition?: number;
+            trustCard?: components["schemas"]["TrustRevealCard"];
+            duelState?: components["schemas"]["DuelState"];
+        };
+        ListLotsReply: {
+            result: components["schemas"]["ReplyResult"];
+            lots: components["schemas"]["Lot"][];
+            nextPageToken?: string;
+        };
+        PlaceBidReply: {
+            result: components["schemas"]["ReplyResult"];
+            accepted: boolean;
+            lot?: components["schemas"]["Lot"];
+            bid?: components["schemas"]["Bid"];
+            ranking?: components["schemas"]["RankingItem"][];
+            event?: components["schemas"]["AuctionEvent"];
+            rejectReason?: string;
+        };
+        GetRoomSnapshotReply: {
+            result: components["schemas"]["ReplyResult"];
+            snapshot?: components["schemas"]["RoomSnapshot"];
+        };
+        GetRoomPresenceReply: {
+            result: components["schemas"]["ReplyResult"];
+            presence?: components["schemas"]["RoomPresence"];
+        };
+        ListRoomEventsReply: {
+            result: components["schemas"]["ReplyResult"];
+            events: components["schemas"]["AuctionEvent"][];
+            nextPageToken?: string;
+        };
+        AuctionDeliveryAddressSnapshot: {
+            addressId?: string;
+            receiverName?: string;
+            phone?: string;
+            province?: string;
+            city?: string;
+            district?: string;
+            street?: string;
+            detail?: string;
+            postalCode?: string;
+            fullAddress?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        AuctionOrderSummary: {
+            id: string;
+            mainAccountId?: string;
+            lotId?: string;
+            roomId?: string;
+            lotTitle?: string;
+            lotImageUrl?: string;
+            buyerUserId?: string;
+            buyerNickname?: string;
+            status?: string;
+            paymentStatus?: string;
+            paymentId?: string;
+            shippingAddressId?: string;
+            shippingAddressSnapshot?: components["schemas"]["AuctionDeliveryAddressSnapshot"];
+            amount?: components["schemas"]["Int64"];
+            currency?: string;
+            createdAtUnixMs?: components["schemas"]["Int64"];
+            updatedAtUnixMs?: components["schemas"]["Int64"];
+            expiresAtUnixMs?: components["schemas"]["Int64"];
+            paidAtUnixMs?: components["schemas"]["Int64"];
+        } & {
+            [key: string]: unknown;
+        };
+        AuctionBidRecord: {
+            id: string;
+            lotId?: string;
+            roomId?: string;
+            lotTitle?: string;
+            lotImageUrl?: string;
+            userId?: string;
+            nickname?: string;
+            amount?: components["schemas"]["Int64"];
+            currency?: string;
+            createdAtUnixMs?: components["schemas"]["Int64"];
+            lotStatus?: string;
+            auctionState?: string;
+            won?: boolean;
+        } & {
+            [key: string]: unknown;
+        };
+        GetLotResultReply: {
+            result: components["schemas"]["ReplyResult"];
+            lot?: components["schemas"]["Lot"];
+            auctionState?: string;
+            order?: components["schemas"]["AuctionOrderSummary"];
+        };
+        ListAuctionOrdersReply: {
+            result: components["schemas"]["ReplyResult"];
+            orders: components["schemas"]["AuctionOrderSummary"][];
+            total: components["schemas"]["Int64"];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+        };
+        ListBidRecordsReply: {
+            result: components["schemas"]["ReplyResult"];
+            bids: components["schemas"]["AuctionBidRecord"][];
+            total: components["schemas"]["Int64"];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+        };
+        ListAdminLotPageReply: {
+            result: components["schemas"]["ReplyResult"];
+            lots: components["schemas"]["Lot"][];
+            total: components["schemas"]["Int64"];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+        };
+        ListRoomsReply: {
+            result: components["schemas"]["ReplyResult"];
+            rooms: components["schemas"]["AuctionRoom"][];
+        };
+        BuyerSuggestion: {
+            text?: string;
+            reason?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        ListBuyerSuggestionsReply: {
+            result: components["schemas"]["ReplyResult"];
+            suggestions: components["schemas"]["BuyerSuggestion"][];
+            fallbackUsed?: boolean;
+        };
+        BuyerConsultRequest: {
+            question?: string;
+            roomId?: string;
+            /** Format: int32 */
+            limit?: number;
+        } & {
+            [key: string]: unknown;
+        };
+        BuyerConsultResult: {
+            type?: string;
+            title?: string;
+            roomId?: string;
+            lotId?: string;
+            status?: string;
+            currentPrice?: components["schemas"]["Money"];
+            href?: string;
+            reason?: string;
+            imageUrl?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        BuyerConsultSource: {
+            type?: string;
+            title?: string;
+            roomId?: string;
+            lotId?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        BuyerConsultReply: {
+            result: components["schemas"]["ReplyResult"];
+            answer?: string;
+            intent?: string;
+            results?: components["schemas"]["BuyerConsultResult"][];
+            sources?: components["schemas"]["BuyerConsultSource"][];
+            fallbackUsed?: boolean;
+        };
+        SKU: {
+            id?: string;
+            productId?: string;
+            name?: string;
+            priceAmount?: components["schemas"]["Int64"];
+            currency?: string;
+            stock?: components["schemas"]["Int64"];
+        } & {
+            [key: string]: unknown;
+        };
+        Product: {
+            id: string;
+            title: string;
+            subtitle?: string;
+            description?: string;
+            category?: string;
+            shopName?: string;
+            mainImageUrl?: string;
+            detailImageUrls?: string[];
+            tags?: string[];
+            badges?: string[];
+            priceAmount?: components["schemas"]["Int64"];
+            originalPriceAmount?: components["schemas"]["Int64"];
+            currency?: string;
+            soldLabel?: string;
+            live?: boolean;
+            status?: string;
+            createdAtUnixMs?: components["schemas"]["Int64"];
+            updatedAtUnixMs?: components["schemas"]["Int64"];
+            skus?: components["schemas"]["SKU"][];
+        } & {
+            [key: string]: unknown;
+        };
+        ListProductsReply: {
+            result: components["schemas"]["ReplyResult"];
+            products: components["schemas"]["Product"][];
+            total?: components["schemas"]["Int64"];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            pageSize?: number;
+        };
+        GetProductReply: {
+            result: components["schemas"]["ReplyResult"];
+            product?: components["schemas"]["Product"];
+        };
+        DeliveryAddress: {
+            id: string;
+            userId?: string;
+            receiverName?: string;
+            phone?: string;
+            province?: string;
+            city?: string;
+            district?: string;
+            street?: string;
+            detail?: string;
+            postalCode?: string;
+            tag?: string;
+            isDefault?: boolean;
+            status?: string;
+            createdAtUnixMs?: components["schemas"]["Int64"];
+            updatedAtUnixMs?: components["schemas"]["Int64"];
+        } & {
+            [key: string]: unknown;
+        };
+        DeliveryAddressInput: {
+            receiverName: string;
+            phone: string;
+            province?: string;
+            city?: string;
+            district?: string;
+            street?: string;
+            detail?: string;
+            postalCode?: string;
+            tag?: string;
+            isDefault?: boolean;
+        };
+        DeliveryAddressSnapshot: {
+            addressId?: string;
+            receiverName?: string;
+            phone?: string;
+            province?: string;
+            city?: string;
+            district?: string;
+            street?: string;
+            detail?: string;
+            postalCode?: string;
+            fullAddress?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        ListDeliveryAddressesReply: {
+            result: components["schemas"]["ReplyResult"];
+            addresses: components["schemas"]["DeliveryAddress"][];
+        };
+        CreateDeliveryAddressRequest: {
+            address: components["schemas"]["DeliveryAddressInput"];
+        };
+        UpdateDeliveryAddressRequest: {
+            addressId?: string;
+            address: components["schemas"]["DeliveryAddressInput"];
+        };
+        DeliveryAddressReply: {
+            result: components["schemas"]["ReplyResult"];
+            address?: components["schemas"]["DeliveryAddress"];
+        };
+        DepositHold: {
+            id: string;
+            lotId?: string;
+            buyerUserId?: string;
+            status?: string;
+            amount?: components["schemas"]["Money"];
+            paymentProvider?: string;
+            paymentId?: string;
+            idempotencyKey?: string;
+            addressId?: string;
+            addressSnapshot?: components["schemas"]["DeliveryAddressSnapshot"];
+            createdAtUnixMs?: components["schemas"]["Int64"];
+            heldAtUnixMs?: components["schemas"]["Int64"];
+        } & {
+            [key: string]: unknown;
+        };
+        CreateDepositHoldRequest: {
+            lotId?: string;
+            addressId: string;
+            idempotencyKey: string;
+        };
+        DepositHoldReply: {
+            result: components["schemas"]["ReplyResult"];
+            depositHold?: components["schemas"]["DepositHold"];
+            found?: boolean;
+            paid?: boolean;
+        };
+        ShopOrderItem: {
+            id?: string;
+            orderId?: string;
+            productId?: string;
+            skuId?: string;
+            title?: string;
+            imageUrl?: string;
+            skuName?: string;
+            quantity?: components["schemas"]["Int64"];
+            unitAmount?: components["schemas"]["Int64"];
+            totalAmount?: components["schemas"]["Int64"];
+            currency?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        ShopOrder: {
+            id: string;
+            orderNo?: string;
+            userId?: string;
+            nickname?: string;
+            status?: string;
+            paymentStatus?: string;
+            paymentId?: string;
+            shopName?: string;
+            totalAmount?: components["schemas"]["Int64"];
+            currency?: string;
+            shippingAddressId?: string;
+            shippingAddressSnapshot?: components["schemas"]["DeliveryAddressSnapshot"];
+            addressSnapshot?: string;
+            createdAtUnixMs?: components["schemas"]["Int64"];
+            updatedAtUnixMs?: components["schemas"]["Int64"];
+            paidAtUnixMs?: components["schemas"]["Int64"];
+            items?: components["schemas"]["ShopOrderItem"][];
+        } & {
+            [key: string]: unknown;
+        };
+        ShopPayment: {
+            id?: string;
+            orderId?: string;
+            userId?: string;
+            status?: string;
+            amount?: components["schemas"]["Int64"];
+            currency?: string;
+            idempotencyKey?: string;
+            createdAtUnixMs?: components["schemas"]["Int64"];
+            succeededAtUnixMs?: components["schemas"]["Int64"];
+        } & {
+            [key: string]: unknown;
+        };
+        CreateShopOrderRequest: {
+            skuId: string;
+            quantity: components["schemas"]["Int64"];
+            addressId: string;
+            addressSnapshot?: string;
+            idempotencyKey?: string;
+        };
+        ListMyShopOrdersReply: {
+            result: components["schemas"]["ReplyResult"];
+            orders: components["schemas"]["ShopOrder"][];
+            total?: components["schemas"]["Int64"];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            pageSize?: number;
+        };
+        ShopOrderReply: {
+            result: components["schemas"]["ReplyResult"];
+            order?: components["schemas"]["ShopOrder"];
+            payment?: components["schemas"]["ShopPayment"];
+            paid?: boolean;
         };
         MockPayRequest: {
-            idempotencyKey: string;
-            /** Format: int64 */
-            amount: number;
-            currency: string;
+            idempotencyKey?: string;
+            amount?: components["schemas"]["Int64"];
+            currency?: string;
+        } & {
+            [key: string]: unknown;
         };
-        MockPayResponse: {
+        UnifiedOrderItem: {
+            id?: string;
+            orderId?: string;
+            source?: string;
+            sourceItemId?: string;
+            productId?: string;
+            skuId?: string;
+            lotId?: string;
+            roomId?: string;
+            title?: string;
+            imageUrl?: string;
+            skuName?: string;
+            quantity?: components["schemas"]["Int64"];
+            unitAmount?: components["schemas"]["Int64"];
+            totalAmount?: components["schemas"]["Int64"];
+            currency?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        UnifiedOrder: {
+            id: string;
+            source?: string;
+            sourceOrderId?: string;
+            orderNo?: string;
+            mainAccountId?: string;
+            userId?: string;
+            nickname?: string;
+            status?: string;
+            paymentStatus?: string;
+            paymentId?: string;
+            title?: string;
+            shopName?: string;
+            totalAmount?: components["schemas"]["Int64"];
+            currency?: string;
+            shippingAddressId?: string;
+            shippingAddressSnapshot?: components["schemas"]["DeliveryAddressSnapshot"];
+            addressSnapshot?: string;
+            createdAtUnixMs?: components["schemas"]["Int64"];
+            updatedAtUnixMs?: components["schemas"]["Int64"];
+            paidAtUnixMs?: components["schemas"]["Int64"];
+            expiresAtUnixMs?: components["schemas"]["Int64"];
+            items?: components["schemas"]["UnifiedOrderItem"][];
+        } & {
+            [key: string]: unknown;
+        };
+        ListUnifiedOrdersReply: {
             result: components["schemas"]["ReplyResult"];
-            order?: components["schemas"]["OrderSummary"];
-            payment?: components["schemas"]["PaymentSummary"];
-            paid: boolean;
+            orders: components["schemas"]["UnifiedOrder"][];
+            total?: components["schemas"]["Int64"];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            pageSize?: number;
+        };
+        UnifiedOrderReply: {
+            result: components["schemas"]["ReplyResult"];
+            order?: components["schemas"]["UnifiedOrder"];
+            payment?: components["schemas"]["ShopPayment"];
+            paid?: boolean;
+        };
+        FrequentStore: {
+            storeKey?: string;
+            storeName?: string;
+            source?: string;
+            orderCount?: components["schemas"]["Int64"];
+            lastOrderAtUnixMs?: components["schemas"]["Int64"];
+            imageUrl?: string;
+            targetUrl?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        FrequentStoresReply: {
+            result: components["schemas"]["ReplyResult"];
+            stores: components["schemas"]["FrequentStore"][];
+            total?: components["schemas"]["Int64"];
+            /** Format: int32 */
+            limit?: number;
         };
     };
     responses: never;
-    parameters: {
-        Page: number;
-        PageSize: number;
-    };
+    parameters: never;
     requestBodies: never;
     headers: never;
     pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    listAdminOrders: {
+    register: {
         parameters: {
-            query?: {
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-                status?: components["schemas"]["OrderStatus"];
-                lotId?: string;
-                buyer?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterRequest"];
+            };
+        };
         responses: {
-            /** @description Unified result envelope with paged orders. */
+            /** @description Unified result envelope. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ListOrdersResponse"];
+                    "application/json": components["schemas"]["AuthReply"];
                 };
             };
         };
     };
-    listAdminLots: {
+    login: {
         parameters: {
-            query?: {
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-                status?: components["schemas"]["LotStatus"];
-                keyword?: string;
-                roomId?: string;
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
             };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthReply"];
+                };
+            };
+        };
+    };
+    resetPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserReply"];
+                };
+            };
+        };
+    };
+    registerMerchant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterMerchantRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthReply"];
+                };
+            };
+        };
+    };
+    refreshToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        result: components["schemas"]["ReplyResult"];
+                        tokens?: components["schemas"]["AuthTokens"];
+                    };
+                };
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LogoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmptyReply"];
+                };
+            };
+        };
+    };
+    getMe: {
+        parameters: {
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Unified result envelope with paged lots. */
+            /** @description Unified result envelope. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ListLotsResponse"];
+                    "application/json": components["schemas"]["UserReply"];
                 };
             };
         };
@@ -449,9 +1749,9 @@ export interface operations {
     listAdminUsers: {
         parameters: {
             query?: {
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-                roleCode?: components["schemas"]["TeamRoleCode"];
+                page?: number;
+                pageSize?: number;
+                roleCode?: string;
                 status?: components["schemas"]["UserStatus"];
                 keyword?: string;
             };
@@ -461,13 +1761,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Unified result envelope with paged users. */
+            /** @description Unified result envelope. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ListUsersResponse"];
+                    "application/json": components["schemas"]["ListUsersReply"];
                 };
             };
         };
@@ -485,13 +1785,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Unified result envelope with created team user. */
+            /** @description Unified result envelope. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminUserResponse"];
+                    "application/json": components["schemas"]["UserReply"];
                 };
             };
         };
@@ -511,13 +1811,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Unified result envelope with updated team user. */
+            /** @description Unified result envelope. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminUserResponse"];
+                    "application/json": components["schemas"]["UserReply"];
                 };
             };
         };
@@ -537,13 +1837,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Unified result envelope with updated team user. */
+            /** @description Unified result envelope. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminUserResponse"];
+                    "application/json": components["schemas"]["UserReply"];
                 };
             };
         };
@@ -563,24 +1863,24 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Unified result envelope with updated team user. */
+            /** @description Unified result envelope. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminUserResponse"];
+                    "application/json": components["schemas"]["UserReply"];
                 };
             };
         };
     };
-    listMyOrders: {
+    listLots: {
         parameters: {
             query?: {
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-                status?: components["schemas"]["OrderStatus"];
-                lotId?: string;
+                room_id?: string;
+                status?: components["schemas"]["LotStatus"];
+                pageSize?: number;
+                pageToken?: string;
             };
             header?: never;
             path?: never;
@@ -588,37 +1888,361 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Unified result envelope with current buyer orders. */
+            /** @description Unified result envelope. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ListOrdersResponse"];
+                    "application/json": components["schemas"]["ListLotsReply"];
                 };
             };
         };
     };
-    listMyBids: {
+    createLot: {
         parameters: {
-            query?: {
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-                lotId?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLotRequest"];
+            };
+        };
         responses: {
-            /** @description Unified result envelope with current buyer bids. */
+            /** @description Unified result envelope. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ListBidRecordsResponse"];
+                    "application/json": components["schemas"]["LotReply"];
+                };
+            };
+        };
+    };
+    createLotDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLotRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LotReply"];
+                };
+            };
+        };
+    };
+    getLot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LotReply"];
+                };
+            };
+        };
+    };
+    patchLotDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchLotDraftRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LotReply"];
+                };
+            };
+        };
+    };
+    queueLot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QueueLotRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LotReply"];
+                };
+            };
+        };
+    };
+    startLot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LotActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LotReply"];
+                };
+            };
+        };
+    };
+    placeBid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaceBidRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaceBidReply"];
+                };
+            };
+        };
+    };
+    revealTrustCard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lot_id: string;
+                card_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevealTrustCardRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LotReply"];
+                };
+            };
+        };
+    };
+    startDuel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LotActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LotReply"];
+                };
+            };
+        };
+    };
+    settleLot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LotActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LotReply"];
+                };
+            };
+        };
+    };
+    cancelLot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LotActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LotReply"];
+                };
+            };
+        };
+    };
+    getRoomSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                room_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetRoomSnapshotReply"];
+                };
+            };
+        };
+    };
+    getRoomPresence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                room_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetRoomPresenceReply"];
+                };
+            };
+        };
+    };
+    listRoomEvents: {
+        parameters: {
+            query?: {
+                pageSize?: number;
+                pageToken?: string;
+            };
+            header?: never;
+            path: {
+                room_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListRoomEventsReply"];
                 };
             };
         };
@@ -634,18 +2258,471 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Unified result envelope with lot settlement state. */
+            /** @description Unified result envelope. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LotResultResponse"];
+                    "application/json": components["schemas"]["GetLotResultReply"];
                 };
             };
         };
     };
-    mockPayOrder: {
+    listMyAuctionOrders: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                status?: string;
+                lotId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListAuctionOrdersReply"];
+                };
+            };
+        };
+    };
+    listMyBids: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                lotId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListBidRecordsReply"];
+                };
+            };
+        };
+    };
+    listAdminOrders: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                status?: string;
+                paymentStatus?: string;
+                lotId?: string;
+                buyer?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListAuctionOrdersReply"];
+                };
+            };
+        };
+    };
+    listAdminLots: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                status?: components["schemas"]["LotStatus"];
+                view?: string;
+                keyword?: string;
+                roomId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListAdminLotPageReply"];
+                };
+            };
+        };
+    };
+    listAdminRooms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListRoomsReply"];
+                };
+            };
+        };
+    };
+    listPublicRooms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListRoomsReply"];
+                };
+            };
+        };
+    };
+    listBuyerSuggestions: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListBuyerSuggestionsReply"];
+                };
+            };
+        };
+    };
+    consultBuyer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BuyerConsultRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuyerConsultReply"];
+                };
+            };
+        };
+    };
+    listShopProducts: {
+        parameters: {
+            query?: {
+                q?: string;
+                category?: string;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListProductsReply"];
+                };
+            };
+        };
+    };
+    getShopProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetProductReply"];
+                };
+            };
+        };
+    };
+    listDeliveryAddresses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListDeliveryAddressesReply"];
+                };
+            };
+        };
+    };
+    createDeliveryAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDeliveryAddressRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryAddressReply"];
+                };
+            };
+        };
+    };
+    updateDeliveryAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                address_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDeliveryAddressRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryAddressReply"];
+                };
+            };
+        };
+    };
+    deleteDeliveryAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                address_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmptyReply"];
+                };
+            };
+        };
+    };
+    setDefaultDeliveryAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                address_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    addressId?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListDeliveryAddressesReply"];
+                };
+            };
+        };
+    };
+    createDepositHold: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDepositHoldRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepositHoldReply"];
+                };
+            };
+        };
+    };
+    getMyDepositHold: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepositHoldReply"];
+                };
+            };
+        };
+    };
+    listMyShopOrders: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                status?: string;
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListMyShopOrdersReply"];
+                };
+            };
+        };
+    };
+    createShopOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateShopOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShopOrderReply"];
+                };
+            };
+        };
+    };
+    mockPayShopOrder: {
         parameters: {
             query?: never;
             header?: never;
@@ -660,13 +2737,109 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Unified result envelope with payment result. */
+            /** @description Unified result envelope. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MockPayResponse"];
+                    "application/json": components["schemas"]["ShopOrderReply"];
+                };
+            };
+        };
+    };
+    listMyUnifiedOrders: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                source?: string;
+                status?: string;
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListUnifiedOrdersReply"];
+                };
+            };
+        };
+    };
+    listMyFrequentStores: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrequentStoresReply"];
+                };
+            };
+        };
+    };
+    getMyUnifiedOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnifiedOrderReply"];
+                };
+            };
+        };
+    };
+    mockPayUnifiedOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MockPayRequest"];
+            };
+        };
+        responses: {
+            /** @description Unified result envelope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnifiedOrderReply"];
                 };
             };
         };

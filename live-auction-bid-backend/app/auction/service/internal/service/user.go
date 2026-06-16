@@ -103,6 +103,22 @@ func (s *UserService) AdminResetUserPassword(ctx context.Context, req *v1.AdminR
 	return &v1.AdminResetUserPasswordReply{Result: okResult(ctx), User: user}, nil
 }
 
-func (s *UserService) ListUsers(ctx context.Context, query user.ListUsersQuery) (user.ListUsersResult, error) {
-	return s.users.ListUsers(ctx, query)
+func (s *UserService) ListUsers(ctx context.Context, req *v1.ListUsersRequest) (*v1.ListUsersReply, error) {
+	list, err := s.users.ListUsers(ctx, user.ListUsersQuery{
+		Page:     int(req.GetPage()),
+		PageSize: int(req.GetPageSize()),
+		RoleCode: req.GetRoleCode(),
+		Status:   req.GetStatus(),
+		Keyword:  req.GetKeyword(),
+	})
+	if err != nil {
+		return &v1.ListUsersReply{Result: ErrorResult(ctx, err), Users: []*v1.User{}}, nil
+	}
+	return &v1.ListUsersReply{
+		Result:   okResult(ctx),
+		Users:    list.Users,
+		Total:    list.Total,
+		Page:     int32(list.Page),
+		PageSize: int32(list.PageSize),
+	}, nil
 }

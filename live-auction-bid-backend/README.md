@@ -180,6 +180,15 @@ go test ./...
 go build ./app/auction/service/cmd/server
 ```
 
+HTTP 黑盒契约测试位于 `test/e2e`，默认未设置后端地址时会跳过：
+
+```bash
+go test ./test/e2e
+LIVE_AUCTION_E2E_BASE_URL=http://127.0.0.1:18080 go test ./test/e2e -count=1 -v
+```
+
+详细说明见 [`docs/infra/e2e-contract-tests.md`](docs/infra/e2e-contract-tests.md)。
+
 ## 文档
 
 主要文档位于 `docs/openclaw/v1/`。
@@ -195,4 +204,4 @@ go build ./app/auction/service/cmd/server
 - **Repository + Unit of Work**：data 层持有 GORM/Redis/事务边界，lot/bid/event 在必要场景进入同一个 MySQL transaction，biz 层只依赖 repo 接口。
 - **Transactional Outbox**：业务状态与事件先在 MySQL 同事务落库，再由 outbox worker 推 Redis Stream，接受 at-least-once，消费侧按 event id 幂等。
 - **Registry + Health Check**：server 层负责 Consul 注册与 `/readyz` 聚合观测，不让治理基础设施进入 biz。
-- **测试隔离**：项目实现目录不放 `*_test.go`，测试集中在 `app/auction/service/test`，避免实现包被测试文件污染。
+- **测试隔离**：跨层业务测试保留在 `app/auction/service/test`；HTTP 黑盒契约测试放在 `test/e2e`；同包内部测试只在确需覆盖私有转换、worker、repo、hub 等内部行为时保留。

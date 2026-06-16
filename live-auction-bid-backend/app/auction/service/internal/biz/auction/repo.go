@@ -163,7 +163,7 @@ type AuctionRuntime interface {
 	HydrateLotRuntime(ctx context.Context, lot *v1.Lot) error
 	SyncLotRuntime(ctx context.Context, lot *v1.Lot) error
 	CancelLotRuntime(ctx context.Context, lot *v1.Lot, reason, operatorID string, nowMs int64) (*v1.Lot, []*v1.RankingItem, error)
-	PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceBidRequest, bidderID, nickname, bidID string, nowMs int64) (RuntimeBidResult, error)
+	PlaceBidRuntime(ctx context.Context, lot *v1.Lot, req *v1.PlaceBidRequest, bidderID, nickname, avatarURL, bidID string, nowMs int64) (RuntimeBidResult, error)
 	SnapshotRuntime(ctx context.Context, current *v1.Lot) (*v1.RoomSnapshot, error)
 	RankingRuntime(ctx context.Context, lotID string, limit int64) ([]*v1.RankingItem, error)
 }

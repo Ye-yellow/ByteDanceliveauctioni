@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
+	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 )
 
 const DefaultRealtimeRankingLimit int64 = 50
@@ -43,6 +44,7 @@ func BuildRanking(bids []v1.Bid) []*v1.RankingItem {
 			bestByUser[bid.UserId] = &v1.RankingItem{
 				UserId:      bid.UserId,
 				Nickname:    bid.Nickname,
+				AvatarUrl:   avatarURLForBid(bid),
 				Amount:      bid.GetAmount(),
 				BidAtUnixMs: bid.CreatedAtUnixMs,
 			}
@@ -65,4 +67,11 @@ func BuildRanking(bids []v1.Bid) []*v1.RankingItem {
 		items[i].Rank = int32(i + 1)
 	}
 	return items
+}
+
+func avatarURLForBid(bid v1.Bid) string {
+	if trimmed := strings.TrimSpace(bid.GetAvatarUrl()); trimmed != "" {
+		return trimmed
+	}
+	return userbiz.AvatarURLForUserID(bid.GetUserId())
 }

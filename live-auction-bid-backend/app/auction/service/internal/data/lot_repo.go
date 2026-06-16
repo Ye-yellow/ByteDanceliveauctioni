@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -137,7 +138,7 @@ func (s *Store) findByID(ctx context.Context, lotID string, includeStats bool) (
 	var model AuctionLotModel
 	if err := s.db.WithContext(ctx).Where("id = ?", lotID).First(&model).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("lot not found")
+			return nil, apperr.ErrNotFound
 		}
 		return nil, err
 	}
@@ -369,12 +370,45 @@ func (s *Store) ListStalePreStart(ctx context.Context, nowMs, localDayStartMs in
 		if err != nil {
 			return nil, err
 		}
+		runtimeOpen, err := s.runtimeLotIsOpen(ctx, lot.GetId())
+		if err != nil {
+			return nil, err
+		}
+		if runtimeOpen {
+			continue
+		}
 		lots = append(lots, lot)
 	}
 	if err := s.attachStats(ctx, lots); err != nil {
 		return nil, err
 	}
 	return lots, nil
+}
+
+func (s *Store) runtimeLotIsOpen(ctx context.Context, lotID string) (bool, error) {
+	if lotID == "" || s.redis == nil {
+		return false, nil
+	}
+	values, err := s.redis.HMGet(ctx, runtimeStateKey(lotID), "lot_id", "status").Result()
+	if err != nil {
+		return false, err
+	}
+	if len(values) < 2 {
+		return false, nil
+	}
+	storedLotID, ok := values[0].(string)
+	if !ok || storedLotID != lotID {
+		return false, nil
+	}
+	statusText, ok := values[1].(string)
+	if !ok || statusText == "" {
+		return false, nil
+	}
+	statusValue, err := strconv.ParseInt(statusText, 10, 32)
+	if err != nil {
+		return false, err
+	}
+	return auction.IsAuctionOpenStatus(v1.LotStatus(statusValue)), nil
 }
 
 func lotToModel(lot *v1.Lot) (*AuctionLotModel, error) {
@@ -468,15 +502,40 @@ func modelToLot(model *AuctionLotModel) (*v1.Lot, error) {
 	if err := protojson.Unmarshal([]byte(model.Payload), lot); err != nil {
 		return nil, err
 	}
+	lot.Id = model.ID
+	lot.MainAccountId = model.MainAccountID
+	lot.RoomId = model.RoomID
+	lot.Title = model.Title
+	lot.Description = model.Description
+	lot.ImageUrl = model.ImageURL
+	lot.Status = v1.LotStatus(model.Status)
 	if lot.Rule == nil {
 		lot.Rule = &v1.BidRule{}
 	}
+	lot.Rule.StartPrice = &v1.Money{Amount: model.StartPriceAmount, Currency: model.StartPriceCurrency}
+	lot.Rule.MinIncrement = &v1.Money{Amount: model.MinIncrementAmount, Currency: model.MinIncrementCurrency}
+	lot.Rule.DurationSeconds = model.DurationSeconds
+	lot.Rule.AntiSnipeWindowSeconds = model.AntiSnipeWindowSeconds
+	lot.Rule.AntiSnipeExtendSeconds = model.AntiSnipeExtendSeconds
+	lot.Rule.MaxExtendCount = model.MaxExtendCount
 	if lot.Stock < 1 {
 		lot.Stock = 1
 	}
 	lot.QueueStatus = normalizeQueueStatus(v1.LotQueueStatus(model.QueueStatus))
 	lot.QueuePosition = model.QueuePosition
-	lot.MainAccountId = model.MainAccountID
+	lot.CurrentPrice = &v1.Money{Amount: model.CurrentPriceAmount, Currency: model.CurrentPriceCurrency}
+	lot.LeadingUserId = model.LeadingUserID
+	lot.LeadingNickname = model.LeadingNickname
+	lot.StartedAtUnixMs = model.StartedAtUnixMs
+	lot.EndsAtUnixMs = model.EndsAtUnixMs
+	lot.SettledAtUnixMs = model.SettledAtUnixMs
+	lot.CancelReason = model.CancelReason
+	lot.CancelledAtUnixMs = model.CancelledAtUnixMs
+	lot.WinnerUserId = model.WinnerUserID
+	lot.WinnerNickname = model.WinnerNickname
+	lot.FinalPrice = &v1.Money{Amount: model.FinalPriceAmount, Currency: model.FinalPriceCurrency}
+	lot.Version = model.Version
+	lot.PlaybookStage = v1.PlaybookStage(model.PlaybookStage)
 	lot.CreatedAtUnixMs = modelTimeUnixMsOr(model.CreatedAt, time.Now().Add(-missingLotCreatedAtFallback).UnixMilli())
 	lot.UpdatedAtUnixMs = modelTimeUnixMsOr(model.UpdatedAt, lot.CreatedAtUnixMs)
 	if model.CapPriceAmount != nil {

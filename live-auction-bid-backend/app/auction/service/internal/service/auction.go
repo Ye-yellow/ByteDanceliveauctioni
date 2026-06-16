@@ -188,7 +188,11 @@ func (s *AuctionService) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest) 
 		)
 		return &v1.PlaceBidReply{Result: result, Accepted: false, RejectReason: result.GetMessage()}, nil
 	}
-	lot, bid, ranking, err := s.auction.PlaceBid(ctx, req, claims.UserID, claims.Nickname)
+	avatarURL := claims.AvatarURL
+	if avatarURL == "" {
+		avatarURL = userbiz.AvatarURLForUserID(claims.UserID)
+	}
+	lot, bid, ranking, err := s.auction.PlaceBid(ctx, req, claims.UserID, claims.Nickname, avatarURL)
 	if err != nil {
 		result := ErrorResult(ctx, err)
 		viewer := lotResultViewerFromContext(ctx)

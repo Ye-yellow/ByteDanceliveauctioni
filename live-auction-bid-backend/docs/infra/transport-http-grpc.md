@@ -32,14 +32,6 @@
 - 大消息服务可配置 gRPC max recv/send size。
 - 手写 JSON 路由只用于确实不能用生成代码表达的入口。
 
-## Odin 参考实现
-
-- `/home/dministrator/odin/app/loli/service/internal/server/http.go`：`NewHTTPServer`、`NewMetricsHTTPServer`
-- `/home/dministrator/odin/app/loli/service/internal/server/grpc.go`：`NewGRPCServer`
-- `/home/dministrator/odin/app/gateway/service/internal/server/http.go`：JSON-only HTTP server
-- `/home/dministrator/odin/app/thor/service/internal/server/grpc.go`：内部 service 注册
-- `/home/dministrator/odin/api/gateway/service/v0/json_http.go`：手写 JSON binding 风格
-
 ## 落地模板
 
 ```go
@@ -59,4 +51,3 @@ func NewHTTPServer(c *ServerConfig, logger Logger, tracer Tracer, h *GameService
     return srv
 }
 ```
-

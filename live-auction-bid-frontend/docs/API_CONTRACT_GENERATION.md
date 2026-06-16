@@ -7,9 +7,20 @@
 ```text
 ../live-auction-bid-backend/api/auction/service/v1/auction.proto
 ../live-auction-bid-backend/api/auction/service/v1/user.proto
+../live-auction-bid-backend/api/auction/service/v1/shop.proto
 ```
 
-本轮后端还没有产出可用的 `openapi/auction.openapi.json`，所以前端没有继续保留旧的 `src/shared/api/generated/auction.schema.ts`，避免 stale OpenAPI 类型误导业务代码。
+`../live-auction-bid-backend/openapi/auction.openapi.json` 已同步到当前 proto HTTP binding，前端可用已有命令生成类型：
+
+```bash
+npm run generate:api
+```
+
+生成产物：
+
+```text
+src/shared/api/generated/auction.schema.ts
+```
 
 当前前端手写 DTO 集中在：
 
@@ -17,7 +28,7 @@
 src/shared/api/types.ts
 ```
 
-它按后端 proto 的 Result Envelope、JWT 用户系统、AuctionEvent、UserService 同步。
+它按后端 proto 的 Result Envelope、JWT 用户系统、AuctionEvent、UserService、AuctionService 同步；生成 schema 是合同校验与补全来源，业务 feature 仍通过本地 adapter/normalizer 隔离后端字段细节。
 
 ## 工程思考与设计模式
 
@@ -26,22 +37,18 @@ src/shared/api/types.ts
 - **Auth Token Adapter**：`features/auth/api` 只负责 token 存取和 Authorization header，竞拍 feature 不直接碰 localStorage。
 - **Realtime Normalizer**：WebSocket 事件进入 UI 前先规范化事件枚举，兼容后端 gorilla JSON 可能输出数字 enum 的事实。
 
-## 后续生成方案
+## 生成规则
 
-等后端正式生成 OpenAPI 后再恢复：
-
-```bash
-npm run generate:api
-```
-
-恢复生成文件时必须先确认 OpenAPI 覆盖：
+修改后端 proto HTTP API 后必须确认 OpenAPI 覆盖：
 
 - AuctionService 全部 reply envelope；
 - UserService 登录/注册/刷新/me/admin；
+- ShopService 商品、地址、保证金、商城订单、统一订单；
 - Authorization header；
+- proto int64 在前端类型中允许 `number | string`；
 - WebSocket AuctionEvent 的 enum 表达。
 
-规则：不能保留 stale generated schema 与手写契约并行误导；有正式生成替代后，再删除手写 DTO 或明确让手写 DTO 只作为薄映射层。
+规则：不能保留 stale generated schema 与手写契约并行误导；手写 DTO 只能作为薄映射层，不能成为新的事实源。
 
 ## CancelLot 前端预期契约（待后端落地对齐）
 

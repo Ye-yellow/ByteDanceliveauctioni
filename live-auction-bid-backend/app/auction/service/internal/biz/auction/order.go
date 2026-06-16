@@ -119,15 +119,17 @@ const (
 )
 
 type Room struct {
-	ID              string     `json:"id"`
-	MainAccountID   string     `json:"mainAccountId"`
-	Name            string     `json:"name"`
-	Platform        string     `json:"platform"`
-	PlatformRoomID  string     `json:"platformRoomId,omitempty"`
-	Status          RoomStatus `json:"status"`
-	CreatedByUserID string     `json:"createdByUserId,omitempty"`
-	CreatedAtUnixMs int64      `json:"createdAtUnixMs"`
-	UpdatedAtUnixMs int64      `json:"updatedAtUnixMs"`
+	ID                  string     `json:"id"`
+	MainAccountID       string     `json:"mainAccountId"`
+	Name                string     `json:"name"`
+	Platform            string     `json:"platform"`
+	PlatformRoomID      string     `json:"platformRoomId,omitempty"`
+	LiveSourceURL       string     `json:"liveSourceUrl,omitempty"`
+	LiveStartedAtUnixMs int64      `json:"liveStartedAtUnixMs,omitempty"`
+	Status              RoomStatus `json:"status"`
+	CreatedByUserID     string     `json:"createdByUserId,omitempty"`
+	CreatedAtUnixMs     int64      `json:"createdAtUnixMs"`
+	UpdatedAtUnixMs     int64      `json:"updatedAtUnixMs"`
 }
 
 type RoomState struct {

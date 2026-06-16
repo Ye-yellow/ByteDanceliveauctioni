@@ -1,17 +1,21 @@
 package server
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
+	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/requestctx"
 	"live-auction-bid/backend/app/auction/service/internal/realtime"
 	appsvc "live-auction-bid/backend/app/auction/service/internal/service"
 	"live-auction-bid/backend/app/auction/service/internal/storage"
 
+	kerrors "github.com/go-kratos/kratos/v2/errors"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	httptransport "github.com/go-kratos/kratos/v2/transport/http"
@@ -26,12 +30,11 @@ func NewHTTPServer(addr string, auction *appsvc.AuctionService, users *appsvc.Us
 		httptransport.Address(addr),
 		httptransport.Middleware(middlewares...),
 		httptransport.Filter(localDevCORSFilter, requestctx.HTTPMiddleware),
+		httptransport.ErrorEncoder(resultEnvelopeErrorEncoder),
 	)
 
 	registerAuctionHTTP(srv, auction)
-	registerOrderHTTP(srv, orders)
-	registerDomainHTTP(srv, auction, users)
-	registerShopHTTP(srv, shop)
+	registerShopHTTP(srv, shop, orders, auction)
 	registerUserHTTP(srv, users)
 	registerRealtimeHTTP(srv, hub)
 	registerUploadHTTP(srv, authManager, assetStore, imageStorage)
@@ -46,6 +49,22 @@ func registerAuctionHTTP(srv *httptransport.Server, auction *appsvc.AuctionServi
 
 func registerUserHTTP(srv *httptransport.Server, users *appsvc.UserService) {
 	v1.RegisterUserServiceHTTPServer(srv, users)
+}
+
+func registerShopHTTP(srv *httptransport.Server, shop *appsvc.ShopService, orders *appsvc.OrderService, auction *appsvc.AuctionService) {
+	v1.RegisterShopServiceHTTPServer(srv, appsvc.NewShopServiceHTTPAdapter(shop, orders, auction))
+}
+
+func resultEnvelopeErrorEncoder(w http.ResponseWriter, r *http.Request, err error) {
+	mapped := err
+	if se := kerrors.FromError(err); se != nil && se.Code == int32(http.StatusBadRequest) {
+		mapped = fmt.Errorf("%w: invalid request", apperr.ErrInvalidArgument)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"result": appsvc.ErrorResult(r.Context(), mapped),
+	})
 }
 
 func localDevCORSFilter(next http.Handler) http.Handler {

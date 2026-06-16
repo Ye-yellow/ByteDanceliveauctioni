@@ -9,6 +9,14 @@ import "api/auction/service/v1/auction.proto";
 
 // ShopService covers buyer commerce APIs used by the H5 client.
 service ShopService {
+  rpc ListProducts(ListProductsRequest) returns (ListProductsReply) {
+    option (google.api.http) = { get: "/api/shop/products" };
+  }
+
+  rpc GetProduct(GetProductRequest) returns (GetProductReply) {
+    option (google.api.http) = { get: "/api/shop/products/{product_id}" };
+  }
+
   rpc ListDeliveryAddresses(ListDeliveryAddressesRequest) returns (ListDeliveryAddressesReply) {
     option (google.api.http) = { get: "/api/shop/addresses" };
   }
@@ -49,6 +57,24 @@ service ShopService {
     option (google.api.http) = { get: "/api/lots/{lot_id}/deposit-holds/me" };
   }
 
+  rpc CreateShopOrder(CreateShopOrderRequest) returns (CreateShopOrderReply) {
+    option (google.api.http) = {
+      post: "/api/shop/orders"
+      body: "*"
+    };
+  }
+
+  rpc ListMyShopOrders(ListMyShopOrdersRequest) returns (ListMyShopOrdersReply) {
+    option (google.api.http) = { get: "/api/shop/orders" };
+  }
+
+  rpc MockPayShopOrder(MockPayShopOrderRequest) returns (MockPayShopOrderReply) {
+    option (google.api.http) = {
+      post: "/api/shop/orders/{order_id}/mock-pay"
+      body: "*"
+    };
+  }
+
   rpc ListMyUnifiedOrders(ListMyUnifiedOrdersRequest) returns (ListMyUnifiedOrdersReply) {
     option (google.api.http) = { get: "/api/orders/me" };
   }
@@ -67,6 +93,61 @@ service ShopService {
       body: "*"
     };
   }
+}
+
+message SKU {
+  string id = 1;
+  string product_id = 2;
+  string name = 3;
+  int64 price_amount = 4;
+  string currency = 5;
+  int64 stock = 6;
+}
+
+message Product {
+  string id = 1;
+  string title = 2;
+  string subtitle = 3;
+  string description = 4;
+  string category = 5;
+  string shop_name = 6;
+  string main_image_url = 7;
+  repeated string detail_image_urls = 8;
+  repeated string tags = 9;
+  repeated string badges = 10;
+  int64 price_amount = 11;
+  int64 original_price_amount = 12;
+  string currency = 13;
+  string sold_label = 14;
+  bool live = 15;
+  string status = 16;
+  int64 created_at_unix_ms = 17;
+  int64 updated_at_unix_ms = 18;
+  repeated SKU skus = 19;
+}
+
+message ListProductsRequest {
+  string q = 1;
+  string category = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message ListProductsReply {
+  ReplyResult result = 1;
+  repeated Product products = 2;
+  int64 total = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+}
+
+message GetProductRequest {
+  string product_id = 1;
+}
+
+message GetProductReply {
+  ReplyResult result = 1;
+  Product product = 2;
 }
 
 message DeliveryAddress {
@@ -186,6 +267,92 @@ message GetMyDepositHoldReply {
   ReplyResult result = 1;
   DepositHold deposit_hold = 2;
   bool found = 3;
+  bool paid = 4;
+}
+
+message ShopOrderItem {
+  string id = 1;
+  string order_id = 2;
+  string product_id = 3;
+  string sku_id = 4;
+  string title = 5;
+  string image_url = 6;
+  string sku_name = 7;
+  int64 quantity = 8;
+  int64 unit_amount = 9;
+  int64 total_amount = 10;
+  string currency = 11;
+}
+
+message ShopOrder {
+  string id = 1;
+  string order_no = 2;
+  string user_id = 3;
+  string nickname = 4;
+  string status = 5;
+  string payment_status = 6;
+  string payment_id = 7;
+  string shop_name = 8;
+  int64 total_amount = 9;
+  string currency = 10;
+  string shipping_address_id = 11;
+  DeliveryAddressSnapshot shipping_address_snapshot = 12;
+  string address_snapshot = 13;
+  int64 created_at_unix_ms = 14;
+  int64 updated_at_unix_ms = 15;
+  int64 paid_at_unix_ms = 16;
+  repeated ShopOrderItem items = 17;
+}
+
+message ShopPayment {
+  string id = 1;
+  string order_id = 2;
+  string user_id = 3;
+  string status = 4;
+  int64 amount = 5;
+  string currency = 6;
+  string idempotency_key = 7;
+  int64 created_at_unix_ms = 8;
+  int64 succeeded_at_unix_ms = 9;
+}
+
+message CreateShopOrderRequest {
+  string sku_id = 1;
+  int64 quantity = 2;
+  string address_id = 3;
+  string address_snapshot = 4;
+  string idempotency_key = 5;
+}
+
+message CreateShopOrderReply {
+  ReplyResult result = 1;
+  ShopOrder order = 2;
+}
+
+message ListMyShopOrdersRequest {
+  string status = 1;
+  string q = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message ListMyShopOrdersReply {
+  ReplyResult result = 1;
+  repeated ShopOrder orders = 2;
+  int64 total = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+}
+
+message MockPayShopOrderRequest {
+  string order_id = 1;
+  string idempotency_key = 2;
+}
+
+message MockPayShopOrderReply {
+  ReplyResult result = 1;
+  ShopOrder order = 2;
+  ShopPayment payment = 3;
   bool paid = 4;
 }
 

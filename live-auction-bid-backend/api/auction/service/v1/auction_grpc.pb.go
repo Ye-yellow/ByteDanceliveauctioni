@@ -19,22 +19,30 @@ import (
 const _ = grpc.SupportPackageIsVersion8
 
 const (
-	AuctionService_CreateLot_FullMethodName       = "/auction.service.v1.AuctionService/CreateLot"
-	AuctionService_CreateLotDraft_FullMethodName  = "/auction.service.v1.AuctionService/CreateLotDraft"
-	AuctionService_PatchLotDraft_FullMethodName   = "/auction.service.v1.AuctionService/PatchLotDraft"
-	AuctionService_QueueLot_FullMethodName        = "/auction.service.v1.AuctionService/QueueLot"
-	AuctionService_GetLot_FullMethodName          = "/auction.service.v1.AuctionService/GetLot"
-	AuctionService_ListLots_FullMethodName        = "/auction.service.v1.AuctionService/ListLots"
-	AuctionService_StartLot_FullMethodName        = "/auction.service.v1.AuctionService/StartLot"
-	AuctionService_PlaceBid_FullMethodName        = "/auction.service.v1.AuctionService/PlaceBid"
-	AuctionService_RevealTrustCard_FullMethodName = "/auction.service.v1.AuctionService/RevealTrustCard"
-	AuctionService_StartDuel_FullMethodName       = "/auction.service.v1.AuctionService/StartDuel"
-	AuctionService_SettleLot_FullMethodName       = "/auction.service.v1.AuctionService/SettleLot"
-	AuctionService_CancelLot_FullMethodName       = "/auction.service.v1.AuctionService/CancelLot"
-	AuctionService_GetRoomSnapshot_FullMethodName = "/auction.service.v1.AuctionService/GetRoomSnapshot"
-	AuctionService_GetRoomPresence_FullMethodName = "/auction.service.v1.AuctionService/GetRoomPresence"
-	AuctionService_ListRoomEvents_FullMethodName  = "/auction.service.v1.AuctionService/ListRoomEvents"
-	AuctionService_ConsultBuyer_FullMethodName    = "/auction.service.v1.AuctionService/ConsultBuyer"
+	AuctionService_CreateLot_FullMethodName              = "/auction.service.v1.AuctionService/CreateLot"
+	AuctionService_CreateLotDraft_FullMethodName         = "/auction.service.v1.AuctionService/CreateLotDraft"
+	AuctionService_PatchLotDraft_FullMethodName          = "/auction.service.v1.AuctionService/PatchLotDraft"
+	AuctionService_QueueLot_FullMethodName               = "/auction.service.v1.AuctionService/QueueLot"
+	AuctionService_GetLot_FullMethodName                 = "/auction.service.v1.AuctionService/GetLot"
+	AuctionService_ListLots_FullMethodName               = "/auction.service.v1.AuctionService/ListLots"
+	AuctionService_StartLot_FullMethodName               = "/auction.service.v1.AuctionService/StartLot"
+	AuctionService_PlaceBid_FullMethodName               = "/auction.service.v1.AuctionService/PlaceBid"
+	AuctionService_RevealTrustCard_FullMethodName        = "/auction.service.v1.AuctionService/RevealTrustCard"
+	AuctionService_StartDuel_FullMethodName              = "/auction.service.v1.AuctionService/StartDuel"
+	AuctionService_SettleLot_FullMethodName              = "/auction.service.v1.AuctionService/SettleLot"
+	AuctionService_CancelLot_FullMethodName              = "/auction.service.v1.AuctionService/CancelLot"
+	AuctionService_GetRoomSnapshot_FullMethodName        = "/auction.service.v1.AuctionService/GetRoomSnapshot"
+	AuctionService_GetRoomPresence_FullMethodName        = "/auction.service.v1.AuctionService/GetRoomPresence"
+	AuctionService_ListRoomEvents_FullMethodName         = "/auction.service.v1.AuctionService/ListRoomEvents"
+	AuctionService_GetLotResultView_FullMethodName       = "/auction.service.v1.AuctionService/GetLotResultView"
+	AuctionService_ListMyAuctionOrders_FullMethodName    = "/auction.service.v1.AuctionService/ListMyAuctionOrders"
+	AuctionService_ListMyBidRecords_FullMethodName       = "/auction.service.v1.AuctionService/ListMyBidRecords"
+	AuctionService_ListAdminAuctionOrders_FullMethodName = "/auction.service.v1.AuctionService/ListAdminAuctionOrders"
+	AuctionService_ListAdminLotPage_FullMethodName       = "/auction.service.v1.AuctionService/ListAdminLotPage"
+	AuctionService_ListAdminRoomList_FullMethodName      = "/auction.service.v1.AuctionService/ListAdminRoomList"
+	AuctionService_ListPublicRoomList_FullMethodName     = "/auction.service.v1.AuctionService/ListPublicRoomList"
+	AuctionService_ListBuyerSuggestions_FullMethodName   = "/auction.service.v1.AuctionService/ListBuyerSuggestions"
+	AuctionService_ConsultBuyer_FullMethodName           = "/auction.service.v1.AuctionService/ConsultBuyer"
 )
 
 // AuctionServiceClient is the client API for AuctionService service.
@@ -144,6 +152,22 @@ type AuctionServiceClient interface {
 	// 调用方：主播端/运营端。
 	// 用途：工作台恢复最近出价、开拍、成交、取消、支付等操作日志。
 	ListRoomEvents(ctx context.Context, in *ListRoomEventsRequest, opts ...grpc.CallOption) (*ListRoomEventsReply, error)
+	// 查询拍品结果。
+	GetLotResultView(ctx context.Context, in *GetLotResultRequest, opts ...grpc.CallOption) (*GetLotResultReply, error)
+	// 查询当前买家的竞拍订单。
+	ListMyAuctionOrders(ctx context.Context, in *ListAuctionOrdersRequest, opts ...grpc.CallOption) (*ListAuctionOrdersReply, error)
+	// 查询当前买家的出价记录。
+	ListMyBidRecords(ctx context.Context, in *ListBidRecordsRequest, opts ...grpc.CallOption) (*ListBidRecordsReply, error)
+	// 查询后台竞拍订单。
+	ListAdminAuctionOrders(ctx context.Context, in *ListAuctionOrdersRequest, opts ...grpc.CallOption) (*ListAuctionOrdersReply, error)
+	// 查询后台拍品。
+	ListAdminLotPage(ctx context.Context, in *ListAdminLotPageRequest, opts ...grpc.CallOption) (*ListAdminLotPageReply, error)
+	// 查询后台房间。
+	ListAdminRoomList(ctx context.Context, in *ListAdminRoomsRequest, opts ...grpc.CallOption) (*ListRoomsReply, error)
+	// 查询公开房间。
+	ListPublicRoomList(ctx context.Context, in *ListPublicRoomsRequest, opts ...grpc.CallOption) (*ListPublicRoomsReply, error)
+	// 获取买家推荐搜索词。
+	ListBuyerSuggestions(ctx context.Context, in *ListBuyerSuggestionsRequest, opts ...grpc.CallOption) (*ListBuyerSuggestionsReply, error)
 	// 买家找拍品助手。
 	//
 	// 调用方：观众端。
@@ -310,6 +334,86 @@ func (c *auctionServiceClient) ListRoomEvents(ctx context.Context, in *ListRoomE
 	return out, nil
 }
 
+func (c *auctionServiceClient) GetLotResultView(ctx context.Context, in *GetLotResultRequest, opts ...grpc.CallOption) (*GetLotResultReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetLotResultReply)
+	err := c.cc.Invoke(ctx, AuctionService_GetLotResultView_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *auctionServiceClient) ListMyAuctionOrders(ctx context.Context, in *ListAuctionOrdersRequest, opts ...grpc.CallOption) (*ListAuctionOrdersReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListAuctionOrdersReply)
+	err := c.cc.Invoke(ctx, AuctionService_ListMyAuctionOrders_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *auctionServiceClient) ListMyBidRecords(ctx context.Context, in *ListBidRecordsRequest, opts ...grpc.CallOption) (*ListBidRecordsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListBidRecordsReply)
+	err := c.cc.Invoke(ctx, AuctionService_ListMyBidRecords_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *auctionServiceClient) ListAdminAuctionOrders(ctx context.Context, in *ListAuctionOrdersRequest, opts ...grpc.CallOption) (*ListAuctionOrdersReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListAuctionOrdersReply)
+	err := c.cc.Invoke(ctx, AuctionService_ListAdminAuctionOrders_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *auctionServiceClient) ListAdminLotPage(ctx context.Context, in *ListAdminLotPageRequest, opts ...grpc.CallOption) (*ListAdminLotPageReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListAdminLotPageReply)
+	err := c.cc.Invoke(ctx, AuctionService_ListAdminLotPage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *auctionServiceClient) ListAdminRoomList(ctx context.Context, in *ListAdminRoomsRequest, opts ...grpc.CallOption) (*ListRoomsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListRoomsReply)
+	err := c.cc.Invoke(ctx, AuctionService_ListAdminRoomList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *auctionServiceClient) ListPublicRoomList(ctx context.Context, in *ListPublicRoomsRequest, opts ...grpc.CallOption) (*ListPublicRoomsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListPublicRoomsReply)
+	err := c.cc.Invoke(ctx, AuctionService_ListPublicRoomList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *auctionServiceClient) ListBuyerSuggestions(ctx context.Context, in *ListBuyerSuggestionsRequest, opts ...grpc.CallOption) (*ListBuyerSuggestionsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListBuyerSuggestionsReply)
+	err := c.cc.Invoke(ctx, AuctionService_ListBuyerSuggestions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *auctionServiceClient) ConsultBuyer(ctx context.Context, in *BuyerConsultRequest, opts ...grpc.CallOption) (*BuyerConsultReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(BuyerConsultReply)
@@ -427,6 +531,22 @@ type AuctionServiceServer interface {
 	// 调用方：主播端/运营端。
 	// 用途：工作台恢复最近出价、开拍、成交、取消、支付等操作日志。
 	ListRoomEvents(context.Context, *ListRoomEventsRequest) (*ListRoomEventsReply, error)
+	// 查询拍品结果。
+	GetLotResultView(context.Context, *GetLotResultRequest) (*GetLotResultReply, error)
+	// 查询当前买家的竞拍订单。
+	ListMyAuctionOrders(context.Context, *ListAuctionOrdersRequest) (*ListAuctionOrdersReply, error)
+	// 查询当前买家的出价记录。
+	ListMyBidRecords(context.Context, *ListBidRecordsRequest) (*ListBidRecordsReply, error)
+	// 查询后台竞拍订单。
+	ListAdminAuctionOrders(context.Context, *ListAuctionOrdersRequest) (*ListAuctionOrdersReply, error)
+	// 查询后台拍品。
+	ListAdminLotPage(context.Context, *ListAdminLotPageRequest) (*ListAdminLotPageReply, error)
+	// 查询后台房间。
+	ListAdminRoomList(context.Context, *ListAdminRoomsRequest) (*ListRoomsReply, error)
+	// 查询公开房间。
+	ListPublicRoomList(context.Context, *ListPublicRoomsRequest) (*ListPublicRoomsReply, error)
+	// 获取买家推荐搜索词。
+	ListBuyerSuggestions(context.Context, *ListBuyerSuggestionsRequest) (*ListBuyerSuggestionsReply, error)
 	// 买家找拍品助手。
 	//
 	// 调用方：观众端。
@@ -484,6 +604,30 @@ func (UnimplementedAuctionServiceServer) GetRoomPresence(context.Context, *GetRo
 }
 func (UnimplementedAuctionServiceServer) ListRoomEvents(context.Context, *ListRoomEventsRequest) (*ListRoomEventsReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListRoomEvents not implemented")
+}
+func (UnimplementedAuctionServiceServer) GetLotResultView(context.Context, *GetLotResultRequest) (*GetLotResultReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLotResultView not implemented")
+}
+func (UnimplementedAuctionServiceServer) ListMyAuctionOrders(context.Context, *ListAuctionOrdersRequest) (*ListAuctionOrdersReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListMyAuctionOrders not implemented")
+}
+func (UnimplementedAuctionServiceServer) ListMyBidRecords(context.Context, *ListBidRecordsRequest) (*ListBidRecordsReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListMyBidRecords not implemented")
+}
+func (UnimplementedAuctionServiceServer) ListAdminAuctionOrders(context.Context, *ListAuctionOrdersRequest) (*ListAuctionOrdersReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListAdminAuctionOrders not implemented")
+}
+func (UnimplementedAuctionServiceServer) ListAdminLotPage(context.Context, *ListAdminLotPageRequest) (*ListAdminLotPageReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListAdminLotPage not implemented")
+}
+func (UnimplementedAuctionServiceServer) ListAdminRoomList(context.Context, *ListAdminRoomsRequest) (*ListRoomsReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListAdminRoomList not implemented")
+}
+func (UnimplementedAuctionServiceServer) ListPublicRoomList(context.Context, *ListPublicRoomsRequest) (*ListPublicRoomsReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListPublicRoomList not implemented")
+}
+func (UnimplementedAuctionServiceServer) ListBuyerSuggestions(context.Context, *ListBuyerSuggestionsRequest) (*ListBuyerSuggestionsReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListBuyerSuggestions not implemented")
 }
 func (UnimplementedAuctionServiceServer) ConsultBuyer(context.Context, *BuyerConsultRequest) (*BuyerConsultReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ConsultBuyer not implemented")
@@ -771,6 +915,150 @@ func _AuctionService_ListRoomEvents_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuctionService_GetLotResultView_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLotResultRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuctionServiceServer).GetLotResultView(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuctionService_GetLotResultView_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuctionServiceServer).GetLotResultView(ctx, req.(*GetLotResultRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuctionService_ListMyAuctionOrders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAuctionOrdersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuctionServiceServer).ListMyAuctionOrders(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuctionService_ListMyAuctionOrders_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuctionServiceServer).ListMyAuctionOrders(ctx, req.(*ListAuctionOrdersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuctionService_ListMyBidRecords_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListBidRecordsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuctionServiceServer).ListMyBidRecords(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuctionService_ListMyBidRecords_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuctionServiceServer).ListMyBidRecords(ctx, req.(*ListBidRecordsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuctionService_ListAdminAuctionOrders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAuctionOrdersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuctionServiceServer).ListAdminAuctionOrders(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuctionService_ListAdminAuctionOrders_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuctionServiceServer).ListAdminAuctionOrders(ctx, req.(*ListAuctionOrdersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuctionService_ListAdminLotPage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAdminLotPageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuctionServiceServer).ListAdminLotPage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuctionService_ListAdminLotPage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuctionServiceServer).ListAdminLotPage(ctx, req.(*ListAdminLotPageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuctionService_ListAdminRoomList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAdminRoomsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuctionServiceServer).ListAdminRoomList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuctionService_ListAdminRoomList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuctionServiceServer).ListAdminRoomList(ctx, req.(*ListAdminRoomsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuctionService_ListPublicRoomList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPublicRoomsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuctionServiceServer).ListPublicRoomList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuctionService_ListPublicRoomList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuctionServiceServer).ListPublicRoomList(ctx, req.(*ListPublicRoomsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuctionService_ListBuyerSuggestions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListBuyerSuggestionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuctionServiceServer).ListBuyerSuggestions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuctionService_ListBuyerSuggestions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuctionServiceServer).ListBuyerSuggestions(ctx, req.(*ListBuyerSuggestionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AuctionService_ConsultBuyer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(BuyerConsultRequest)
 	if err := dec(in); err != nil {
@@ -855,6 +1143,38 @@ var AuctionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListRoomEvents",
 			Handler:    _AuctionService_ListRoomEvents_Handler,
+		},
+		{
+			MethodName: "GetLotResultView",
+			Handler:    _AuctionService_GetLotResultView_Handler,
+		},
+		{
+			MethodName: "ListMyAuctionOrders",
+			Handler:    _AuctionService_ListMyAuctionOrders_Handler,
+		},
+		{
+			MethodName: "ListMyBidRecords",
+			Handler:    _AuctionService_ListMyBidRecords_Handler,
+		},
+		{
+			MethodName: "ListAdminAuctionOrders",
+			Handler:    _AuctionService_ListAdminAuctionOrders_Handler,
+		},
+		{
+			MethodName: "ListAdminLotPage",
+			Handler:    _AuctionService_ListAdminLotPage_Handler,
+		},
+		{
+			MethodName: "ListAdminRoomList",
+			Handler:    _AuctionService_ListAdminRoomList_Handler,
+		},
+		{
+			MethodName: "ListPublicRoomList",
+			Handler:    _AuctionService_ListPublicRoomList_Handler,
+		},
+		{
+			MethodName: "ListBuyerSuggestions",
+			Handler:    _AuctionService_ListBuyerSuggestions_Handler,
 		},
 		{
 			MethodName: "ConsultBuyer",

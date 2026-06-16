@@ -27,6 +27,7 @@ const (
 	UserService_Logout_FullMethodName                 = "/auction.service.v1.UserService/Logout"
 	UserService_GetMe_FullMethodName                  = "/auction.service.v1.UserService/GetMe"
 	UserService_AdminCreateUser_FullMethodName        = "/auction.service.v1.UserService/AdminCreateUser"
+	UserService_ListUsers_FullMethodName              = "/auction.service.v1.UserService/ListUsers"
 	UserService_AdminUpdateUserRole_FullMethodName    = "/auction.service.v1.UserService/AdminUpdateUserRole"
 	UserService_AdminUpdateUserStatus_FullMethodName  = "/auction.service.v1.UserService/AdminUpdateUserStatus"
 	UserService_AdminResetUserPassword_FullMethodName = "/auction.service.v1.UserService/AdminResetUserPassword"
@@ -54,6 +55,8 @@ type UserServiceClient interface {
 	GetMe(ctx context.Context, in *GetMeRequest, opts ...grpc.CallOption) (*GetMeReply, error)
 	// 主账号创建团队子账号；不创建买家或新的主账号。
 	AdminCreateUser(ctx context.Context, in *AdminCreateUserRequest, opts ...grpc.CallOption) (*AdminCreateUserReply, error)
+	// 主账号查询团队子账号列表。
+	ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*ListUsersReply, error)
 	// 主账号修改团队子账号角色；不允许改为买家或新的主账号。
 	AdminUpdateUserRole(ctx context.Context, in *AdminUpdateUserRoleRequest, opts ...grpc.CallOption) (*AdminUpdateUserRoleReply, error)
 	// 主账号启用或禁用团队子账号。
@@ -150,6 +153,16 @@ func (c *userServiceClient) AdminCreateUser(ctx context.Context, in *AdminCreate
 	return out, nil
 }
 
+func (c *userServiceClient) ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*ListUsersReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListUsersReply)
+	err := c.cc.Invoke(ctx, UserService_ListUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *userServiceClient) AdminUpdateUserRole(ctx context.Context, in *AdminUpdateUserRoleRequest, opts ...grpc.CallOption) (*AdminUpdateUserRoleReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AdminUpdateUserRoleReply)
@@ -202,6 +215,8 @@ type UserServiceServer interface {
 	GetMe(context.Context, *GetMeRequest) (*GetMeReply, error)
 	// 主账号创建团队子账号；不创建买家或新的主账号。
 	AdminCreateUser(context.Context, *AdminCreateUserRequest) (*AdminCreateUserReply, error)
+	// 主账号查询团队子账号列表。
+	ListUsers(context.Context, *ListUsersRequest) (*ListUsersReply, error)
 	// 主账号修改团队子账号角色；不允许改为买家或新的主账号。
 	AdminUpdateUserRole(context.Context, *AdminUpdateUserRoleRequest) (*AdminUpdateUserRoleReply, error)
 	// 主账号启用或禁用团队子账号。
@@ -238,6 +253,9 @@ func (UnimplementedUserServiceServer) GetMe(context.Context, *GetMeRequest) (*Ge
 }
 func (UnimplementedUserServiceServer) AdminCreateUser(context.Context, *AdminCreateUserRequest) (*AdminCreateUserReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AdminCreateUser not implemented")
+}
+func (UnimplementedUserServiceServer) ListUsers(context.Context, *ListUsersRequest) (*ListUsersReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListUsers not implemented")
 }
 func (UnimplementedUserServiceServer) AdminUpdateUserRole(context.Context, *AdminUpdateUserRoleRequest) (*AdminUpdateUserRoleReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AdminUpdateUserRole not implemented")
@@ -405,6 +423,24 @@ func _UserService_AdminCreateUser_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_ListUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).ListUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_ListUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).ListUsers(ctx, req.(*ListUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _UserService_AdminUpdateUserRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AdminUpdateUserRoleRequest)
 	if err := dec(in); err != nil {
@@ -497,6 +533,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AdminCreateUser",
 			Handler:    _UserService_AdminCreateUser_Handler,
+		},
+		{
+			MethodName: "ListUsers",
+			Handler:    _UserService_ListUsers_Handler,
 		},
 		{
 			MethodName: "AdminUpdateUserRole",

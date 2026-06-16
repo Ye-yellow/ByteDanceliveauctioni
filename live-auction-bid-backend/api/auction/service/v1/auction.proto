@@ -194,6 +194,62 @@ service AuctionService {
     };
   }
 
+  // 查询拍品结果。
+  rpc GetLotResultView(GetLotResultRequest) returns (GetLotResultReply) {
+    option (google.api.http) = {
+      get: "/api/lots/{lot_id}/result"
+    };
+  }
+
+  // 查询当前买家的竞拍订单。
+  rpc ListMyAuctionOrders(ListAuctionOrdersRequest) returns (ListAuctionOrdersReply) {
+    option (google.api.http) = {
+      get: "/api/me/orders"
+    };
+  }
+
+  // 查询当前买家的出价记录。
+  rpc ListMyBidRecords(ListBidRecordsRequest) returns (ListBidRecordsReply) {
+    option (google.api.http) = {
+      get: "/api/me/bids"
+    };
+  }
+
+  // 查询后台竞拍订单。
+  rpc ListAdminAuctionOrders(ListAuctionOrdersRequest) returns (ListAuctionOrdersReply) {
+    option (google.api.http) = {
+      get: "/api/admin/orders"
+    };
+  }
+
+  // 查询后台拍品。
+  rpc ListAdminLotPage(ListAdminLotPageRequest) returns (ListAdminLotPageReply) {
+    option (google.api.http) = {
+      get: "/api/admin/lots"
+    };
+  }
+
+  // 查询后台房间。
+  rpc ListAdminRoomList(ListAdminRoomsRequest) returns (ListRoomsReply) {
+    option (google.api.http) = {
+      get: "/api/admin/rooms"
+    };
+  }
+
+  // 查询公开房间。
+  rpc ListPublicRoomList(ListPublicRoomsRequest) returns (ListPublicRoomsReply) {
+    option (google.api.http) = {
+      get: "/api/rooms"
+    };
+  }
+
+  // 获取买家推荐搜索词。
+  rpc ListBuyerSuggestions(ListBuyerSuggestionsRequest) returns (ListBuyerSuggestionsReply) {
+    option (google.api.http) = {
+      get: "/api/ai/buyer/suggestions"
+    };
+  }
+
   // 买家找拍品助手。
   //
   // 调用方：观众端。
@@ -498,6 +554,9 @@ message Bid {
 
   // 出价成功时间，Unix 毫秒，以服务端时间为准。
   int64 created_at_unix_ms = 6;
+
+  // 出价用户头像。公开展示资料，用于 H5 排行榜和出价卡片。
+  string avatar_url = 7;
 }
 
 // RankingItem 表示排行榜中的一行。
@@ -518,6 +577,9 @@ message RankingItem {
 
   // 该最高出价的时间，Unix 毫秒。
   int64 bid_at_unix_ms = 5;
+
+  // 用户头像。公开展示资料，用于排行榜展示。
+  string avatar_url = 6;
 }
 
 // DuelState 表示双人巅峰竞拍状态。
@@ -694,6 +756,12 @@ message RoomSnapshot {
 
   // 主播/商家展示名，来自主播/商家主账号资料。
   string anchor_name = 8;
+
+  // 当前直播视频源。由后端按直播间固定分配，H5 不应自行随机。
+  string live_source_url = 9;
+
+  // 伪直播起播时间，Unix 毫秒。H5 用它和 server_time_unix_ms 对齐播放进度。
+  int64 live_started_at_unix_ms = 10;
 }
 
 // RoomPresence 表示直播间实时连接状态。
@@ -988,6 +1056,112 @@ message BuyerConsultRequest {
   string risk_preference = 5;
 }
 
+message GetLotResultRequest {
+  string lot_id = 1;
+}
+
+message ListAuctionOrdersRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  string status = 3;
+  string payment_status = 4;
+  string lot_id = 5;
+  string buyer = 6;
+}
+
+message ListBidRecordsRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  string lot_id = 3;
+}
+
+message ListAdminLotPageRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  LotStatus status = 3;
+  string view = 4;
+  string keyword = 5;
+  string room_id = 6;
+}
+
+message ListAdminRoomsRequest {}
+
+message ListPublicRoomsRequest {}
+
+message ListBuyerSuggestionsRequest {
+  int32 limit = 1;
+}
+
+message AuctionDeliveryAddressSnapshot {
+  string address_id = 1;
+  string receiver_name = 2;
+  string phone = 3;
+  string province = 4;
+  string city = 5;
+  string district = 6;
+  string street = 7;
+  string detail = 8;
+  string postal_code = 9;
+  string full_address = 10;
+}
+
+message AuctionOrderSummary {
+  string id = 1;
+  string main_account_id = 2;
+  string lot_id = 3;
+  string room_id = 4;
+  string lot_title = 5;
+  string lot_image_url = 6;
+  string buyer_user_id = 7;
+  string buyer_nickname = 8;
+  string status = 9;
+  string payment_status = 10;
+  string payment_id = 11;
+  string shipping_address_id = 12;
+  AuctionDeliveryAddressSnapshot shipping_address_snapshot = 13;
+  int64 amount = 14;
+  string currency = 15;
+  int64 created_at_unix_ms = 16;
+  int64 updated_at_unix_ms = 17;
+  int64 expires_at_unix_ms = 18;
+  int64 paid_at_unix_ms = 19;
+}
+
+message AuctionBidRecord {
+  string id = 1;
+  string lot_id = 2;
+  string room_id = 3;
+  string lot_title = 4;
+  string lot_image_url = 5;
+  string user_id = 6;
+  string nickname = 7;
+  int64 amount = 8;
+  string currency = 9;
+  int64 created_at_unix_ms = 10;
+  string lot_status = 11;
+  string auction_state = 12;
+  bool won = 13;
+}
+
+message AuctionRoom {
+  string id = 1;
+  string main_account_id = 2;
+  string name = 3;
+  string platform = 4;
+  string platform_room_id = 5;
+  string live_source_url = 6;
+  int64 live_started_at_unix_ms = 7;
+  string status = 8;
+  string created_by_user_id = 9;
+  int64 created_at_unix_ms = 10;
+  int64 updated_at_unix_ms = 11;
+}
+
+message BuyerSuggestion {
+  string text = 1;
+  string reason = 2;
+}
+
 // ============================================================================
 // 响应体定义
 // ============================================================================
@@ -1157,6 +1331,53 @@ message ListRoomEventsReply {
   string next_page_token = 2;
 
   // 统一返回头。
+  ReplyResult result = 99;
+}
+
+message GetLotResultReply {
+  Lot lot = 1;
+  string auction_state = 2;
+  AuctionOrderSummary order = 3;
+  ReplyResult result = 99;
+}
+
+message ListAuctionOrdersReply {
+  repeated AuctionOrderSummary orders = 1;
+  int64 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+  ReplyResult result = 99;
+}
+
+message ListBidRecordsReply {
+  repeated AuctionBidRecord bids = 1;
+  int64 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+  ReplyResult result = 99;
+}
+
+message ListAdminLotPageReply {
+  repeated Lot lots = 1;
+  int64 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+  ReplyResult result = 99;
+}
+
+message ListRoomsReply {
+  repeated AuctionRoom rooms = 1;
+  ReplyResult result = 99;
+}
+
+message ListPublicRoomsReply {
+  repeated AuctionRoom rooms = 1;
+  ReplyResult result = 99;
+}
+
+message ListBuyerSuggestionsReply {
+  repeated BuyerSuggestion suggestions = 1;
+  bool fallback_used = 2;
   ReplyResult result = 99;
 }
 

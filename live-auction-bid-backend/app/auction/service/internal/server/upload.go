@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -70,6 +71,7 @@ func registerUploadHTTP(srv interface {
 }, authManager *auth.Manager, store assetStore, provider storage.StorageProvider) {
 	h := &uploadHandler{auth: authManager, store: store, storage: provider}
 	srv.HandleFunc("/api/uploads/images", h.handleImageUpload)
+	srv.HandleFunc("/api/uploads/images/{asset_id}", h.handleImageDelete)
 	srv.HandleFunc("/api/uploads/images/", h.handleImageDelete)
 }
 
@@ -146,7 +148,9 @@ func (h *uploadHandler) handleImageUpload(w http.ResponseWriter, r *http.Request
 	sum := sha256.Sum256(dataBytes)
 	sha := hex.EncodeToString(sum[:])
 
-	stored, err := h.storage.PutObject(r.Context(), storage.PutObjectInput{
+	storageCtx, cancelStorageUpload := context.WithTimeout(context.WithoutCancel(r.Context()), uploadStorageTimeout())
+	defer cancelStorageUpload()
+	stored, err := h.storage.PutObject(storageCtx, storage.PutObjectInput{
 		ObjectKey:   objectKey,
 		Reader:      bytes.NewReader(dataBytes),
 		SizeBytes:   int64(len(dataBytes)),
@@ -174,7 +178,7 @@ func (h *uploadHandler) handleImageUpload(w http.ResponseWriter, r *http.Request
 		SHA256:          sha,
 		ExpiresAtUnixMs: expiresAt,
 	}
-	if err := h.store.SaveAssetFile(r.Context(), asset); err != nil {
+	if err := h.store.SaveAssetFile(storageCtx, asset); err != nil {
 		_ = h.storage.DeleteObject(context.Background(), stored.ObjectKey)
 		writeUploadError(w, http.StatusInternalServerError, r.Context(), errors.New("save asset file failed"), err)
 		return
@@ -285,6 +289,18 @@ func logUploadInfo(event, requestID string, attrs ...any) {
 func logUploadError(event, requestID string, attrs ...any) {
 	args := append([]any{"event", event, "request_id", requestID}, attrs...)
 	slog.Error("auction upload", args...)
+}
+
+func uploadStorageTimeout() time.Duration {
+	raw := strings.TrimSpace(os.Getenv("AUCTION_UPLOAD_STORAGE_TIMEOUT"))
+	if raw == "" {
+		return 30 * time.Second
+	}
+	parsed, err := time.ParseDuration(raw)
+	if err != nil || parsed <= 0 {
+		return 30 * time.Second
+	}
+	return parsed
 }
 
 func uploadRequestID(r *http.Request) string {

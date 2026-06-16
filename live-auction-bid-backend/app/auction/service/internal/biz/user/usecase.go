@@ -364,6 +364,7 @@ func (uc *Usecase) createUser(ctx context.Context, username, password, nickname 
 		Id:              userID,
 		Username:        username,
 		Nickname:        nickname,
+		AvatarUrl:       AvatarURLForUserID(userID),
 		CreatedAtUnixMs: nowMs,
 		UpdatedAtUnixMs: nowMs,
 		MainAccountId:   mainAccountID,

@@ -19,6 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion8
 
 const (
+	ShopService_ListProducts_FullMethodName              = "/auction.service.v1.ShopService/ListProducts"
+	ShopService_GetProduct_FullMethodName                = "/auction.service.v1.ShopService/GetProduct"
 	ShopService_ListDeliveryAddresses_FullMethodName     = "/auction.service.v1.ShopService/ListDeliveryAddresses"
 	ShopService_CreateDeliveryAddress_FullMethodName     = "/auction.service.v1.ShopService/CreateDeliveryAddress"
 	ShopService_UpdateDeliveryAddress_FullMethodName     = "/auction.service.v1.ShopService/UpdateDeliveryAddress"
@@ -26,6 +28,9 @@ const (
 	ShopService_SetDefaultDeliveryAddress_FullMethodName = "/auction.service.v1.ShopService/SetDefaultDeliveryAddress"
 	ShopService_CreateDepositHold_FullMethodName         = "/auction.service.v1.ShopService/CreateDepositHold"
 	ShopService_GetMyDepositHold_FullMethodName          = "/auction.service.v1.ShopService/GetMyDepositHold"
+	ShopService_CreateShopOrder_FullMethodName           = "/auction.service.v1.ShopService/CreateShopOrder"
+	ShopService_ListMyShopOrders_FullMethodName          = "/auction.service.v1.ShopService/ListMyShopOrders"
+	ShopService_MockPayShopOrder_FullMethodName          = "/auction.service.v1.ShopService/MockPayShopOrder"
 	ShopService_ListMyUnifiedOrders_FullMethodName       = "/auction.service.v1.ShopService/ListMyUnifiedOrders"
 	ShopService_ListMyFrequentStores_FullMethodName      = "/auction.service.v1.ShopService/ListMyFrequentStores"
 	ShopService_GetMyUnifiedOrder_FullMethodName         = "/auction.service.v1.ShopService/GetMyUnifiedOrder"
@@ -38,6 +43,8 @@ const (
 //
 // ShopService covers buyer commerce APIs used by the H5 client.
 type ShopServiceClient interface {
+	ListProducts(ctx context.Context, in *ListProductsRequest, opts ...grpc.CallOption) (*ListProductsReply, error)
+	GetProduct(ctx context.Context, in *GetProductRequest, opts ...grpc.CallOption) (*GetProductReply, error)
 	ListDeliveryAddresses(ctx context.Context, in *ListDeliveryAddressesRequest, opts ...grpc.CallOption) (*ListDeliveryAddressesReply, error)
 	CreateDeliveryAddress(ctx context.Context, in *CreateDeliveryAddressRequest, opts ...grpc.CallOption) (*CreateDeliveryAddressReply, error)
 	UpdateDeliveryAddress(ctx context.Context, in *UpdateDeliveryAddressRequest, opts ...grpc.CallOption) (*UpdateDeliveryAddressReply, error)
@@ -45,6 +52,9 @@ type ShopServiceClient interface {
 	SetDefaultDeliveryAddress(ctx context.Context, in *SetDefaultDeliveryAddressRequest, opts ...grpc.CallOption) (*ListDeliveryAddressesReply, error)
 	CreateDepositHold(ctx context.Context, in *CreateDepositHoldRequest, opts ...grpc.CallOption) (*CreateDepositHoldReply, error)
 	GetMyDepositHold(ctx context.Context, in *GetMyDepositHoldRequest, opts ...grpc.CallOption) (*GetMyDepositHoldReply, error)
+	CreateShopOrder(ctx context.Context, in *CreateShopOrderRequest, opts ...grpc.CallOption) (*CreateShopOrderReply, error)
+	ListMyShopOrders(ctx context.Context, in *ListMyShopOrdersRequest, opts ...grpc.CallOption) (*ListMyShopOrdersReply, error)
+	MockPayShopOrder(ctx context.Context, in *MockPayShopOrderRequest, opts ...grpc.CallOption) (*MockPayShopOrderReply, error)
 	ListMyUnifiedOrders(ctx context.Context, in *ListMyUnifiedOrdersRequest, opts ...grpc.CallOption) (*ListMyUnifiedOrdersReply, error)
 	ListMyFrequentStores(ctx context.Context, in *ListMyFrequentStoresRequest, opts ...grpc.CallOption) (*ListMyFrequentStoresReply, error)
 	GetMyUnifiedOrder(ctx context.Context, in *GetMyUnifiedOrderRequest, opts ...grpc.CallOption) (*GetMyUnifiedOrderReply, error)
@@ -57,6 +67,26 @@ type shopServiceClient struct {
 
 func NewShopServiceClient(cc grpc.ClientConnInterface) ShopServiceClient {
 	return &shopServiceClient{cc}
+}
+
+func (c *shopServiceClient) ListProducts(ctx context.Context, in *ListProductsRequest, opts ...grpc.CallOption) (*ListProductsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListProductsReply)
+	err := c.cc.Invoke(ctx, ShopService_ListProducts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *shopServiceClient) GetProduct(ctx context.Context, in *GetProductRequest, opts ...grpc.CallOption) (*GetProductReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetProductReply)
+	err := c.cc.Invoke(ctx, ShopService_GetProduct_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *shopServiceClient) ListDeliveryAddresses(ctx context.Context, in *ListDeliveryAddressesRequest, opts ...grpc.CallOption) (*ListDeliveryAddressesReply, error) {
@@ -129,6 +159,36 @@ func (c *shopServiceClient) GetMyDepositHold(ctx context.Context, in *GetMyDepos
 	return out, nil
 }
 
+func (c *shopServiceClient) CreateShopOrder(ctx context.Context, in *CreateShopOrderRequest, opts ...grpc.CallOption) (*CreateShopOrderReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateShopOrderReply)
+	err := c.cc.Invoke(ctx, ShopService_CreateShopOrder_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *shopServiceClient) ListMyShopOrders(ctx context.Context, in *ListMyShopOrdersRequest, opts ...grpc.CallOption) (*ListMyShopOrdersReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListMyShopOrdersReply)
+	err := c.cc.Invoke(ctx, ShopService_ListMyShopOrders_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *shopServiceClient) MockPayShopOrder(ctx context.Context, in *MockPayShopOrderRequest, opts ...grpc.CallOption) (*MockPayShopOrderReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MockPayShopOrderReply)
+	err := c.cc.Invoke(ctx, ShopService_MockPayShopOrder_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *shopServiceClient) ListMyUnifiedOrders(ctx context.Context, in *ListMyUnifiedOrdersRequest, opts ...grpc.CallOption) (*ListMyUnifiedOrdersReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListMyUnifiedOrdersReply)
@@ -175,6 +235,8 @@ func (c *shopServiceClient) MockPayUnifiedOrder(ctx context.Context, in *MockPay
 //
 // ShopService covers buyer commerce APIs used by the H5 client.
 type ShopServiceServer interface {
+	ListProducts(context.Context, *ListProductsRequest) (*ListProductsReply, error)
+	GetProduct(context.Context, *GetProductRequest) (*GetProductReply, error)
 	ListDeliveryAddresses(context.Context, *ListDeliveryAddressesRequest) (*ListDeliveryAddressesReply, error)
 	CreateDeliveryAddress(context.Context, *CreateDeliveryAddressRequest) (*CreateDeliveryAddressReply, error)
 	UpdateDeliveryAddress(context.Context, *UpdateDeliveryAddressRequest) (*UpdateDeliveryAddressReply, error)
@@ -182,6 +244,9 @@ type ShopServiceServer interface {
 	SetDefaultDeliveryAddress(context.Context, *SetDefaultDeliveryAddressRequest) (*ListDeliveryAddressesReply, error)
 	CreateDepositHold(context.Context, *CreateDepositHoldRequest) (*CreateDepositHoldReply, error)
 	GetMyDepositHold(context.Context, *GetMyDepositHoldRequest) (*GetMyDepositHoldReply, error)
+	CreateShopOrder(context.Context, *CreateShopOrderRequest) (*CreateShopOrderReply, error)
+	ListMyShopOrders(context.Context, *ListMyShopOrdersRequest) (*ListMyShopOrdersReply, error)
+	MockPayShopOrder(context.Context, *MockPayShopOrderRequest) (*MockPayShopOrderReply, error)
 	ListMyUnifiedOrders(context.Context, *ListMyUnifiedOrdersRequest) (*ListMyUnifiedOrdersReply, error)
 	ListMyFrequentStores(context.Context, *ListMyFrequentStoresRequest) (*ListMyFrequentStoresReply, error)
 	GetMyUnifiedOrder(context.Context, *GetMyUnifiedOrderRequest) (*GetMyUnifiedOrderReply, error)
@@ -193,6 +258,12 @@ type ShopServiceServer interface {
 type UnimplementedShopServiceServer struct {
 }
 
+func (UnimplementedShopServiceServer) ListProducts(context.Context, *ListProductsRequest) (*ListProductsReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListProducts not implemented")
+}
+func (UnimplementedShopServiceServer) GetProduct(context.Context, *GetProductRequest) (*GetProductReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetProduct not implemented")
+}
 func (UnimplementedShopServiceServer) ListDeliveryAddresses(context.Context, *ListDeliveryAddressesRequest) (*ListDeliveryAddressesReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListDeliveryAddresses not implemented")
 }
@@ -213,6 +284,15 @@ func (UnimplementedShopServiceServer) CreateDepositHold(context.Context, *Create
 }
 func (UnimplementedShopServiceServer) GetMyDepositHold(context.Context, *GetMyDepositHoldRequest) (*GetMyDepositHoldReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMyDepositHold not implemented")
+}
+func (UnimplementedShopServiceServer) CreateShopOrder(context.Context, *CreateShopOrderRequest) (*CreateShopOrderReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateShopOrder not implemented")
+}
+func (UnimplementedShopServiceServer) ListMyShopOrders(context.Context, *ListMyShopOrdersRequest) (*ListMyShopOrdersReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListMyShopOrders not implemented")
+}
+func (UnimplementedShopServiceServer) MockPayShopOrder(context.Context, *MockPayShopOrderRequest) (*MockPayShopOrderReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MockPayShopOrder not implemented")
 }
 func (UnimplementedShopServiceServer) ListMyUnifiedOrders(context.Context, *ListMyUnifiedOrdersRequest) (*ListMyUnifiedOrdersReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListMyUnifiedOrders not implemented")
@@ -237,6 +317,42 @@ type UnsafeShopServiceServer interface {
 
 func RegisterShopServiceServer(s grpc.ServiceRegistrar, srv ShopServiceServer) {
 	s.RegisterService(&ShopService_ServiceDesc, srv)
+}
+
+func _ShopService_ListProducts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListProductsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ShopServiceServer).ListProducts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ShopService_ListProducts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ShopServiceServer).ListProducts(ctx, req.(*ListProductsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ShopService_GetProduct_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProductRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ShopServiceServer).GetProduct(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ShopService_GetProduct_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ShopServiceServer).GetProduct(ctx, req.(*GetProductRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _ShopService_ListDeliveryAddresses_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -365,6 +481,60 @@ func _ShopService_GetMyDepositHold_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ShopService_CreateShopOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateShopOrderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ShopServiceServer).CreateShopOrder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ShopService_CreateShopOrder_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ShopServiceServer).CreateShopOrder(ctx, req.(*CreateShopOrderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ShopService_ListMyShopOrders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListMyShopOrdersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ShopServiceServer).ListMyShopOrders(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ShopService_ListMyShopOrders_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ShopServiceServer).ListMyShopOrders(ctx, req.(*ListMyShopOrdersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ShopService_MockPayShopOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MockPayShopOrderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ShopServiceServer).MockPayShopOrder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ShopService_MockPayShopOrder_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ShopServiceServer).MockPayShopOrder(ctx, req.(*MockPayShopOrderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ShopService_ListMyUnifiedOrders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListMyUnifiedOrdersRequest)
 	if err := dec(in); err != nil {
@@ -445,6 +615,14 @@ var ShopService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*ShopServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "ListProducts",
+			Handler:    _ShopService_ListProducts_Handler,
+		},
+		{
+			MethodName: "GetProduct",
+			Handler:    _ShopService_GetProduct_Handler,
+		},
+		{
 			MethodName: "ListDeliveryAddresses",
 			Handler:    _ShopService_ListDeliveryAddresses_Handler,
 		},
@@ -471,6 +649,18 @@ var ShopService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetMyDepositHold",
 			Handler:    _ShopService_GetMyDepositHold_Handler,
+		},
+		{
+			MethodName: "CreateShopOrder",
+			Handler:    _ShopService_CreateShopOrder_Handler,
+		},
+		{
+			MethodName: "ListMyShopOrders",
+			Handler:    _ShopService_ListMyShopOrders_Handler,
+		},
+		{
+			MethodName: "MockPayShopOrder",
+			Handler:    _ShopService_MockPayShopOrder_Handler,
 		},
 		{
 			MethodName: "ListMyUnifiedOrders",

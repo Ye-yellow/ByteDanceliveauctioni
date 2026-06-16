@@ -24,9 +24,17 @@ const OperationAuctionServiceConsultBuyer = "/auction.service.v1.AuctionService/
 const OperationAuctionServiceCreateLot = "/auction.service.v1.AuctionService/CreateLot"
 const OperationAuctionServiceCreateLotDraft = "/auction.service.v1.AuctionService/CreateLotDraft"
 const OperationAuctionServiceGetLot = "/auction.service.v1.AuctionService/GetLot"
+const OperationAuctionServiceGetLotResultView = "/auction.service.v1.AuctionService/GetLotResultView"
 const OperationAuctionServiceGetRoomPresence = "/auction.service.v1.AuctionService/GetRoomPresence"
 const OperationAuctionServiceGetRoomSnapshot = "/auction.service.v1.AuctionService/GetRoomSnapshot"
+const OperationAuctionServiceListAdminAuctionOrders = "/auction.service.v1.AuctionService/ListAdminAuctionOrders"
+const OperationAuctionServiceListAdminLotPage = "/auction.service.v1.AuctionService/ListAdminLotPage"
+const OperationAuctionServiceListAdminRoomList = "/auction.service.v1.AuctionService/ListAdminRoomList"
+const OperationAuctionServiceListBuyerSuggestions = "/auction.service.v1.AuctionService/ListBuyerSuggestions"
 const OperationAuctionServiceListLots = "/auction.service.v1.AuctionService/ListLots"
+const OperationAuctionServiceListMyAuctionOrders = "/auction.service.v1.AuctionService/ListMyAuctionOrders"
+const OperationAuctionServiceListMyBidRecords = "/auction.service.v1.AuctionService/ListMyBidRecords"
+const OperationAuctionServiceListPublicRoomList = "/auction.service.v1.AuctionService/ListPublicRoomList"
 const OperationAuctionServiceListRoomEvents = "/auction.service.v1.AuctionService/ListRoomEvents"
 const OperationAuctionServicePatchLotDraft = "/auction.service.v1.AuctionService/PatchLotDraft"
 const OperationAuctionServicePlaceBid = "/auction.service.v1.AuctionService/PlaceBid"
@@ -63,6 +71,8 @@ type AuctionServiceHTTPServer interface {
 	// 调用方：主播端、观众端、调试工具。
 	// 用途：查询某个拍品当前完整状态，包括当前价、领先者、玩法状态等。
 	GetLot(context.Context, *GetLotRequest) (*GetLotReply, error)
+	// GetLotResultView 查询拍品结果。
+	GetLotResultView(context.Context, *GetLotResultRequest) (*GetLotResultReply, error)
 	// GetRoomPresence 获取直播间在线状态。
 	//
 	// 调用方：主播端/运营端。
@@ -73,12 +83,26 @@ type AuctionServiceHTTPServer interface {
 	// 调用方：观众端。
 	// 用途：首次进入直播间、WebSocket 重连、前端状态不可信时，用它恢复当前状态。
 	GetRoomSnapshot(context.Context, *GetRoomSnapshotRequest) (*GetRoomSnapshotReply, error)
+	// ListAdminAuctionOrders 查询后台竞拍订单。
+	ListAdminAuctionOrders(context.Context, *ListAuctionOrdersRequest) (*ListAuctionOrdersReply, error)
+	// ListAdminLotPage 查询后台拍品。
+	ListAdminLotPage(context.Context, *ListAdminLotPageRequest) (*ListAdminLotPageReply, error)
+	// ListAdminRoomList 查询后台房间。
+	ListAdminRoomList(context.Context, *ListAdminRoomsRequest) (*ListRoomsReply, error)
+	// ListBuyerSuggestions 获取买家推荐搜索词。
+	ListBuyerSuggestions(context.Context, *ListBuyerSuggestionsRequest) (*ListBuyerSuggestionsReply, error)
 	// ListLots 查询直播间拍品列表。
 	//
 	// 调用方：主播端/运营端。
 	// 用途：查看某个直播间下的草稿、竞拍中、已成交拍品。
 	// V1 可以先只返回少量数据，分页字段为后续预留。
 	ListLots(context.Context, *ListLotsRequest) (*ListLotsReply, error)
+	// ListMyAuctionOrders 查询当前买家的竞拍订单。
+	ListMyAuctionOrders(context.Context, *ListAuctionOrdersRequest) (*ListAuctionOrdersReply, error)
+	// ListMyBidRecords 查询当前买家的出价记录。
+	ListMyBidRecords(context.Context, *ListBidRecordsRequest) (*ListBidRecordsReply, error)
+	// ListPublicRoomList 查询公开房间。
+	ListPublicRoomList(context.Context, *ListPublicRoomsRequest) (*ListPublicRoomsReply, error)
 	// ListRoomEvents 查询直播间最近事件。
 	//
 	// 调用方：主播端/运营端。
@@ -142,6 +166,14 @@ func RegisterAuctionServiceHTTPServer(s *http.Server, srv AuctionServiceHTTPServ
 	r.GET("/api/rooms/{room_id}/snapshot", _AuctionService_GetRoomSnapshot0_HTTP_Handler(srv))
 	r.GET("/api/rooms/{room_id}/presence", _AuctionService_GetRoomPresence0_HTTP_Handler(srv))
 	r.GET("/api/rooms/{room_id}/events", _AuctionService_ListRoomEvents0_HTTP_Handler(srv))
+	r.GET("/api/lots/{lot_id}/result", _AuctionService_GetLotResultView0_HTTP_Handler(srv))
+	r.GET("/api/me/orders", _AuctionService_ListMyAuctionOrders0_HTTP_Handler(srv))
+	r.GET("/api/me/bids", _AuctionService_ListMyBidRecords0_HTTP_Handler(srv))
+	r.GET("/api/admin/orders", _AuctionService_ListAdminAuctionOrders0_HTTP_Handler(srv))
+	r.GET("/api/admin/lots", _AuctionService_ListAdminLotPage0_HTTP_Handler(srv))
+	r.GET("/api/admin/rooms", _AuctionService_ListAdminRoomList0_HTTP_Handler(srv))
+	r.GET("/api/rooms", _AuctionService_ListPublicRoomList0_HTTP_Handler(srv))
+	r.GET("/api/ai/buyer/suggestions", _AuctionService_ListBuyerSuggestions0_HTTP_Handler(srv))
 	r.POST("/api/ai/buyer/consult", _AuctionService_ConsultBuyer0_HTTP_Handler(srv))
 }
 
@@ -496,6 +528,161 @@ func _AuctionService_ListRoomEvents0_HTTP_Handler(srv AuctionServiceHTTPServer) 
 	}
 }
 
+func _AuctionService_GetLotResultView0_HTTP_Handler(srv AuctionServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetLotResultRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuctionServiceGetLotResultView)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetLotResultView(ctx, req.(*GetLotResultRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetLotResultReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _AuctionService_ListMyAuctionOrders0_HTTP_Handler(srv AuctionServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListAuctionOrdersRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuctionServiceListMyAuctionOrders)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListMyAuctionOrders(ctx, req.(*ListAuctionOrdersRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListAuctionOrdersReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _AuctionService_ListMyBidRecords0_HTTP_Handler(srv AuctionServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListBidRecordsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuctionServiceListMyBidRecords)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListMyBidRecords(ctx, req.(*ListBidRecordsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListBidRecordsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _AuctionService_ListAdminAuctionOrders0_HTTP_Handler(srv AuctionServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListAuctionOrdersRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuctionServiceListAdminAuctionOrders)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListAdminAuctionOrders(ctx, req.(*ListAuctionOrdersRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListAuctionOrdersReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _AuctionService_ListAdminLotPage0_HTTP_Handler(srv AuctionServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListAdminLotPageRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuctionServiceListAdminLotPage)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListAdminLotPage(ctx, req.(*ListAdminLotPageRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListAdminLotPageReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _AuctionService_ListAdminRoomList0_HTTP_Handler(srv AuctionServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListAdminRoomsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuctionServiceListAdminRoomList)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListAdminRoomList(ctx, req.(*ListAdminRoomsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListRoomsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _AuctionService_ListPublicRoomList0_HTTP_Handler(srv AuctionServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListPublicRoomsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuctionServiceListPublicRoomList)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListPublicRoomList(ctx, req.(*ListPublicRoomsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListPublicRoomsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _AuctionService_ListBuyerSuggestions0_HTTP_Handler(srv AuctionServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListBuyerSuggestionsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuctionServiceListBuyerSuggestions)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListBuyerSuggestions(ctx, req.(*ListBuyerSuggestionsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListBuyerSuggestionsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _AuctionService_ConsultBuyer0_HTTP_Handler(srv AuctionServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in BuyerConsultRequest
@@ -545,6 +732,8 @@ type AuctionServiceHTTPClient interface {
 	// 调用方：主播端、观众端、调试工具。
 	// 用途：查询某个拍品当前完整状态，包括当前价、领先者、玩法状态等。
 	GetLot(ctx context.Context, req *GetLotRequest, opts ...http.CallOption) (rsp *GetLotReply, err error)
+	// GetLotResultView 查询拍品结果。
+	GetLotResultView(ctx context.Context, req *GetLotResultRequest, opts ...http.CallOption) (rsp *GetLotResultReply, err error)
 	// GetRoomPresence 获取直播间在线状态。
 	//
 	// 调用方：主播端/运营端。
@@ -555,12 +744,26 @@ type AuctionServiceHTTPClient interface {
 	// 调用方：观众端。
 	// 用途：首次进入直播间、WebSocket 重连、前端状态不可信时，用它恢复当前状态。
 	GetRoomSnapshot(ctx context.Context, req *GetRoomSnapshotRequest, opts ...http.CallOption) (rsp *GetRoomSnapshotReply, err error)
+	// ListAdminAuctionOrders 查询后台竞拍订单。
+	ListAdminAuctionOrders(ctx context.Context, req *ListAuctionOrdersRequest, opts ...http.CallOption) (rsp *ListAuctionOrdersReply, err error)
+	// ListAdminLotPage 查询后台拍品。
+	ListAdminLotPage(ctx context.Context, req *ListAdminLotPageRequest, opts ...http.CallOption) (rsp *ListAdminLotPageReply, err error)
+	// ListAdminRoomList 查询后台房间。
+	ListAdminRoomList(ctx context.Context, req *ListAdminRoomsRequest, opts ...http.CallOption) (rsp *ListRoomsReply, err error)
+	// ListBuyerSuggestions 获取买家推荐搜索词。
+	ListBuyerSuggestions(ctx context.Context, req *ListBuyerSuggestionsRequest, opts ...http.CallOption) (rsp *ListBuyerSuggestionsReply, err error)
 	// ListLots 查询直播间拍品列表。
 	//
 	// 调用方：主播端/运营端。
 	// 用途：查看某个直播间下的草稿、竞拍中、已成交拍品。
 	// V1 可以先只返回少量数据，分页字段为后续预留。
 	ListLots(ctx context.Context, req *ListLotsRequest, opts ...http.CallOption) (rsp *ListLotsReply, err error)
+	// ListMyAuctionOrders 查询当前买家的竞拍订单。
+	ListMyAuctionOrders(ctx context.Context, req *ListAuctionOrdersRequest, opts ...http.CallOption) (rsp *ListAuctionOrdersReply, err error)
+	// ListMyBidRecords 查询当前买家的出价记录。
+	ListMyBidRecords(ctx context.Context, req *ListBidRecordsRequest, opts ...http.CallOption) (rsp *ListBidRecordsReply, err error)
+	// ListPublicRoomList 查询公开房间。
+	ListPublicRoomList(ctx context.Context, req *ListPublicRoomsRequest, opts ...http.CallOption) (rsp *ListPublicRoomsReply, err error)
 	// ListRoomEvents 查询直播间最近事件。
 	//
 	// 调用方：主播端/运营端。
@@ -701,6 +904,20 @@ func (c *AuctionServiceHTTPClientImpl) GetLot(ctx context.Context, in *GetLotReq
 	return &out, nil
 }
 
+// GetLotResultView 查询拍品结果。
+func (c *AuctionServiceHTTPClientImpl) GetLotResultView(ctx context.Context, in *GetLotResultRequest, opts ...http.CallOption) (*GetLotResultReply, error) {
+	var out GetLotResultReply
+	pattern := "/api/lots/{lot_id}/result"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationAuctionServiceGetLotResultView))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // GetRoomPresence 获取直播间在线状态。
 //
 // 调用方：主播端/运营端。
@@ -735,6 +952,62 @@ func (c *AuctionServiceHTTPClientImpl) GetRoomSnapshot(ctx context.Context, in *
 	return &out, nil
 }
 
+// ListAdminAuctionOrders 查询后台竞拍订单。
+func (c *AuctionServiceHTTPClientImpl) ListAdminAuctionOrders(ctx context.Context, in *ListAuctionOrdersRequest, opts ...http.CallOption) (*ListAuctionOrdersReply, error) {
+	var out ListAuctionOrdersReply
+	pattern := "/api/admin/orders"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationAuctionServiceListAdminAuctionOrders))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListAdminLotPage 查询后台拍品。
+func (c *AuctionServiceHTTPClientImpl) ListAdminLotPage(ctx context.Context, in *ListAdminLotPageRequest, opts ...http.CallOption) (*ListAdminLotPageReply, error) {
+	var out ListAdminLotPageReply
+	pattern := "/api/admin/lots"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationAuctionServiceListAdminLotPage))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListAdminRoomList 查询后台房间。
+func (c *AuctionServiceHTTPClientImpl) ListAdminRoomList(ctx context.Context, in *ListAdminRoomsRequest, opts ...http.CallOption) (*ListRoomsReply, error) {
+	var out ListRoomsReply
+	pattern := "/api/admin/rooms"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationAuctionServiceListAdminRoomList))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListBuyerSuggestions 获取买家推荐搜索词。
+func (c *AuctionServiceHTTPClientImpl) ListBuyerSuggestions(ctx context.Context, in *ListBuyerSuggestionsRequest, opts ...http.CallOption) (*ListBuyerSuggestionsReply, error) {
+	var out ListBuyerSuggestionsReply
+	pattern := "/api/ai/buyer/suggestions"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationAuctionServiceListBuyerSuggestions))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // ListLots 查询直播间拍品列表。
 //
 // 调用方：主播端/运营端。
@@ -745,6 +1018,48 @@ func (c *AuctionServiceHTTPClientImpl) ListLots(ctx context.Context, in *ListLot
 	pattern := "/api/lots"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationAuctionServiceListLots))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListMyAuctionOrders 查询当前买家的竞拍订单。
+func (c *AuctionServiceHTTPClientImpl) ListMyAuctionOrders(ctx context.Context, in *ListAuctionOrdersRequest, opts ...http.CallOption) (*ListAuctionOrdersReply, error) {
+	var out ListAuctionOrdersReply
+	pattern := "/api/me/orders"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationAuctionServiceListMyAuctionOrders))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListMyBidRecords 查询当前买家的出价记录。
+func (c *AuctionServiceHTTPClientImpl) ListMyBidRecords(ctx context.Context, in *ListBidRecordsRequest, opts ...http.CallOption) (*ListBidRecordsReply, error) {
+	var out ListBidRecordsReply
+	pattern := "/api/me/bids"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationAuctionServiceListMyBidRecords))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListPublicRoomList 查询公开房间。
+func (c *AuctionServiceHTTPClientImpl) ListPublicRoomList(ctx context.Context, in *ListPublicRoomsRequest, opts ...http.CallOption) (*ListPublicRoomsReply, error) {
+	var out ListPublicRoomsReply
+	pattern := "/api/rooms"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationAuctionServiceListPublicRoomList))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

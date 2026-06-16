@@ -21,12 +21,17 @@ const _ = http.SupportPackageIsVersion1
 
 const OperationShopServiceCreateDeliveryAddress = "/auction.service.v1.ShopService/CreateDeliveryAddress"
 const OperationShopServiceCreateDepositHold = "/auction.service.v1.ShopService/CreateDepositHold"
+const OperationShopServiceCreateShopOrder = "/auction.service.v1.ShopService/CreateShopOrder"
 const OperationShopServiceDeleteDeliveryAddress = "/auction.service.v1.ShopService/DeleteDeliveryAddress"
 const OperationShopServiceGetMyDepositHold = "/auction.service.v1.ShopService/GetMyDepositHold"
 const OperationShopServiceGetMyUnifiedOrder = "/auction.service.v1.ShopService/GetMyUnifiedOrder"
+const OperationShopServiceGetProduct = "/auction.service.v1.ShopService/GetProduct"
 const OperationShopServiceListDeliveryAddresses = "/auction.service.v1.ShopService/ListDeliveryAddresses"
 const OperationShopServiceListMyFrequentStores = "/auction.service.v1.ShopService/ListMyFrequentStores"
+const OperationShopServiceListMyShopOrders = "/auction.service.v1.ShopService/ListMyShopOrders"
 const OperationShopServiceListMyUnifiedOrders = "/auction.service.v1.ShopService/ListMyUnifiedOrders"
+const OperationShopServiceListProducts = "/auction.service.v1.ShopService/ListProducts"
+const OperationShopServiceMockPayShopOrder = "/auction.service.v1.ShopService/MockPayShopOrder"
 const OperationShopServiceMockPayUnifiedOrder = "/auction.service.v1.ShopService/MockPayUnifiedOrder"
 const OperationShopServiceSetDefaultDeliveryAddress = "/auction.service.v1.ShopService/SetDefaultDeliveryAddress"
 const OperationShopServiceUpdateDeliveryAddress = "/auction.service.v1.ShopService/UpdateDeliveryAddress"
@@ -34,12 +39,17 @@ const OperationShopServiceUpdateDeliveryAddress = "/auction.service.v1.ShopServi
 type ShopServiceHTTPServer interface {
 	CreateDeliveryAddress(context.Context, *CreateDeliveryAddressRequest) (*CreateDeliveryAddressReply, error)
 	CreateDepositHold(context.Context, *CreateDepositHoldRequest) (*CreateDepositHoldReply, error)
+	CreateShopOrder(context.Context, *CreateShopOrderRequest) (*CreateShopOrderReply, error)
 	DeleteDeliveryAddress(context.Context, *DeleteDeliveryAddressRequest) (*DeleteDeliveryAddressReply, error)
 	GetMyDepositHold(context.Context, *GetMyDepositHoldRequest) (*GetMyDepositHoldReply, error)
 	GetMyUnifiedOrder(context.Context, *GetMyUnifiedOrderRequest) (*GetMyUnifiedOrderReply, error)
+	GetProduct(context.Context, *GetProductRequest) (*GetProductReply, error)
 	ListDeliveryAddresses(context.Context, *ListDeliveryAddressesRequest) (*ListDeliveryAddressesReply, error)
 	ListMyFrequentStores(context.Context, *ListMyFrequentStoresRequest) (*ListMyFrequentStoresReply, error)
+	ListMyShopOrders(context.Context, *ListMyShopOrdersRequest) (*ListMyShopOrdersReply, error)
 	ListMyUnifiedOrders(context.Context, *ListMyUnifiedOrdersRequest) (*ListMyUnifiedOrdersReply, error)
+	ListProducts(context.Context, *ListProductsRequest) (*ListProductsReply, error)
+	MockPayShopOrder(context.Context, *MockPayShopOrderRequest) (*MockPayShopOrderReply, error)
 	MockPayUnifiedOrder(context.Context, *MockPayUnifiedOrderRequest) (*MockPayUnifiedOrderReply, error)
 	SetDefaultDeliveryAddress(context.Context, *SetDefaultDeliveryAddressRequest) (*ListDeliveryAddressesReply, error)
 	UpdateDeliveryAddress(context.Context, *UpdateDeliveryAddressRequest) (*UpdateDeliveryAddressReply, error)
@@ -47,6 +57,8 @@ type ShopServiceHTTPServer interface {
 
 func RegisterShopServiceHTTPServer(s *http.Server, srv ShopServiceHTTPServer) {
 	r := s.Route("/")
+	r.GET("/api/shop/products", _ShopService_ListProducts0_HTTP_Handler(srv))
+	r.GET("/api/shop/products/{product_id}", _ShopService_GetProduct0_HTTP_Handler(srv))
 	r.GET("/api/shop/addresses", _ShopService_ListDeliveryAddresses0_HTTP_Handler(srv))
 	r.POST("/api/shop/addresses", _ShopService_CreateDeliveryAddress0_HTTP_Handler(srv))
 	r.PUT("/api/shop/addresses/{address_id}", _ShopService_UpdateDeliveryAddress0_HTTP_Handler(srv))
@@ -54,10 +66,54 @@ func RegisterShopServiceHTTPServer(s *http.Server, srv ShopServiceHTTPServer) {
 	r.POST("/api/shop/addresses/{address_id}/default", _ShopService_SetDefaultDeliveryAddress0_HTTP_Handler(srv))
 	r.POST("/api/lots/{lot_id}/deposit-holds/mock-pay", _ShopService_CreateDepositHold0_HTTP_Handler(srv))
 	r.GET("/api/lots/{lot_id}/deposit-holds/me", _ShopService_GetMyDepositHold0_HTTP_Handler(srv))
+	r.POST("/api/shop/orders", _ShopService_CreateShopOrder0_HTTP_Handler(srv))
+	r.GET("/api/shop/orders", _ShopService_ListMyShopOrders0_HTTP_Handler(srv))
+	r.POST("/api/shop/orders/{order_id}/mock-pay", _ShopService_MockPayShopOrder0_HTTP_Handler(srv))
 	r.GET("/api/orders/me", _ShopService_ListMyUnifiedOrders0_HTTP_Handler(srv))
 	r.GET("/api/orders/me/frequent-stores", _ShopService_ListMyFrequentStores0_HTTP_Handler(srv))
 	r.GET("/api/orders/{order_id}", _ShopService_GetMyUnifiedOrder0_HTTP_Handler(srv))
 	r.POST("/api/orders/{order_id}/mock-pay", _ShopService_MockPayUnifiedOrder0_HTTP_Handler(srv))
+}
+
+func _ShopService_ListProducts0_HTTP_Handler(srv ShopServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListProductsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationShopServiceListProducts)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListProducts(ctx, req.(*ListProductsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListProductsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _ShopService_GetProduct0_HTTP_Handler(srv ShopServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetProductRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationShopServiceGetProduct)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetProduct(ctx, req.(*GetProductRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetProductReply)
+		return ctx.Result(200, reply)
+	}
 }
 
 func _ShopService_ListDeliveryAddresses0_HTTP_Handler(srv ShopServiceHTTPServer) func(ctx http.Context) error {
@@ -220,6 +276,72 @@ func _ShopService_GetMyDepositHold0_HTTP_Handler(srv ShopServiceHTTPServer) func
 	}
 }
 
+func _ShopService_CreateShopOrder0_HTTP_Handler(srv ShopServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateShopOrderRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationShopServiceCreateShopOrder)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateShopOrder(ctx, req.(*CreateShopOrderRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CreateShopOrderReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _ShopService_ListMyShopOrders0_HTTP_Handler(srv ShopServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListMyShopOrdersRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationShopServiceListMyShopOrders)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListMyShopOrders(ctx, req.(*ListMyShopOrdersRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListMyShopOrdersReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _ShopService_MockPayShopOrder0_HTTP_Handler(srv ShopServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in MockPayShopOrderRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationShopServiceMockPayShopOrder)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.MockPayShopOrder(ctx, req.(*MockPayShopOrderRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*MockPayShopOrderReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _ShopService_ListMyUnifiedOrders0_HTTP_Handler(srv ShopServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in ListMyUnifiedOrdersRequest
@@ -308,12 +430,17 @@ func _ShopService_MockPayUnifiedOrder0_HTTP_Handler(srv ShopServiceHTTPServer) f
 type ShopServiceHTTPClient interface {
 	CreateDeliveryAddress(ctx context.Context, req *CreateDeliveryAddressRequest, opts ...http.CallOption) (rsp *CreateDeliveryAddressReply, err error)
 	CreateDepositHold(ctx context.Context, req *CreateDepositHoldRequest, opts ...http.CallOption) (rsp *CreateDepositHoldReply, err error)
+	CreateShopOrder(ctx context.Context, req *CreateShopOrderRequest, opts ...http.CallOption) (rsp *CreateShopOrderReply, err error)
 	DeleteDeliveryAddress(ctx context.Context, req *DeleteDeliveryAddressRequest, opts ...http.CallOption) (rsp *DeleteDeliveryAddressReply, err error)
 	GetMyDepositHold(ctx context.Context, req *GetMyDepositHoldRequest, opts ...http.CallOption) (rsp *GetMyDepositHoldReply, err error)
 	GetMyUnifiedOrder(ctx context.Context, req *GetMyUnifiedOrderRequest, opts ...http.CallOption) (rsp *GetMyUnifiedOrderReply, err error)
+	GetProduct(ctx context.Context, req *GetProductRequest, opts ...http.CallOption) (rsp *GetProductReply, err error)
 	ListDeliveryAddresses(ctx context.Context, req *ListDeliveryAddressesRequest, opts ...http.CallOption) (rsp *ListDeliveryAddressesReply, err error)
 	ListMyFrequentStores(ctx context.Context, req *ListMyFrequentStoresRequest, opts ...http.CallOption) (rsp *ListMyFrequentStoresReply, err error)
+	ListMyShopOrders(ctx context.Context, req *ListMyShopOrdersRequest, opts ...http.CallOption) (rsp *ListMyShopOrdersReply, err error)
 	ListMyUnifiedOrders(ctx context.Context, req *ListMyUnifiedOrdersRequest, opts ...http.CallOption) (rsp *ListMyUnifiedOrdersReply, err error)
+	ListProducts(ctx context.Context, req *ListProductsRequest, opts ...http.CallOption) (rsp *ListProductsReply, err error)
+	MockPayShopOrder(ctx context.Context, req *MockPayShopOrderRequest, opts ...http.CallOption) (rsp *MockPayShopOrderReply, err error)
 	MockPayUnifiedOrder(ctx context.Context, req *MockPayUnifiedOrderRequest, opts ...http.CallOption) (rsp *MockPayUnifiedOrderReply, err error)
 	SetDefaultDeliveryAddress(ctx context.Context, req *SetDefaultDeliveryAddressRequest, opts ...http.CallOption) (rsp *ListDeliveryAddressesReply, err error)
 	UpdateDeliveryAddress(ctx context.Context, req *UpdateDeliveryAddressRequest, opts ...http.CallOption) (rsp *UpdateDeliveryAddressReply, err error)
@@ -345,6 +472,19 @@ func (c *ShopServiceHTTPClientImpl) CreateDepositHold(ctx context.Context, in *C
 	pattern := "/api/lots/{lot_id}/deposit-holds/mock-pay"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationShopServiceCreateDepositHold))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *ShopServiceHTTPClientImpl) CreateShopOrder(ctx context.Context, in *CreateShopOrderRequest, opts ...http.CallOption) (*CreateShopOrderReply, error) {
+	var out CreateShopOrderReply
+	pattern := "/api/shop/orders"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationShopServiceCreateShopOrder))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -392,6 +532,19 @@ func (c *ShopServiceHTTPClientImpl) GetMyUnifiedOrder(ctx context.Context, in *G
 	return &out, nil
 }
 
+func (c *ShopServiceHTTPClientImpl) GetProduct(ctx context.Context, in *GetProductRequest, opts ...http.CallOption) (*GetProductReply, error) {
+	var out GetProductReply
+	pattern := "/api/shop/products/{product_id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationShopServiceGetProduct))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *ShopServiceHTTPClientImpl) ListDeliveryAddresses(ctx context.Context, in *ListDeliveryAddressesRequest, opts ...http.CallOption) (*ListDeliveryAddressesReply, error) {
 	var out ListDeliveryAddressesReply
 	pattern := "/api/shop/addresses"
@@ -418,6 +571,19 @@ func (c *ShopServiceHTTPClientImpl) ListMyFrequentStores(ctx context.Context, in
 	return &out, nil
 }
 
+func (c *ShopServiceHTTPClientImpl) ListMyShopOrders(ctx context.Context, in *ListMyShopOrdersRequest, opts ...http.CallOption) (*ListMyShopOrdersReply, error) {
+	var out ListMyShopOrdersReply
+	pattern := "/api/shop/orders"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationShopServiceListMyShopOrders))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *ShopServiceHTTPClientImpl) ListMyUnifiedOrders(ctx context.Context, in *ListMyUnifiedOrdersRequest, opts ...http.CallOption) (*ListMyUnifiedOrdersReply, error) {
 	var out ListMyUnifiedOrdersReply
 	pattern := "/api/orders/me"
@@ -425,6 +591,32 @@ func (c *ShopServiceHTTPClientImpl) ListMyUnifiedOrders(ctx context.Context, in 
 	opts = append(opts, http.Operation(OperationShopServiceListMyUnifiedOrders))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *ShopServiceHTTPClientImpl) ListProducts(ctx context.Context, in *ListProductsRequest, opts ...http.CallOption) (*ListProductsReply, error) {
+	var out ListProductsReply
+	pattern := "/api/shop/products"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationShopServiceListProducts))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *ShopServiceHTTPClientImpl) MockPayShopOrder(ctx context.Context, in *MockPayShopOrderRequest, opts ...http.CallOption) (*MockPayShopOrderReply, error) {
+	var out MockPayShopOrderReply
+	pattern := "/api/shop/orders/{order_id}/mock-pay"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationShopServiceMockPayShopOrder))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

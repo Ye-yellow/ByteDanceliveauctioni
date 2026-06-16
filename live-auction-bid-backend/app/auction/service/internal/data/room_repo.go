@@ -30,6 +30,9 @@ func (s *Store) EnsureDefaultRoom(ctx context.Context, mainAccountID, createdByU
 		Order("id ASC").
 		First(&model).Error
 	if err == nil {
+		if err := s.ensureRoomLiveDefaults(ctx, &model, nowMs); err != nil {
+			return nil, err
+		}
 		if err := ensureRoomStateRecord(ctx, s.db, model.ID, model.MainAccountID, nowMs); err != nil {
 			return nil, err
 		}
@@ -49,6 +52,7 @@ func (s *Store) EnsureDefaultRoom(ctx context.Context, mainAccountID, createdByU
 		CreatedAtUnixMs: nowMs,
 		UpdatedAtUnixMs: nowMs,
 	}
+	applyRoomLiveDefaults(&room, nowMs)
 	model = *roomToModel(room)
 	if err := s.db.WithContext(ctx).
 		Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "main_account_id"}}, DoNothing: true}).
@@ -127,16 +131,19 @@ func (s *Store) FindRoomByID(ctx context.Context, roomID string) (*auction.Room,
 }
 
 func roomToModel(room auction.Room) *AuctionRoomModel {
+	applyRoomLiveDefaults(&room, room.UpdatedAtUnixMs)
 	return &AuctionRoomModel{
-		ID:              strings.TrimSpace(room.ID),
-		MainAccountID:   strings.TrimSpace(room.MainAccountID),
-		Name:            strings.TrimSpace(room.Name),
-		Platform:        strings.TrimSpace(room.Platform),
-		PlatformRoomID:  strings.TrimSpace(room.PlatformRoomID),
-		Status:          string(room.Status),
-		CreatedByUserID: strings.TrimSpace(room.CreatedByUserID),
-		CreatedAtUnixMs: room.CreatedAtUnixMs,
-		UpdatedAtUnixMs: room.UpdatedAtUnixMs,
+		ID:                  strings.TrimSpace(room.ID),
+		MainAccountID:       strings.TrimSpace(room.MainAccountID),
+		Name:                strings.TrimSpace(room.Name),
+		Platform:            strings.TrimSpace(room.Platform),
+		PlatformRoomID:      strings.TrimSpace(room.PlatformRoomID),
+		LiveSourceURL:       strings.TrimSpace(room.LiveSourceURL),
+		LiveStartedAtUnixMs: room.LiveStartedAtUnixMs,
+		Status:              string(room.Status),
+		CreatedByUserID:     strings.TrimSpace(room.CreatedByUserID),
+		CreatedAtUnixMs:     room.CreatedAtUnixMs,
+		UpdatedAtUnixMs:     room.UpdatedAtUnixMs,
 	}
 }
 
@@ -145,16 +152,57 @@ func roomFromModel(model *AuctionRoomModel) *auction.Room {
 		return nil
 	}
 	return &auction.Room{
-		ID:              model.ID,
-		MainAccountID:   model.MainAccountID,
-		Name:            model.Name,
-		Platform:        model.Platform,
-		PlatformRoomID:  model.PlatformRoomID,
-		Status:          auction.RoomStatus(model.Status),
-		CreatedByUserID: model.CreatedByUserID,
-		CreatedAtUnixMs: model.CreatedAtUnixMs,
-		UpdatedAtUnixMs: model.UpdatedAtUnixMs,
+		ID:                  model.ID,
+		MainAccountID:       model.MainAccountID,
+		Name:                model.Name,
+		Platform:            model.Platform,
+		PlatformRoomID:      model.PlatformRoomID,
+		LiveSourceURL:       strings.TrimSpace(model.LiveSourceURL),
+		LiveStartedAtUnixMs: model.LiveStartedAtUnixMs,
+		Status:              auction.RoomStatus(model.Status),
+		CreatedByUserID:     model.CreatedByUserID,
+		CreatedAtUnixMs:     model.CreatedAtUnixMs,
+		UpdatedAtUnixMs:     model.UpdatedAtUnixMs,
 	}
+}
+
+func applyRoomLiveDefaults(room *auction.Room, nowMs int64) {
+	if room == nil {
+		return
+	}
+	if strings.TrimSpace(room.LiveSourceURL) == "" {
+		room.LiveSourceURL = auction.LiveSourceURLForRoomID(room.ID)
+	}
+	if room.LiveStartedAtUnixMs <= 0 {
+		if room.CreatedAtUnixMs > 0 {
+			room.LiveStartedAtUnixMs = room.CreatedAtUnixMs
+		} else {
+			room.LiveStartedAtUnixMs = nowMs
+		}
+	}
+}
+
+func (s *Store) ensureRoomLiveDefaults(ctx context.Context, model *AuctionRoomModel, nowMs int64) error {
+	if model == nil {
+		return nil
+	}
+	room := roomFromModel(model)
+	beforeSource := strings.TrimSpace(room.LiveSourceURL)
+	beforeStartedAt := room.LiveStartedAtUnixMs
+	applyRoomLiveDefaults(room, nowMs)
+	if beforeSource == strings.TrimSpace(room.LiveSourceURL) && beforeStartedAt == room.LiveStartedAtUnixMs {
+		return nil
+	}
+	model.LiveSourceURL = room.LiveSourceURL
+	model.LiveStartedAtUnixMs = room.LiveStartedAtUnixMs
+	model.UpdatedAtUnixMs = nowMs
+	return s.db.WithContext(ctx).Model(&AuctionRoomModel{}).
+		Where("id = ?", model.ID).
+		Updates(map[string]any{
+			"live_source_url":         model.LiveSourceURL,
+			"live_started_at_unix_ms": model.LiveStartedAtUnixMs,
+			"updated_at_unix_ms":      model.UpdatedAtUnixMs,
+		}).Error
 }
 
 func (s *Store) roomFromModelWithProfile(ctx context.Context, model *AuctionRoomModel, publicOnly bool) (*auction.Room, bool, error) {

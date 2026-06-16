@@ -81,6 +81,7 @@ type Claims struct {
 	UserID          string        `json:"sub"`
 	Username        string        `json:"username"`
 	Nickname        string        `json:"nickname"`
+	AvatarURL       string        `json:"avatar_url,omitempty"`
 	RoleCodes       []string      `json:"role_codes"`
 	PermissionCodes []string      `json:"permission_codes"`
 	MainAccountID   string        `json:"main_account_id,omitempty"`
@@ -242,6 +243,7 @@ func (m *Manager) signAccessToken(user *v1.User, issuedAt, expiresAt time.Time) 
 		UserID:          user.GetId(),
 		Username:        user.GetUsername(),
 		Nickname:        user.GetNickname(),
+		AvatarURL:       user.GetAvatarUrl(),
 		RoleCodes:       normalizeCodes(user.GetRoleCodes()),
 		PermissionCodes: normalizeCodes(user.GetPermissionCodes()),
 		MainAccountID:   user.GetMainAccountId(),

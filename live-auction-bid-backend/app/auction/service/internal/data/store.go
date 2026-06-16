@@ -9,6 +9,8 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
+	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 	"live-auction-bid/backend/app/auction/service/internal/observability"
 )
 
@@ -183,5 +185,49 @@ func (s *Store) migrate(ctx context.Context) error {
 	if err := s.EnsureRBACDefaults(ctx); err != nil {
 		return err
 	}
+	if err := s.ensureVisualDefaults(ctx); err != nil {
+		return err
+	}
 	return s.EnsureShopSeeds(ctx)
+}
+
+func (s *Store) ensureVisualDefaults(ctx context.Context) error {
+	var users []AuctionUserModel
+	if err := s.db.WithContext(ctx).
+		Select("id").
+		Where("avatar_url = ?", "").
+		Find(&users).Error; err != nil {
+		return err
+	}
+	for _, user := range users {
+		if err := s.db.WithContext(ctx).Model(&AuctionUserModel{}).
+			Where("id = ? AND avatar_url = ?", user.ID, "").
+			Update("avatar_url", userbiz.AvatarURLForUserID(user.ID)).Error; err != nil {
+			return err
+		}
+	}
+
+	var rooms []AuctionRoomModel
+	if err := s.db.WithContext(ctx).
+		Select("id", "created_at_unix_ms").
+		Where("live_source_url = ? OR live_started_at_unix_ms = 0", "").
+		Find(&rooms).Error; err != nil {
+		return err
+	}
+	nowMs := time.Now().UnixMilli()
+	for _, room := range rooms {
+		startedAt := room.CreatedAtUnixMs
+		if startedAt <= 0 {
+			startedAt = nowMs
+		}
+		if err := s.db.WithContext(ctx).Model(&AuctionRoomModel{}).
+			Where("id = ?", room.ID).
+			Updates(map[string]any{
+				"live_source_url":         gorm.Expr("CASE WHEN live_source_url = '' THEN ? ELSE live_source_url END", auction.LiveSourceURLForRoomID(room.ID)),
+				"live_started_at_unix_ms": gorm.Expr("CASE WHEN live_started_at_unix_ms = 0 THEN ? ELSE live_started_at_unix_ms END", startedAt),
+			}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }

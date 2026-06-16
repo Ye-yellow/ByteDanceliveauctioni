@@ -3,17 +3,19 @@ package data
 import "time"
 
 type AuctionRoomModel struct {
-	ID              string `gorm:"column:id;type:varchar(64);primaryKey"`
-	MainAccountID   string `gorm:"column:main_account_id;type:varchar(64);not null;uniqueIndex:uidx_room_main_account;index:idx_room_main_status,priority:1"`
-	Name            string `gorm:"column:name;type:varchar(128);not null"`
-	Platform        string `gorm:"column:platform;type:varchar(32);not null;default:'douyin'"`
-	PlatformRoomID  string `gorm:"column:platform_room_id;type:varchar(128);not null;default:'';index:idx_platform_room"`
-	Status          string `gorm:"column:status;type:varchar(32);not null;default:'ACTIVE';index:idx_room_main_status,priority:2"`
-	CreatedByUserID string `gorm:"column:created_by_user_id;type:varchar(64);not null;default:'';index:idx_room_created_by"`
-	CreatedAtUnixMs int64  `gorm:"column:created_at_unix_ms;not null"`
-	UpdatedAtUnixMs int64  `gorm:"column:updated_at_unix_ms;not null"`
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	ID                  string `gorm:"column:id;type:varchar(64);primaryKey"`
+	MainAccountID       string `gorm:"column:main_account_id;type:varchar(64);not null;uniqueIndex:uidx_room_main_account;index:idx_room_main_status,priority:1"`
+	Name                string `gorm:"column:name;type:varchar(128);not null"`
+	Platform            string `gorm:"column:platform;type:varchar(32);not null;default:'douyin'"`
+	PlatformRoomID      string `gorm:"column:platform_room_id;type:varchar(128);not null;default:'';index:idx_platform_room"`
+	LiveSourceURL       string `gorm:"column:live_source_url;type:varchar(512);not null;default:''"`
+	LiveStartedAtUnixMs int64  `gorm:"column:live_started_at_unix_ms;not null;default:0"`
+	Status              string `gorm:"column:status;type:varchar(32);not null;default:'ACTIVE';index:idx_room_main_status,priority:2"`
+	CreatedByUserID     string `gorm:"column:created_by_user_id;type:varchar(64);not null;default:'';index:idx_room_created_by"`
+	CreatedAtUnixMs     int64  `gorm:"column:created_at_unix_ms;not null"`
+	UpdatedAtUnixMs     int64  `gorm:"column:updated_at_unix_ms;not null"`
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
 }
 
 func (AuctionRoomModel) TableName() string { return "auction_rooms" }
@@ -327,6 +329,7 @@ type AuctionUserModel struct {
 	ID              string `gorm:"column:id;type:varchar(64);primaryKey"`
 	Username        string `gorm:"column:username;type:varchar(64);not null;uniqueIndex:idx_username"`
 	Nickname        string `gorm:"column:nickname;type:varchar(128);not null"`
+	AvatarURL       string `gorm:"column:avatar_url;type:varchar(512);not null;default:''"`
 	PasswordHash    string `gorm:"column:password_hash;type:varchar(255);not null"`
 	MainAccountID   string `gorm:"column:main_account_id;type:varchar(64);not null;default:'';index:idx_user_main_status,priority:1"`
 	CreatedByUserID string `gorm:"column:created_by_user_id;type:varchar(64);not null;default:'';index:idx_user_created_by"`
